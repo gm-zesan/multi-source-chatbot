@@ -24,7 +24,6 @@ class ChatController extends Controller
 
         $query = $request->message;
         $intent = $parser->parse($query);
-
         ChatLog::create([
             'query'  => $query,
             'intent' => json_encode($intent),

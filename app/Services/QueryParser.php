@@ -3,7 +3,7 @@
 namespace App\Services;
 
 use App\Models\SourceTable;
-use App\Services\RegistryService;
+use App\Models\SourceTableColumn;
 
 class QueryParser
 {
@@ -14,26 +14,14 @@ class QueryParser
         $intent = [
             'action' => null,
             'table'  => null,
-            'source' => 'db_01',
+            'columns'=> [],
             'limit'  => null,
             'filters'=> [],
-            'columns'=> [],
             'sort'   => null,
+            'confidence' => 0,
+            'aggregate' => null,
+            'aggregate_column' => null,
         ];
-
-        // Attempt to resolve table & source from SourceTable aliases (if model/db available)
-        try {
-            $sources = SourceTable::all();
-            foreach ($sources as $item) {
-                if (str_contains($query, strtolower($item->alias))) {
-                    $intent['table']  = $item->table_name;
-                    $intent['source'] = $item->source_id;
-                    break;
-                }
-            }
-        } catch (\Throwable $e) {
-            // If SourceTable or DB isn't available, ignore and fall back to simple checks
-        }
 
         // Actions detection using a small action list
         $actions = [
@@ -47,80 +35,201 @@ class QueryParser
         foreach ($actions as $action) {
             if (str_contains($query, $action)) {
                 $intent['action'] = 'select';
+                $intent['confidence'] += 10;
                 break;
             }
         }
 
-        // Fallback table detection for common keywords
-        if (empty($intent['table'])) {
-            if (str_contains($query, 'customer') || str_contains($query, 'customers')) {
-                $intent['table'] = 'customers';
+        // Table detection using the source_tables registry
+        $tables = SourceTable::select('table_name', 'alias')->get();
+
+        foreach ($tables as $table) {
+
+            $aliases = [];
+
+            if (!empty($table->alias)) {
+                $aliases = array_map(
+                    'trim',
+                    explode(',', strtolower($table->alias))
+                );
+            }
+
+            $aliases[] = strtolower($table->table_name);
+
+            foreach ($aliases as $alias) {
+
+                if (
+                    preg_match(
+                        '/\b' . preg_quote($alias, '/') . '\b/i',
+                        $query
+                    )
+                )if (str_contains($query, $alias)) {
+                    $intent['table'] = $table->table_name;
+                    $intent['confidence'] += 20;
+                    break 2;
+                }
             }
         }
 
+
+        $columnQuery = preg_split('/\s+where\s+|\s+order\s+by\s+|\s+limit\s+|\s+top\s+\d+/i', $query)[0];
+
+        // Column detection using the source_table_columns registry
+        if ($intent['table']) {
+            $columnKeywords = SourceTableColumn::where(
+                'table_name',
+                $intent['table']
+            )->get();
+
+            foreach ($columnKeywords as $column) {
+
+                $keywords = [];
+
+                if (!empty($column->alias)) {
+                    $keywords = explode(',', strtolower($column->alias));
+                }
+
+                $keywords[] = strtolower($column->column_name);
+
+                foreach ($keywords as $keyword) {
+
+                    if (
+                        preg_match(
+                            '/\b' . preg_quote(trim($keyword), '/') . '\b/i',
+                            $columnQuery
+                        )
+                    )if (str_contains($columnQuery, trim($keyword))) {
+
+                        if (!in_array($column->column_name, $intent['columns'])) {
+                            $intent['columns'][] = $column->column_name;
+                        }
+
+                        $intent['confidence'] += 5;
+
+                        break;
+                    }
+                }
+            }
+        }
+
+
+        // Aggregate function detection
+        $aggregateMap = [
+            'count'   => 'COUNT',
+            'total'   => 'SUM',
+            'sum'     => 'SUM',
+            'average' => 'AVG',
+            'avg'     => 'AVG',
+            'minimum' => 'MIN',
+            'min'     => 'MIN',
+            'maximum' => 'MAX',
+            'max'     => 'MAX',
+        ];
+
+        $intent['aggregate_column'] = null;
+
+        foreach ($aggregateMap as $keyword => $function) {
+
+            if (
+                preg_match(
+                    '/\b' . preg_quote($keyword, '/') . '\b/i',
+                    $columnQuery
+                )
+            ) {
+
+                $intent['aggregate'] = $function;
+                $intent['action'] = 'select';
+                $intent['confidence'] += 10;
+
+                // COUNT usually works on *
+                if ($function === 'COUNT') {
+
+                    $intent['aggregate_column'] = '*';
+                }
+                // SUM, AVG, MIN, MAX need a target column
+                elseif (!empty($intent['columns'])) {
+
+                    $intent['aggregate_column'] = $intent['columns'][0];
+                }
+
+                break;
+            }
+        }
+
+        // Default columns only when no aggregate detected
+        if (
+            empty($intent['columns']) &&
+            empty($intent['aggregate'])
+        ) {
+            $intent['columns'] = ['*'];
+        }
+
         // Detect TOP n (e.g. "top 10")
-        if (preg_match('/top\s+(\d+)/', $query, $matches)) {
+        if (preg_match('/top\s+(\d+)/i', $query, $matches)) {
             $intent['limit'] = (int)$matches[1];
+            $intent['confidence'] += 5;
         }
 
         // Detect LIMIT n
-        if (preg_match('/limit\s+(\d+)/', $query, $matches)) {
+        if (preg_match('/limit\s+(\d+)/i', $query, $matches)) {
             $intent['limit'] = (int)$matches[1];
+            $intent['confidence'] += 5;
         }
 
         // Detect WHERE clauses (allow multi-word values, with or without quotes)
         // Captures until next clause (order by, limit, top) or end of string
-        if (preg_match_all('/where\s+(\w+)\s*=\s*(.+?)(?=(\s+order\s+by|\s+limit|\s+top\s+\d+|$))/i', $query, $matches, PREG_SET_ORDER)) {
-            foreach ($matches as $m) {
-                $col = $m[1];
-                $val = trim($m[2]);
-                // strip surrounding quotes if present
-                if ((str_starts_with($val, '"') && str_ends_with($val, '"')) || (str_starts_with($val, "'") && str_ends_with($val, "'"))) {
-                    $val = substr($val, 1, -1);
-                }
-                $val = trim($val);
+        if (preg_match('/where\s+(.+)/i', $query, $match)) {
+            $wherePart = $match[1];
+            $wherePart = preg_split(
+                '/\s+order\s+by|\s+limit|\s+top\s+/i',
+                $wherePart
+            )[0];
+            $conditions = preg_split(
+                '/\s+(and|or)\s+/i',
+                $wherePart
+            );
 
-                $intent['filters'][] = [
-                    'column'   => $col,
-                    'operator' => '=',
-                    'value'    => $val,
-                ];
-            }
-        }
-
-        // Detect selected columns using registry as single source-of-truth
-        $availableColumns = [];
-        if (!empty($intent['table'])) {
-            try {
-                $availableColumns = RegistryService::getColumns($intent['table']);
-                $availableColumns = array_map('strtolower', (array) $availableColumns);
-            } catch (\Throwable $e) {
-                $availableColumns = [];
-            }
-        }
-
-        // fallback small whitelist when registry is not available
-        if (empty($availableColumns)) {
-            $availableColumns = RegistryService::getColumns($intent['table'] ?? '') ?: ['id', 'name', 'email', 'phone'];
-        }
-
-        foreach ($availableColumns as $column) {
-            if (str_contains($query, $column)) {
-                if (!in_array($column, $intent['columns'], true)) {
-                    $intent['columns'][] = $column;
+            foreach ($conditions as $condition) {
+                if (
+                    preg_match(
+                        '/(\w+)\s*(=|!=|>=|<=|>|<)\s*(.+)/',
+                        trim($condition),
+                        $m
+                    )
+                ) {
+                    $intent['filters'][] = [
+                        'column'   => trim($m[1]),
+                        'operator' => trim($m[2]),
+                        'value'    => trim($m[3], '"\' ')
+                    ];
+                    $intent['confidence'] += 5;
                 }
             }
-        }
-
-        if (empty($intent['columns'])) {
-            $intent['columns'] = ['*'];
         }
 
         // Detect ORDER BY column direction
-        if (preg_match('/order by\s+(\w+)\s+(asc|desc)/', $query, $matches)) {
+        if (
+            preg_match(
+                '/order by\s+(\w+)(?:\s+(asc|desc))?/i',
+                $query,
+                $matches
+            )
+        ) {
+
             $intent['sort'] = [
-                'column'    => $matches[1],
-                'direction' => $matches[2],
+                'column' => $matches[1],
+                'direction' => $matches[2] ?? 'asc'
+            ];
+            $intent['confidence'] += 5;
+        }
+
+        $intent['confidence'] = min(100,$intent['confidence']);
+
+        if (!$intent['table']) {
+            return [
+                'success' => false,
+                'message' => 'No table detected',
+                'intent' => $intent
             ];
         }
 

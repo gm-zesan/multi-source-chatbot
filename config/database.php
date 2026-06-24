@@ -82,6 +82,42 @@ return [
             ]) : [],
         ],
 
+        'db_02'=>[
+            'driver'=>'mysql',
+            'host'=>'127.0.0.1',
+            'port'=>'3306',
+            'database'=>'db_02',
+            'username'=>'root',
+            'password'=>'',
+            'charset'=>'utf8mb4',
+            'collation'=>'utf8mb4_unicode_ci',
+            'prefix'=>'',
+            'prefix_indexes'=>true,
+            'strict'=>true,
+            'engine'=>null,
+            'options'=>extension_loaded('pdo_mysql') ? array_filter([
+                (PHP_VERSION_ID >= 80500 ? Mysql::ATTR_SSL_CA : PDO::MYSQL_ATTR_SSL_CA) => env('MYSQL_ATTR_SSL_CA'),
+            ]) : [],
+        ],
+
+        'db_03'=>[
+            'driver'=>'mysql',
+            'host'=>'127.0.0.1',
+            'port'=>'3306',
+            'database'=>'db_03',
+            'username'=>'root',
+            'password'=>'',
+            'charset'=>'utf8mb4',
+            'collation'=>'utf8mb4_unicode_ci',
+            'prefix'=>'',
+            'prefix_indexes'=>true,
+            'strict'=>true,
+            'engine'=>null,
+            'options'=>extension_loaded('pdo_mysql') ? array_filter([
+                (PHP_VERSION_ID >= 80500 ? Mysql::ATTR_SSL_CA : PDO::MYSQL_ATTR_SSL_CA) => env('MYSQL_ATTR_SSL_CA'),
+            ]) : [],
+        ],
+
         'mariadb' => [
             'driver' => 'mariadb',
             'url' => env('DB_URL'),

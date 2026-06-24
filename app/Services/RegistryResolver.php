@@ -10,9 +10,19 @@ class RegistryResolver
         string $table
     ): ?array
     {
+        $canonicalTable = DB::table('source_tables')
+            ->where('alias', $table)
+            ->orWhere('table_name', $table)
+            ->orderBy('id')
+            ->value('table_name');
+
+        if (!$canonicalTable) {
+            return null;
+        }
 
         $record = DB::table('source_tables')
-            ->where('table_name', $table)
+            ->where('table_name', $canonicalTable)
+            ->orderBy('id')
             ->first();
 
         if (!$record) {
@@ -21,7 +31,7 @@ class RegistryResolver
 
         return [
             'source_id' => $record->source_id,
-            'table_name' => $record->table_name
+            'table_name' => $canonicalTable,
         ];
     }
 }

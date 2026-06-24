@@ -24,6 +24,7 @@ class QueryExecutor
 
         try {
             $plan = $this->planner->planFromIntent($intent);
+
             $query = $this->planner->build($plan);
 
             return $query->get();
