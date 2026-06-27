@@ -71,7 +71,7 @@
 
 
     </div>
-    
+
 
     <script>
         function renderTable(rows){
@@ -106,10 +106,18 @@
                     data: { message: query, _token: '{{ csrf_token() }}' },
                     success: function(response){
                         if(response && (response.type === 'table' || response.type === 'text')){
+                            let html = '';
+                            if(response.confidence !== undefined){
+                                const pct = (response.confidence * 100).toFixed(1);
+                                const color = pct >= 70 ? '#059669' : (pct >= 40 ? '#d97706' : '#6b7280');
+                                html += `<div style="font-size:12px;color:${color};margin-bottom:8px;padding:4px 8px;background:#f3f4f6;border-radius:6px;display:inline-block">🔍 Confidence: ${pct}%</div>`;
+                            }
                             if(response.type === 'table'){
-                                $('#chat').html(renderTable(response.data || []));
+                                html += renderTable(response.data || []);
+                                $('#chat').html(html);
                             } else {
-                                $('#chat').html(`<div class="msg">${response.message ?? 'No data'}</div>`);
+                                html += `<div class="msg">${response.message ?? 'No data'}</div>`;
+                                $('#chat').html(html);
                             }
                         } else {
                             $('#chat').html('<div class="empty">No results</div>');

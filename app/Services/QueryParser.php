@@ -2,26 +2,95 @@
 
 namespace App\Services;
 
+use App\DTO\RoutingResult;
 use App\Models\SourceTable;
 use App\Models\SourceTableColumn;
+use Illuminate\Support\Facades\Log;
 
 class QueryParser
 {
+    /**
+     * Minimum confidence threshold for routing to be considered "semantic".
+     * Below this, keyword fallback logic is used.
+     */
+    protected const FALLBACK_THRESHOLD = 0.15;
+
+    protected ContextRouter $router;
+    protected ?RoutingResult $lastRoutingResult = null;
+
+    /**
+     * Inject ContextRouter via constructor (Laravel auto-resolves).
+     */
+    public function __construct(ContextRouter $router)
+    {
+        $this->router = $router;
+    }
+
+    /**
+     * Get the last routing result (for logging/audit in ChatController).
+     */
+    public function getLastRoutingResult(): ?RoutingResult
+    {
+        return $this->lastRoutingResult;
+    }
+
     public function parse(string $query): array
     {
         $query = strtolower(trim($query));
 
         $intent = [
-            'action' => null,
-            'table'  => null,
-            'columns'=> [],
-            'limit'  => null,
-            'filters'=> [],
-            'sort'   => null,
-            'confidence' => 0,
-            'aggregate' => null,
+            'action'           => null,
+            'table'            => null,
+            'source'           => null,
+            'columns'          => [],
+            'limit'            => null,
+            'filters'          => [],
+            'sort'             => null,
+            'confidence'       => 0,
+            'aggregate'        => null,
             'aggregate_column' => null,
+            // Routing metadata
+            'routing_source'   => null,
+            'routing_confidence' => null,
+            'routing_method'   => null,
         ];
+
+        // ── Phase 1: Context Router (semantic + keyword fallback) ──
+        try {
+            $routingResult = $this->router->route($query);
+            $this->lastRoutingResult = $routingResult;
+
+            // Store routing metadata in intent
+            $intent['routing_confidence'] = $routingResult->confidence;
+            $intent['routing_method'] = $routingResult->usedFallback ? 'keyword_fallback' : 'semantic';
+
+            if ($routingResult->isActionable(self::FALLBACK_THRESHOLD)) {
+                $intent['table']     = $routingResult->table;
+                $intent['source']    = $routingResult->sourceId;
+                $intent['confidence'] = (int) round($routingResult->confidence * 100);
+                $intent['routing_source'] = $routingResult->sourceId;
+
+                Log::debug('QueryParser: context routing succeeded', [
+                    'query'    => mb_substr($query, 0, 100),
+                    'table'    => $routingResult->table,
+                    'source'   => $routingResult->sourceId,
+                    'method'   => $intent['routing_method'],
+                    'confidence' => $routingResult->confidence,
+                ]);
+
+                // Skip Phase 2 keyword detection since router resolved the table
+                $skipKeywordPhase = true;
+            } else {
+                Log::debug('QueryParser: routing confidence too low, falling back to keywords', [
+                    'confidence' => $routingResult->confidence,
+                    'threshold'  => self::FALLBACK_THRESHOLD,
+                ]);
+            }
+        } catch (\Throwable $e) {
+            Log::warning('QueryParser: context router threw exception, using keyword fallback', [
+                'error' => $e->getMessage(),
+            ]);
+        }
 
         // Actions detection using a small action list
         $actions = [
@@ -40,33 +109,36 @@ class QueryParser
             }
         }
 
-        // Table detection using the source_tables registry
-        $tables = SourceTable::select('table_name', 'alias')->get();
+        // ── Phase 2: Keyword-based table detection (only if semantic routing didn't resolve it) ──
+        if (empty($intent['table'])) {
+            $tables = SourceTable::select('table_name', 'alias', 'source_id')->get();
 
-        foreach ($tables as $table) {
+            foreach ($tables as $table) {
 
-            $aliases = [];
+                $aliases = [];
 
-            if (!empty($table->alias)) {
-                $aliases = array_map(
-                    'trim',
-                    explode(',', strtolower($table->alias))
-                );
-            }
+                if (!empty($table->alias)) {
+                    $aliases = array_map(
+                        'trim',
+                        explode(',', strtolower($table->alias))
+                    );
+                }
 
-            $aliases[] = strtolower($table->table_name);
+                $aliases[] = strtolower($table->table_name);
 
-            foreach ($aliases as $alias) {
+                foreach ($aliases as $alias) {
 
-                if (
-                    preg_match(
+                    if (preg_match(
                         '/\b' . preg_quote($alias, '/') . '\b/i',
                         $query
-                    )
-                )if (str_contains($query, $alias)) {
-                    $intent['table'] = $table->table_name;
-                    $intent['confidence'] += 20;
-                    break 2;
+                    )) {
+                        $intent['table'] = $table->table_name;
+                        if (empty($intent['source'])) {
+                            $intent['source'] = $table->source_id;
+                        }
+                        $intent['confidence'] += 20;
+                        break 2;
+                    }
                 }
             }
         }
@@ -93,12 +165,10 @@ class QueryParser
 
                 foreach ($keywords as $keyword) {
 
-                    if (
-                        preg_match(
-                            '/\b' . preg_quote(trim($keyword), '/') . '\b/i',
-                            $columnQuery
-                        )
-                    )if (str_contains($columnQuery, trim($keyword))) {
+                    if (preg_match(
+                        '/\b' . preg_quote(trim($keyword), '/') . '\b/i',
+                        $columnQuery
+                    )) {
 
                         if (!in_array($column->column_name, $intent['columns'])) {
                             $intent['columns'][] = $column->column_name;
@@ -223,13 +293,18 @@ class QueryParser
             $intent['confidence'] += 5;
         }
 
-        $intent['confidence'] = min(100,$intent['confidence']);
+        $intent['confidence'] = min(100, $intent['confidence']);
+
+        // Ensure routing_method is set even if router wasn't used
+        if (empty($intent['routing_method'])) {
+            $intent['routing_method'] = $intent['source'] ? 'keyword_fallback' : 'none';
+        }
 
         if (!$intent['table']) {
             return [
                 'success' => false,
                 'message' => 'No table detected',
-                'intent' => $intent
+                'intent'  => $intent,
             ];
         }
 

@@ -19,20 +19,37 @@ class ChatController extends Controller
         Request $request,
         QueryParser $parser,
         QueryExecutor $executor,
-        ResponseFormatter $formatter
+        ResponseFormatter $formatter,
     ) {
 
-        $query = $request->message;
-        $intent = $parser->parse($query);
-        ChatLog::create([
-            'query'  => $query,
-            'intent' => json_encode($intent),
+        // ── Validate input ──
+        $validated = $request->validate([
+            'message' => 'required|string|max:500',
         ]);
 
-        // must be a select action and table must be detected
+        $query = $validated['message'];
+
+        // ── Parse with ContextRouter (injected via QueryParser constructor) ──
+        $intent = $parser->parse($query);
+
+        // ── Get routing metadata from the parser ──
+        $routingResult = $parser->getLastRoutingResult();
+
+        // ── Log query, intent, and routing decision ──
+        $logData = [
+            'query'             => $query,
+            'intent'            => json_encode($intent),
+            'routing_confidence' => $intent['routing_confidence'] ?? null,
+            'routing_source'    => $intent['routing_source'] ?? ($intent['source'] ?? null),
+            'routing_method'    => $intent['routing_method'] ?? 'none',
+        ];
+
+        ChatLog::create($logData);
+
+        // ── Must be a select action and table must be detected ──
         if (empty($intent['action']) || $intent['action'] !== 'select' || empty($intent['table'])) {
             return response()->json(
-                $formatter->text('No matching data found.')
+                $formatter->text('No matching data found.', $intent['routing_confidence'] ?? null)
             );
         }
 
@@ -40,12 +57,12 @@ class ChatController extends Controller
 
         if (count($result)) {
             return response()->json(
-                $formatter->table($result)
+                $formatter->table($result, $intent['routing_confidence'] ?? null)
             );
         }
 
         return response()->json(
-            $formatter->text('No matching data found.')
+            $formatter->text('No matching data found.', $intent['routing_confidence'] ?? null)
         );
     }
 }

@@ -26,25 +26,43 @@ class QueryPlanner
     /**
      * Resolve the execution plan for an extracted intent.
      *
+     * Priority for source_id:
+     *   1. $intent['source'] (from ContextRouter or QueryParser keyword match)
+     *   2. RegistryResolver::resolveTable() (traditional alias/name lookup)
+     *   3. Fallback to 'db_01' (default connection)
+     *
      * @param array $intent
      * @return array
      */
     public function plan(array $intent): array
     {
         $resolved = null;
-        if (!empty($intent['table'])) {
-            $resolved = $this->registryResolver->resolveTable($intent['table']);
+
+        // 1. Use source from intent if already resolved (ContextRouter or keyword match)
+        $connection = $intent['source'] ?? null;
+        $table      = $intent['table'] ?? null;
+
+        // 2. If no source but table exists, resolve via registry
+        if (empty($connection) && !empty($table)) {
+            $resolved = $this->registryResolver->resolveTable($table);
+            $connection = $resolved['source_id'] ?? null;
+            $table      = $resolved['table_name'] ?? $table;
         }
 
+        // 3. Ultimate fallback
+        $connection = $connection ?? ($intent['connection'] ?? 'db_01');
+
         return [
-            'connection' => $resolved['source_id'] ?? ($intent['connection'] ?? 'db_01'),
-            'table'      => $resolved['table_name'] ?? ($intent['table'] ?? null),
-            'columns'    => $intent['columns'] ?? ['*'],
-            'filters'    => $intent['filters'] ?? [],
-            'sort'       => $intent['sort'] ?? null,
-            'limit'      => $intent['limit'] ?? null,
+            'connection'       => $connection,
+            'table'            => $table,
+            'columns'          => $intent['columns'] ?? ['*'],
+            'filters'          => $intent['filters'] ?? [],
+            'sort'             => $intent['sort'] ?? null,
+            'limit'            => $intent['limit'] ?? null,
             'aggregate'        => $intent['aggregate'] ?? null,
             'aggregate_column' => $intent['aggregate_column'] ?? null,
+            'routing_confidence' => $intent['routing_confidence'] ?? null,
+            'routing_method'     => $intent['routing_method'] ?? null,
         ];
     }
 

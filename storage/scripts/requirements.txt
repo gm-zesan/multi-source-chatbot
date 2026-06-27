@@ -1,0 +1,5 @@
+sentence-transformers>=2.2.0
+torch>=1.10.0
+numpy>=1.21.0
+mysql-connector-python>=8.0.0
+redis>=4.0.0
