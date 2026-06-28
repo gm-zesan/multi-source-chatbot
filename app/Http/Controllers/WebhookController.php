@@ -7,33 +7,26 @@ use Illuminate\Support\Facades\Log;
 
 class WebhookController extends Controller
 {
+
     public function handle(Request $request)
     {
-
-        Log::info($request->all());
-
-        return response('EVENT_RECEIVED', 200);
-
-
-        // Facebook webhook verification
         if ($request->isMethod('GET')) {
 
-            $mode = $request->query('hub_mode');
-            $token = $request->query('hub_verify_token');
-            $challenge = $request->query('hub_challenge');
-
             if (
-                $mode === 'subscribe' &&
-                $token === env('FB_VERIFY_TOKEN')
+                $request->input('hub.mode') === 'subscribe' &&
+                $request->input('hub.verify_token') === env('FB_VERIFY_TOKEN')
             ) {
-                return response($challenge, 200);
+                return response($request->input('hub.challenge'), 200);
             }
 
             return response('Forbidden', 403);
         }
 
-        // Incoming Messenger events
-        Log::info($request->all());
+        Log::channel('single')->info('Facebook Webhook', [
+            'headers' => $request->headers->all(),
+            'body'    => $request->getContent(),
+            'json'    => $request->all(),
+        ]);
 
         return response('EVENT_RECEIVED', 200);
     }
