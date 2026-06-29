@@ -286,7 +286,6 @@
                 <p>Query your databases with natural language</p>
             </div>
         </div>
-        <span class="header-badge">✦ Context-Aware</span>
     </header>
 
     <!-- ═══ Messages ═══ -->

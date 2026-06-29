@@ -6,7 +6,7 @@ cd /home/entrepre/chat.entrepreneursautomation.com
 
 git pull origin main
 
-composer install --no-dev --optimize-autoloader
+/home/entrepre/bin/composer install --no-dev --optimize-autoloader
 
 php artisan migrate --force
 

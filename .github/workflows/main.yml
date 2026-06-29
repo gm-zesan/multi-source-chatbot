@@ -8,6 +8,7 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
 
     steps:
       - name: Deploy to Server
@@ -21,12 +22,4 @@ jobs:
 
           script: |
             cd /home/entrepre/chat.entrepreneursautomation.com
-
-            git pull origin main
-
-            composer install --no-dev --optimize-autoloader
-
-            php artisan migrate --force
-
-            php artisan optimize:clear
-            php artisan optimize
+            ./deploy.sh
