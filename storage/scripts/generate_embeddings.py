@@ -431,6 +431,14 @@ class EmbeddingEngine:
                 "Run: pip install sentence-transformers torch numpy"
             )
             sys.exit(1)
+        except Exception as e:
+            # Catch OSError (_overlapped), NameError (base_events), etc.
+            # These are Python 3.14 / Windows compatibility issues.
+            # The caller (PHP VectorEmbeddingService) will use hash fallback.
+            error_msg = f"Model loading failed: {e}"
+            logger.error(error_msg)
+            print(json.dumps({"error": error_msg}), file=sys.stderr)
+            sys.exit(1)
 
     def embed(self, text: str) -> list:
         """Generate embedding for a single text, checking cache first."""

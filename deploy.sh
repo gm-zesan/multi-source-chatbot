@@ -13,6 +13,5 @@ git pull origin main
 php artisan migrate --force
 
 php artisan optimize:clear
-php artisan optimize
 
 echo "✅ Deploy Finished"
