@@ -28,9 +28,11 @@ class ConversationController extends Controller
      */
     public function show(Conversation $conversation)
     {
+        $conversations = Conversation::with(['channelAccount.channel'])->latest('last_message_at')->paginate(20);
+        
         $conversation->load(['messages','channelAccount.channel']);
 
-        return view('conversations.show',compact('conversation'));
+        return view('conversations.show',compact('conversations','conversation'));
     }
 
     /**
