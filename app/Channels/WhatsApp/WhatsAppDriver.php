@@ -14,7 +14,7 @@ class WhatsAppDriver implements ChannelDriver
     {
         return response('OK');
     }
-    
+
     public function send(ChannelAccount $account,Conversation $conversation,string $message): array {
         return [];
     }
@@ -25,6 +25,10 @@ class WhatsAppDriver implements ChannelDriver
 
     public function extractAccountId(array $payload): string {
         return '';
+    }
+
+    public function getUserProfile(ChannelAccount $account,string $externalUserId): array {
+        return [];
     }
 
     public function markAsRead(ChannelAccount $account,Conversation $conversation): bool {

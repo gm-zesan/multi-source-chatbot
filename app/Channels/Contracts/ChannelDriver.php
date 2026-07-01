@@ -30,6 +30,11 @@ interface ChannelDriver
     public function extractAccountId(array $payload): string;
 
     /**
+     * Get user profile
+     */
+    public function getUserProfile(ChannelAccount $account,string $externalUserId): array;
+
+    /**
      * Mark message as read
      */
     public function markAsRead(ChannelAccount $account,Conversation $conversation): bool;
