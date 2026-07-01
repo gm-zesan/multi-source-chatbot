@@ -31,6 +31,7 @@ class DatabaseSeeder extends Seeder
         // Seed context routing embeddings
         $this->call(EmbeddingSeeder::class);
 
+        $this->call(WorkspaceSeeder::class);
         // Seed channels
         $this->call(ChannelSeeder::class);
     }
