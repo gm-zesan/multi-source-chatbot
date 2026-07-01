@@ -98,7 +98,8 @@ class QueryParser
             'list',
             'get',
             'fetch',
-            'display'
+            'display',
+            'top',
         ];
 
         foreach ($actions as $action) {
@@ -251,7 +252,7 @@ class QueryParser
         if (preg_match('/where\s+(.+)/i', $query, $match)) {
             $wherePart = $match[1];
             $wherePart = preg_split(
-                '/\s+order\s+by|\s+limit|\s+top\s+/i',
+                '/\s+order\s+by|\s+limit\s+top\s+/i',
                 $wherePart
             )[0];
             $conditions = preg_split(
@@ -277,6 +278,64 @@ class QueryParser
             }
         }
 
+        // Detect implicit comparison operators without WHERE keyword
+        // Pattern: "table column over/under/above/below value"
+        $implicitOps = [
+            'over'         => '>',
+            'under'        => '<',
+            'above'        => '>',
+            'below'        => '<',
+            'greater than' => '>',
+            'less than'    => '<',
+            'more than'    => '>',
+            'at least'     => '>=',
+            'at most'      => '<=',
+        ];
+
+        $tableColumns = [];
+        if ($intent['table']) {
+            $tableColumns = \App\Models\SourceTableColumn::where('table_name', $intent['table'])
+                ->pluck('column_name')
+                ->toArray();
+        }
+
+        foreach ($implicitOps as $word => $operator) {
+            if (preg_match('/\b' . preg_quote($word, '/') . '\s+(\d+(?:\.\d+)?)\b/i', $query, $m)) {
+                // Try to find which column this compares against
+                $value = $m[1];
+                $matchedColumn = null;
+
+                // Look for a column name before the operator word
+                $beforeOp = substr($query, 0, strpos($query, $m[0]));
+                $words = preg_split('/\s+/', trim($beforeOp));
+                $lastWord = end($words);
+
+                if ($lastWord && in_array($lastWord, $tableColumns)) {
+                    $matchedColumn = $lastWord;
+                } elseif (!empty($intent['columns']) && $intent['columns'][0] !== '*') {
+                    $matchedColumn = $intent['columns'][0];
+                } elseif (!empty($tableColumns)) {
+                    // Pick most relevant numeric column (preferred order first)
+                    $preferredOrder = ['total_amount', 'amount', 'price', 'salary', 'stock', 'customer_id', 'id', 'phone'];
+                    foreach ($preferredOrder as $preferred) {
+                        if (in_array($preferred, $tableColumns, true)) {
+                            $matchedColumn = $preferred;
+                            break;
+                        }
+                    }
+                }
+
+                if ($matchedColumn) {
+                    $intent['filters'][] = [
+                        'column'   => $matchedColumn,
+                        'operator' => $operator,
+                        'value'    => $value,
+                    ];
+                    $intent['confidence'] += 5;
+                }
+            }
+        }
+
         // Detect ORDER BY column direction
         if (
             preg_match(
@@ -294,6 +353,11 @@ class QueryParser
         }
 
         $intent['confidence'] = min(100, $intent['confidence']);
+
+        // Default action to 'select' if a table was resolved but no keyword matched
+        if (empty($intent['action']) && !empty($intent['table'])) {
+            $intent['action'] = 'select';
+        }
 
         // Ensure routing_method is set even if router wasn't used
         if (empty($intent['routing_method'])) {

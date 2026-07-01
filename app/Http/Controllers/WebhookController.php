@@ -2,84 +2,43 @@
 
 namespace App\Http\Controllers;
 
+use App\Services\ChannelAccountResolver;
+use App\Services\ConversationService;
+use App\Support\ChannelManager;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Http;
 
 class WebhookController extends Controller
 {
-
+    public function __construct(
+        protected ConversationService $conversationService,
+        protected ChannelAccountResolver $resolver
+    ) {}
+    
     public function handle(Request $request)
     {
-        /**
-         * ==========================================
-         * Facebook Webhook Verification (GET)
-         * ==========================================
-         */
+        $channel = 'facebook';
+        $driver = ChannelManager::driver($channel);
+
         if ($request->isMethod('GET')) {
-
-            if (
-                $request->input('hub.mode') === 'subscribe' &&
-                $request->input('hub.verify_token') === env('FB_VERIFY_TOKEN')
-            ) {
-                return response($request->input('hub.challenge'), 200);
-            }
-
-            return response('Forbidden', 403);
+            return $driver->verifyWebhook($request);
         }
 
-         /**
-         * ==========================================
-         * Log Incoming Webhook
-         * ==========================================
-         */
-        Log::info('Facebook Webhook', [
-            'headers' => $request->headers->all(),
-            'body'    => $request->getContent(),
-            'json'    => $request->all(),
+        Log::info('Webhook received', [
+            'channel' => $channel,
+            'payload' => $request->all(),
         ]);
 
-        $messaging = $request->input('entry.0.messaging.0');
+        $payload = $request->all();
 
-        // Invalid payload
-        if (!$messaging) {
-            return response('EVENT_RECEIVED', 200);
-        }
+        $account = $this->resolver->resolve(
+            $channel,
+            $driver->extractAccountId($payload)
+        );
 
-        // Ignore delivery/read/reaction events
-        if (!isset($messaging['message'])) {
-            return response('EVENT_RECEIVED', 200);
-        }
+        $data = $driver->parseWebhook($payload);
 
-        // Ignore our own echoed messages
-        if (!empty($messaging['message']['is_echo'])) {
-            return response('EVENT_RECEIVED', 200);
-        }
-
-        // Ignore attachments without text (optional)
-        if (!isset($messaging['message']['text'])) {
-            return response('EVENT_RECEIVED', 200);
-        }
-
-        $recipientId = $messaging['sender']['id'];
-        $messageText = $messaging['message']['text'];
-
-        /**
-         * ==========================================
-         * Send Reply
-         * ==========================================
-         */
-        $response = Http::withToken(env('FB_PAGE_ACCESS_TOKEN'))
-            ->post('https://graph.facebook.com/v25.0/me/messages', [
-                'recipient' => [
-                    'id' => $recipientId,
-                ],
-                'message' => [
-                    'text' => 'Laravel received: ' . $messageText,
-                ],
-            ]);
-
-        Log::info('Facebook Send API Response', $response->json());
+        $conversation = $this->conversationService->saveIncoming($account, $data);
 
         return response('EVENT_RECEIVED', 200);
     }
