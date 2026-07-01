@@ -22,7 +22,7 @@ interface ChannelDriver
     /**
      * Parse webhook payload
      */
-    public function parseWebhook(array $payload): array;
+    public function parseWebhook(array $payload): ?array;
 
     /**
      * Extract account id from webhook payload

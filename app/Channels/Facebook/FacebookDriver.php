@@ -23,7 +23,7 @@ class FacebookDriver implements ChannelDriver
 
 
     public function send(ChannelAccount $account,Conversation $conversation,string $message): array {
-        $response = Http::withToken($account->access_token)->post('https://graph.facebook.com/v25.0/me/messages', 
+        $response = Http::withToken($account->access_token)->post('https://graph.facebook.com/v25.0/me/messages',
         [
             'recipient' => [
                 'id' => $conversation->external_user_id
@@ -35,16 +35,38 @@ class FacebookDriver implements ChannelDriver
         return $response->json();
     }
 
-    public function parseWebhook(array $payload): array
-    {
-        $messaging = $payload['entry'][0]['messaging'][0];
-        return [
-            'external_user_id' =>$messaging['sender']['id'],
-            'external_message_id' =>$messaging['message']['mid'] ?? null,
-            'text' =>$messaging['message']['text'] ?? '',
-            'attachments' =>$messaging['message']['attachments'] ?? [],
-        ];
+    public function parseWebhook(array $payload): ?array
+{
+    $messaging = $payload['entry'][0]['messaging'][0] ?? null;
+
+    if (!$messaging) {
+        return null;
     }
+
+    // Ignore delivery/read/postback/etc.
+    if (!isset($messaging['message'])) {
+        return null;
+    }
+
+    $message = $messaging['message'];
+
+    // Ignore our own messages
+    if (!empty($message['is_echo'])) {
+        return null;
+    }
+
+    // For now only support text
+    if (!isset($message['text'])) {
+        return null;
+    }
+
+    return [
+        'external_user_id'    => $messaging['sender']['id'],
+        'external_message_id' => $message['mid'] ?? null,
+        'text'                => $message['text'],
+        'attachments'         => $message['attachments'] ?? [],
+    ];
+}
 
     public function extractAccountId(array $payload): string {
         return $payload['entry'][0]['id'];
