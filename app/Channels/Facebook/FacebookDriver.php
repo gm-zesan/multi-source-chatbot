@@ -36,40 +36,62 @@ class FacebookDriver implements ChannelDriver
     }
 
     public function parseWebhook(array $payload): ?array
-{
-    $messaging = $payload['entry'][0]['messaging'][0] ?? null;
+    {
+        $messaging = $payload['entry'][0]['messaging'][0] ?? null;
 
-    if (!$messaging) {
-        return null;
+        if (!$messaging) {
+            return null;
+        }
+
+        // Ignore delivery/read/postback/etc.
+        if (!isset($messaging['message'])) {
+            return null;
+        }
+
+        $message = $messaging['message'];
+
+        // Ignore our own messages
+        if (!empty($message['is_echo'])) {
+            return null;
+        }
+
+        // For now only support text
+        if (!isset($message['text'])) {
+            return null;
+        }
+
+        return [
+            'external_user_id'    => $messaging['sender']['id'],
+            'external_message_id' => $message['mid'] ?? null,
+            'text'                => $message['text'],
+            'attachments'         => $message['attachments'] ?? [],
+        ];
     }
-
-    // Ignore delivery/read/postback/etc.
-    if (!isset($messaging['message'])) {
-        return null;
-    }
-
-    $message = $messaging['message'];
-
-    // Ignore our own messages
-    if (!empty($message['is_echo'])) {
-        return null;
-    }
-
-    // For now only support text
-    if (!isset($message['text'])) {
-        return null;
-    }
-
-    return [
-        'external_user_id'    => $messaging['sender']['id'],
-        'external_message_id' => $message['mid'] ?? null,
-        'text'                => $message['text'],
-        'attachments'         => $message['attachments'] ?? [],
-    ];
-}
 
     public function extractAccountId(array $payload): string {
         return $payload['entry'][0]['id'];
+    }
+
+    public function getUserProfile(ChannelAccount $account,string $psid): array {
+        $response = Http::get(
+            "https://graph.facebook.com/{$psid}",
+            [
+                'fields'       => 'name,profile_pic',
+                'access_token' => $account->access_token,
+            ]
+        );
+
+        if (!$response->successful()) {
+            return [
+                'name' => null,
+                'profile_pic' => null,
+            ];
+        }
+
+        return [
+            'name' => $response->json('name'),
+            'profile_pic' => $response->json('profile_pic'),
+        ];
     }
 
     public function markAsRead(ChannelAccount $account,Conversation $conversation): bool {

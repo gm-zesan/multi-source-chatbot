@@ -34,13 +34,22 @@ class WebhookController extends Controller
         // Parse first
         $data = $driver->parseWebhook($payload);
 
-        // Ignore delivery/read/echo/etc.
-        if ($data['external_user_id'] === null) {
+        // Ignore delivery/read/echo events
+        if ($data === null) {
             return response('EVENT_IGNORED', 200);
         }
 
         // Resolve account
         $account = $this->resolver->resolve($channel,$driver->extractAccountId($payload));
+
+        // Fetch customer profile
+        $profile = $driver->getUserProfile(
+            $account,
+            $data['external_user_id']
+        );
+
+        $data['customer_name'] = $profile['name'] ?? null;
+        $data['customer_avatar'] = $profile['profile_pic'] ?? null;
 
         // Save conversation/message
         $this->conversationService->saveIncoming($account, $data);

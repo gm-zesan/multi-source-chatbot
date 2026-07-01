@@ -26,6 +26,10 @@ class TelegramDriver implements ChannelDriver
         return '';
     }
 
+    public function getUserProfile(ChannelAccount $account,string $externalUserId): array {
+        return [];
+    }
+
     public function markAsRead(ChannelAccount $account,Conversation $conversation): bool {
         return true;
     }
