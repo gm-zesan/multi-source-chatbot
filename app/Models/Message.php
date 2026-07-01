@@ -11,7 +11,7 @@ class Message extends Model
         'conversation_id',
         'external_message_id',
         'direction',
-        'message_type',
+        'type',
         'body',
         'status',
         'metadata',
