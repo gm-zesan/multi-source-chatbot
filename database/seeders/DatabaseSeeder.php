@@ -21,18 +21,11 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // Default user (optional)
-        // User::factory(10)->create();
-        // User::factory()->create([
-        //     'name' => 'Test User',
-        //     'email' => 'test@example.com',
-        // ]);
-
-        // Seed context routing embeddings
-        $this->call(EmbeddingSeeder::class);
-
-        $this->call(WorkspaceSeeder::class);
-        // Seed channels
-        $this->call(ChannelSeeder::class);
+        $this->call([
+            EmbeddingSeeder::class,
+            WorkspaceSeeder::class,
+            ChannelSeeder::class,
+            ChannelAccountSeeder::class,
+        ]);
     }
 }
