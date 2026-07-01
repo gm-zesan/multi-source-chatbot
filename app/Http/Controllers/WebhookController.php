@@ -14,7 +14,7 @@ class WebhookController extends Controller
         protected ConversationService $conversationService,
         protected ChannelAccountResolver $resolver
     ) {}
-    
+
     public function handle(Request $request)
     {
         $channel = 'facebook';
@@ -31,14 +31,19 @@ class WebhookController extends Controller
 
         $payload = $request->all();
 
-        $account = $this->resolver->resolve(
-            $channel,
-            $driver->extractAccountId($payload)
-        );
-
+        // Parse first
         $data = $driver->parseWebhook($payload);
 
-        $conversation = $this->conversationService->saveIncoming($account, $data);
+        // Ignore delivery/read/echo/etc.
+        if ($data['external_user_id'] === null) {
+            return response('EVENT_IGNORED', 200);
+        }
+
+        // Resolve account
+        $account = $this->resolver->resolve($channel,$driver->extractAccountId($payload));
+
+        // Save conversation/message
+        $this->conversationService->saveIncoming($account, $data);
 
         return response('EVENT_RECEIVED', 200);
     }
