@@ -32,7 +32,7 @@ class ConversationService
                 'conversation_id'     => $conversation->id,
                 'external_message_id' => $data['external_message_id'],
                 'direction'           => 'inbound',
-                'message_type'        => 'text',
+                'type'                => 'text',
                 'body'                => $data['text'],
                 'metadata'            => $data,
             ]);
@@ -56,7 +56,7 @@ class ConversationService
             'conversation_id' => $conversation->id,
             'external_message_id' => $response['message_id'] ?? null,
             'direction' => 'outbound',
-            'message_type' => 'text',
+            'type' => 'text',
             'body' => $message,
             'metadata' => $response,
         ]);
