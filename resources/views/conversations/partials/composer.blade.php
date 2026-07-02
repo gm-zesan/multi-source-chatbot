@@ -1,39 +1,35 @@
-<div class="chat-composer">
+<form
+    action="{{ url('/conversations/'.$conversation->id.'/reply') }}"
+    method="POST"
+    class="composer">
 
-    <form method="POST"
-          action="{{ url('/conversations/'.$conversation->id.'/reply') }}">
+    @csrf
 
-        @csrf
+    <div class="composer-box">
 
-        <div class="input-group">
+        <button id="emoji-btn" type="button" class="composer-icon">
 
-            <input
-                type="text"
-                name="message"
-                class="form-control"
-                placeholder="Type your message..."
-                autocomplete="off"
-                required>
+            <i class="bi bi-emoji-smile"></i>
 
-            <button
-                class="btn btn-primary">
+        </button>
 
-                <i class="bi bi-send-fill"></i>
+        <textarea
+            id="message"
+            name="message"
+            rows="1"
+            placeholder="Type your message..."
+            required></textarea>
 
-            </button>
+        <button
+            type="submit"
+            class="send-btn">
 
-        </div>
+            <i class="bi bi-send-fill"></i>
 
-        @error('message')
+            <span>Send</span>
 
-            <small class="text-danger">
+        </button>
 
-                {{ $message }}
+    </div>
 
-            </small>
-
-        @enderror
-
-    </form>
-
-</div>
+</form>

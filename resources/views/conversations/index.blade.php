@@ -6,7 +6,7 @@
 
 <div class="row g-0 vh-100">
 
-    <div class="col-lg-4 border-end">
+    <div class="col-lg-4">
 
         @include('conversations.partials.sidebar')
 

@@ -2,35 +2,43 @@
 
     <div class="sidebar-header">
 
-        <h4 class="mb-3">
+        <div class="d-flex justify-content-between align-items-center">
 
-            Inbox
+            <div>
 
-        </h4>
+                <h4 class="fw-bold mb-0">
+                    Inbox
+                </h4>
 
-        <input type="text" class="form-control" placeholder="Search conversation...">
+                <small class="text-muted">
+
+                    Customer conversations
+
+                </small>
+
+            </div>
+
+            {{-- <button class="btn btn-light rounded-circle">
+
+                <i class="bi bi-sliders"></i>
+
+            </button> --}}
+
+        </div>
 
     </div>
 
-    <div class="sidebar-filter mt-3">
+    <div class="search-box-wrapper">
+        
+        <div class="search-box">
 
-        <button class="btn btn-primary btn-sm">
+            <i class="bi bi-search"></i>
 
-            All
+            <input
+                type="text"
+                placeholder="Search conversations">
 
-        </button>
-
-        <button class="btn btn-light btn-sm">
-
-            Unread
-
-        </button>
-
-        <button class="btn btn-light btn-sm">
-
-            Closed
-
-        </button>
+        </div>
 
     </div>
 
