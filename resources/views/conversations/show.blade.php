@@ -14,7 +14,7 @@
     </div>
 
     {{-- Right Chat --}}
-    <div class="col-lg-8 d-flex flex-column">
+    <div class="col-lg-8 d-flex flex-column chat-panel">
 
         @include('conversations.partials.chat-header')
 

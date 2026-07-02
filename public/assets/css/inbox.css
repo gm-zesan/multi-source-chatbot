@@ -65,7 +65,7 @@ a{
 
     flex-direction:column;
 
-    height: 100%;
+    height:100vh;
 }
 
 .sidebar-header{
@@ -75,6 +75,8 @@ a{
     border-bottom:1px solid var(--border);
 
     background:white;
+
+    flex-shrink:0;
 }
 
 .search-box-wrapper{
@@ -310,7 +312,19 @@ a{
     color:#64748B;
 
 }
+.chat-panel{
 
+    height:100vh;
+
+    display:flex;
+
+    flex-direction:column;
+
+    overflow:hidden;
+
+    background:#f6f8fc;
+
+}
 .chat{
 
     flex:1;
@@ -449,6 +463,8 @@ a{
     flex:1;
 
     overflow-y:auto;
+
+    overflow-x: hidden;
 
     padding:30px;
 
