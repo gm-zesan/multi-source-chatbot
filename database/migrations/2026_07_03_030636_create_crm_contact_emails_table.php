@@ -11,15 +11,15 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('c_r_m_contact_emails', function (Blueprint $table) {
+        Schema::create('crm_contact_emails', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('c_r_m_contact_id')->constrained('c_r_m_contacts')->cascadeOnDelete();
+            $table->foreignId('crm_contact_id')->constrained('crm_contacts')->cascadeOnDelete();
             $table->string('email');
             $table->boolean('is_primary')->default(false);
             $table->boolean('is_verified')->default(false);
             $table->timestamps();
 
-            $table->unique(['c_r_m_contact_id', 'email']);
+            $table->unique(['crm_contact_id', 'email']);
         });
     }
 
@@ -28,6 +28,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('c_r_m_contact_emails');
+        Schema::dropIfExists('crm_contact_emails');
     }
 };

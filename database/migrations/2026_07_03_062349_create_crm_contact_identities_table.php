@@ -11,14 +11,16 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('c_r_m_contact_websites', function (Blueprint $table) {
+        Schema::create('crm_contact_identities', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('c_r_m_contact_id')->constrained('c_r_m_contacts')->cascadeOnDelete();
-            $table->string('website');
+            $table->foreignId('crm_contact_id')->constrained('crm_contacts')->cascadeOnDelete();
+            $table->foreignId('channel_id')->constrained('channels')->cascadeOnDelete();
+            $table->string('external_user_id');
             $table->boolean('is_primary')->default(false);
+            $table->json('metadata')->nullable();
             $table->timestamps();
 
-            $table->unique(['c_r_m_contact_id', 'website']);
+            $table->unique(['channel_id', 'external_user_id']);
         });
     }
 
@@ -27,6 +29,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('c_r_m_contact_websites');
+        Schema::dropIfExists('crm_contact_identities');
     }
 };

@@ -6,16 +6,16 @@ use Illuminate\Database\Eloquent\Model;
 
 class CRMContactWebsite extends Model
 {
-    protected $table = 'c_r_m_contact_websites';
+    protected $table = 'crm_contact_websites';
 
     protected $fillable = [
-        'c_r_m_contact_id',
+        'crm_contact_id',
         'website',
         'is_primary',
     ];
 
     public function crmContact()
     {
-        return $this->belongsTo(CRMContact::class, 'c_r_m_contact_id');
+        return $this->belongsTo(CRMContact::class, 'crm_contact_id');
     }
 }

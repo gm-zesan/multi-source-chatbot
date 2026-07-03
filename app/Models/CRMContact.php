@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class CRMContact extends Model
 {
-    protected $table = 'c_r_m_contacts';
+    protected $table = 'crm_contacts';
 
     protected $fillable = [
         'workspace_id',
@@ -29,16 +29,21 @@ class CRMContact extends Model
 
     public function emails()
     {
-        return $this->hasMany(CRMContactEmail::class);
+        return $this->hasMany(CRMContactEmail::class, 'crm_contact_id');
     }
 
     public function phones()
     {
-        return $this->hasMany(CRMContactPhone::class);
+        return $this->hasMany(CRMContactPhone::class, 'crm_contact_id');
     }
 
     public function websites()
     {
-        return $this->hasMany(CRMContactWebsite::class);
+        return $this->hasMany(CRMContactWebsite::class, 'crm_contact_id');
+    }
+
+    public function identities()
+    {
+        return $this->hasMany(CRMContactIdentity::class, 'crm_contact_id');
     }
 }
