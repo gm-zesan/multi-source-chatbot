@@ -4,7 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\SendMessageRequest;
 use App\Models\Conversation;
-use App\Services\ConversationService;
+use App\Services\Chat\ConversationService;
 use App\Support\ChannelManager;
 use Illuminate\Support\Facades\Log;
 
@@ -29,7 +29,7 @@ class ConversationController extends Controller
     public function show(Conversation $conversation)
     {
         $conversations = Conversation::with(['channelAccount.channel'])->latest('last_message_at')->paginate(20);
-        
+
         $conversation->load(['messages','channelAccount.channel']);
 
         return view('conversations.show',compact('conversations','conversation'));
@@ -49,7 +49,7 @@ class ConversationController extends Controller
 
         // Send message to external platform
         $response = $driver->send($conversation->channelAccount,$conversation,$message);
-        
+
         Log::info('Message sent', [
             'conversation_id' => $conversation->id,
             'channel_account_id' => $conversation->channel_account_id,

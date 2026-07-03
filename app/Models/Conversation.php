@@ -40,4 +40,9 @@ class Conversation extends Model
     {
         return $this->belongsTo(ChannelAccount::class);
     }
+
+    public function crmContact()
+    {
+        return $this->hasOne(CRMContact::class);
+    }
 }

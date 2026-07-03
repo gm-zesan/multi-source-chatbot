@@ -2,8 +2,8 @@
 
 namespace App\Http\Controllers;
 
-use App\Services\ChannelAccountResolver;
-use App\Services\ConversationService;
+use App\Services\Chat\ChannelAccountResolver;
+use App\Services\Chat\ConversationService;
 use App\Support\ChannelManager;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -23,11 +23,6 @@ class WebhookController extends Controller
         if ($request->isMethod('GET')) {
             return $driver->verifyWebhook($request);
         }
-
-        Log::info('Webhook received', [
-            'channel' => $channel,
-            'payload' => $request->all(),
-        ]);
 
         $payload = $request->all();
 

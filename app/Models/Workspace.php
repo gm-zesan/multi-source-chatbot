@@ -21,4 +21,9 @@ class Workspace extends Model
     {
         return $this->hasMany(ChannelAccount::class);
     }
+
+    public function crmContacts(): HasMany
+    {
+        return $this->hasMany(CRMContact::class);
+    }
 }
