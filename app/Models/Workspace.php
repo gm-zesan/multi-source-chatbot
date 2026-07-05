@@ -17,6 +17,11 @@ class Workspace extends Model
         'is_active' => 'boolean',
     ];
 
+    public function users()
+    {
+        return $this->hasMany(User::class);
+    }
+
     public function channelAccounts(): HasMany
     {
         return $this->hasMany(ChannelAccount::class);

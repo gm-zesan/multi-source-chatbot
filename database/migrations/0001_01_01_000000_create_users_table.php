@@ -13,12 +13,22 @@ return new class extends Migration
     {
         Schema::create('users', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('workspace_id')->constrained()->cascadeOnDelete();
             $table->string('name');
             $table->string('email')->unique();
+            $table->string('phone')->nullable();
+            $table->string('avatar')->nullable();
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
             $table->rememberToken();
+
+            $table->boolean('is_active')->default(true);
+            $table->timestamp('last_login_at')->nullable();
+            $table->ipAddress('last_login_ip')->nullable();
             $table->timestamps();
+            $table->softDeletes();
+
+            $table->index(['workspace_id', 'email', 'is_active']);
         });
 
         Schema::create('password_reset_tokens', function (Blueprint $table) {
