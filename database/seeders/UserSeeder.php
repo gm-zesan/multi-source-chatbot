@@ -15,7 +15,7 @@ class UserSeeder extends Seeder
     public function run(): void
     {
         $superAdmin = User::create([
-            'workspace_id' => 1,
+            'workspace_id' => NULL,
             'name' => 'Zesan',
             'email' => 'zesan@gmail.com',
             'phone' => NULL,
@@ -30,10 +30,11 @@ class UserSeeder extends Seeder
         ]);
 
         $superAdmin->assignRole('superadmin');
-        $permissions = Permission::pluck('id','name')->all();
-        $superAdminRole = Role::findByName('superadmin');
-        $superAdminRole->syncPermissions($permissions);
 
+        // Get all permission names and sync to superadmin role
+        $allPermissionNames = Permission::pluck('name')->all();
+        $superAdminRole = Role::findByName('superadmin');
+        $superAdminRole->syncPermissions($allPermissionNames);
 
         $admin = User::create([
             'workspace_id' => 1,
@@ -51,9 +52,11 @@ class UserSeeder extends Seeder
         ]);
 
         $admin->assignRole('admin');
-        $permissionsAdmin = Permission::whereNotIn('name', [])->pluck('id','name')->all();
+
+        // Get all permission names and sync to admin role
+        $adminPermissionNames = Permission::pluck('name')->all();
         $adminRole = Role::findByName('admin');
-        $adminRole->syncPermissions($permissionsAdmin);
+        $adminRole->syncPermissions($adminPermissionNames);
 
     }
 }

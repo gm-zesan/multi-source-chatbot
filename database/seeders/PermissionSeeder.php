@@ -10,9 +10,20 @@ class PermissionSeeder extends Seeder
 {
     /**
      * Run the database seeds.
+     *
+     * Dynamically seeds permissions. Structure:
+     * Each permission is defined with:
+     * - name: unique identifier (kebab-case)
+     * - display_name: human-readable label
+     * - module: grouping category for UI organization
+     *
+     * To add new permissions:
+     * 1. Add the permission array to the $permissions list
+     * 2. Re-run: php artisan migrate:fresh --seed
      */
     public function run(): void
     {
+        // Define all permissions grouped by module
         $permissions = [
             // role
             ['name' => 'role-list', 'display_name' => 'Role list', 'module' => 'role'],
