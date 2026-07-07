@@ -2,15 +2,17 @@
 
 namespace Database\Seeders;
 
+use App\Enums\RoleEnum;
 use App\Models\User;
 use Illuminate\Database\Seeder;
-use Spatie\Permission\Models\Role;
-use Spatie\Permission\Models\Permission;
 
 class UserSeeder extends Seeder
 {
     /**
      * Run the database seeds.
+     *
+     * Creates default users and assigns roles using RoleEnum.
+     * Permissions are assigned to roles via RoleSeeder.
      */
     public function run(): void
     {
@@ -29,12 +31,7 @@ class UserSeeder extends Seeder
             'updated_at' => now(),
         ]);
 
-        $superAdmin->assignRole('superadmin');
-
-        // Get all permission names and sync to superadmin role
-        $allPermissionNames = Permission::pluck('name')->all();
-        $superAdminRole = Role::findByName('superadmin');
-        $superAdminRole->syncPermissions($allPermissionNames);
+        $superAdmin->assignRole(RoleEnum::SUPERADMIN->value);
 
         $admin = User::create([
             'workspace_id' => 1,
@@ -51,12 +48,6 @@ class UserSeeder extends Seeder
             'updated_at' => now(),
         ]);
 
-        $admin->assignRole('admin');
-
-        // Get all permission names and sync to admin role
-        $adminPermissionNames = Permission::pluck('name')->all();
-        $adminRole = Role::findByName('admin');
-        $adminRole->syncPermissions($adminPermissionNames);
-
+        $admin->assignRole(RoleEnum::ADMIN->value);
     }
 }

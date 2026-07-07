@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\RoleEnum;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -15,14 +16,14 @@ class AssignRoleController extends Controller
     {
         /** @var User|null $auth_user */
         $auth_user = Auth::user();
-        if ($auth_user->hasRole('superadmin')) {
+        if ($auth_user->hasRole(RoleEnum::SUPERADMIN->value)) {
             $users = User::get()->all();
             $roles = Role::pluck('name')->all();
         } else {
             $users = User::whereHas('roles', function ($query) {
-                return $query->where('name','!=', 'superadmin');
+                return $query->where('name', '!=', RoleEnum::SUPERADMIN->value);
             })->with('roles')->get();
-            $roles = Role::where('name','!=', 'superadmin')->pluck('name')->all();
+            $roles = Role::where('name', '!=', RoleEnum::SUPERADMIN->value)->pluck('name')->all();
         }
         if ($request->ajax()) {
             return DataTables::of($users)
@@ -54,8 +55,11 @@ class AssignRoleController extends Controller
         if(!$user){
             return back()->with('error', 'User Email not found');
         }
-        $user->roles()->detach();
-        $user->assignRole($request->role);
+
+        // syncRoles replaces all existing roles with the new one
+        // This is the recommended Spatie approach instead of detach()+assignRole()
+        $user->syncRoles($request->role);
+
         return back()->with('success', 'Role assigned successfully');
     }
 

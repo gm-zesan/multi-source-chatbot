@@ -18,18 +18,18 @@
                     <div class="card-header table-header">
                         <div class="title-with-breadcrumb">
                             <div class="table-title">Role</div>
-                            <nav aria-label="breadcrumb"> 
-                                <ol class="breadcrumb mb-0"> 
+                            <nav aria-label="breadcrumb">
+                                <ol class="breadcrumb mb-0">
                                     <li class="breadcrumb-item">
-                                        <a href="{{route('dashboard')}}">Dashboard</a>
-                                    </li> 
-                                    <li class="breadcrumb-item active" aria-current="page">Role</li> 
-                                </ol> 
+                                        <a href="{{ route('dashboard') }}">Dashboard</a>
+                                    </li>
+                                    <li class="breadcrumb-item active" aria-current="page">Role</li>
+                                </ol>
                             </nav>
                         </div>
-                        @if (Auth::user()->hasRole('superadmin'))
-                            <a href="{{route('roles.create')}}" class="add-new">New Role<i class="ms-1 ri-add-line"></i></a>
-                        @endif
+                        @role(\App\Enums\RoleEnum::SUPERADMIN->value)
+                            <a href="{{ route('roles.create') }}" class="add-new">New Role<i class="ms-1 ri-add-line"></i></a>
+                        @endrole
                     </div>
                     <div class="card-body" style="overflow-x: auto">
                         <table class="table dataTable w-100" id="data-table" style="min-width: 800px;">
@@ -58,47 +58,58 @@
     <script type="text/javascript">
         var listUrl = SITEURL + '/dashboard/roles';
 
-        $(document).ready( function () {
+        $(document).ready(function() {
             var table = $('#data-table').DataTable({
                 processing: true,
                 responsive: true,
                 serverSide: true,
                 fixedHeader: true,
                 "pageLength": 20,
-                "lengthMenu": [ 20, 50, 100, 500 ],
+                "lengthMenu": [20, 50, 100, 500],
                 ajax: {
                     url: listUrl,
                     type: 'GET'
                 },
-                columns: [
-                    { data: 'id', name: 'id', orderable: true },
-                    { data: 'name', name: 'name', orderable: true },
+                columns: [{
+                        data: 'id',
+                        name: 'id',
+                        orderable: true
+                    },
+                    {
+                        data: 'name',
+                        name: 'name',
+                        orderable: true
+                    },
                     {
                         data: 'action-btn',
                         orderable: false,
-                        render: function (data) {
+                        render: function(data) {
                             var btns = '';
                             btns += '<div class="action-btn">';
-                            btns += '<a href="' + SITEURL + '/dashboard/roles/' + data.id + '/edit"title="edit" class="btn btn-edit"><i class="ri-edit-line"></i></a>';
-                            if(data.role == 'superadmin'){
-                                btns += '<form action="' + SITEURL + '/dashboard/roles/' + data.id + '" method="POST" style="display: inline;" onsubmit="return confirm(\'Are you sure to delete this role?\');">' +
+                            btns += '<a href="' + SITEURL + '/dashboard/roles/' + data.id +
+                                '/edit"title="edit" class="btn btn-edit"><i class="ri-edit-line"></i></a>';
+                            if (data.role == '{{ \App\Enums\RoleEnum::SUPERADMIN->value }}') {
+                                btns += '<form action="' + SITEURL + '/dashboard/roles/' + data.id +
+                                    '" method="POST" style="display: inline;" onsubmit="return confirm(\'Are you sure to delete this role?\');">' +
                                     '@csrf' +
-                                    '@method("DELETE")' +
+                                    '@method('DELETE')' +
                                     '<button type="submit" class="btn btn-delete"><i class="ri-delete-bin-2-line"></i></button>' +
-                                '</form>';
+                                    '</form>';
                             }
                             btns += '</div>';
                             return btns;
                         }
                     }
                 ],
-                order: [[0, 'asc']]
+                order: [
+                    [0, 'asc']
+                ]
             });
         });
     </script>
 
     <script>
-        $('.submit-button').click(function(){
+        $('.submit-button').click(function() {
             $(this).css('opacity', '1');
             $(this).find('.spinner-border').removeClass('d-none');
             $(this).attr('disabled', true);

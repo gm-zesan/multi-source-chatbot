@@ -1,5 +1,9 @@
 <?php
 
+use App\Enums\Permissions\ConversationPermission;
+use App\Enums\Permissions\MessagePermission;
+use App\Enums\Permissions\RolePermission;
+use App\Enums\Permissions\UserPermission;
 use App\Http\Controllers\AssignRoleController;
 use App\Http\Controllers\ContactFormController;
 use App\Http\Controllers\DashboardController;
@@ -26,22 +30,43 @@ Route::middleware('auth')->prefix('dashboard')->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
 
-    Route::resource('conversations',ConversationController::class)->only(['index', 'show']);
-    Route::post('/conversations/{conversation}/reply', [ConversationController::class,'reply']);
+    // Conversations
+    Route::resource('conversations',ConversationController::class)->only(['index', 'show'])
+        ->middleware('permission:' . ConversationPermission::VIEW->value);
+    Route::post('/conversations/{conversation}/reply', [ConversationController::class,'reply'])
+        ->middleware('permission:' . ConversationPermission::UPDATE->value);
 
+    // Users
+    Route::resource('/users', UserController::class)->except(['show'])
+        ->middleware('permission:' . implode('|', [
+            UserPermission::VIEW->value,
+            UserPermission::CREATE->value,
+            UserPermission::UPDATE->value,
+            UserPermission::DELETE->value,
+        ]));
 
+    // Roles
+    Route::resource('/roles', RoleController::class)->except(['show'])
+        ->middleware('permission:' . implode('|', [
+            RolePermission::VIEW->value,
+            RolePermission::CREATE->value,
+            RolePermission::UPDATE->value,
+            RolePermission::DELETE->value,
+        ]));
 
+    // Assign Roles
+    Route::resource('/assign-roles', AssignRoleController::class)->only(['index', 'store'])
+        ->middleware('permission:' . RolePermission::VIEW->value);
 
-    Route::resource('/users', UserController::class)->except(['show']);
-    Route::resource('/roles', RoleController::class)->except(['show']);
-    Route::resource('/assign-roles', AssignRoleController::class)->only(['index', 'store']);
-
-
-    //message Route
-    Route::get('/message', [ContactFormController::class,'index'])->name('message');
-    Route::get('/message/read/', [ContactFormController::class, 'read'])->name('message.read');
-    Route::get('/message/important/', [ContactFormController::class, 'important'])->name('message.important');
-    Route::get('/message/delete/{id}', [ContactFormController::class,'delete'])->name('message.delete');
+    // Messages
+    Route::get('/message', [ContactFormController::class,'index'])->name('message')
+        ->middleware('permission:' . MessagePermission::VIEW->value);
+    Route::get('/message/read/', [ContactFormController::class, 'read'])->name('message.read')
+        ->middleware('permission:' . MessagePermission::VIEW->value);
+    Route::get('/message/important/', [ContactFormController::class, 'important'])->name('message.important')
+        ->middleware('permission:' . MessagePermission::VIEW->value);
+    Route::get('/message/delete/{id}', [ContactFormController::class,'delete'])->name('message.delete')
+        ->middleware('permission:' . MessagePermission::DELETE->value);
 });
 
 

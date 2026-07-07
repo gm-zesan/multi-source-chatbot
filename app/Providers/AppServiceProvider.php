@@ -2,6 +2,9 @@
 
 namespace App\Providers;
 
+use App\Enums\RoleEnum;
+use App\Models\User;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -19,6 +22,11 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        // Super Admin: Grant all permissions via Gate::before()
+        // Follows Spatie's official recommendation:
+        // https://spatie.be/docs/laravel-permission/v8/basic-usage/super-admin
+        Gate::before(function (User $user, string $ability) {
+            return $user->hasRole(RoleEnum::SUPERADMIN->value) ? true : null;
+        });
     }
 }

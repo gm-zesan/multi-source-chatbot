@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\RoleEnum;
 use App\Models\User;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
@@ -9,7 +10,6 @@ use Illuminate\Http\Request;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\Models\Permission;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
 use Yajra\DataTables\Facades\DataTables;
 
 class RoleController extends Controller
@@ -24,17 +24,17 @@ class RoleController extends Controller
         if ($request->ajax()) {
             /** @var User|null $auth_user */
             $auth_user = Auth::user();
-            if ($auth_user && $auth_user->hasRole('superadmin')) {
+            if ($auth_user && $auth_user->hasRole(RoleEnum::SUPERADMIN->value)) {
                 $roles = Role::get()->all();
             } else {
-                $roles = Role::where('name','!=', 'superadmin')->get()->all();
+                $roles = Role::where('name', '!=', RoleEnum::SUPERADMIN->value)->get()->all();
             }
             return DataTables::of($roles)
                 ->addIndexColumn()
                 ->addColumn('action-btn', function ($row) {
                     /** @var User|null $auth_user */
                     $auth_user = Auth::user();
-                    if ($auth_user && $auth_user->hasRole('superadmin')) {
+                    if ($auth_user && $auth_user->hasRole(RoleEnum::SUPERADMIN->value)) {
                         return [
                             'id' => $row->id,
                             'role' => $auth_user->roles->first()->name ?? null,
@@ -60,20 +60,7 @@ class RoleController extends Controller
      */
     public function create(): View
     {
-        /** @var User|null $auth_user */
-        $auth_user = Auth::user();
-        if ($auth_user && $auth_user->hasRole('superadmin')) {
-            $permission = Permission::get();
-        } else {
-            $permission = Permission::whereNotIn('name', [
-                'page-list',
-                'page-create',
-                'page-edit',
-                'page-delete',
-                'page-content-create',
-                'page-content-delete',
-            ])->get();
-        }
+        $permission = Permission::get();
         $modules = Permission::select('module')->distinct()->get();
 
         return view('admin.roles.create', compact('permission','modules'));
@@ -92,19 +79,17 @@ class RoleController extends Controller
             'permission' => 'required',
         ]);
 
-        Role::create([
+        $role = Role::create([
             'name' => $request->input('name'),
             'description' => $request->input('description'),
         ]);
 
-        $newRole = Role::findByName($request->input('name'));
-        foreach ($request->input('permission') as $permissionId) {
-            $permission = Permission::findById($permissionId);
-            $newRole->givePermissionTo($permission->name);
-        }
+        // Sync permissions using Spatie's built-in method
+        $permissionNames = Permission::whereIn('id', $request->input('permission'))->pluck('name')->all();
+        $role->syncPermissions($permissionNames);
 
         return redirect()
-            ->route('role.index')
+            ->route('roles.index')
             ->with('success','Role created successfully');
     }
 
@@ -117,9 +102,7 @@ class RoleController extends Controller
     public function show($id): View
     {
         $role = Role::find($id);
-        $rolePermissions = Permission::join('role_has_permissions', 'role_has_permissions.permission_id', '=', 'permissions.id')
-            ->where('role_has_permissions.role_id', $id)
-            ->get();
+        $rolePermissions = $role->permissions;
 
         return view('admin.roles.show', compact('role','rolePermissions'));
     }
@@ -130,33 +113,18 @@ class RoleController extends Controller
      * @param int $id
      * @return View
      */
-    public function edit($id): View
+    public function edit($id): View|RedirectResponse
     {
-        /** @var User|null $auth_user */
+        /** @var \App\Models\User|null $auth_user */
         $auth_user = Auth::user();
         $role = Role::find($id);
-        if ($role->name === 'superadmin' && (! $auth_user || ! $auth_user->hasRole('superadmin'))) {
-            return view('admin.roles.index');
+        if ($role->name === RoleEnum::SUPERADMIN->value && (! $auth_user || ! $auth_user->hasRole(RoleEnum::SUPERADMIN->value))) {
+            return redirect()->route('roles.index');
         }
 
-        if ($auth_user && $auth_user->hasRole('superadmin')) {
-            $permission = Permission::get();
-        } else {
-            $permission = Permission::whereNotIn('name', [
-                'page-list',
-                'page-create',
-                'page-edit',
-                'page-delete',
-                'page-content-create',
-                'page-content-delete',
-            ])->get();
-        }
-
+        $permission = Permission::get();
         $modules = Permission::select('module')->distinct()->get();
-        $rolePermissions = DB::table('role_has_permissions')
-            ->where('role_has_permissions.role_id', $id)
-            ->pluck('role_has_permissions.permission_id','role_has_permissions.permission_id')
-            ->all();
+        $rolePermissions = $role->permissions->pluck('id')->all();
 
         return view('admin.roles.edit', compact('role','permission','rolePermissions','modules'));
     }
@@ -180,15 +148,11 @@ class RoleController extends Controller
         $role->description = $request->input('description');
         $role->save();
 
-        DB::table('role_has_permissions')->where('role_id', $id)->delete();
+        // Sync permissions using Spatie's built-in method
+        $permissionNames = Permission::whereIn('id', $request->input('permission'))->pluck('name')->all();
+        $role->syncPermissions($permissionNames);
 
-        $newRole = Role::findByName($request->input('name'));
-        foreach ($request->input('permission') as $permissionId) {
-            $permission = Permission::findById($permissionId);
-            $newRole->givePermissionTo($permission->name);
-        }
-
-        return redirect()->route('role.index')
+        return redirect()->route('roles.index')
             ->with('success','Role updated successfully');
     }
 
@@ -203,13 +167,13 @@ class RoleController extends Controller
         $role = Role::find($id);
         /** @var User|null $auth_user */
         $auth_user = Auth::user();
-        if ($role->name === 'superadmin' && (! $auth_user || ! $auth_user->hasRole('superadmin'))) {
-            return redirect()->route('role.index');
+        if ($role->name === RoleEnum::SUPERADMIN->value && (! $auth_user || ! $auth_user->hasRole(RoleEnum::SUPERADMIN->value))) {
+            return redirect()->route('roles.index');
         }
 
         $role->delete();
 
-        return redirect()->route('role.index')
+        return redirect()->route('roles.index')
             ->with('success', 'Role deleted successfully');
     }
 }

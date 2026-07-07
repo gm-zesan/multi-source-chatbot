@@ -2,22 +2,23 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\RoleEnum;
 use App\Models\User;
 use App\Models\Workspace;
 use Illuminate\Http\Request;
 use Yajra\DataTables\DataTables;
 use Illuminate\Support\Facades\Auth;
 class UserController extends Controller
-{   
+{
     public function index(Request $request){
         if ($request->ajax()) {
             /** @var User|null $auth_user */
             $auth_user = Auth::user();
-            if ($auth_user->hasRole('superadmin')) {
+            if ($auth_user->hasRole(RoleEnum::SUPERADMIN->value)) {
                 $users = User::all();
             } else {
                 $users = User::whereHas('roles', function ($query) {
-                    return $query->where('name','!=', 'superadmin');
+                    return $query->where('name', '!=', RoleEnum::SUPERADMIN->value);
                 })->where('id','!=',$auth_user->id)->get();
             }
             return DataTables::of($users)
@@ -89,7 +90,7 @@ class UserController extends Controller
         ]);
 
         // $user->assignRole($request->input('roles'));
-        $user->assignRole('admin');
+        $user->assignRole(RoleEnum::ADMIN->value);
 
         return redirect()->route('users')->with('success','User created successfully');
     }
@@ -100,7 +101,7 @@ class UserController extends Controller
     public function edit($id){
         $auth_user = Auth::user();
         $user = User::with('contactBook')->find($id);
-        if ($user->hasRole('superadmin') && $auth_user->id != $user->id) {
+        if ($user->hasRole(RoleEnum::SUPERADMIN->value) && $auth_user->id != $user->id) {
             return redirect()->route('users');
         }
 

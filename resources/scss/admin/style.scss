@@ -79,7 +79,6 @@ body {
     }
     ul {
         padding-top: $space-lg;
-        margin-left: $space-xs;
         height: calc(100% - 110px);
         overflow-y: auto;
         transition: $transition-base;
@@ -88,11 +87,9 @@ body {
         li {
             position: relative;
             width: 100%;
-            margin-bottom: $space-xs;
             overflow-x: hidden;
             overflow-y: clip;
             list-style: none;
-            padding: 0 $space-xs;
             transition: $transition-base;
             i {
                 min-width: 40px;
@@ -107,7 +104,6 @@ body {
                 color: $sidebar-text;
                 font-weight: $font-medium;
                 font-size: $text-base;
-                border-radius: $radius-xs;
                 position: relative;
                 padding: $space-lg $space-xs;
                 height: 50px;
@@ -116,12 +112,17 @@ body {
                 transition: $transition-base;
                 white-space: nowrap;
                 &:hover {
-                    background-color: rgba(255, 255, 255, 0.08);
-                    color: $sidebar-text-hover;
+                    // background-color: rgba(255, 255, 255, 0.08);
+                    // color: $sidebar-text-hover;
+                    color: #0f172a;
+                    background: #f8fafc;
                 }
                 &.active-focus {
-                    background-color: $primary;
+                    // background-color: $primary;
+                    background: linear-gradient(135deg,#1e293b 0%,#334155 100%);
+                    box-shadow:0 10px 24px rgba(15, 23, 42, .20),inset 0 1px 0 rgba(255,255,255,.08);
                     color: $white;
+
                 }
             }
         }
