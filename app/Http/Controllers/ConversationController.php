@@ -20,7 +20,7 @@ class ConversationController extends Controller
     {
         $conversations = Conversation::with(['channelAccount.channel'])->latest('last_message_at')->paginate(20);
 
-        return view('conversations.index',compact('conversations'));
+        return view('admin.conversations.index',compact('conversations'));
     }
 
     /**
@@ -32,7 +32,7 @@ class ConversationController extends Controller
 
         $conversation->load(['messages','channelAccount.channel']);
 
-        return view('conversations.show',compact('conversations','conversation'));
+        return view('admin.conversations.show',compact('conversations','conversation'));
     }
 
     /**

@@ -1,6 +1,6 @@
 @extends('admin.app')
 @section('title')
-    My Profile | Edit
+    My Profile | Password Change
 @endsection
 
 @push('custom-style')
@@ -23,10 +23,6 @@
             height: 36px;
             font-size: 13px;
         }
-        .content-body .table-card .custom-form .custom-textarea{
-            font-size: 13px;
-            margin-bottom: 5px;
-        }
         .error-messages{
             color: red;
             font-size: 14px;
@@ -43,17 +39,13 @@
 @endpush
 
 @section('content')
-<div class="container-fluid mt-5">
-    <div class="row">
-        <div class="col-md-5 col-12 mx-auto">
-            <div class="p-4 bg-white rounded-3">
-                <div class="row align-items-center">
-                    <div class="col-md-12 col-12">
-                        @include('profile.partials.update-profile-information-form')
-                    </div>
+    <div class="container-fluid mt-5">
+        <div class="row">
+            <div class="col-md-6 col-12 mx-auto">
+                <div class="p-4 bg-white rounded-3">
+                    @include('profile.partials.update-password-form')
                 </div>
             </div>
         </div>
     </div>
-</div>
 @endsection

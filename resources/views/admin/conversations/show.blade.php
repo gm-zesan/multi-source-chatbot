@@ -1,33 +1,27 @@
-@extends('layouts.inbox')
+@extends('admin.app')
 
 @section('title', $conversation->customer_name)
 
+@push('custom-style')
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="{{ asset('assets/css/inbox.css') }}" rel="stylesheet">
+@endpush
+
 @section('content')
-
-<div class="row g-0 vh-100">
-
+<div class="inbox-container">
     {{-- Left Sidebar --}}
-    <div class="col-lg-4">
-
-        @include('conversations.partials.sidebar')
-
+    <div class="inbox-sidebar">
+        @include('admin.conversations.partials.sidebar')
     </div>
 
-    {{-- Right Chat --}}
-    <div class="col-lg-8 d-flex flex-column chat-panel">
-
-        @include('conversations.partials.chat-header')
-
-        @include('conversations.partials.messages')
-
+    {{-- Right Chat Panel --}}
+    <div class="inbox-chat-panel">
+        @include('admin.conversations.partials.chat-header')
+        @include('admin.conversations.partials.messages')
         <emoji-picker id="emoji-picker"></emoji-picker>
-
-        @include('conversations.partials.composer')
-
+        @include('admin.conversations.partials.composer')
     </div>
-
 </div>
-
 @endsection
 
 @push('scripts')
@@ -44,10 +38,9 @@
 
         emojiPicker.addEventListener('emoji-click', event => {
             messageInput.value += event.detail.unicode;
-            messageInput.dispatchEvent(new Event('input')); // Trigger input event to adjust height
+            messageInput.dispatchEvent(new Event('input'));
         });
 
-        // Hide emoji picker when clicking outside
         document.addEventListener('click', (event) => {
             if (
                 !emojiPicker.contains(event.target) &&
@@ -55,7 +48,6 @@
             ) {
                 emojiPicker.style.display = 'none';
             }
-
         });
     </script>
 
