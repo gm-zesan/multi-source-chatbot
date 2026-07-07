@@ -27,17 +27,34 @@
             </a>
         </li>
 
+
         <li class="category-li">
-            <span class="link_names">SEO Settings</span>
+            <span class="link_names">Users</span>
+        </li>
+        <li class="drop-item">
+            <a href="{{ route('users.index') }}"
+                class="{{ in_array(Route::currentRouteName(), ['users.index', 'users.create', 'users.edit']) ? 'active-focus' : '' }}">
+                <i class="ri-user-3-line"></i>
+                <span class="link_names">User List</span>
+            </a>
+        </li>
+        <li class="drop-item">
+            <a href="{{ route('roles.index') }}"
+                class="{{ in_array(Route::currentRouteName(), ['roles.index', 'roles.create', 'roles.edit']) ? 'active-focus' : '' }}">
+                <i class="ri-shield-user-line"></i>
+                <span class="link_names">Role</span>
+            </a>
         </li>
 
-        {{-- <li>
-            <a href="{{ route('seo.index') }}"
-            class="{{ Route::is('seo.index') ? 'active-focus' : '' }}">
-                <i class="ri-dashboard-line"></i>
-                <span class="link_names">SEO Dashboard</span>
+
+        <li class="drop-item">
+            <a href="{{ route('assign-roles.index') }}"
+                class="{{ Route::is('assign-roles.index') ? 'active-focus' : '' }}">
+                <i class="ri-user-settings-line"></i>
+                <span class="link_names">Assign Role</span>
             </a>
-        </li> --}}
+            <span class="tooltip">Assign Role</span>
+        </li>
 
     </ul>
 

@@ -2,27 +2,13 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\ContactBook;
 use App\Models\User;
-use App\Models\Role;
 use App\Models\Workspace;
-use Spatie\Permission\Models\Permission;
 use Illuminate\Http\Request;
 use Yajra\DataTables\DataTables;
-use DB;
 use Illuminate\Support\Facades\Auth;
 class UserController extends Controller
-{
-
-    function __construct()
-    {
-         $this->middleware('permission:user-list|user-create|user-edit|user-delete', ['only' => ['index','store']]);
-         $this->middleware('permission:user-create', ['only' => ['create','store']]);
-         $this->middleware('permission:user-edit', ['only' => ['edit','update']]);
-         $this->middleware('permission:user-delete', ['only' => ['delete']]);
-    }
-
-    
+{   
     public function index(Request $request){
         if ($request->ajax()) {
             /** @var User|null $auth_user */

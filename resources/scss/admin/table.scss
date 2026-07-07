@@ -81,7 +81,7 @@ table.dataTable tbody tr td a {
     text-decoration: none;
     height: 28px;
     width: 28px;
-    border-radius: $radius-md;
+    border-radius: $radius-xs;
     @include flex-box(flex, center, center);
     transition: $transition-base;
     font-size: $text-base;
@@ -92,7 +92,7 @@ table.dataTable tbody tr td .btn-show {
     background-color: $success-light;
     height: 28px;
     width: 28px;
-    border-radius: $radius-md;
+    border-radius: $radius-xs;
     @include flex-box(flex, center, center);
     transition: $transition-base;
     font-size: $text-base;
@@ -112,7 +112,7 @@ table.dataTable tbody tr td .btn-edit {
     background-color: $primary-light;
     height: 28px;
     width: 28px;
-    border-radius: $radius-md;
+    border-radius: $radius-xs;
     @include flex-box(flex, center, center);
     transition: $transition-base;
     font-size: $text-base;
@@ -145,7 +145,7 @@ table.dataTable tbody tr td .btn-delete {
     text-decoration: none;
     height: 28px;
     width: 28px;
-    border-radius: $radius-md;
+    border-radius: $radius-xs;
     @include flex-box(flex, center, center);
     transition: $transition-base;
     font-size: $text-base;
@@ -158,7 +158,7 @@ table.dataTable tbody tr td .btn-receipt {
     text-decoration: none;
     height: 28px;
     width: 28px;
-    border-radius: $radius-md;
+    border-radius: $radius-xs;
     @include flex-box(flex, center, center);
     transition: $transition-base;
     font-size: $text-base;
@@ -216,11 +216,11 @@ div.dataTables_wrapper div.dataTables_info {
 .dataTables_paginate.paging_simple_numbers span .paginate_button {
     font-size: $text-xs !important;
     font-weight: $font-medium !important;
-    margin: 0 $space-sm !important;
+    margin: 0 !important;
     color: $text-primary !important;
     background: $white !important;
-    padding: $space-sm $space-lg !important;
-    border-radius: $radius-md !important;
+    padding: 6px $space-md !important;
+    border-radius: $radius-xs !important;
     border: 1px solid $border-color !important;
     transition: $transition-base;
 }
