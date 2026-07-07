@@ -1,3 +1,5 @@
+@import 'variables';
+
 // Mixin
 @mixin flex-box(
     $display,
@@ -20,45 +22,50 @@
 /* {{-- Data Table  --}} */
 div.dataTables_wrapper div.dataTables_length select {
     min-height: 20px !important;
-    border: 1px solid #dee2e6 !important;
-    border-radius: 5px !important;
+    border: 1px solid $border-color !important;
+    border-radius: $radius-sm !important;
     height: 25px;
-    font-size: 11px;
+    font-size: $text-xs;
+    font-weight: $font-normal;
     line-height: 1;
     background-position: right 1px center;
     background-size: 1.2em 1.2em;
-    padding: 4px 15px 4px 6px;
+    padding: $space-xs $space-lg $space-xs $space-sm;
+    transition: $transition-base;
 }
 
 .table > :not(:last-child) > :last-child > * {
-    border-bottom-color: #dee2e6;
+    border-bottom-color: $border-color;
 }
 table.dataTable {
-    padding-top: 20px !important;
+    padding-top: $space-2xl !important;
     border-collapse: collapse;
 }
 
 table.dataTable.no-footer {
-    border-bottom: 1px solid #dee2e6;
+    border-bottom: 1px solid $border-color;
 }
 div.dataTables_processing > div:last-child > div {
-    background: #f0f1f7 !important;
+    background: $bg-primary !important;
 }
 .dataTables_wrapper .dataTables_filter input {
-    border-radius: 5px !important;
-    margin-left: 5px !important;
+    border-radius: $radius-sm !important;
+    margin-left: $space-sm !important;
     height: 28px !important;
+    transition: $transition-base;
+    padding: $space-sm $space-md !important;
 }
 table.dataTable th {
     height: 20px !important;
     vertical-align: middle;
 }
 table.dataTable td {
-    height: 20px;
+    height: auto;
     vertical-align: middle;
-    font-size: 13px;
-    color: #333335;
-    font-weight: 400 !important;
+    font-size: $text-base;
+    color: $text-primary;
+    font-weight: $font-normal !important;
+    padding: $space-md !important;
 }
 table.dataTable td > a {
     margin-right: 5px;
@@ -74,135 +81,163 @@ table.dataTable tbody tr td a {
     text-decoration: none;
     height: 28px;
     width: 28px;
-    border-radius: 5px;
+    border-radius: $radius-md;
     @include flex-box(flex, center, center);
-    transition: all 0.3s ease-in-out;
+    transition: $transition-base;
+    font-size: $text-base;
 }
 table.dataTable tbody tr td .btn-show {
-    margin-left: 5px;
-    color: #5adf73;
-    background-color: #eefcf2;
+    margin-left: $space-sm;
+    color: $success;
+    background-color: $success-light;
     height: 28px;
     width: 28px;
-    border-radius: 5px;
+    border-radius: $radius-md;
     @include flex-box(flex, center, center);
+    transition: $transition-base;
+    font-size: $text-base;
+    font-weight: $font-medium;
     &.btn-checked {
-        color: #5adf5a;
-        background-color: #eefcf0;
+        color: $success;
+        background-color: $success-light;
         &:hover {
-            color: #fff;
-            background-color: #5adf5a;
+            color: $white;
+            background-color: $success;
+            transition: $transition-base;
         }
     }
 }
 table.dataTable tbody tr td .btn-edit {
-    color: #845adf;
-    background-color: #f2eefc;
+    color: $primary-dark;
+    background-color: $primary-light;
     height: 28px;
     width: 28px;
-    border-radius: 5px;
+    border-radius: $radius-md;
     @include flex-box(flex, center, center);
+    transition: $transition-base;
+    font-size: $text-base;
+    font-weight: $font-medium;
     &.btn-checked {
-        color: #5adf5a;
-        background-color: #eefcf0;
+        color: $success;
+        background-color: $success-light;
         &:hover {
-            color: #fff;
-            background-color: #5adf5a;
+            color: $white;
+            background-color: $success;
+            transition: $transition-base;
         }
     }
 }
 table.dataTable tbody tr td .btn-edit:hover {
-    color: #fff;
-    background-color: #845adf;
+    color: $white;
+    background-color: $primary-dark;
+    transition: $transition-base;
 }
 table.dataTable tbody tr td .btn-show:hover {
-    color: #fff;
-    background-color: #5adf5a;
+    color: $white;
+    background-color: $success;
+    transition: $transition-base;
 }
 
 table.dataTable tbody tr td .btn-delete {
-    color: #dc3545;
-    background-color: #f3d1d4;
-    margin-left: 5px;
+    color: $danger;
+    background-color: $danger-light;
+    margin-left: $space-sm;
     text-decoration: none;
     height: 28px;
     width: 28px;
-    border-radius: 5px;
+    border-radius: $radius-md;
     @include flex-box(flex, center, center);
-    transition: all 0.3s ease-in-out;
+    transition: $transition-base;
+    font-size: $text-base;
+    font-weight: $font-medium;
 }
 table.dataTable tbody tr td .btn-receipt {
-    color: #3546dc;
-    background-color: #d1d6f3;
-    margin-left: 5px;
+    color: $info;
+    background-color: $info-light;
+    margin-left: $space-sm;
     text-decoration: none;
     height: 28px;
     width: 28px;
-    border-radius: 5px;
+    border-radius: $radius-md;
     @include flex-box(flex, center, center);
-    transition: all 0.3s ease-in-out;
+    transition: $transition-base;
+    font-size: $text-base;
+    font-weight: $font-medium;
 }
 table.dataTable tbody tr td .btn-delete:hover {
-    color: #fff;
-    background-color: #dc3545;
+    color: $white;
+    background-color: $danger;
+    transition: $transition-base;
 }
 table.dataTable tbody tr td .btn-receipt:hover {
-    color: #fff;
-    background-color: #3546dc;
+    color: $white;
+    background-color: $info;
+    transition: $transition-base;
 }
 
 table.dataTable tbody tr td a:focus,
 table.dataTable tbody tr td a:hover {
-    color: #11101d;
+    color: $text-primary;
     box-shadow: none !important;
     outline: 0 !important;
 }
 div.dataTables_wrapper div.dataTables_info {
-    padding-top: 13px;
+    padding-top: $space-lg;
     white-space: nowrap;
-    font-size: 13px;
+    font-size: $text-base;
+    font-weight: $font-normal;
 }
 .dataTables_length label,
 .dataTables_filter label {
-    font-size: 13px;
+    font-size: $text-base;
+    font-weight: $font-normal;
 }
 .dataTables_filter label input {
-    border: 1px solid #dee2e6 !important;
-    font-size: 13px !important;
-    margin-bottom: 10px;
+    border: 1px solid $border-color !important;
+    font-size: $text-base !important;
+    font-weight: $font-normal !important;
+    margin-bottom: $space-lg !important;
+    transition: $transition-base;
 }
 .dataTables_filter label input:focus-visible {
     outline: none;
 }
 .dataTables_paginate.paging_simple_numbers {
-    padding-top: 13px !important;
+    padding-top: $space-lg !important;
 }
 .dataTables_paginate.paging_simple_numbers > a {
-    font-size: 13px;
-    color: #666;
-    margin: 0 5px;
+    font-size: $text-base;
+    font-weight: $font-normal;
+    color: $text-secondary;
+    margin: 0 $space-sm;
     cursor: pointer !important;
+    transition: $transition-base;
 }
 .dataTables_paginate.paging_simple_numbers span .paginate_button {
-    font-size: 11px !important;
-    margin: 0 5px !important;
-    color: #11101d !important;
-    background: #fff !important;
-    padding: 5px 12px !important;
-    border-radius: 5px !important;
-    border: 1px solid #dee2e6 !important;
-    transition: all 0.3s ease-in-out;
+    font-size: $text-xs !important;
+    font-weight: $font-medium !important;
+    margin: 0 $space-sm !important;
+    color: $text-primary !important;
+    background: $white !important;
+    padding: $space-sm $space-lg !important;
+    border-radius: $radius-md !important;
+    border: 1px solid $border-color !important;
+    transition: $transition-base;
 }
 .dataTables_paginate.paging_simple_numbers span .paginate_button:hover {
     background: initial !important;
-    background: #f2f2f2 !important;
+    background: $bg-secondary !important;
+    transition: $transition-base;
 }
 .dataTables_paginate.paging_simple_numbers span .paginate_button.current {
-    background: #f2f2f2 !important;
+    background: $bg-secondary !important;
+    color: $primary !important;
+    font-weight: $font-semibold !important;
 }
 .dataTables_paginate.paging_simple_numbers .paginate_button:focus {
     box-shadow: none !important;
     outline: 0 !important;
+    transition: $transition-base;
 }
 
 table.dataTable tbody th,
