@@ -15,6 +15,9 @@ use Yajra\DataTables\DataTables;
 
 class FAQService
 {
+    public function __construct(
+        private readonly FAQIndexer $indexer,
+    ) {}
     /**
      * Get the authenticated user's workspace ID.
      */
@@ -125,13 +128,17 @@ class FAQService
      */
     public function create(array $data): FAQ
     {
-        return DB::transaction(function () use ($data) {
+        $faq = DB::transaction(function () use ($data) {
             $data['workspace_id'] = $this->getWorkspaceId();
             $data['searchable_text'] = strip_tags(($data['question'] ?? '') . ' ' . ($data['answer'] ?? ''));
             $data['created_by'] = Auth::id();
 
             return FAQ::create($data);
         });
+
+        $this->indexer->dispatchIndex($faq, 'index');
+
+        return $faq;
     }
 
     /**
@@ -139,7 +146,7 @@ class FAQService
      */
     public function update(FAQ $faq, array $data): FAQ
     {
-        return DB::transaction(function () use ($faq, $data) {
+        $faq = DB::transaction(function () use ($faq, $data) {
             if (isset($data['question']) || isset($data['answer'])) {
                 $data['searchable_text'] = strip_tags(
                     ($data['question'] ?? $faq->question) . ' ' . ($data['answer'] ?? $faq->answer)
@@ -151,6 +158,10 @@ class FAQService
 
             return $faq->fresh();
         });
+
+        $this->indexer->dispatchIndex($faq, 'update');
+
+        return $faq;
     }
 
     /**
@@ -159,6 +170,7 @@ class FAQService
     public function delete(FAQ $faq): void
     {
         $faq->delete();
+        $this->indexer->dispatchIndex($faq, 'delete');
     }
 
     /**
@@ -168,6 +180,7 @@ class FAQService
     {
         $faq = $this->workspaceQuery()->withTrashed()->findOrFail($id);
         $faq->restore();
+        $this->indexer->dispatchIndex($faq, 'index');
     }
 
     /**
@@ -175,7 +188,14 @@ class FAQService
      */
     public function bulkDelete(array $ids): int
     {
-        return $this->workspaceQuery()->whereIn('id', $ids)->delete();
+        $count = $this->workspaceQuery()->whereIn('id', $ids)->delete();
+
+        // Dispatch delete jobs for each removed FAQ
+        FAQ::onlyTrashed()->whereIn('id', $ids)->chunk(100, function ($faqs) {
+            $this->indexer->dispatchBatch($faqs, 'delete');
+        });
+
+        return $count;
     }
 
     /**
@@ -188,6 +208,15 @@ class FAQService
             'updated_by' => Auth::id(),
         ]);
 
-        return $faq->fresh()->is_active;
+        $fresh = $faq->fresh();
+
+        // Re-index or remove based on new active state
+        if ($fresh->is_active) {
+            $this->indexer->dispatchIndex($fresh, 'index');
+        } else {
+            $this->indexer->dispatchIndex($fresh, 'delete');
+        }
+
+        return $fresh->is_active;
     }
 }

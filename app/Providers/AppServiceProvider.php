@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use App\Enums\RoleEnum;
 use App\Models\User;
+use App\Services\NLP\Embedding\EmbeddingService;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 
@@ -14,7 +15,11 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->app->singleton(EmbeddingService::class, function () {
+            return new EmbeddingService(
+                config: config('chatbot.embedding'),
+            );
+        });
     }
 
     /**

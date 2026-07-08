@@ -12,10 +12,6 @@ class DatabaseSeeder extends Seeder
     /**
      * Seed the application's database.
      *
-     * Order matters:
-     *   1. User factory (default Laravel)
-     *   2. EmbeddingSeeder (context routing vectors)
-     *
      * Run with: php artisan db:seed
      */
     public function run(): void

@@ -44,6 +44,33 @@ return [
             'after_commit' => false,
         ],
 
+        'messenger' => [
+            'driver' => 'database',
+            'connection' => env('DB_QUEUE_CONNECTION'),
+            'table' => env('DB_QUEUE_TABLE', 'jobs'),
+            'queue' => 'messenger',
+            'retry_after' => 120,
+            'after_commit' => true,
+        ],
+
+        'crm' => [
+            'driver' => 'database',
+            'connection' => env('DB_QUEUE_CONNECTION'),
+            'table' => env('DB_QUEUE_TABLE', 'jobs'),
+            'queue' => 'crm',
+            'retry_after' => 120,
+            'after_commit' => true,
+        ],
+
+        'faq' => [
+            'driver' => 'database',
+            'connection' => env('DB_QUEUE_CONNECTION'),
+            'table' => env('DB_QUEUE_TABLE', 'jobs'),
+            'queue' => 'faq',
+            'retry_after' => 120,
+            'after_commit' => true,
+        ],
+
         'beanstalkd' => [
             'driver' => 'beanstalkd',
             'host' => env('BEANSTALKD_QUEUE_HOST', 'localhost'),
