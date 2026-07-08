@@ -29,6 +29,10 @@ class DatabaseSeeder extends Seeder
             ChannelAccountSeeder::class,
             ConversationSeeder::class,
             MessageSeeder::class,
+            FAQCategorySeeder::class,
+            FAQSeeder::class,
+            KnowledgeSearchLogSeeder::class,
+            UnansweredQuestionSeeder::class,
         ]);
     }
 }

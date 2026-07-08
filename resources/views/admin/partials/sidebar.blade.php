@@ -1,7 +1,7 @@
 <div class="sidebar sidebar-navigation active">
     <div class="logo_content">
         <a href="{{ route('dashboard') }}" class="logo">
-            <img src="{{ asset('images/logo.png') }}" alt="logo" class="logo_img" style="width: 50px"/>
+            <img src="{{ asset('images/logo.png') }}" alt="logo" class="logo_img" style="width: 50px" />
             <div class="logo_name">
                 {{-- <img src="{{ asset('images/logo_name_white.png') }}" alt="logo" class="logo_name_img"> --}}
             </div>
@@ -24,6 +24,24 @@
                 class="{{ Route::is('conversations.index') ? 'active-focus' : '' }}">
                 <i class="ri-message-3-line"></i>
                 <span class="link_names">Conversations</span>
+            </a>
+        </li>
+
+        <li class="category-li">
+            <span class="link_names">Knowledge Base</span>
+        </li>
+        <li class="drop-item">
+            <a href="{{ route('faq-categories.index') }}"
+                class="{{ in_array(Route::currentRouteName(), ['faq-categories.index', 'faq-categories.create', 'faq-categories.edit']) ? 'active-focus' : '' }}">
+                <i class="ri-folders-line"></i>
+                <span class="link_names">FAQ Categories</span>
+            </a>
+        </li>
+        <li class="drop-item">
+            <a href="{{ route('faqs.index') }}"
+                class="{{ in_array(Route::currentRouteName(), ['faqs.index', 'faqs.create', 'faqs.edit']) ? 'active-focus' : '' }}">
+                <i class="ri-question-answer-line"></i>
+                <span class="link_names">FAQs</span>
             </a>
         </li>
 

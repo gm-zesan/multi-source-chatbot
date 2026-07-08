@@ -1,34 +1,32 @@
 @extends('admin.app')
 @section('title')
-    User
+    FAQ Categories
 @endsection
 
 @push('custom-style')
-    {{-- Datatable css  --}}
     <link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/jquery.dataTables.min.css">
     <link rel="stylesheet" href="https://cdn.datatables.net/1.10.25/css/dataTables.semanticui.min.css">
 @endpush
 
 @section('content')
-    {{-- Data Table --}}
     <div class="container-fluid my-3">
         <div class="row">
             <div class="col-12">
                 <div class="card table-card">
                     <div class="card-header table-header">
                         <div class="title-with-breadcrumb">
-                            <div class="table-title">User</div>
+                            <div class="table-title">FAQ Category</div>
                             <nav aria-label="breadcrumb">
                                 <ol class="breadcrumb mb-0">
                                     <li class="breadcrumb-item">
                                         <a href="{{ route('dashboard') }}">Dashboard</a>
                                     </li>
-                                    <li class="breadcrumb-item active" aria-current="page">User</li>
+                                    <li class="breadcrumb-item active" aria-current="page">FAQ Category</li>
                                 </ol>
                             </nav>
                         </div>
                         @role(\App\Enums\RoleEnum::SUPERADMIN->value)
-                            <a href="{{ route('users.create') }}" class="add-new">Create User<i
+                            <a href="{{ route('faq-categories.create') }}" class="add-new">Create Category<i
                                     class="ms-1 ri-add-line"></i></a>
                         @endrole
                     </div>
@@ -38,8 +36,10 @@
                                 <tr>
                                     <th scope="col">SL NO</th>
                                     <th scope="col">Name</th>
-                                    <th scope="col">Email</th>
-                                    <th scope="col">Phone No</th>
+                                    <th scope="col">Slug</th>
+                                    <th scope="col">FAQs</th>
+                                    <th scope="col">Order</th>
+                                    <th scope="col">Status</th>
                                     <th scope="col">Action</th>
                                 </tr>
                             </thead>
@@ -54,7 +54,6 @@
 @endsection
 
 @push('custom-scripts')
-    {{-- sweet alert --}}
     @if (Session::has('success'))
         <script>
             swal("success", "{{ Session::get('success') }}", "success", {
@@ -63,15 +62,12 @@
             });
         </script>
     @endif
-    {{-- Data table --}}
+
     <script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js" defer></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/2.3.1/semantic.min.js" defer></script>
 
-
-
-    {{-- Datatable Ajax Call --}}
     <script type="text/javascript">
-        var listUrl = SITEURL + '/dashboard/users';
+        var listUrl = SITEURL + '/dashboard/faq-categories';
 
         $(document).ready(function() {
             var table = $('#data-table').DataTable({
@@ -86,9 +82,10 @@
                     type: 'GET'
                 },
                 columns: [{
-                        data: 'id',
-                        name: 'id',
-                        orderable: true
+                        data: 'DT_RowIndex',
+                        name: 'DT_RowIndex',
+                        orderable: false,
+                        searchable: false
                     },
                     {
                         data: 'name',
@@ -96,14 +93,24 @@
                         orderable: true
                     },
                     {
-                        data: 'email',
-                        name: 'email',
+                        data: 'slug',
+                        name: 'slug',
                         orderable: true
                     },
                     {
-                        data: 'phone',
-                        name: 'phone',
+                        data: 'faqs_count',
+                        name: 'faqs_count',
                         orderable: true
+                    },
+                    {
+                        data: 'order_column',
+                        name: 'order_column',
+                        orderable: true
+                    },
+                    {
+                        data: 'status_badge',
+                        name: 'status_badge',
+                        orderable: false
                     },
                     {
                         data: 'action-btn',
@@ -112,15 +119,25 @@
                             var btns = '';
                             btns += '<div class="action-btn">';
 
-                            btns += '<a href="' + SITEURL + '/dashboard/users/' + data +
+                            btns += '<a href="' + SITEURL + '/dashboard/faq-categories/' + data.id +
                                 '/edit" title="Edit" class="btn btn-edit"><i class="ri-edit-line"></i></a>';
 
-                            btns += '<form action="' + SITEURL + '/dashboard/users/' + data +
-                                '" method="POST" style="display: inline;" onsubmit="return confirm(\'Are you sure to delete this user?\');">' +
-                                '@csrf' +
-                                '@method('DELETE')' +
-                                '<button type="submit" class="btn btn-delete"><i class="ri-delete-bin-2-line"></i></button>' +
-                                '</form>';
+                            if (!data.trashed) {
+                                btns += '<form action="' + SITEURL + '/dashboard/faq-categories/' +
+                                    data.id +
+                                    '" method="POST" style="display: inline;" onsubmit="return confirm(\'Are you sure to delete this category?\');">' +
+                                    '@csrf' +
+                                    '@method('DELETE')' +
+                                    '<button type="submit" class="btn btn-delete"><i class="ri-delete-bin-2-line"></i></button>' +
+                                    '</form>';
+                            } else {
+                                btns += '<form action="' + SITEURL + '/dashboard/faq-categories/' +
+                                    data.id +
+                                    '/restore" method="POST" style="display: inline;">' +
+                                    '@csrf' +
+                                    '<button type="submit" class="btn btn-success"><i class="ri-refresh-line"></i></button>' +
+                                    '</form>';
+                            }
 
                             btns += '</div>';
                             return btns;
@@ -133,6 +150,4 @@
             });
         });
     </script>
-
-
 @endpush

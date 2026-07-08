@@ -1,4 +1,4 @@
-@import 'variables';
+@use 'variables' as *;
 
 * {
     margin: 0;
@@ -112,10 +112,8 @@ body {
                 transition: $transition-base;
                 white-space: nowrap;
                 &:hover {
-                    // background-color: rgba(255, 255, 255, 0.08);
-                    // color: $sidebar-text-hover;
-                    color: #0f172a;
-                    background: #f8fafc;
+                    background-color: rgba(255, 255, 255, 0.08);
+                    color: $sidebar-text-hover;
                 }
                 &.active-focus {
                     // background-color: $primary;
@@ -132,14 +130,15 @@ body {
             text-transform: uppercase;
             color: $gray-500;
             padding-left: $space-lg;
-            margin-bottom: $space-sm;
-            margin-top: $space-xl;
+            margin-bottom: $space-xs;
+            margin-top: $space-lg;
             letter-spacing: 0.5px;
         }
     }
     .profile_content {
         position: absolute;
         color: $white;
+        background-color: inherit;
         bottom: 0;
         left: 0;
         right: 0;
@@ -854,16 +853,15 @@ header {
                 font-size: $text-lg;
                 font-weight: $font-semibold;
                 color: $text-primary;
-                margin-bottom: $space-md;
+                margin-bottom: $space-xs;
             }
             .custom-input {
                 border: 1px solid $border-color;
-                border-radius: $radius-md;
+                border-radius: $radius-xs;
                 padding: $space-xs $space-lg;
                 font-size: $text-xs;
                 font-weight: $font-medium;
                 color: $text-primary;
-                margin-bottom: $space-lg;
                 transition: $transition-base;
                 &:focus {
                     border-color: $primary;
@@ -1127,9 +1125,9 @@ header {
                 background-color: $bg-tertiary;
                 color: $text-primary;
                 border: none;
-                padding: $space-lg 0px;
+                padding: $space-sm 0px;
                 width: 100%;
-                border-radius: $radius-md;
+                border-radius: $radius-xs;
                 font-size: $text-sm;
                 font-weight: $font-medium;
                 transition: $transition-base;
@@ -1146,9 +1144,9 @@ header {
                 background-color: rgba($danger, 0.1);
                 color: $danger;
                 border: none;
-                padding: $space-lg 0px;
+                padding: $space-sm 0px;
                 width: 100%;
-                border-radius: $radius-md;
+                border-radius: $radius-xs;
                 font-size: $text-sm;
                 font-weight: $font-medium;
                 transition: $transition-base;

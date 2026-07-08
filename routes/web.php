@@ -7,6 +7,8 @@ use App\Enums\Permissions\UserPermission;
 use App\Http\Controllers\AssignRoleController;
 use App\Http\Controllers\ContactFormController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\FAQCategoryController;
+use App\Http\Controllers\FAQController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ConversationController;
 use App\Http\Controllers\RoleController;
@@ -67,8 +69,41 @@ Route::middleware('auth')->prefix('dashboard')->group(function () {
         ->middleware('permission:' . MessagePermission::VIEW->value);
     Route::get('/message/delete/{id}', [ContactFormController::class,'delete'])->name('message.delete')
         ->middleware('permission:' . MessagePermission::DELETE->value);
+
+    // ── FAQ Categories ─────────────────────────────────────────────────
+    Route::resource('/faq-categories', FAQCategoryController::class)->except(['show'])
+        ->middleware('permission:' . implode('|', [
+            \App\Enums\Permissions\FAQPermission::VIEW->value,
+            \App\Enums\Permissions\FAQPermission::CREATE->value,
+            \App\Enums\Permissions\FAQPermission::UPDATE->value,
+            \App\Enums\Permissions\FAQPermission::DELETE->value,
+        ]));
+    Route::post('/faq-categories/{faqCategory}/toggle-active', [FAQCategoryController::class, 'toggleActive'])
+        ->name('faq-categories.toggle-active')
+        ->middleware('permission:' . \App\Enums\Permissions\FAQPermission::UPDATE->value);
+    Route::post('/faq-categories/{id}/restore', [FAQCategoryController::class, 'restore'])
+        ->name('faq-categories.restore')
+        ->withTrashed()
+        ->middleware('permission:' . \App\Enums\Permissions\FAQPermission::UPDATE->value);
+
+    // ── FAQs ────────────────────────────────────────────────────────────
+    Route::resource('/faqs', FAQController::class)->except(['show'])
+        ->middleware('permission:' . implode('|', [
+            \App\Enums\Permissions\FAQPermission::VIEW->value,
+            \App\Enums\Permissions\FAQPermission::CREATE->value,
+            \App\Enums\Permissions\FAQPermission::UPDATE->value,
+            \App\Enums\Permissions\FAQPermission::DELETE->value,
+        ]));
+    Route::post('/faqs/{faq}/toggle-active', [FAQController::class, 'toggleActive'])
+        ->name('faqs.toggle-active')
+        ->middleware('permission:' . \App\Enums\Permissions\FAQPermission::UPDATE->value);
+    Route::post('/faqs/{id}/restore', [FAQController::class, 'restore'])
+        ->name('faqs.restore')
+        ->withTrashed()
+        ->middleware('permission:' . \App\Enums\Permissions\FAQPermission::UPDATE->value);
+    Route::post('/faqs/bulk-delete', [FAQController::class, 'bulkDelete'])
+        ->name('faqs.bulk-delete')
+        ->middleware('permission:' . \App\Enums\Permissions\FAQPermission::DELETE->value);
 });
-
-
 
 require __DIR__.'/auth.php';

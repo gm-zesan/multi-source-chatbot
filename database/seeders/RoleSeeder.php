@@ -4,7 +4,10 @@ namespace Database\Seeders;
 
 use App\Enums\Permissions\ChannelPermission;
 use App\Enums\Permissions\ConversationPermission;
+use App\Enums\Permissions\FAQPermission;
+use App\Enums\Permissions\KnowledgeSearchLogPermission;
 use App\Enums\Permissions\MessagePermission;
+use App\Enums\Permissions\UnansweredQuestionPermission;
 use App\Enums\Permissions\UserPermission;
 use App\Enums\Permissions\WorkspaceUserPermission;
 use App\Enums\RoleEnum;
@@ -73,6 +76,18 @@ class RoleSeeder extends Seeder
             ChannelPermission::CREATE->value,
             ChannelPermission::UPDATE->value,
             ChannelPermission::DELETE->value,
+
+            FAQPermission::VIEW->value,
+            FAQPermission::CREATE->value,
+            FAQPermission::UPDATE->value,
+            FAQPermission::DELETE->value,
+
+            KnowledgeSearchLogPermission::VIEW->value,
+            KnowledgeSearchLogPermission::DELETE->value,
+
+            UnansweredQuestionPermission::VIEW->value,
+            UnansweredQuestionPermission::UPDATE->value,
+            UnansweredQuestionPermission::DELETE->value,
         ]);
     }
 }

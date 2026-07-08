@@ -4,7 +4,10 @@ namespace Database\Seeders;
 
 use App\Enums\Permissions\ChannelPermission;
 use App\Enums\Permissions\ConversationPermission;
+use App\Enums\Permissions\FAQPermission;
+use App\Enums\Permissions\KnowledgeSearchLogPermission;
 use App\Enums\Permissions\MessagePermission;
+use App\Enums\Permissions\UnansweredQuestionPermission;
 use App\Enums\Permissions\PermissionPermission;
 use App\Enums\Permissions\RolePermission;
 use App\Enums\Permissions\UserPermission;
@@ -29,6 +32,9 @@ class PermissionSeeder extends Seeder
         ConversationPermission::class,
         MessagePermission::class,
         ChannelPermission::class,
+        FAQPermission::class,
+        KnowledgeSearchLogPermission::class,
+        UnansweredQuestionPermission::class,
     ];
 
     /**

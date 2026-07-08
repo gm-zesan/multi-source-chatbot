@@ -1,4 +1,4 @@
-@import 'variables';
+@use 'variables' as *;
 
 // Mixin
 @mixin flex-box(
@@ -38,7 +38,6 @@ div.dataTables_wrapper div.dataTables_length select {
     border-bottom-color: $border-color;
 }
 table.dataTable {
-    padding-top: $space-2xl !important;
     border-collapse: collapse;
 }
 
@@ -216,7 +215,7 @@ div.dataTables_wrapper div.dataTables_info {
 .dataTables_paginate.paging_simple_numbers span .paginate_button {
     font-size: $text-xs !important;
     font-weight: $font-medium !important;
-    margin: 0 !important;
+    margin: 0 $space-xs !important;
     color: $text-primary !important;
     background: $white !important;
     padding: 6px $space-md !important;
@@ -228,6 +227,7 @@ div.dataTables_wrapper div.dataTables_info {
     background: initial !important;
     background: $bg-secondary !important;
     transition: $transition-base;
+    color: $primary !important;
 }
 .dataTables_paginate.paging_simple_numbers span .paginate_button.current {
     background: $bg-secondary !important;
