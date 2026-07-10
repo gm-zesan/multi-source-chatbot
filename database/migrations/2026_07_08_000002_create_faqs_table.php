@@ -30,7 +30,11 @@ return new class extends Migration
 
             $table->index(['workspace_id', 'is_active', 'priority']);
             $table->index(['workspace_id', 'category_id']);
-            $table->fullText(['question', 'searchable_text']);
+
+            // Fulltext index — MySQL only (SQLite/test drivers don't support it)
+            if (Schema::getConnection()->getDriverName() === 'mysql') {
+                $table->fullText(['question', 'searchable_text']);
+            }
         });
     }
 

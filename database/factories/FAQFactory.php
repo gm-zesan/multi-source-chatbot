@@ -75,7 +75,8 @@ class FAQFactory extends Factory
         $faq = fake()->randomElement(self::$predefinedFaqs);
 
         return [
-            'workspace_id' => Workspace::factory(),
+            'workspace_id' => fn () => Workspace::inRandomOrder()->first()?->id
+                ?? Workspace::create(['name' => 'Default', 'slug' => 'default'])->id,
             'category_id' => null,
             'question' => $faq['question'],
             'answer' => $faq['answer'],

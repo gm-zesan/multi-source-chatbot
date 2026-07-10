@@ -133,9 +133,13 @@ class TextPreprocessor
         $tokenizer = new TokenizerProcessor($this->minTokenLength);
         $tokens = $tokenizer->tokenize($normalized, $language);
 
-        // Remove stop words from tokens for keyword extraction
-        $stopWordRemover = new RemoveStopWordsProcessor();
-        $keywordTokens = $stopWordRemover->filterTokens($tokens, $language);
+        // Build keyword string — optionally remove stop words
+        if ($this->removeStopWords) {
+            $stopWordRemover = new RemoveStopWordsProcessor();
+            $keywordTokens = $stopWordRemover->filterTokens($tokens, $language);
+        } else {
+            $keywordTokens = $tokens;
+        }
         $keyword = $tokenizer->buildKeywordString($keywordTokens, $language);
 
         return new ProcessedText(
