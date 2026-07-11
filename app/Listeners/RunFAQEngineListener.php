@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Listeners;
 
 use App\Events\IncomingMessageReceived;
@@ -27,6 +29,11 @@ class RunFAQEngineListener implements ShouldQueue
      * The number of times the job may be attempted.
      */
     public int $tries = 3;
+
+    /**
+     * Maximum number of allowed exceptions.
+     */
+    public int $maxExceptions = 3;
 
     /**
      * Create a new listener instance.

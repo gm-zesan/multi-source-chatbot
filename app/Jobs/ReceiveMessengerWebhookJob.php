@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Jobs;
 
 use App\Events\ConversationCreated;
@@ -24,6 +26,11 @@ class ReceiveMessengerWebhookJob implements ShouldQueue
      * The number of times the job may be attempted.
      */
     public int $tries = 3;
+
+    /**
+     * Maximum number of allowed exceptions.
+     */
+    public int $maxExceptions = 3;
 
     /**
      * The backoff strategy.
@@ -192,6 +199,18 @@ class ReceiveMessengerWebhookJob implements ShouldQueue
         Log::info('[WebhookJob] Completed', [
             'conversation_id' => $conversation->id,
             'message_id'      => $message?->id,
+        ]);
+    }
+
+    /**
+     * Handle a job failure.
+     */
+    public function failed(\Throwable $exception): void
+    {
+        Log::error('[WebhookJob] Job failed after all retries', [
+            'channel_account_id' => $this->channelAccountId,
+            'channel'            => $this->channel,
+            'error'              => $exception->getMessage(),
         ]);
     }
 }

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Jobs;
 
 use App\Models\FAQ;
@@ -20,6 +22,11 @@ class FAQIndexJob implements ShouldQueue
      * The number of times the job may be attempted.
      */
     public int $tries = 3;
+
+    /**
+     * Maximum number of allowed exceptions.
+     */
+    public int $maxExceptions = 3;
 
     /**
      * The number of seconds the job can run before timing out.
@@ -110,5 +117,17 @@ class FAQIndexJob implements ShouldQueue
     private function handleDelete(): void
     {
         $this->faq->unsearchable();
+    }
+
+    /**
+     * Handle a job failure.
+     */
+    public function failed(\Throwable $exception): void
+    {
+        Log::error('[FAQIndexJob] Job failed after all retries', [
+            'faq_id' => $this->faq->id,
+            'action' => $this->action,
+            'error'  => $exception->getMessage(),
+        ]);
     }
 }

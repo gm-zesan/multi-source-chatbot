@@ -1,15 +1,23 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
+use App\Services\DashboardService;
 use Illuminate\Support\Facades\Artisan;
 
 class DashboardController extends Controller
 {
+    public function __construct(
+        private readonly DashboardService $dashboard,
+    ) {}
+
     public function dashboard()
     {
-        return view('admin.dashboard');
+        return view('admin.dashboard', [
+            'metrics' => $this->dashboard->metrics(),
+        ]);
     }
 
     public function cacheClear(){

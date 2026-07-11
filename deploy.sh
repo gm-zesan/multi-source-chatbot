@@ -1,17 +1,30 @@
 #!/bin/bash
-
 set -e
 
 cd /home/entrepre/chat.entrepreneursautomation.com
 
-BEFORE=$(git rev-parse HEAD)
+echo "🚀 Deploy Started: $(date)"
 
+# 1. Pull latest code
 git pull origin main
 
-# /home/entrepre/bin/composer install --no-dev --optimize-autoloader
+# 2. Install PHP deps (no dev on prod)
+/home/entrepre/bin/composer install --no-dev --optimize-autoloader
 
+# 3. Run migrations
 php artisan migrate --force
 
+# 4. Clear & rebuild cache
 php artisan optimize:clear
+php artisan view:cache
+php artisan config:cache
+php artisan event:cache
 
-echo "✅ Deploy Finished"
+# 5. Restart queue workers
+sudo supervisorctl reread
+sudo supervisorctl update
+sudo supervisorctl restart chatbot-messenger:*
+sudo supervisorctl restart chatbot-crm:*
+sudo supervisorctl restart chatbot-faq:*
+
+echo "✅ Deploy Finished: $(date)"

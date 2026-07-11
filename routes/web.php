@@ -9,6 +9,7 @@ use App\Http\Controllers\ContactFormController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\FAQCategoryController;
 use App\Http\Controllers\FAQController;
+use App\Http\Controllers\HealthController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ConversationController;
 use App\Http\Controllers\RoleController;
@@ -19,6 +20,9 @@ use Illuminate\Support\Facades\Route;
 Route::get('/', function () {
     return view('welcome');
 })->name('home');
+
+// Health check — no auth, used by load balancers / uptime monitors
+Route::get('/health', HealthController::class)->name('health');
 
 Route::match(['GET', 'POST'], '/webhook', [WebhookController::class, 'handle']);
 
