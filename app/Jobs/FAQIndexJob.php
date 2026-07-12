@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace App\Jobs;
 
 use App\Models\FAQ;
+use App\Services\FAQ\FAQIndexer;
 use App\Services\NLP\Embedding\EmbeddingService;
 use App\Services\NLP\TextPreprocessor;
+use App\Services\Search\TypesenseService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -17,6 +19,11 @@ use Illuminate\Support\Facades\Log;
 class FAQIndexJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
+
+    /**
+     * Typesense collection name for FAQs.
+     */
+    private const COLLECTION = 'faqs';
 
     /**
      * The number of times the job may be attempted.
@@ -47,11 +54,13 @@ class FAQIndexJob implements ShouldQueue
     public function handle(
         TextPreprocessor $preprocessor,
         EmbeddingService $embeddings,
+        TypesenseService $typesense,
+        FAQIndexer $indexer,
     ): void {
         try {
             match ($this->action) {
-                'delete' => $this->handleDelete(),
-                default  => $this->handleIndex($preprocessor, $embeddings),
+                'delete' => $this->handleDelete($typesense),
+                default  => $this->handleIndex($typesense, $indexer),
             };
 
             Log::debug('[FAQIndexJob] Completed', [
@@ -73,50 +82,44 @@ class FAQIndexJob implements ShouldQueue
      * Index or update the FAQ in Typesense.
      */
     private function handleIndex(
-        TextPreprocessor $preprocessor,
-        EmbeddingService $embeddings,
+        TypesenseService $typesense,
+        FAQIndexer $indexer,
     ): void {
         $faq = $this->faq;
 
-        // 1. Preprocess text
-        $processed = $preprocessor->process(
-            text: $faq->question . ' ' . $faq->answer,
-            language: 'en',
-        );
+        // Guard: skip indexing if FAQ is no longer searchable
+        if (! $faq->shouldBeSearchable()) {
+            $typesense->deleteDocument(self::COLLECTION, (string) $faq->id);
 
-        // 2. Generate embedding from the normalized text
-        $searchableText = $processed->normalized;
-
-        try {
-            $embeddingResponse = $embeddings->embed($searchableText);
-            $embedding = $embeddingResponse->vector;
-        } catch (\Throwable $e) {
-            Log::warning('[FAQIndexJob] Embedding generation failed, indexing without vector', [
+            Log::info('[FAQIndexJob] Skipped indexing, FAQ is not searchable; document removed from Typesense', [
                 'faq_id' => $faq->id,
-                'error'  => $e->getMessage(),
+                'action' => $this->action,
             ]);
-            $embedding = [];
+
+            return;
         }
 
-        // 3. Store embedding on the model
-        if (! empty($embedding)) {
-            $faq->embedding_version = $embeddings->config('model', 'unknown');
-        }
+        // Delegate document building to FAQIndexer (single source of truth)
+        $document = $indexer->buildDocument($faq);
 
-        // 4. Save searchable_text to the DB for MySQL full-text fallback
-        $faq->searchable_text = $searchableText;
-        $faq->saveQuietly();
+        $typesense->upsertDocument(self::COLLECTION, $document);
 
-        // 5. Sync to Typesense via Scout
-        $faq->searchable();
+        Log::debug('[FAQIndexJob] Document upserted to Typesense', [
+            'faq_id'     => $faq->id,
+            'has_vector' => ! empty($document['embedding'] ?? []),
+        ]);
     }
 
     /**
      * Remove the FAQ from Typesense.
      */
-    private function handleDelete(): void
+    private function handleDelete(TypesenseService $typesense): void
     {
-        $this->faq->unsearchable();
+        $typesense->deleteDocument(self::COLLECTION, (string) $this->faq->id);
+
+        Log::debug('[FAQIndexJob] Document deleted from Typesense', [
+            'faq_id' => $this->faq->id,
+        ]);
     }
 
     /**

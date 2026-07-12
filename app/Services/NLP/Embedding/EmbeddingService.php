@@ -57,7 +57,7 @@ class EmbeddingService
         $start = microtime(true);
 
         try {
-            $response = Http::timeout($this->config('timeout', 30))
+            $response = $this->buildRequest()
                 ->get($this->url('/health'));
 
             if ($response->successful()) {
@@ -70,8 +70,8 @@ class EmbeddingService
 
                 return [
                     'status'     => $body['status'] ?? 'ok',
-                    'model'      => $body['model'] ?? $this->config('model', 'unknown'),
-                    'dimensions' => (int) ($body['dimensions'] ?? $this->config('dimensions', 384)),
+                    'model'      => $body['model_name'] ?? $this->config('model', 'unknown'),
+                    'dimensions' => (int) ($body['embedding_dimension'] ?? $this->config('dimensions', 384)),
                     'latency_ms' => round($latency, 2),
                 ];
             }
@@ -107,9 +107,10 @@ class EmbeddingService
     private function callEmbed(string $text): EmbeddingResponse
     {
         $start = microtime(true);
+        $model = (string) $this->config('model', 'unknown');
 
         try {
-            $response = Http::timeout($this->config('timeout', 30))
+            $response = $this->buildRequest()
                 ->post($this->url('/embed'), [
                     'text' => $text,
                 ]);
@@ -119,13 +120,13 @@ class EmbeddingService
             $response->throw();
 
             $body = $response->json();
-            $result = EmbeddingResponse::fromArray($body);
+            $result = EmbeddingResponse::fromArray($body, $model, round($latency, 2));
 
             Log::debug('[EmbeddingService] Embedding generated', [
-                'dimensions' => $result->dimensions,
-                'model'      => $result->model,
-                'time_ms'    => round($latency, 2),
-                'text_preview' => mb_substr($text, 0, 80),
+                'dimensions'    => $result->dimensions,
+                'model'         => $result->model,
+                'time_ms'       => round($latency, 2),
+                'text_preview'  => mb_substr($text, 0, 80),
             ]);
 
             return $result;
@@ -155,9 +156,10 @@ class EmbeddingService
     private function callEmbedBatch(array $texts): BatchEmbeddingResponse
     {
         $start = microtime(true);
+        $model = (string) $this->config('model', 'unknown');
 
         try {
-            $response = Http::timeout($this->config('timeout', 30))
+            $response = $this->buildRequest()
                 ->post($this->url('/embed-batch'), [
                     'texts' => $texts,
                 ]);
@@ -167,7 +169,7 @@ class EmbeddingService
             $response->throw();
 
             $body = $response->json();
-            $result = BatchEmbeddingResponse::fromArray($body);
+            $result = BatchEmbeddingResponse::fromArray($body, $model, round($latency, 2));
 
             Log::debug('[EmbeddingService] Batch embedding generated', [
                 'count'      => count($result->items),
@@ -252,7 +254,26 @@ class EmbeddingService
      */
     private function url(string $path): string
     {
-        return rtrim($this->config('base_url', 'http://127.0.0.1:8000'), '/') . $path;
+        return rtrim($this->config('base_url', 'http://127.0.0.1:8001'), '/') . $path;
+    }
+
+    /**
+     * Build a pending HTTP request with timeout and optional API key header.
+     *
+     * Uses Laravel's Http facade with the configured timeout and attaches
+     * the X-API-Key header when an API key is set (required for non-local
+     * Python environments).
+     */
+    private function buildRequest(): \Illuminate\Http\Client\PendingRequest
+    {
+        $request = Http::timeout((int) $this->config('timeout', 30));
+
+        $apiKey = $this->config('api_key', '');
+        if ($apiKey !== '' && $apiKey !== null) {
+            $request->withHeader('X-API-Key', $apiKey);
+        }
+
+        return $request;
     }
 
     /**

@@ -8,12 +8,17 @@ use App\Jobs\FAQIndexJob;
 use App\Models\FAQ;
 use App\Services\NLP\Embedding\EmbeddingService;
 use App\Services\NLP\TextPreprocessor;
+use App\Services\Search\TypesenseService;
 use Illuminate\Database\Eloquent\Collection;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 class FAQIndexer
 {
+    /**
+     * Typesense collection name for FAQs.
+     */
+    private const COLLECTION = 'faqs';
+
     /**
      * Maximum number of FAQs per batch.
      */
@@ -27,16 +32,21 @@ class FAQIndexer
     public function __construct(
         private readonly TextPreprocessor $preprocessor,
         private readonly EmbeddingService $embeddings,
+        private readonly TypesenseService $typesense,
     ) {}
 
     /**
-     * Index a single FAQ — generates embedding, builds searchable_text,
-     * and syncs to Typesense.
+     * Index a single FAQ — generates embedding, builds document, syncs to Typesense.
      */
     public function index(FAQ $faq): void
     {
-        $this->preprocessAndEmbed($faq);
-        $faq->searchable();
+        $document = $this->buildDocument($faq);
+
+        $this->typesense->upsertDocument(self::COLLECTION, $document);
+
+        Log::debug('[FAQIndexer] Indexed', [
+            'faq_id' => $faq->id,
+        ]);
     }
 
     /**
@@ -44,8 +54,13 @@ class FAQIndexer
      */
     public function update(FAQ $faq): void
     {
-        $this->preprocessAndEmbed($faq);
-        $faq->searchable();
+        $document = $this->buildDocument($faq);
+
+        $this->typesense->upsertDocument(self::COLLECTION, $document);
+
+        Log::debug('[FAQIndexer] Updated', [
+            'faq_id' => $faq->id,
+        ]);
     }
 
     /**
@@ -53,7 +68,7 @@ class FAQIndexer
      */
     public function delete(FAQ $faq): void
     {
-        $faq->unsearchable();
+        $this->typesense->deleteDocument(self::COLLECTION, (string) $faq->id);
 
         Log::debug('[FAQIndexer] Removed from index', [
             'faq_id' => $faq->id,
@@ -67,24 +82,24 @@ class FAQIndexer
      */
     public function batchIndex(Collection $faqs): void
     {
-        $count = 0;
+        $documents = [];
 
         foreach ($faqs as $faq) {
             if (! $faq->shouldBeSearchable()) {
-                $faq->unsearchable();
+                $this->typesense->deleteDocument(self::COLLECTION, (string) $faq->id);
                 continue;
             }
 
-            $this->preprocessAndEmbed($faq);
-            $count++;
+            $documents[] = $this->buildDocument($faq);
         }
 
-        // Bulk sync to Typesense via Scout
-        $faqs->filter->shouldBeSearchable()->searchable();
+        if (! empty($documents)) {
+            $this->typesense->upsertDocuments(self::COLLECTION, $documents);
+        }
 
         Log::debug('[FAQIndexer] Batch index completed', [
             'total'   => $faqs->count(),
-            'indexed' => $count,
+            'indexed' => count($documents),
         ]);
     }
 
@@ -98,21 +113,26 @@ class FAQIndexer
         $total = 0;
 
         FAQ::withTrashed()->chunk(self::REINDEX_CHUNK, function (Collection $faqs) use (&$total) {
-            DB::transaction(function () use ($faqs) {
-                // Unsearchable all first to clear the index
-                $faqs->each->unsearchable();
-            });
-
-            // Re-index only the searchable ones
-            $searchable = $faqs->filter->shouldBeSearchable();
-
-            foreach ($searchable as $faq) {
-                $this->preprocessAndEmbed($faq);
+            // Remove non-searchable (soft-deleted / inactive) from index
+            foreach ($faqs as $faq) {
+                if (! $faq->shouldBeSearchable()) {
+                    $this->typesense->deleteDocument(self::COLLECTION, (string) $faq->id);
+                }
             }
 
-            $searchable->searchable();
+            // Build documents for searchable ones
+            $searchable = $faqs->filter->shouldBeSearchable();
+            $documents = [];
 
-            $total += $searchable->count();
+            foreach ($searchable as $faq) {
+                $documents[] = $this->buildDocument($faq);
+            }
+
+            if (! empty($documents)) {
+                $this->typesense->upsertDocuments(self::COLLECTION, $documents);
+            }
+
+            $total += count($documents);
         });
 
         Log::info('[FAQIndexer] Reindex completed', [
@@ -141,9 +161,16 @@ class FAQIndexer
     // ─── Internal ──────────────────────────────────────────────────────────
 
     /**
-     * Preprocess text, generate embedding, and persist to the model.
+     * Build the full document array for Typesense — preprocesses text,
+     * generates the embedding vector, and returns a complete document
+     * ready for upsert.
+     *
+     * Also persists searchable_text and embedding_version to MySQL
+     * for fallback / auditing.
+     *
+     * @return array<string, mixed>
      */
-    private function preprocessAndEmbed(FAQ $faq): void
+    public function buildDocument(FAQ $faq): array
     {
         // 1. Build raw text from question + answer
         $raw = trim(($faq->question ?? '') . ' ' . ($faq->answer ?? ''));
@@ -152,7 +179,7 @@ class FAQIndexer
         $processed = $this->preprocessor->process($raw, language: 'en');
         $searchableText = $processed->normalized;
 
-        // 3. Generate embedding vector
+        // 3. Generate embedding vector via Python service
         $embedding = [];
         try {
             $response = $this->embeddings->embed($searchableText);
@@ -164,7 +191,7 @@ class FAQIndexer
             ]);
         }
 
-        // 4. Persist to model (quietly to avoid recursive indexing)
+        // 4. Persist metadata to MySQL (quietly — avoid recursive events)
         $faq->searchable_text = $searchableText;
 
         if (! empty($embedding)) {
@@ -172,5 +199,18 @@ class FAQIndexer
         }
 
         $faq->saveQuietly();
+
+        // 5. Build the Typesense document WITH the embedding vector
+        return [
+            'id'              => (string) $faq->id,
+            'workspace_id'    => $faq->workspace_id,
+            'question'        => $faq->question,
+            'answer'          => $faq->answer,
+            'searchable_text' => $searchableText,
+            'priority'        => (int) $faq->priority,
+            'embedding'       => $embedding,
+            'is_active'       => $faq->is_active,
+            'created_at'      => $faq->created_at?->timestamp ?? time(),
+        ];
     }
 }

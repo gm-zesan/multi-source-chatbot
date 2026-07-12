@@ -22,17 +22,24 @@ class EmbeddingResponse
     ) {}
 
     /**
-     * Create from a FastAPI JSON response array.
+     * Create from the Python FastAPI /embed JSON response.
+     *
+     * Python response shape (FastAPI Pydantic serialization):
+     *   {"embedding": [0.1, 0.2, ...], "dimensions": 768}
+     *
+     * The caller supplies model name and timing separately from config / instrumentation.
      *
      * @param array<string, mixed> $data
+     * @param string               $model  Model name (from config, not in API response).
+     * @param float|null           $timeMs Latency in milliseconds (from caller instrumentation).
      */
-    public static function fromArray(array $data): self
+    public static function fromArray(array $data, string $model = 'unknown', ?float $timeMs = null): self
     {
         return new self(
-            vector: $data['vector'] ?? [],
+            vector: $data['embedding'] ?? [],
             dimensions: (int) ($data['dimensions'] ?? 0),
-            model: $data['model'] ?? 'unknown',
-            timeMs: isset($data['time_ms']) ? (float) $data['time_ms'] : null,
+            model: $model,
+            timeMs: $timeMs,
             text: $data['text'] ?? null,
         );
     }
