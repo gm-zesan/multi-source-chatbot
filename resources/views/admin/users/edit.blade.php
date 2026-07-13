@@ -3,7 +3,7 @@
     User
 @endsection
 @section('content')
-    <div class="container-fluid my-3">
+    <div class="container-fluid">
         <form action="{{ route('users.update', ['user' => $user->id]) }}" method="POST"
             enctype="multipart/form-data" autocomplete="off">
             @csrf
@@ -29,60 +29,53 @@
                             <a href="{{route('users.index')}}" class="add-new">User List<i class="ms-1 ri-list-ordered-2"></i></a>
                         </div>
                         <div class="card-body custom-form">
-                            
-                            <div class="row">
-                                <div class="col-12">
-                                    <label for="name" class="form-label custom-label">Name</label>
+                            <div class="mb-3">
+                                <label for="name" class="form-label custom-label">Name</label>
                                     <input type="text" class="form-control custom-input" name="name" value="{{$user->name}}" id="name">
                                     @if($errors->has('name'))
                                         <div class="error_msg">
                                             {{ $errors->first('name') }}
                                         </div>
                                     @endif
-                                </div>
-                                
+                            </div>
 
-                                <div class="col-md-6">
-                                    <label for="email" class="form-label custom-label">Email</label>
+                            <div class="mb-3">
+                                <label for="email" class="form-label custom-label">Email</label>
                                     <input type="email" class="form-control custom-input" name="email" value="{{$user->email}}" id="email">
                                     @if($errors->has('email'))
                                         <div class="error_msg">
                                             {{ $errors->first('email') }}
                                         </div>
                                     @endif
-                                </div>
+                            </div>
 
-                                <div class="col-md-6">
-                                    <label for="" class="form-label custom-label">Phone No</label>
+                            <div class="mb-3">
+                                <label for="" class="form-label custom-label">Phone No</label>
                                     <input type="number" class="form-control custom-input" name="phone_no" value="{{$user->phone_no}}">
                                     @if($errors->has('phone_no'))
                                         <div class="error_msg">
                                             {{ $errors->first('phone_no') }}
                                         </div>
                                     @endif
-                                </div>
+                            </div>
 
-
-                                <div class="col-12">
-                                    <label for="" class="form-label custom-label">Address</label>
+                            <div class="mb-3">
+                                <label for="" class="form-label custom-label">Address</label>
                                     <textarea name="address" class="form-control custom-input" id="" cols="30" rows="3">{{$user->address}}</textarea>
                                     @if($errors->has('address'))
                                         <div class="error_msg">
                                             {{ $errors->first('address') }}
                                         </div>
                                     @endif
-                                </div>
-
                             </div>
-
                         </div>
                     </div>
                 </div>
 
 
-                <div class="col-md-4 col-12">
-                    <div class="row g-4">
-                        <div class="col-12 order-last order-md-first">
+                <div class="col-lg-4">
+                    <div class="mb-4">
+                        <div>
                             <div class="card table-card">
                                 <div class="table-header">
                                     <div class="table-title">Action</div>
@@ -139,11 +132,8 @@
                                     @endif
                                 </div>
                             </div>
-                            
                         </div>
-                        
                     </div>
-                </div>
             </div>
         </form>
     </div>

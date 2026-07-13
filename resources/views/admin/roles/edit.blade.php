@@ -4,13 +4,13 @@
 @endsection
 @section('content')
 
-<div class="container-fluid my-3">
+<div class="container-fluid">
     <form action="{{ route('roles.update', ['role' => $role->id]) }}" method="POST">
         @csrf
         @method('PUT')
-        <div class="row g-4">
+        <div class="row">
             <div class="col-md-8 col-12">
-                <div class="card table-card mb-4">
+                <div class="card table-card">
                     <div class="card-header table-header">
                         <div class="title-with-breadcrumb">
                             <div class="table-title">Page</div>
@@ -29,20 +29,16 @@
                         <a href="{{route('roles.index')}}" class="add-new">Role<i class="ms-1 ri-list-ordered-2"></i></a>
                     </div>
                     <div class="card-body custom-form">
-                        <div class="col-12">
-                            <div class="row">
-                                <div class="col-md-12">
-                                    <label for="" class="form-label custom-label">Role</label>
-                                    <input type="text" class="form-control custom-input" name="name"  value="{{$role->name}}">
-                                    @if($errors->has('name'))
-                                        <div class="error_msg">
-                                            {{ $errors->first('name') }}
-                                        </div>
-                                    @endif
+                        <div class="mb-3">
+                            <label for="" class="form-label custom-label">Role</label>
+                            <input type="text" class="form-control custom-input" name="name"  value="{{$role->name}}">
+                            @if($errors->has('name'))
+                                <div class="error_msg">
+                                    {{ $errors->first('name') }}
                                 </div>
-                            </div>
+                            @endif
                         </div>
-                        <div class="col-md-6">
+                        <div class="mb-3">
                             <label for="" class="form-label custom-label">Role Description</label>
                             <textarea class="form-control custom-input" name="description" rows="5" style="resize: none; height: auto">{{ $role->description }}</textarea>
                             @if($errors->has('description'))
@@ -58,9 +54,7 @@
                         <div class="table-title">Permission</div>
                     </div>
                     <div class="card-body custom-form">
-                        <div class="row">
-                            <div class="col-md-12">
-                                <div class="form-group">
+                        <div class="form-group">
                                     @foreach ($modules as $module)
                                         <div class="form-check-wrapper mb-3">
                                             <div class="form-check">
@@ -79,22 +73,19 @@
                                         @endforeach
                                     </div>
                                     @endforeach
-                                </div>
-                                @if($errors->has('title'))
-                                    <div class="error_msg">
-                                        {{ $errors->first('title') }}
-                                    </div>
-                                @endif
-                            </div>
                         </div>
+                        @if($errors->has('title'))
+                            <div class="error_msg">
+                                {{ $errors->first('title') }}
+                            </div>
+                        @endif
                     </div>
                 </div>
             </div>
 
             <div class="col-md-4 col-12">
-                <div class="row g-4">
-                    <div class="col-12">
-                        <div class="card table-card">
+                <div>
+                    <div class="card table-card">
                             <div class="table-header">
                                 <div class="table-title">Action</div>
                             </div>

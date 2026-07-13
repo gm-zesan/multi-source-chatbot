@@ -190,12 +190,14 @@ div.dataTables_wrapper div.dataTables_info {
 .dataTables_filter label {
     font-size: $text-base;
     font-weight: $font-normal;
+    display: flex;
+    align-items: center;
+    gap: $space-sm;
 }
 .dataTables_filter label input {
     border: 1px solid $border-color !important;
     font-size: $text-base !important;
     font-weight: $font-normal !important;
-    margin-bottom: $space-lg !important;
     transition: $transition-base;
 }
 .dataTables_filter label input:focus-visible {

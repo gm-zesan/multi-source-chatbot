@@ -1,0 +1,400 @@
+@use 'variables' as *;
+@use 'mixins' as *;
+
+/* =====================================================
+   ========== DROPDOWN STYLES & COMPONENTS ==============
+===================================================== */
+
+/* ==================== DROPDOWN BASE ==================== */
+.dropdown-menu {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    z-index: 9999;
+    min-width: 200px;
+    padding: $space-sm 0;
+    margin: $space-sm 0 0 0;
+    background-color: $surface-primary;
+    border: 1px solid $border-color;
+    border-radius: $radius-dropdown;
+    box-shadow: $shadow-lg;
+    animation: dropdownSlide 0.2s ease-out;
+
+    &.show {
+        display: block;
+    }
+
+    &:not(.show) {
+        display: none;
+    }
+}
+
+@keyframes dropdownSlide {
+    from {
+        transform: translateY(-8px);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+/* ==================== DROPDOWN TOGGLE ==================== */
+.dropdown-toggle {
+    position: relative;
+
+    &::after {
+        content: '';
+        display: inline-block;
+        margin-left: $space-sm;
+        width: 0;
+        height: 0;
+        border: 4px solid;
+        border-color: currentColor transparent transparent;
+        transition: transform $transition-fast;
+    }
+
+    &[aria-expanded='true']::after {
+        transform: rotate(180deg);
+    }
+}
+
+/* ==================== DROPDOWN ITEMS ==================== */
+.dropdown-item {
+    display: flex;
+    align-items: center;
+    gap: $space-md;
+    padding: $space-md $space-lg;
+    color: $text-primary;
+    text-decoration: none;
+    background-color: transparent;
+    border: none;
+    cursor: pointer;
+    transition: $transition-fast;
+    font-size: $text-sm;
+    width: 100%;
+    text-align: left;
+
+    &:hover,
+    &:focus {
+        background-color: $bg-tertiary;
+        color: $primary;
+        text-decoration: none;
+    }
+
+    &:active {
+        background-color: $bg-secondary;
+    }
+
+    &.active {
+        background-color: $primary;
+        color: $white;
+        font-weight: $font-semibold;
+    }
+
+    &.disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+
+        &:hover {
+            background-color: transparent;
+            color: $text-primary;
+        }
+    }
+
+    i, .icon {
+        font-size: $text-lg;
+        color: inherit;
+    }
+}
+
+/* ==================== DROPDOWN DIVIDER ==================== */
+.dropdown-divider {
+    height: 1px;
+    margin: $space-sm 0;
+    background-color: $border-color;
+    border: 0;
+}
+
+/* ==================== DROPDOWN HEADER ==================== */
+.dropdown-header {
+    padding: $space-md $space-lg;
+    color: $text-secondary;
+    font-size: $text-xs;
+    font-weight: $font-semibold;
+    text-transform: uppercase;
+    letter-spacing: $letter-wide;
+}
+
+/* ==================== DROPDOWN TEXT ==================== */
+.dropdown-item-text {
+    padding: $space-md $space-lg;
+    color: $text-secondary;
+    display: block;
+}
+
+/* ==================== DROPDOWN VARIANTS ==================== */
+
+/* Primary Dropdown */
+.dropdown-menu.dropdown-primary {
+    .dropdown-item {
+        &:hover,
+        &:focus {
+            background-color: $primary-50;
+            color: $primary;
+        }
+
+        &.active {
+            background-color: $primary;
+            color: $white;
+        }
+    }
+}
+
+/* Danger Dropdown */
+.dropdown-menu.dropdown-danger {
+    .dropdown-item {
+        &:hover,
+        &:focus {
+            background-color: $danger-light;
+            color: $danger;
+        }
+
+        &.active {
+            background-color: $danger;
+            color: $white;
+        }
+    }
+}
+
+/* ==================== DROPDOWN WITH ICONS ==================== */
+.dropdown-item-with-icon {
+    display: flex;
+    align-items: center;
+    gap: $space-md;
+
+    .dropdown-icon {
+        width: 20px;
+        height: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+
+    .dropdown-label {
+        flex: 1;
+    }
+
+    .dropdown-badge {
+        margin-left: auto;
+        font-size: $text-xs;
+        padding: 2px 6px;
+        background-color: $danger;
+        color: $white;
+        border-radius: $radius-full;
+    }
+}
+
+/* ==================== DROPDOWN GROUP ==================== */
+.dropdown-menu-group {
+    padding: $space-sm 0;
+
+    .dropdown-group-label {
+        padding: $space-sm $space-lg;
+        color: $text-secondary;
+        font-size: $text-xs;
+        font-weight: $font-semibold;
+        text-transform: uppercase;
+        letter-spacing: $letter-wide;
+    }
+
+    .dropdown-item {
+        padding-left: $space-2xl;
+
+        &::before {
+            content: '▹';
+            position: absolute;
+            left: $space-lg;
+            opacity: 0;
+            transition: opacity $transition-fast;
+        }
+
+        &:hover::before {
+            opacity: 1;
+        }
+    }
+}
+
+/* ==================== DROPDOWN SIZES ==================== */
+.dropdown-menu-sm {
+    min-width: 150px;
+
+    .dropdown-item {
+        padding: $space-sm $space-md;
+        font-size: $text-xs;
+    }
+}
+
+.dropdown-menu-lg {
+    min-width: 300px;
+
+    .dropdown-item {
+        padding: $space-lg $space-2xl;
+        font-size: $text-base;
+    }
+}
+
+/* ==================== DROPDOWN ALIGNMENT ==================== */
+.dropdown-menu.dropdown-menu-left {
+    left: 0;
+    right: auto;
+}
+
+.dropdown-menu.dropdown-menu-right {
+    left: auto;
+    right: 0;
+}
+
+.dropdown-menu.dropdown-menu-center {
+    left: 50%;
+    right: auto;
+    transform: translateX(-50%);
+}
+
+/* ==================== DROPDOWN CUSTOM CONTENT ==================== */
+.dropdown-custom {
+    padding: $space-md;
+
+    .dropdown-custom-header {
+        padding: $space-md;
+        background-color: $bg-tertiary;
+        border-radius: $radius-lg $radius-lg 0 0;
+        margin: -$space-md -$space-md $space-md -$space-md;
+    }
+
+    .dropdown-custom-content {
+        padding: 0;
+    }
+
+    .dropdown-custom-footer {
+        padding: $space-md;
+        background-color: $bg-secondary;
+        border-radius: 0 0 $radius-lg $radius-lg;
+        margin: $space-md -$space-md -$space-md -$space-md;
+        display: flex;
+        gap: $space-sm;
+    }
+}
+
+/* ==================== DROPDOWN RESPONSIVE ==================== */
+@include mobile-only {
+    .dropdown-menu {
+        position: fixed;
+        top: auto;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        min-width: auto;
+        width: 100%;
+        max-height: 80vh;
+        border-radius: $radius-xl $radius-xl 0 0;
+        animation: slideUp 0.3s ease-out;
+    }
+
+    .dropdown-toggle::after {
+        display: none;
+    }
+}
+
+/* ==================== DROPDOWN ANIMATIONS ==================== */
+.dropdown-menu {
+    &.show {
+        animation: dropdownSlide 0.2s ease-out;
+    }
+
+    &.hide {
+        animation: dropdownFade 0.2s ease-out forwards;
+    }
+}
+
+@keyframes dropdownFade {
+    from {
+        opacity: 1;
+    }
+
+    to {
+        opacity: 0;
+    }
+}
+
+/* ==================== DROPUP (REVERSE DIRECTION) ==================== */
+.dropup {
+    .dropdown-menu {
+        top: auto;
+        bottom: 100%;
+        margin: 0 0 $space-sm 0;
+    }
+
+    .dropdown-toggle::after {
+        border-color: transparent transparent currentColor;
+    }
+
+    .dropdown-toggle[aria-expanded='true']::after {
+        transform: rotate(180deg);
+    }
+}
+
+/* ==================== DROPEND (RIGHT DIRECTION) ==================== */
+.dropend {
+    position: relative;
+
+    .dropdown-menu {
+        top: 0;
+        left: 100%;
+        right: auto;
+        margin: 0 0 0 $space-sm;
+    }
+
+    .dropdown-toggle::after {
+        display: none;
+    }
+
+    .dropdown-toggle::before {
+        content: '';
+        display: inline-block;
+        margin-left: $space-sm;
+        width: 0;
+        height: 0;
+        border: 4px solid;
+        border-color: transparent transparent transparent currentColor;
+    }
+}
+
+/* ==================== DROPSTART (LEFT DIRECTION) ==================== */
+.dropstart {
+    position: relative;
+
+    .dropdown-menu {
+        top: 0;
+        left: auto;
+        right: 100%;
+        margin: 0 $space-sm 0 0;
+    }
+
+    .dropdown-toggle::after {
+        display: none;
+    }
+
+    .dropdown-toggle::before {
+        content: '';
+        display: inline-block;
+        margin-right: $space-sm;
+        width: 0;
+        height: 0;
+        border: 4px solid;
+        border-color: transparent currentColor transparent transparent;
+    }
+}

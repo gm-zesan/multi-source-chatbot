@@ -5,7 +5,7 @@
 
 @section('content')
 
-    <div class="container-fluid my-3">
+    <div class="container-fluid">
         <form action="{{ route('users.store') }}" method="POST" enctype="multipart/form-data" autocomplete="off">
         @csrf
             <div class="row">
@@ -29,71 +29,78 @@
                             <a href="{{route('users.index')}}" class="add-new">User List<i class="ms-1 ri-list-ordered-2"></i></a>
                         </div>
                         <div class="card-body custom-form">
-                            
-                            <div class="row">
-                                <div class="col-12">
-                                    <label for="name" class="form-label custom-label">Name</label>
+                            <div class="mb-3">
+                                <label for="name" class="form-label custom-label">Name</label>
                                     <input type="name" class="form-control custom-input" name="name" placeholder="Name" id="name">
                                     @if($errors->has('name'))
                                         <div class="error_msg">
                                             {{ $errors->first('name') }}
                                         </div>
                                     @endif
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6 col-12">
+                                    <div class="mb-3">
+                                        <label for="email" class="form-label custom-label">Email</label>
+                                        <input type="email" class="form-control custom-input" name="email" placeholder="Email" id="email">
+                                        @if($errors->has('email'))
+                                            <div class="error_msg">
+                                                {{ $errors->first('email') }}
+                                            </div>
+                                        @endif
+                                    </div>
                                 </div>
 
 
+                                <div class="col-md-6 col-12">
+                                    <div class="mb-3">
+                                        <label for="" class="form-label custom-label">Phone No</label>
+                                        <input type="number" class="form-control custom-input" name="phone_no" placeholder="Phone No">
+                                        @if($errors->has('phone_no'))
+                                            <div class="error_msg">
+                                                {{ $errors->first('phone_no') }}
+                                            </div>
+                                        @endif
+                                    </div>
+                                </div>
+                            </div>
 
-                                <div class="col-md-6">
-                                    <label for="email" class="form-label custom-label">Email</label>
-                                    <input type="email" class="form-control custom-input" name="email" placeholder="Email" id="email">
-                                    @if($errors->has('email'))
-                                        <div class="error_msg">
-                                            {{ $errors->first('email') }}
-                                        </div>
-                                    @endif
+                            <div class="row">
+                                <div class="col-md-6 col-12">
+
+                                    <div class="mb-3">
+                                        <label for="" class="form-label custom-label">Password</label>
+                                            <input type="password" class="form-control custom-input" name="password" placeholder="Password">
+                                            @if($errors->has('password'))
+                                                <div class="error_msg">
+                                                    {{ $errors->first('password') }}
+                                                </div>
+                                            @endif
+                                    </div>
                                 </div>
 
-                                
-                                <div class="col-md-6">
-                                    <label for="" class="form-label custom-label">Phone No</label>
-                                    <input type="number" class="form-control custom-input" name="phone_no" placeholder="Phone No">
-                                    @if($errors->has('phone_no'))
-                                        <div class="error_msg">
-                                            {{ $errors->first('phone_no') }}
-                                        </div>
-                                    @endif
+                                <div class="col-md-6 col-12">
+                                    <div class="mb-3">
+                                        <label for="" class="form-label custom-label">Confirm Password</label>
+                                        <input type="password" class="form-control custom-input" name="password_confirmation" placeholder="Confirm Password">
+                                        @if($errors->has('password_confirmation'))
+                                            <div class="error_msg">
+                                                {{ $errors->first('password_confirmation') }}
+                                            </div>
+                                        @endif
+                                    </div>
                                 </div>
+                            </div>
 
-                                <div class="col-md-6">
-                                    <label for="" class="form-label custom-label">Password</label>
-                                    <input type="password" class="form-control custom-input" name="password" placeholder="Password">
-                                    @if($errors->has('password'))
-                                        <div class="error_msg">
-                                            {{ $errors->first('password') }}
-                                        </div>
-                                    @endif
-                                </div>
-
-                                <div class="col-md-6">
-                                    <label for="" class="form-label custom-label">Confirm Password</label>
-                                    <input type="password" class="form-control custom-input" name="password_confirmation" placeholder="Confirm Password">
-                                    @if($errors->has('password_confirmation'))
-                                        <div class="error_msg">
-                                            {{ $errors->first('password_confirmation') }}
-                                        </div>
-                                    @endif
-                                </div>
-
-
-                                <div class="col-12">
-                                    <label for="" class="form-label custom-label">Address</label>
-                                    <textarea name="address" class="form-control custom-input" id="address" cols="30" rows="5"></textarea>
-                                    @if($errors->has('address'))
-                                        <div class="error_msg">
-                                            {{ $errors->first('address') }}
-                                        </div>
-                                    @endif
-                                </div>
+                            <div class="mb-3">
+                                <label for="" class="form-label custom-label">Address</label>
+                                <textarea name="address" class="form-control custom-input" id="address" cols="30" rows="5"></textarea>
+                                @if($errors->has('address'))
+                                    <div class="error_msg">
+                                        {{ $errors->first('address') }}
+                                    </div>
+                                @endif
                             </div>
                         </div>
                     </div>
@@ -102,9 +109,9 @@
 
                 
 
-                <div class="col-md-4 col-12">
-                    <div class="row g-4">
-                        <div class="col-12 order-last order-md-first">
+                <div class="col-lg-4">
+                    <div class="mb-4">
+                        <div>
                             <div class="card table-card">
                                 <div class="table-header">
                                     <div class="table-title">Action</div>
@@ -123,10 +130,10 @@
                                     </div>
                                 </div>
                             </div>
-                            
                         </div>
-                        <div class="col-12">
-                            <div class="card table-card">
+                    </div>
+                    <div class="mb-4">
+                        <div class="card table-card">
                                 <div class="table-header">
                                     <div class="table-title">Profile Image</div>
                                 </div>

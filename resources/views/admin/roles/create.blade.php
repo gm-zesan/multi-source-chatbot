@@ -3,10 +3,10 @@
     Role
 @endsection
 @section('content')
-    <div class="container-fluid my-3">
+    <div class="container-fluid">
         <form  action="{{ route('roles.store') }}" method="POST">
             @csrf
-            <div class="row g-4">
+            <div class="row">
                 <div class="col-md-8 col-12">
                     <div class="card table-card mb-4">
                         <div class="card-header table-header">
@@ -27,22 +27,17 @@
                             <a href="{{route('roles.index')}}" class="add-new">Role<i class="ms-1 ri-list-ordered-2"></i></a>
                         </div>
                         <div class="card-body custom-form">
-                            
-                            <div class="col-12">
-                                <div class="row">
-                                    <div class="col-md-12">
-                                        <label class="form-label custom-label">Role Name</label>
-                                        <input type="text" class="form-control custom-input" name="name" placeholder="Role name">
-                                        @if($errors->has('name'))
-                                            <div class="error_msg">
-                                                {{ $errors->first('name') }}
-                                            </div>
-                                        @endif
+                            <div class="mb-3">
+                                <label class="form-label custom-label">Role Name</label>
+                                <input type="text" class="form-control custom-input" name="name" placeholder="Role name">
+                                @if($errors->has('name'))
+                                    <div class="error_msg">
+                                        {{ $errors->first('name') }}
                                     </div>
-                                </div>
+                                @endif
                             </div>
 
-                            <div class="col-12">
+                            <div class="mb-3">
                                 <label for="" class="form-label custom-label">Role Description</label>
                                 <textarea class="form-control custom-input" name="description" rows="5"  placeholder="Role Description"  style="resize: none; height: auto"></textarea>
                                 @if($errors->has('description'))
@@ -83,9 +78,9 @@
                     </div>
                 </div>
                 
-                <div class="col-md-4 col-12">
-                    <div class="row g-4">
-                        <div class="col-12">
+                <div class="col-lg-4">
+                    <div class="mb-4">
+                        <div>
                             <div class="card table-card">
                                 <div class="table-header">
                                     <div class="table-title">Action</div>

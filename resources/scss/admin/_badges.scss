@@ -1,0 +1,224 @@
+@use 'variables' as *;
+@use 'mixins' as *;
+
+/* =====================================================
+   ========== BADGE STYLES & COMPONENTS ==============
+===================================================== */
+
+/* ==================== BADGE BASE ==================== */
+.badge {
+    @include badge-base;
+    text-transform: capitalize;
+}
+
+/* ==================== BADGE COLORS ==================== */
+.badge-primary {
+    @include badge-variant($primary, $primary);
+    background-color: $primary-light;
+}
+
+.badge-secondary {
+    @include badge-variant($gray-600, $gray-600);
+    background-color: $gray-100;
+}
+
+.badge-success {
+    @include badge-variant($success, $success);
+    background-color: $success-light;
+}
+
+.badge-danger {
+    @include badge-variant($danger, $danger);
+    background-color: $danger-light;
+}
+
+.badge-warning {
+    @include badge-variant($warning, $warning);
+    background-color: $warning-light;
+}
+
+.badge-info {
+    @include badge-variant($info, $info);
+    background-color: $info-light;
+}
+
+/* ==================== STATUS BADGES ==================== */
+.badge-status {
+    font-size: $text-xs;
+    font-weight: $font-semibold;
+    padding: $space-2 $space-sm;
+    border-radius: $radius-full;
+
+    &.status-active {
+        background-color: $success-light;
+        color: $success;
+        border: 1px solid rgba($success, 0.3);
+
+        &::before {
+            content: '●';
+            margin-right: $space-1;
+        }
+    }
+
+    &.status-inactive {
+        background-color: rgba($gray-400, 0.1);
+        color: $gray-600;
+        border: 1px solid rgba($gray-400, 0.3);
+
+        &::before {
+            content: '●';
+            margin-right: $space-1;
+        }
+    }
+
+    &.status-pending {
+        background-color: $warning-light;
+        color: $warning;
+        border: 1px solid rgba($warning, 0.3);
+
+        &::before {
+            content: '⏱';
+            margin-right: $space-xs;
+            font-size: $text-xs;
+        }
+    }
+
+    &.status-completed {
+        background-color: $success-light;
+        color: $success;
+        border: 1px solid rgba($success, 0.3);
+
+        &::before {
+            content: '✓';
+            margin-right: $space-xs;
+            font-weight: $font-bold;
+        }
+    }
+
+    &.status-draft {
+        background-color: rgba($gray-400, 0.1);
+        color: $gray-600;
+        border: 1px solid rgba($gray-400, 0.3);
+
+        &::before {
+            content: '✎';
+            margin-right: $space-xs;
+        }
+    }
+
+    &.status-cancelled {
+        background-color: $danger-light;
+        color: $danger;
+        border: 1px solid rgba($danger, 0.3);
+
+        &::before {
+            content: '✕';
+            margin-right: $space-xs;
+            font-weight: $font-bold;
+        }
+    }
+}
+
+/* ==================== BADGE SIZES ==================== */
+.badge-sm {
+    padding: 2px 6px;
+    font-size: 10px;
+}
+
+.badge-lg {
+    padding: $space-sm $space-lg;
+    font-size: $text-sm;
+}
+
+/* ==================== BADGE WITH COUNTER ==================== */
+.badge-counter {
+    @include flex-box(flex, center, center);
+    min-width: 24px;
+    height: 24px;
+    padding: 0 $space-sm;
+    font-size: $text-xs;
+    font-weight: $font-bold;
+    border-radius: $radius-full;
+    background-color: $primary;
+    color: $white;
+    line-height: 1;
+}
+
+/* ==================== BADGE SOFT VARIANTS ==================== */
+.badge-light-primary {
+    background-color: $primary-50;
+    color: $primary;
+}
+
+.badge-light-success {
+    background-color: $success-light;
+    color: $success;
+}
+
+.badge-light-danger {
+    background-color: $danger-light;
+    color: $danger;
+}
+
+.badge-light-warning {
+    background-color: $warning-light;
+    color: $warning;
+}
+
+.badge-light-info {
+    background-color: $info-light;
+    color: $info;
+}
+
+/* ==================== BADGE OUTLINE VARIANTS ==================== */
+.badge-outline-primary {
+    background-color: transparent;
+    color: $primary;
+    border: 1px solid $primary;
+}
+
+.badge-outline-success {
+    background-color: transparent;
+    color: $success;
+    border: 1px solid $success;
+}
+
+.badge-outline-danger {
+    background-color: transparent;
+    color: $danger;
+    border: 1px solid $danger;
+}
+
+.badge-outline-warning {
+    background-color: transparent;
+    color: $warning;
+    border: 1px solid $warning;
+}
+
+.badge-outline-info {
+    background-color: transparent;
+    color: $info;
+    border: 1px solid $info;
+}
+
+/* ==================== BADGE GROUPS ==================== */
+.badge-group {
+    @include flex-box(flex, center);
+    gap: $space-sm;
+    flex-wrap: wrap;
+}
+
+/* ==================== BADGE ANIMATION ==================== */
+.badge-pulse {
+    animation: pulse-badge 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes pulse-badge {
+    0%, 100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.8;
+    }
+}

@@ -1,0 +1,388 @@
+@use 'variables' as *;
+@use 'mixins' as *;
+
+/* =====================================================
+   ========== TABLE STYLES & COMPONENTS ==============
+===================================================== */
+
+/* ==================== TABLE BASE ==================== */
+.table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 0;
+
+    thead {
+        th {
+            @include table-header;
+        }
+    }
+
+    tbody {
+        tr {
+            &:hover {
+                background-color: $bg-tertiary;
+            }
+
+            &:last-child td {
+                border-bottom: none;
+            }
+
+            td {
+                @include table-cell;
+            }
+        }
+    }
+
+    &.table-striped tbody tr:nth-child(odd) {
+        background-color: $bg-tertiary;
+    }
+
+    &.table-hover tbody tr:hover {
+        background-color: $bg-hover;
+        transition: background-color $transition-fast;
+    }
+
+    &.table-bordered {
+        border: 1px solid $border-color;
+
+        th, td {
+            border: 1px solid $border-color;
+        }
+    }
+
+    &.table-sm {
+        th, td {
+            padding: $space-3 $space-sm;
+            font-size: $text-xs;
+        }
+    }
+
+    &.table-lg {
+        th, td {
+            padding: $space-md $space-lg;
+            font-size: $text-sm;
+        }
+    }
+}
+
+/* ==================== TABLE VARIANTS ==================== */
+.table-primary {
+    thead th {
+        background-color: $primary;
+        color: $white;
+    }
+}
+
+.table-success {
+    thead th {
+        background-color: $success;
+        color: $white;
+    }
+}
+
+.table-danger {
+    thead th {
+        background-color: $danger;
+        color: $white;
+    }
+}
+
+/* ==================== TABLE ACTIONS ==================== */
+.table-actions {
+    @include flex-box(flex, center, flex-start);
+    gap: $space-1;
+
+    .action-btn {
+        @include flex-box(flex, center);
+        gap: $space-1;
+        width: 28px;
+        height: 28px;
+        border-radius: $radius-xs;
+        text-decoration: none;
+        transition: $transition-fast;
+        @include no-select;
+
+        &.btn-edit {
+            background-color: $primary-light;
+            color: $primary;
+
+            &:hover {
+                background-color: $primary;
+                color: $white;
+            }
+        }
+
+        &.btn-view {
+            background-color: $success-light;
+            color: $success;
+
+            &:hover {
+                background-color: $success;
+                color: $white;
+            }
+        }
+
+        &.btn-delete {
+            background-color: $danger-light;
+            color: $danger;
+
+            &:hover {
+                background-color: $danger;
+                color: $white;
+            }
+        }
+
+        &.btn-show {
+            background-color: $info-light;
+            color: $info;
+
+            &:hover {
+                background-color: $info;
+                color: $white;
+            }
+        }
+
+        i {
+            font-size: $text-sm;
+        }
+    }
+}
+
+/* ==================== TABLE PAGINATION ==================== */
+.pagination {
+    @include flex-box(flex, center);
+    gap: $space-sm;
+    margin: $space-2xl 0 0 0;
+    padding: 0;
+    list-style: none;
+
+    .page-item {
+        &.active .page-link {
+            background-color: $primary;
+            border-color: $primary;
+            color: $white;
+        }
+
+        &.disabled .page-link {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .page-link {
+            @include flex-box(flex, center, center);
+            width: 36px;
+            height: 36px;
+            border: 1px solid $border-color;
+            border-radius: $radius-lg;
+            color: $text-primary;
+            text-decoration: none;
+            transition: $transition-fast;
+            font-size: $text-sm;
+            font-weight: $font-medium;
+
+            &:hover:not(.disabled) {
+                background-color: $bg-tertiary;
+                border-color: $primary;
+                color: $primary;
+            }
+        }
+    }
+}
+
+/* ==================== DATA TABLE STYLES ==================== */
+.dataTables_wrapper {
+    .dataTables_length {
+
+        select {
+            min-height: 28px;
+            border: 1px solid $border-color;
+            border-radius: $radius-sm;
+            height: 28px;
+            font-size: $text-xs;
+            font-weight: $font-normal;
+            line-height: 1;
+            background-position: right 6px center;
+            background-size: 12px;
+            padding: $space-xs $space-2xl $space-xs $space-sm;
+            transition: $transition-base;
+        }
+    }
+
+    .dataTables_filter {
+        input {
+            border: 1px solid $border-color;
+            border-radius: $radius-sm;
+            margin-left: $space-sm;
+            height: 28px;
+            transition: $transition-base;
+            padding: $space-sm $space-lg;
+            font-size: $text-xs;
+
+            &:focus {
+                border-color: $primary;
+                box-shadow: 0 0 0 3px rgba($primary, 0.1);
+            }
+        }
+    }
+
+    .dataTables_processing {
+        > div:last-child > div {
+            background: $bg-primary !important;
+        }
+    }
+}
+
+table.dataTable {
+    border-collapse: collapse;
+
+    &.no-footer {
+        border-bottom: 1px solid $border-color;
+    }
+
+    thead th {
+        height: auto;
+        vertical-align: middle;
+        font-weight: $font-semibold;
+        color: $text-primary;
+        background-color: $bg-tertiary;
+        border-bottom: 1px solid $border-color;
+        padding: $space-md $space-lg;
+    }
+
+    tbody td {
+        height: auto;
+        vertical-align: middle;
+        font-size: $text-sm;
+        color: $text-primary;
+        font-weight: $font-normal;
+        padding: $space-md $space-lg;
+        border-bottom: 1px solid $border-light;
+
+        > a {
+            margin-right: $space-sm;
+        }
+    }
+
+    tbody tr {
+        &:hover {
+            background-color: $bg-tertiary;
+        }
+
+        &:last-child td {
+            border-bottom: none;
+        }
+    }
+
+    .action-btn {
+        display: flex;
+        gap: $space-xs;
+
+        .btn-edit,
+        .btn-delete,
+        .btn-show {
+            @include flex-box(flex, center, center);
+            text-decoration: none;
+            height: 28px;
+            width: 28px;
+            border-radius: $radius-xs;
+            transition: $transition-base;
+            font-size: $text-sm;
+            font-weight: $font-medium;
+
+            &:hover {
+                transition: $transition-base;
+            }
+        }
+
+        .btn-edit {
+            color: $primary;
+            background-color: $primary-light;
+
+            &:hover {
+                color: $white;
+                background-color: $primary;
+            }
+        }
+
+        .btn-show {
+            color: $success;
+            background-color: $success-light;
+
+            &:hover {
+                color: $white;
+                background-color: $success;
+            }
+        }
+
+        .btn-delete {
+            color: $danger;
+            background-color: $danger-light;
+            margin-left: $space-sm;
+
+            &:hover {
+                color: $white;
+                background-color: $danger;
+            }
+        }
+    }
+
+    &.table-striped > tbody > tr:nth-child(odd) {
+        background-color: $bg-secondary;
+    }
+}
+
+/* ==================== TABLE RESPONSIVE ==================== */
+@include mobile-only {
+    .table {
+        font-size: $text-xs;
+
+        thead {
+            display: none;
+        }
+
+        tbody, tr, td {
+            display: block;
+            width: 100%;
+        }
+
+        tbody tr {
+            border: 1px solid $border-color;
+            border-radius: $radius-lg;
+            margin-bottom: $space-lg;
+            padding: $space-md;
+
+            td {
+                padding: $space-sm 0;
+                border: none;
+                text-align: right;
+
+                &::before {
+                    content: attr(data-label);
+                    float: left;
+                    font-weight: $font-semibold;
+                    color: $text-primary;
+                }
+            }
+        }
+    }
+
+    .table-responsive {
+        display: block;
+        width: 100%;
+        overflow-x: auto;
+
+        > .table {
+            margin-bottom: 0;
+        }
+    }
+}
+
+/* ==================== RESPONSIVE TABLE WRAPPER ==================== */
+.table-responsive {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+
+    > .table {
+        margin-bottom: 0;
+    }
+}

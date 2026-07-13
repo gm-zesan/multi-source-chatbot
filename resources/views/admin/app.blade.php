@@ -21,11 +21,12 @@
 <body style="overflow-x: hidden">
     <div id="main-wrapper">
         @include('admin.partials.sidebar')
-        <div class="content scrollbar" id="fullpage" style="background-color: #f0f1f7;">
+        <div class="content-wrapper scrollbar" id="fullpage">
             @include('admin.partials.header')
-            <div class="content-body">
+            <main class="content-body">
                 @yield('content')
-            </div>
+            </main>
+            @include('admin.partials.footer')
         </div>
     </div>
     @include('admin.partials.scripts')

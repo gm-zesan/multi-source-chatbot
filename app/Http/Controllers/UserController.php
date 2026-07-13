@@ -100,7 +100,7 @@ class UserController extends Controller
 
     public function edit($id){
         $auth_user = Auth::user();
-        $user = User::with('contactBook')->find($id);
+        $user = User::find($id);
         if ($user->hasRole(RoleEnum::SUPERADMIN->value) && $auth_user->id != $user->id) {
             return redirect()->route('users');
         }

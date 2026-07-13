@@ -1,0 +1,458 @@
+@use 'variables' as *;
+@use 'mixins' as *;
+
+/* =====================================================
+   ========== CARD STYLES & COMPONENTS ==============
+===================================================== */
+
+/* ==================== CARD BASE ==================== */
+.card {
+    @include card-base;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+
+    &.card-elevated {
+        @include card-elevated;
+    }
+
+    &.card-flat {
+        border: none;
+        box-shadow: none;
+        background-color: $surface-secondary;
+    }
+
+    &.card-outline {
+        border: 2px solid $primary;
+        background-color: transparent;
+    }
+}
+
+/* ==================== CARD SECTIONS ==================== */
+
+.card-header {
+    padding: $space-md;
+    background-color: $bg-tertiary;
+    border-bottom: 1px solid $border-color;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: $space-md;
+
+    .card-title {
+        margin: 0;
+        font-size: $text-lg;
+        font-weight: $font-semibold;
+        color: $text-primary;
+        display: flex;
+        align-items: center;
+        gap: $space-sm;
+
+        i, .icon {
+            font-size: $text-2xl;
+            color: $primary;
+        }
+
+        &::before {
+            content: '';
+            width: 3px;
+            height: 20px;
+            background-color: $primary;
+            border-radius: $radius-full;
+        }
+    }
+
+    .card-subtitle {
+        margin: 0;
+        font-size: $text-sm;
+        color: $text-secondary;
+        font-weight: $font-normal;
+    }
+}
+
+.card-body {
+    padding: $space-md;
+    flex: 1;
+
+    p {
+        margin: 0 0 $space-sm 0;
+
+        &:last-child {
+            margin-bottom: 0;
+        }
+    }
+}
+
+.card-footer {
+    padding: $space-md;
+    background-color: $bg-tertiary;
+    border-top: 1px solid $border-color;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: $space-md;
+}
+
+/* ==================== CARD SECTIONS WITH NO PADDING ==================== */
+.card-full {
+    .card-header,
+    .card-body,
+    .card-footer {
+        padding: 0;
+    }
+}
+
+/* ==================== CARD VARIANTS ==================== */
+
+/* Primary Card */
+.card-primary {
+    border-left: 4px solid $primary;
+
+    .card-header {
+        background: linear-gradient(135deg, rgba($primary, 0.05) 0%, rgba($primary, 0.02) 100%);
+    }
+}
+
+/* Success Card */
+.card-success {
+    border-left: 4px solid $success;
+
+    .card-header {
+        background: linear-gradient(135deg, rgba($success, 0.05) 0%, rgba($success, 0.02) 100%);
+    }
+}
+
+/* Danger Card */
+.card-danger {
+    border-left: 4px solid $danger;
+
+    .card-header {
+        background: linear-gradient(135deg, rgba($danger, 0.05) 0%, rgba($danger, 0.02) 100%);
+    }
+}
+
+/* Warning Card */
+.card-warning {
+    border-left: 4px solid $warning;
+
+    .card-header {
+        background: linear-gradient(135deg, rgba($warning, 0.05) 0%, rgba($warning, 0.02) 100%);
+    }
+}
+
+/* Info Card */
+.card-info {
+    border-left: 4px solid $info;
+
+    .card-header {
+        background: linear-gradient(135deg, rgba($info, 0.05) 0%, rgba($info, 0.02) 100%);
+    }
+}
+
+/* ==================== CARD SIZES ==================== */
+.card-sm {
+    .card-header,
+    .card-body,
+    .card-footer {
+        padding: $space-md;
+    }
+}
+
+.card-lg {
+    .card-header,
+    .card-body,
+    .card-footer {
+        padding: $space-2xl;
+    }
+}
+
+/* ==================== DASHBOARD CARD ==================== */
+.dashboard-card {
+    @include card-elevated;
+    transition: $transition-base;
+
+    &:hover {
+        transform: translateY(-4px);
+        box-shadow: $shadow-lg;
+    }
+
+    .card-stat {
+        text-align: center;
+        padding: $space-lg;
+
+        .stat-value {
+            font-size: $text-5xl;
+            font-weight: $font-bold;
+            color: $primary;
+            line-height: 1;
+            margin-bottom: $space-md;
+        }
+
+        .stat-label {
+            font-size: $text-sm;
+            color: $text-secondary;
+            font-weight: $font-medium;
+        }
+
+        .stat-change {
+            font-size: $text-sm;
+            margin-top: $space-sm;
+            padding: $space-sm $space-md;
+            border-radius: $radius-full;
+            display: inline-block;
+
+            &.positive {
+                background-color: $success-light;
+                color: $success;
+            }
+
+            &.negative {
+                background-color: $danger-light;
+                color: $danger;
+            }
+        }
+    }
+}
+
+/* ==================== TABLE CARD ==================== */
+.table-card {
+    @include card-base;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+
+    .table-header {
+        background-color: $bg-tertiary;
+        padding: $space-lg;
+        border-bottom: 1px solid $border-color;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: $space-lg;
+        margin-bottom: $space-3xl;
+
+        @include mobile-only {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+        .table-title {
+            font-size: $text-lg;
+            font-weight: $font-semibold;
+            color: $text-primary;
+            display: flex;
+            align-items: center;
+            gap: $space-md;
+
+            &::before {
+                content: '';
+                width: 3px;
+                height: 20px;
+                background: linear-gradient(135deg, $primary 0%, $info 100%);
+                border-radius: $radius-full;
+            }
+        }
+
+        .add-new {
+            @include flex-box(flex, center, center);
+            font-size: $text-xs;
+            color: $primary;
+            padding: 0 $space-lg;
+            background-color: $bg-tertiary;
+            border: none;
+            border-radius: $radius-button;
+            text-decoration: none;
+            transition: $transition-base;
+            height: 32px;
+            font-weight: $font-semibold;
+            gap: $space-sm;
+            white-space: nowrap;
+
+            &:hover {
+                color: $white;
+                background-color: $primary;
+            }
+        }
+
+        .title-with-breadcrumb {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 100%;
+            gap: $space-lg;
+
+            @include mobile-only {
+                flex-direction: column;
+                align-items: flex-start;
+                width: 100%;
+            }
+
+            .breadcrumb {
+                margin: 0;
+
+                .breadcrumb-item {
+                    font-size: $text-xs;
+
+                    a {
+                        color: $text-secondary;
+
+                        &:hover {
+                            color: $primary;
+                        }
+                    }
+
+                    &.active {
+                        color: $text-primary;
+                    }
+                }
+            }
+        }
+    }
+
+    .card-body {
+        padding: 0;
+        flex: 1;
+        overflow-x: auto;
+
+        @include custom-scrollbar($bg-secondary, $gray-300, $radius-lg);
+    }
+}
+
+/* ==================== CARD WITH IMAGE ==================== */
+.card-image {
+    overflow: hidden;
+
+    .card-img {
+        width: 100%;
+        height: auto;
+        display: block;
+        object-fit: cover;
+    }
+
+    .card-img-top {
+        border-radius: $radius-card $radius-card 0 0;
+    }
+
+    .card-img-bottom {
+        border-radius: 0 0 $radius-card $radius-card;
+    }
+}
+
+/* ==================== CARD WITH OVERLAY ==================== */
+.card-overlay {
+    position: relative;
+    overflow: hidden;
+
+    .card-overlay-content {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: linear-gradient(135deg, rgba(0, 0, 0, 0.4) 0%, rgba(0, 0, 0, 0.6) 100%);
+        display: flex;
+        align-items: flex-end;
+        padding: $space-2xl;
+        color: $white;
+        opacity: 0;
+        transition: opacity $transition-base;
+    }
+
+    &:hover .card-overlay-content {
+        opacity: 1;
+    }
+}
+
+/* ==================== CARD GRID ==================== */
+.card-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: $space-2xl;
+
+    @include respond-to(md) {
+        grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    }
+
+    @include mobile-only {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* ==================== CARD EMPTY STATE ==================== */
+.card-empty {
+    text-align: center;
+    padding: $space-3xl $space-2xl;
+
+    .empty-icon {
+        font-size: $text-6xl;
+        color: $text-tertiary;
+        margin-bottom: $space-lg;
+    }
+
+    .empty-title {
+        font-size: $text-lg;
+        font-weight: $font-semibold;
+        color: $text-primary;
+        margin-bottom: $space-md;
+    }
+
+    .empty-description {
+        font-size: $text-sm;
+        color: $text-secondary;
+        margin-bottom: $space-2xl;
+    }
+
+    .empty-action {
+        .btn {
+            margin: 0 $space-md;
+        }
+    }
+}
+
+/* ==================== CARD LOADING STATE ==================== */
+.card-skeleton {
+    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.5;
+    }
+}
+
+.skeleton-line {
+    height: 16px;
+    background-color: $bg-tertiary;
+    border-radius: $radius-md;
+    margin-bottom: $space-md;
+
+    &:last-child {
+        margin-bottom: 0;
+    }
+
+    &.skeleton-title {
+        height: 24px;
+        width: 60%;
+    }
+
+    &.skeleton-short {
+        width: 30%;
+    }
+}
+
+/* ==================== CARD RESPONSIVE ==================== */
+@include mobile-only {
+    .card {
+        border-radius: $radius-lg;
+    }
+
+    .card-header,
+    .card-body,
+    .card-footer {
+        padding: $space-md;
+    }
+}

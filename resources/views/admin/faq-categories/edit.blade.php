@@ -4,7 +4,7 @@
 @endsection
 
 @section('content')
-    <div class="container-fluid my-3">
+    <div class="container-fluid">
         <form action="{{ route('faq-categories.update', $category->id) }}" method="POST" autocomplete="off">
             @csrf
             @method('PUT')
@@ -30,8 +30,7 @@
                                     class="ms-1 ri-list-ordered-2"></i></a>
                         </div>
                         <div class="card-body custom-form">
-                            <div class="row">
-                                <div class="col-12 mb-3">
+                            <div class="mb-3">
                                     <label for="name" class="form-label custom-label">Name <span
                                             class="text-danger">*</span></label>
                                     <input type="text"
@@ -41,19 +40,19 @@
                                     @error('name')
                                         <div class="error_msg">{{ $message }}</div>
                                     @enderror
-                                </div>
+                            </div>
 
-                                <div class="col-12 mb-3">
-                                    <label for="description" class="form-label custom-label">Description</label>
+                            <div class="mb-3">
+                                <label for="description" class="form-label custom-label">Description</label>
                                     <textarea class="form-control custom-input @error('description') is-invalid @enderror" name="description"
                                         id="description" rows="4" placeholder="Optional description">{{ old('description', $category->description) }}</textarea>
                                     @error('description')
                                         <div class="error_msg">{{ $message }}</div>
                                     @enderror
-                                </div>
+                            </div>
 
-                                <div class="col-md-6 mb-3">
-                                    <label for="icon" class="form-label custom-label">Icon Class</label>
+                            <div class="mb-3">
+                                <label for="icon" class="form-label custom-label">Icon Class</label>
                                     <input type="text"
                                         class="form-control custom-input @error('icon') is-invalid @enderror" name="icon"
                                         id="icon" value="{{ old('icon', $category->icon) }}"
@@ -61,10 +60,10 @@
                                     @error('icon')
                                         <div class="error_msg">{{ $message }}</div>
                                     @enderror
-                                </div>
+                            </div>
 
-                                <div class="col-md-6 mb-3">
-                                    <label for="order_column" class="form-label custom-label">Sort Order</label>
+                            <div class="mb-3">
+                                <label for="order_column" class="form-label custom-label">Sort Order</label>
                                     <input type="number"
                                         class="form-control custom-input @error('order_column') is-invalid @enderror"
                                         name="order_column" id="order_column"
@@ -72,14 +71,13 @@
                                     @error('order_column')
                                         <div class="error_msg">{{ $message }}</div>
                                     @enderror
-                                </div>
+                            </div>
 
-                                <div class="col-12 mb-3">
-                                    <div class="form-check form-switch">
-                                        <input class="form-check-input" type="checkbox" name="is_active" id="is_active"
-                                            value="1" {{ old('is_active', $category->is_active) ? 'checked' : '' }}>
-                                        <label class="form-check-label" for="is_active">Active</label>
-                                    </div>
+                            <div class="mb-3">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" name="is_active" id="is_active"
+                                        value="1" {{ old('is_active', $category->is_active) ? 'checked' : '' }}>
+                                    <label class="form-check-label" for="is_active">Active</label>
                                 </div>
                             </div>
                         </div>

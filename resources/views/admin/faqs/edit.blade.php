@@ -4,7 +4,7 @@
 @endsection
 
 @section('content')
-    <div class="container-fluid my-3">
+    <div class="container-fluid">
         <form action="{{ route('faqs.update', $faq->id) }}" method="POST" autocomplete="off">
             @csrf
             @method('PUT')
@@ -30,8 +30,7 @@
                                     class="ms-1 ri-list-ordered-2"></i></a>
                         </div>
                         <div class="card-body custom-form">
-                            <div class="row">
-                                <div class="col-12 mb-3">
+                            <div class="mb-3">
                                     <label for="question" class="form-label custom-label">Question <span
                                             class="text-danger">*</span></label>
                                     <input type="text"
@@ -41,25 +40,24 @@
                                     @error('question')
                                         <div class="error_msg">{{ $message }}</div>
                                     @enderror
-                                </div>
+                            </div>
 
-                                <div class="col-12 mb-3">
-                                    <label for="answer" class="form-label custom-label">Answer <span
+                            <div class="mb-3">
+                                <label for="answer" class="form-label custom-label">Answer <span
                                             class="text-danger">*</span></label>
                                     <textarea class="form-control custom-input @error('answer') is-invalid @enderror" name="answer" id="answer"
                                         rows="8" placeholder="Enter the FAQ answer">{{ old('answer', $faq->answer) }}</textarea>
                                     @error('answer')
                                         <div class="error_msg">{{ $message }}</div>
                                     @enderror
-                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <div class="col-md-4 col-12">
-                    <div class="row g-4">
-                        <div class="col-12">
+                <div class="col-lg-4">
+                    <div class="mb-4">
+                        <div>
                             <div class="card table-card">
                                 <div class="card-header table-header">
                                     <div class="table-title">Category & Settings</div>
@@ -112,9 +110,10 @@
                                 </div>
                             </div>
                         </div>
+                    </div>
 
-                        <div class="col-12">
-                            <div class="card table-card">
+                    <div class="mb-4">
+                        <div class="card table-card">
                                 <div class="card-header table-header">
                                     <div class="table-title">Action</div>
                                 </div>
