@@ -465,7 +465,6 @@ select {
 /* ==================== FORM BUTTONS ==================== */
 .form-actions {
     @include flex-box(flex, center, flex-end);
-    gap: $space-lg;
     padding-top: $space-2xl;
     border-top: 1px solid $border-color;
     margin-top: $space-2xl;
@@ -550,21 +549,66 @@ select {
         @include button-variant($primary, $white, $primary-dark, $white);
         width: 100%;
     }
+
+    .cancel-button {
+        @include button-base;
+        @include button-variant($bg-secondary, $text-primary, $bg-tertiary, $text-primary);
+        width: 100%;
+        border: 1px solid $border-color;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
 }
 
-/* ==================== FORM RESPONSIVENESS ==================== */
-@include mobile-only {
-    input,
-    textarea,
-    select {
-        font-size: 16px;
+/* ==================== FORM ACTION BUTTONS ==================== */
+.form-actions {
+    .row {
+        margin-right: 0;
+        margin-left: 0;
+        justify-content: flex-end;
     }
 
-    .form-label {
-        margin-bottom: $space-md;
+    [class*='col-'] {
+        padding-right: $space-sm;
+        padding-left: $space-sm;
+        // flex: 0 0 auto;
+        // width: auto;
+        // min-width: 140px;
+
+        &:first-child {
+            padding-left: 0;
+        }
+
+        &:last-child {
+            padding-right: 0;
+        }
     }
 
-    .form-group {
-        margin-bottom: $space-2xl;
+    .submit-button,
+    .cancel-button {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
     }
+}
+
+/* ==================== CUSTOM FORM GRID ==================== */
+.custom-form {
+    .row {
+        margin-right: -$space-sm;
+        margin-left: -$space-sm;
+        width: 100%;
+    }
+
+    [class*='col-'] {
+        padding-right: $space-sm;
+        padding-left: $space-sm;
+    }
+}
+
+.table-card .card-body.custom-form {
+    padding: $space-md;
+    overflow-x: hidden;
 }
