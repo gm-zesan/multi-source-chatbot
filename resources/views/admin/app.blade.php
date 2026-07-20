@@ -19,14 +19,14 @@
      <![endif]-->
 </head>
 <body style="overflow-x: hidden">
+    @include('admin.partials.header')
     <div id="main-wrapper">
         @include('admin.partials.sidebar')
         <div class="content-wrapper scrollbar" id="fullpage">
-            @include('admin.partials.header')
             <main class="content-body">
                 @yield('content')
             </main>
-            @include('admin.partials.footer')
+            {{-- @include('admin.partials.footer') --}}
         </div>
     </div>
     @include('admin.partials.scripts')

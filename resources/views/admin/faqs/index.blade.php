@@ -39,7 +39,7 @@
                     </div>
                     <div class="card-body" style="overflow-x: auto">
 
-                        <div class="row mb-3">
+                        {{-- <div class="row mb-3">
                             <div class="col-md-4">
                                 <label class="form-label custom-label">Category</label>
                                 <select id="category-filter" class="form-control custom-input single-select2">
@@ -58,7 +58,7 @@
                                     <option value="trashed">Deleted</option>
                                 </select>
                             </div>
-                        </div>
+                        </div> --}}
 
                         <table class="table dataTable w-100" id="data-table" style="min-width: 900px;">
                             <thead>

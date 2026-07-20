@@ -265,7 +265,7 @@
     transition: $transition-base;
     text-decoration: none;
     white-space: nowrap;
-    min-height: $height-button-md;
+    min-height: $height-button-sm;
 
     &:disabled,
     &.disabled {
@@ -394,9 +394,8 @@
 
 /// Table header styles
 @mixin table-header {
-    background-color: $bg-tertiary;
     color: $text-primary;
-    font-weight: $font-semibold;
+    font-weight: $font-bold;
     text-align: left;
     padding: $space-md $space-lg;
     border-bottom: 2px solid $border-color;

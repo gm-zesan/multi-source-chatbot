@@ -31,8 +31,6 @@
 /* ==================== CARD SECTIONS ==================== */
 
 .card-header {
-    padding: $space-md;
-    background-color: $bg-tertiary;
     border-bottom: 1px solid $border-color;
     display: flex;
     align-items: center;
@@ -217,19 +215,24 @@
 /* ==================== TABLE CARD ==================== */
 .table-card {
     @include card-base;
+    box-shadow: none;
+    border: none;
     overflow: hidden;
     display: flex;
     flex-direction: column;
+    &:hover {
+        box-shadow: none;
+    }
 
     .table-header {
-        background-color: $bg-tertiary;
-        padding: $space-lg;
+        background-color: transparent;
         border-bottom: 1px solid $border-color;
         display: flex;
         align-items: center;
         justify-content: space-between;
         gap: $space-lg;
         margin-bottom: $space-3xl;
+        padding: 0 0 $space-5;
 
         @include mobile-only {
             flex-direction: column;

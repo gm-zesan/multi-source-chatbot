@@ -68,6 +68,7 @@ $gray-800: #1f2937;
 $gray-900: #0f172a;
 
 // Background Color System
+// $bg-body: #f7f7f7;
 $bg-primary: #fafbfc;
 $bg-secondary: #f8fafc;
 $bg-tertiary: #f1f5f9;
@@ -99,22 +100,16 @@ $text-link: #3b82f6;
 $text-link-hover: #2563eb;
 
 // Sidebar Colors
-$sidebar-bg: #1e293b;
-$sidebar-bg-dark: #0f172a;
-$sidebar-bg-hover: #334155;
-$sidebar-text: #cbd5e0;
-$sidebar-text-hover: #f1f5f9;
+$sidebar-text: #11171c;
+$sidebar-text-hover: #3b82f6;
 $sidebar-active: #60a5fa;
 $sidebar-accent: #fbbf24;
 $sidebar-border: #334155;
 
 // Header Colors
-$header-bg: #ffffff;
-$header-border: #e2e8f0;
-$header-text: #475569;
+$header-text: #1f2937;
 $header-icon-bg: #f1f5f9;
 $header-icon-hover: #e2e8f0;
-$header-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 
 // Card Colors
 $card-bg: #ffffff;
@@ -292,7 +287,7 @@ $height-input-lg: 44px;
 
 $height-header: 56px;
 $width-sidebar-collapsed: 60px;
-$width-sidebar-expanded: 250px;
+$width-sidebar-expanded: 200px;
 
 /* ==================== OPACITY ==================== */
 $opacity-0: 0;

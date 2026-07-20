@@ -67,20 +67,17 @@ body {
 /* ==================== MAIN WRAPPER ==================== */
 #main-wrapper {
     display: flex;
-    height: 100vh;
+    height: calc(100vh - #{$height-header});
     overflow: hidden;
     background-color: $bg-primary;
 }
 
 /* ==================== SIDEBAR ==================== */
 .sidebar {
-    position: fixed;
-    left: 0;
-    top: 0;
     height: 100%;
     width: $width-sidebar-collapsed;
-    background: linear-gradient(180deg, $sidebar-bg 0%, color.adjust($sidebar-bg, $lightness: -2%) 100%);
-    border-right: 1px solid $sidebar-border;
+    // background: linear-gradient(180deg, $sidebar-bg 0%, color.adjust($sidebar-bg, $lightness: -2%) 100%);
+    // border-right: 1px solid $sidebar-border;
     transition: all $transition-base;
     z-index: $z-fixed;
     overflow-y: auto;
@@ -207,7 +204,7 @@ body {
     }
 
     .nav-section {
-        padding: $space-xs $space-xl;
+        padding: $space-xs $space-16;
         list-style: none;
         margin: 0;
         margin-top: $space-lg;
@@ -239,18 +236,17 @@ body {
             padding: $space-sm $space-3;
             line-height: 16px;
             font-size: $text-base;
-            font-weight: $font-medium;
+            font-weight: $font-normal;
             white-space: nowrap;
             border-radius: $radius-xs;
-            margin: 0 $space-3;
+            margin-left: $space-5;
             position: relative;
             overflow: visible;
             transition: all $transition-fast;
             cursor: pointer;
-            gap: $space-sm;
 
             .nav-icon {
-                font-size: 20px;
+                font-size: 18px;
                 min-width: 20px;
                 flex-shrink: 0;
                 transition: all $transition-fast;
@@ -270,7 +266,7 @@ body {
             }
 
             &:hover {
-                background-color: rgba(255, 255, 255, 0.08);
+                background-color: rgba($primary, 0.2);
                 color: $sidebar-text-hover;
 
                 .nav-icon {
@@ -281,7 +277,8 @@ body {
             &.active {
                 background-color: rgba($primary, 0.2);
                 color: $primary;
-                padding-left: calc(#{$space-md} - 3px);
+                padding-left: calc(#{$space-md} - 7px);
+                font-weight: $font-semibold;
 
                 .nav-icon {
                     color: $primary;
@@ -385,15 +382,16 @@ body {
 
 /* ==================== MAIN CONTENT AREA ==================== */
 .content-wrapper {
-    position: fixed;
     left: $width-sidebar-collapsed;
-    top: 0;
     width: calc(100% - #{$width-sidebar-collapsed});
-    height: 100%;
+    margin: 0 8px 8px 8px;
+    height: calc(100% - 8px);
     transition: all $transition-base;
     overflow-y: auto;
     overflow-x: hidden;
-    background-color: $bg-primary;
+    background-color: $bg-tertiary;
+    border: 1px solid $border-color;
+    border-radius: $radius-md;
     z-index: 1;
     display: flex;
     flex-direction: column;
@@ -420,10 +418,8 @@ body {
 /* ==================== HEADER ==================== */
 header {
     position: relative;
-    background-color: $header-bg;
-    border-bottom: 1px solid $header-border;
-    box-shadow: $header-shadow;
     height: $height-header;
+    width: 100%;
     display: flex;
     align-items: center;
     padding: 0 $space-lg;
@@ -574,7 +570,7 @@ header {
                 border-radius: $radius-lg;
                 box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
                 overflow: hidden;
-                animation: dropdownSlideDown 0.2s ease-out;
+                animation: dropdownSlideDown $transition-fast ease-in-out;
                 z-index: 9999 !important;
 
                 @include mobile-only {
@@ -1045,6 +1041,7 @@ header {
     flex: 1;
     padding: $space-lg;
     overflow-y: auto;
+    background-color: #fff;
 
     @include tablet-up {
         padding: $space-lg;

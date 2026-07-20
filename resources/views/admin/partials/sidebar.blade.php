@@ -1,13 +1,13 @@
 <div class="sidebar sidebar-navigation active">
     <!-- Logo Section -->
-    <div class="logo_content">
+    {{-- <div class="logo_content">
         <a href="{{ route('dashboard') }}" class="logo">
             <img src="{{ asset('images/logo.png') }}" alt="logo" class="logo_img" />
             <div class="logo_name">
                 <span class="logo-text">Admin</span>
             </div>
         </a>
-    </div>
+    </div> --}}
 
     <!-- Navigation Menu -->
     <nav class="sidebar-menu">
@@ -74,7 +74,7 @@
     </nav>
 
     <!-- Profile Section -->
-    <div class="sidebar-profile">
+    {{-- <div class="sidebar-profile">
         <div class="profile-card">
             <div class="profile-avatar">
                 @if(Auth::user()->image)
@@ -94,5 +94,5 @@
                 </button>
             </form>
         </div>
-    </div>
+    </div> --}}
 </div>

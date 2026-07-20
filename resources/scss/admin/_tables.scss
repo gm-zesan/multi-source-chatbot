@@ -33,6 +33,11 @@
         }
     }
 
+    // Bootstrap border-bottom color override
+    > :not(:last-child) > :last-child > * {
+        border-bottom-color: $border-color;
+    }
+
     &.table-striped tbody tr:nth-child(odd) {
         background-color: $bg-tertiary;
     }
@@ -148,7 +153,7 @@
     }
 }
 
-/* ==================== TABLE PAGINATION ==================== */
+/* ==================== TABLE PAGINATION (Bootstrap) ==================== */
 .pagination {
     @include flex-box(flex, center);
     gap: $space-sm;
@@ -192,37 +197,62 @@
 /* ==================== DATA TABLE STYLES ==================== */
 .dataTables_wrapper {
     .dataTables_length {
-
         select {
-            min-height: 28px;
-            border: 1px solid $border-color;
-            border-radius: $radius-sm;
-            height: 28px;
-            font-size: $text-xs;
+            min-height: 28px !important;
+            border: 1px solid $border-color !important;
+            border-radius: $radius-xs !important;
+            height: 28px !important;
+            font-size: $text-xs !important;
+            font-weight: $font-normal !important;
+            line-height: 1 !important;
+            background-position: right 6px center !important;
+            background-size: 12px !important;
+            padding: $space-xs $space-2xl $space-xs $space-sm !important;
+            transition: $transition-base !important;
+        }
+
+        label {
+            font-size: $text-base;
             font-weight: $font-normal;
-            line-height: 1;
-            background-position: right 6px center;
-            background-size: 12px;
-            padding: $space-xs $space-2xl $space-xs $space-sm;
-            transition: $transition-base;
+            @include flex-box(flex, center, null, $space-sm);
         }
     }
 
     .dataTables_filter {
+        margin-right: 2px;
+
+        label {
+            font-size: $text-base;
+            font-weight: $font-normal;
+            @include flex-box(flex, center, null, $space-sm);
+        }
+
         input {
-            border: 1px solid $border-color;
-            border-radius: $radius-sm;
-            margin-left: $space-sm;
-            height: 28px;
-            transition: $transition-base;
-            padding: $space-sm $space-lg;
-            font-size: $text-xs;
+            border: 1px solid $border-color !important;
+            border-radius: $radius-xs !important;
+            margin-left: $space-sm !important;
+            height: 28px !important;
+            transition: $transition-base !important;
+            padding: $space-sm $space-lg !important;
+            font-size: $text-xs !important;
 
             &:focus {
-                border-color: $primary;
-                box-shadow: 0 0 0 3px rgba($primary, 0.1);
+                border-color: $primary !important;
+                box-shadow: none;
+                outline: 0;
+            }
+
+            &:focus-visible {
+                outline: none;
             }
         }
+    }
+
+    .dataTables_info {
+        padding-top: $space-lg;
+        white-space: nowrap;
+        font-size: $text-base;
+        font-weight: $font-normal;
     }
 
     .dataTables_processing {
@@ -239,54 +269,91 @@ table.dataTable {
         border-bottom: 1px solid $border-color;
     }
 
-    thead th {
-        height: auto;
-        vertical-align: middle;
-        font-weight: $font-semibold;
-        color: $text-primary;
-        background-color: $bg-tertiary;
-        border-bottom: 1px solid $border-color;
-        padding: $space-md $space-lg;
-    }
+    thead {
+        th {
+            height: auto;
+            vertical-align: middle;
+            font-weight: $font-semibold;
+            color: $text-primary;
+            border-bottom: 1px solid $border-color;
+            padding: $space-md $space-lg;
 
-    tbody td {
-        height: auto;
-        vertical-align: middle;
-        font-size: $text-sm;
-        color: $text-primary;
-        font-weight: $font-normal;
-        padding: $space-md $space-lg;
-        border-bottom: 1px solid $border-light;
+            // Hide DataTables default sorting arrows
+            &.sorting:after,
+            &.sorting_asc:after,
+            &.sorting_desc:after {
+                display: none;
+            }
+        }
 
-        > a {
-            margin-right: $space-sm;
+        td.sorting:after {
+            display: none;
         }
     }
 
-    tbody tr {
-        &:hover {
-            background-color: $bg-tertiary;
+    tbody {
+        th,
+        td {
+            height: auto;
+            vertical-align: middle;
+            font-size: $text-sm;
+            color: $text-primary;
+            font-weight: $font-normal;
+            border-bottom: 1px solid $border-light;
+            // Compact padding override for dense tables
+            // (kept !important to override DataTables inline styles)
+            padding: 4px 6px !important;
         }
 
-        &:last-child td {
-            border-bottom: none;
+        td {
+            > a {
+                margin-right: $space-sm;
+                text-decoration: none;
+                height: 28px;
+                width: 28px;
+                border-radius: $radius-xs;
+                @include flex-box(flex, center, center);
+                transition: $transition-base;
+                font-size: $text-base;
+
+                &:focus,
+                &:hover {
+                    color: $text-primary;
+                    box-shadow: none !important;
+                    outline: 0 !important;
+                }
+            }
+        }
+
+        tr {
+            &:hover {
+                background-color: $bg-tertiary;
+            }
+
+            &:last-child td {
+                border-bottom: none;
+            }
+
+            td .action-btn {
+                display: flex;
+            }
         }
     }
 
-    .action-btn {
-        display: flex;
-        gap: $space-xs;
-
+    // Action buttons (edit / show / delete / receipt)
+    .action-btn,
+    tbody tr td {
         .btn-edit,
+        .btn-show,
         .btn-delete,
-        .btn-show {
+        .btn-receipt {
             @include flex-box(flex, center, center);
             text-decoration: none;
             height: 28px;
             width: 28px;
             border-radius: $radius-xs;
             transition: $transition-base;
-            font-size: $text-sm;
+            font-size: $text-base;
             font-weight: $font-medium;
 
             &:hover {
@@ -295,22 +362,43 @@ table.dataTable {
         }
 
         .btn-edit {
-            color: $primary;
+            color: $primary-dark;
             background-color: $primary-light;
 
             &:hover {
                 color: $white;
-                background-color: $primary;
+                background-color: $primary-dark;
+            }
+
+            &.btn-checked {
+                color: $success;
+                background-color: $success-light;
+
+                &:hover {
+                    color: $white;
+                    background-color: $success;
+                }
             }
         }
 
         .btn-show {
+            margin-left: $space-sm;
             color: $success;
             background-color: $success-light;
 
             &:hover {
                 color: $white;
                 background-color: $success;
+            }
+
+            &.btn-checked {
+                color: $success;
+                background-color: $success-light;
+
+                &:hover {
+                    color: $white;
+                    background-color: $success;
+                }
             }
         }
 
@@ -324,10 +412,64 @@ table.dataTable {
                 background-color: $danger;
             }
         }
+
+        .btn-receipt {
+            color: $info;
+            background-color: $info-light;
+            margin-left: $space-sm;
+
+            &:hover {
+                color: $white;
+                background-color: $info;
+            }
+        }
     }
 
     &.table-striped > tbody > tr:nth-child(odd) {
         background-color: $bg-secondary;
+    }
+}
+
+/* ==================== DATA TABLES PAGINATION ==================== */
+.dataTables_paginate.paging_simple_numbers {
+    padding-top: $space-lg !important;
+
+    > a {
+        font-size: $text-base;
+        font-weight: $font-normal;
+        color: $text-secondary;
+        margin: 0 $space-sm;
+        cursor: pointer !important;
+        transition: $transition-base;
+    }
+
+    span .paginate_button {
+        font-size: $text-xs !important;
+        font-weight: $font-medium !important;
+        margin: 0 $space-xs !important;
+        color: $text-primary !important;
+        background: $white !important;
+        padding: 6px $space-md !important;
+        border-radius: $radius-xs !important;
+        border: 1px solid $border-color !important;
+        transition: $transition-base;
+
+        &:hover {
+            background: $bg-secondary !important;
+            color: $primary !important;
+        }
+
+        &.current {
+            background: $bg-secondary !important;
+            color: $primary !important;
+            font-weight: $font-semibold !important;
+        }
+
+        &:focus {
+            box-shadow: none !important;
+            outline: 0 !important;
+            transition: $transition-base;
+        }
     }
 }
 
