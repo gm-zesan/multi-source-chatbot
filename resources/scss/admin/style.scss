@@ -26,7 +26,7 @@
  * - Grid system, spacing utilities
  * - Responsive design foundations
  */
-@import 'layout';
+@use 'layout';
 
 /**
  * Button Styles & Variants
@@ -35,7 +35,7 @@
  * - Various sizes (sm, md, lg)
  * - Icon buttons, button groups
  */
-@import 'buttons';
+@use 'buttons';
 
 /**
  * Card Styles & Components
@@ -44,7 +44,7 @@
  * - Dashboard cards, table cards
  * - Empty states, loading states
  */
-@import 'cards';
+@use 'cards';
 
 /**
  * Form Styles & Components
@@ -53,7 +53,7 @@
  * - File uploads, validation states
  * - Form layouts (row, horizontal, inline)
  */
-@import 'forms';
+@use 'forms';
 
 /**
  * Table Styles & Responsive Tables
@@ -62,7 +62,7 @@
  * - DataTables integration
  * - Responsive table transformations
  */
-@import 'tables';
+@use 'tables';
 
 /**
  * Badge & Status Badges
@@ -70,7 +70,7 @@
  * - Status badges (active, inactive, pending, etc.)
  * - Badge sizes and styles
  */
-@import 'badges';
+@use 'badges';
 
 /**
  * Alert, Toast & Message Styles
@@ -79,7 +79,7 @@
  * - Callout and message styles
  * - Animations and transitions
  */
-@import 'alerts';
+@use 'alerts';
 
 /**
  * Modal & Dialog Styles
@@ -88,7 +88,7 @@
  * - Confirmation dialogs
  * - Modal animations
  */
-@import 'modals';
+@use 'modals';
 
 /**
  * Dropdown & Menu Styles
@@ -97,6 +97,6 @@
  * - Custom dropdown content
  * - Menu animations
  */
-@import 'dropdowns';
+@use 'dropdowns';
 
 /* ==================== END OF DESIGN SYSTEM ==================== */

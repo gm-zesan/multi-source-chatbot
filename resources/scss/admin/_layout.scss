@@ -1,5 +1,7 @@
 @use 'variables' as *;
 @use 'mixins' as *;
+@use 'sass:color';
+@use 'sass:list';
 
 /* =====================================================
    ========== LAYOUT & CONTAINER STYLES ==============
@@ -67,6 +69,7 @@ body {
     display: flex;
     height: 100vh;
     overflow: hidden;
+    background-color: $bg-primary;
 }
 
 /* ==================== SIDEBAR ==================== */
@@ -76,9 +79,8 @@ body {
     top: 0;
     height: 100%;
     width: $width-sidebar-collapsed;
-    background: linear-gradient(180deg, $sidebar-bg 0%, darken($sidebar-bg, 2%) 100%);
+    background: linear-gradient(180deg, $sidebar-bg 0%, color.adjust($sidebar-bg, $lightness: -2%) 100%);
     border-right: 1px solid $sidebar-border;
-    box-shadow: 2px 0 8px rgba(0, 0, 0, 0.15);
     transition: all $transition-base;
     z-index: $z-fixed;
     overflow-y: auto;
@@ -120,7 +122,7 @@ body {
         }
 
         .sidebar-menu ul > li > .nav-link {
-            padding: $space-md $space-lg;
+            padding: $space-sm $space-lg;
             justify-content: flex-start !important;
             overflow: visible !important;
         }
@@ -205,9 +207,10 @@ body {
     }
 
     .nav-section {
-        padding: $space-md $space-md $space-3;
+        padding: $space-xs $space-xl;
         list-style: none;
         margin: 0;
+        margin-top: $space-lg;
 
         .nav-section-title {
             font-size: 11px;
@@ -234,7 +237,7 @@ body {
             color: $sidebar-text;
             text-decoration: none;
             padding: $space-sm $space-3;
-            height: 38px;
+            line-height: 16px;
             font-size: $text-base;
             font-weight: $font-medium;
             white-space: nowrap;
@@ -276,9 +279,8 @@ body {
             }
 
             &.active {
-                background: linear-gradient(135deg, rgba($primary, 0.2) 0%, rgba($primary, 0.1) 100%);
+                background-color: rgba($primary, 0.2);
                 color: $primary;
-                box-shadow: inset 0 0 12px rgba($primary, 0.2);
                 padding-left: calc(#{$space-md} - 3px);
 
                 .nav-icon {
@@ -1060,7 +1062,8 @@ header {
 /* Margin Utilities */
 @for $i from 0 through 6 {
     $value: $i * 4px;
-    $key: if($i == 0, '0', if($i == 1, 'xs', if($i == 2, 'sm', if($i == 3, 'md', if($i == 4, 'lg', if($i == 5, 'xl', '2xl'))))));
+    $keys: ('0', 'xs', 'sm', 'md', 'lg', 'xl', '2xl');
+    $key: list.nth($keys, $i + 1);
 
     .my-#{$key} { margin-top: $value; margin-bottom: $value; }
     .mx-#{$key} { margin-left: $value; margin-right: $value; }
@@ -1073,7 +1076,8 @@ header {
 /* Padding Utilities */
 @for $i from 0 through 6 {
     $value: $i * 4px;
-    $key: if($i == 0, '0', if($i == 1, 'xs', if($i == 2, 'sm', if($i == 3, 'md', if($i == 4, 'lg', if($i == 5, 'xl', '2xl'))))));
+    $keys: ('0', 'xs', 'sm', 'md', 'lg', 'xl', '2xl');
+    $key: list.nth($keys, $i + 1);
 
     .py-#{$key} { padding-top: $value; padding-bottom: $value; }
     .px-#{$key} { padding-left: $value; padding-right: $value; }
