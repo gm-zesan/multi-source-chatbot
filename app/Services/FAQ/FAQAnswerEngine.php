@@ -78,6 +78,7 @@ class FAQAnswerEngine
             query: $normalized,
             perPage: self::SEARCH_TOP_K,
             workspaceId: $workspaceId,
+            isPreprocessed: true,
         );
 
         // ── 3. Score & pick best ─────────────────────────────────────────
@@ -188,8 +189,8 @@ class FAQAnswerEngine
         try {
             KnowledgeSearchLog::create([
                 'workspace_id'    => $workspaceId ?? 0,
-                'conversation_id' => $conversationId ?? 0,
-                'message_id'      => $messageId ?? 0,
+                'conversation_id' => $conversationId,
+                'message_id'      => $messageId,
                 'customer_query'  => $query,
                 'matched_faq_id'  => $matchedFaqId,
                 'keyword_score'   => $keywordScore,
@@ -229,13 +230,13 @@ class FAQAnswerEngine
                 ]);
             } else {
                 UnansweredQuestion::create([
-                    'workspace_id'       => $workspaceId ?? 0,
-                    'conversation_id'    => $conversationId ?? 0,
-                    'original_question'  => $originalQuery,
+                    'workspace_id'        => $workspaceId ?? 0,
+                    'conversation_id'     => $conversationId,
+                    'original_question'   => $originalQuery,
                     'normalized_question' => $normalizedQuery,
-                    'occurrence_count'   => 1,
-                    'status'             => 'pending',
-                    'notes'              => null,
+                    'occurrence_count'    => 1,
+                    'status'              => 'pending',
+                    'notes'               => null,
                 ]);
 
                 Log::debug('[FAQAnswerEngine] Saved new unanswered question');

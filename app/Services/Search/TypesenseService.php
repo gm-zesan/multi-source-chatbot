@@ -301,11 +301,20 @@ class TypesenseService
             foreach ($hits as $hit) {
                 $document = $hit['document'] ?? [];
 
-                // Normalize text_match_info score to 0–1 range
+                // text_match_info.best_field_score is already a 0.0–1.0 float.
+                // Avoid text_match_info.score — it is a large compound integer
+                // (encodes token positions, field weights, etc.) and has no
+                // meaningful divisor that works across all queries.
                 $textScore = 0.0;
-                if (isset($hit['text_match_info']['score'])) {
-                    $textScore = (float) $hit['text_match_info']['score'] / 1000.0;
-                    $textScore = min(max($textScore, 0.0), 1.0);
+                $tmi = $hit['text_match_info'] ?? [];
+                if (isset($tmi['best_field_score'])) {
+                    $textScore = min(max((float) $tmi['best_field_score'], 0.0), 1.0);
+                } elseif (isset($tmi['tokens_matched'], $tmi['num_tokens_dropped'])) {
+                    // Fallback: fraction of query tokens that matched
+                    $totalTokens = ($tmi['tokens_matched'] + $tmi['num_tokens_dropped']);
+                    $textScore = $totalTokens > 0
+                        ? min($tmi['tokens_matched'] / $totalTokens, 1.0)
+                        : 0.0;
                 }
 
                 $results[] = new TypesenseSearchResult(
@@ -404,11 +413,20 @@ class TypesenseService
             foreach ($hits as $hit) {
                 $document = $hit['document'] ?? [];
 
-                // Keyword score from text_match_info
+                // text_match_info.best_field_score is already a 0.0–1.0 float.
+                // Avoid text_match_info.score — it is a large compound integer
+                // (encodes token positions, field weights, etc.) and has no
+                // meaningful divisor that works across all queries.
                 $textScore = 0.0;
-                if (isset($hit['text_match_info']['score'])) {
-                    $textScore = (float) $hit['text_match_info']['score'] / 1000.0;
-                    $textScore = min(max($textScore, 0.0), 1.0);
+                $tmi = $hit['text_match_info'] ?? [];
+                if (isset($tmi['best_field_score'])) {
+                    $textScore = min(max((float) $tmi['best_field_score'], 0.0), 1.0);
+                } elseif (isset($tmi['tokens_matched'], $tmi['num_tokens_dropped'])) {
+                    // Fallback: fraction of query tokens that matched
+                    $totalTokens = ($tmi['tokens_matched'] + $tmi['num_tokens_dropped']);
+                    $textScore = $totalTokens > 0
+                        ? min($tmi['tokens_matched'] / $totalTokens, 1.0)
+                        : 0.0;
                 }
 
                 // Vector score from vector_distance (0 = perfect match, higher = worse)

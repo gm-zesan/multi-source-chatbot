@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Enums\RoleEnum;
 use App\Http\Requests\StoreFAQRequest;
 use App\Http\Requests\UpdateFAQRequest;
 use App\Models\FAQ;
+use App\Models\User;
 use App\Services\FAQ\FAQService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -139,10 +141,18 @@ class FAQController extends Controller
 
     /**
      * Ensure the FAQ belongs to the user's workspace.
+     * Superadmins are allowed to manage FAQs across all workspaces.
      */
     private function authorizeWorkspace(FAQ $faq): void
     {
-        if ($faq->workspace_id !== Auth::user()->workspace_id) {
+        /** @var User|null $user */
+        $user = Auth::user();
+
+        if ($user && $user->hasRole(RoleEnum::SUPERADMIN->value)) {
+            return;
+        }
+
+        if ($faq->workspace_id !== $user?->workspace_id) {
             abort(403);
         }
     }

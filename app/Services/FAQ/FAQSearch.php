@@ -43,23 +43,29 @@ class FAQSearch
     /**
      * Run a hybrid search — keyword + vector via Typesense.
      *
-     * @param string   $query        The raw customer query.
-     * @param int      $perPage      Results per page.
-     * @param int|null $workspaceId  Optional workspace filter.
+     * @param string   $query           The customer query.
+     * @param int      $perPage         Results per page.
+     * @param int|null $workspaceId     Optional workspace filter.
+     * @param bool     $isPreprocessed  Set to true if query has already been preprocessed upstream.
      * @return Collection<int, FAQSearchResult>
      */
     public function search(
         string $query,
         int $perPage = 10,
         ?int $workspaceId = null,
+        bool $isPreprocessed = false,
     ): Collection {
         if (trim($query) === '') {
             return Collection::empty();
         }
 
-        // 1. Preprocess the query
-        $processed = $this->preprocessor->process($query, language: 'en');
-        $processedQuery = $processed->normalized;
+        // 1. Preprocess the query (skip if already preprocessed by caller)
+        if ($isPreprocessed) {
+            $processedQuery = $query;
+        } else {
+            $processed = $this->preprocessor->process($query, language: 'en');
+            $processedQuery = $processed->normalized;
+        }
 
         Log::debug('[FAQSearch] Query preprocessed', [
             'original'   => mb_substr($query, 0, 80),
@@ -149,31 +155,41 @@ class FAQSearch
     /**
      * Map TypesenseSearchResult documents to FAQSearchResult objects.
      *
-     * Each Typesense document is loaded as a FAQ model so downstream
-     * consumers (FAQAnswerEngine, FAQScoreCalculator) receive full Eloquent models.
+     * Batch loads FAQ models in a single DB query to eliminate N+1 issues.
      *
      * @param array<int, \App\Services\Search\TypesenseSearchResult> $results
      * @return Collection<int, FAQSearchResult>
      */
     private function mapResults(array $results, int $perPage): Collection
     {
+        if (empty($results)) {
+            return Collection::empty();
+        }
+
+        $docIds = array_values(array_filter(array_map(fn ($r) => $r->get('id'), $results)));
+
+        if (empty($docIds)) {
+            return Collection::empty();
+        }
+
+        // Batch load all FAQ models in 1 query
+        $faqs = FAQ::whereIn('id', $docIds)->get()->keyBy('id');
+
         $mapped = [];
 
         foreach ($results as $result) {
             $docId = $result->get('id');
 
-            if ($docId === null) {
+            if ($docId === null || ! isset($faqs[$docId])) {
+                if ($docId !== null && ! isset($faqs[$docId])) {
+                    Log::debug('[FAQSearch] FAQ not found in DB, skipping', [
+                        'faq_id' => $docId,
+                    ]);
+                }
                 continue;
             }
 
-            // Load the FAQ model (hit-count and last_used_at are tracked separately)
-            $faq = FAQ::find($docId);
-            if (! $faq) {
-                Log::debug('[FAQSearch] FAQ not found in DB, skipping', [
-                    'faq_id' => $docId,
-                ]);
-                continue;
-            }
+            $faq = $faqs[$docId];
 
             $mapped[] = new FAQSearchResult(
                 faq: $faq,

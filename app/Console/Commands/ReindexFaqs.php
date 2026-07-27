@@ -18,12 +18,13 @@ class ReindexFaqs extends Command
      */
     protected $signature = 'faq:reindex
         {--chunk=200 : Number of FAQs to process per chunk}
-        {--force : Skip confirmation prompt}';
+        {--force : Skip confirmation prompt}
+        {--create-collection : Create the Typesense collection if it does not exist}';
 
     /**
      * The console command description.
      */
-    protected $description = 'Reindex all searchable FAQs into Typesense (upsert only, does not delete collection)';
+    protected $description = 'Reindex all searchable FAQs into Typesense. Use --create-collection on first deployment.';
 
     /**
      * Typesense collection name for FAQs.
@@ -42,7 +43,6 @@ class ReindexFaqs extends Command
      */
     public function handle(): int
     {
-        // ── Fix 4: Validate Typesense collection before starting ──────
         if (! $this->validateCollection()) {
             return Command::FAILURE;
         }
@@ -120,7 +120,7 @@ class ReindexFaqs extends Command
                             'count' => count($documents),
                             'error' => $e->getMessage(),
                         ]);
-                        $this->warn("  Batch upsert failed for {$faq->id}: {$e->getMessage()}");
+                        $this->warn("  Batch upsert failed: {$e->getMessage()}");
                     }
                 }
             });
@@ -150,8 +150,15 @@ class ReindexFaqs extends Command
         return Command::SUCCESS;
     }
 
+    // ─────────────────────────────────────────────────────────────────────
+    // Collection Management
+    // ─────────────────────────────────────────────────────────────────────
+
     /**
      * Validate that the Typesense collection exists and has the expected schema.
+     *
+     * When --create-collection is passed and the collection is absent, it is
+     * created automatically using the canonical schema defined in getFaqsSchema().
      */
     private function validateCollection(): bool
     {
@@ -161,18 +168,23 @@ class ReindexFaqs extends Command
             $schema = $this->typesense->getCollectionSchema(self::COLLECTION);
 
             if ($schema === null) {
+                if ($this->option('create-collection')) {
+                    return $this->createCollection();
+                }
+
                 $this->error("Typesense collection 'faqs' does not exist.");
-                $this->error('Create it manually or via the Typesense API before running this command.');
                 $this->line('');
-                $this->line('Example schema (Typesense API): POST /collections');
-                $this->line('See config/scout.php (model-settings) for the schema definition.');
+                $this->line('  Run the following to create it automatically:');
+                $this->line('  php artisan faq:reindex --create-collection');
+                $this->line('');
 
                 return false;
             }
 
-            // Verify embedding field exists
-            $fields = $schema['fields'] ?? [];
+            // Verify the embedding float[] field exists
+            $fields       = $schema['fields'] ?? [];
             $hasEmbedding = false;
+
             foreach ($fields as $field) {
                 if (($field['name'] ?? '') === 'embedding') {
                     $hasEmbedding = true;
@@ -182,7 +194,7 @@ class ReindexFaqs extends Command
 
             if (! $hasEmbedding) {
                 $this->error("Typesense collection 'faqs' exists but is missing the 'embedding' float[] field.");
-                $this->error('Recreate the collection with the correct schema including an embedding field.');
+                $this->error('Drop and recreate it: php artisan faq:reindex --create-collection');
 
                 return false;
             }
@@ -196,5 +208,68 @@ class ReindexFaqs extends Command
 
             return false;
         }
+    }
+
+    /**
+     * Create the 'faqs' Typesense collection using the canonical schema.
+     */
+    private function createCollection(): bool
+    {
+        $this->line("  Collection 'faqs' not found — creating it now...");
+
+        try {
+            $this->typesense->createCollection(self::COLLECTION, $this->getFaqsSchema());
+
+            $this->info("  Collection 'faqs' created successfully.");
+            $this->line('');
+
+            Log::info('[ReindexFaqs] Typesense collection created', [
+                'collection' => self::COLLECTION,
+            ]);
+
+            return true;
+        } catch (\Throwable $e) {
+            $this->error("  Failed to create collection: {$e->getMessage()}");
+
+            Log::error('[ReindexFaqs] Failed to create Typesense collection', [
+                'collection' => self::COLLECTION,
+                'error'      => $e->getMessage(),
+            ]);
+
+            return false;
+        }
+    }
+
+    /**
+     * Return the canonical Typesense schema for the 'faqs' collection.
+     *
+     * This is the single source of truth for the collection structure.
+     * Embedding dimensions are read from config/embedding.php (CHATBOT_EMBEDDING_DIMENSIONS).
+     *
+     * @return array<string, mixed>
+     */
+    private function getFaqsSchema(): array
+    {
+        $dimensions = (int) config('embedding.dimensions', 768);
+
+        return [
+            'fields' => [
+                ['name' => 'id',              'type' => 'string'],
+                ['name' => 'workspace_id',    'type' => 'int32'],
+                ['name' => 'question',        'type' => 'string'],
+                ['name' => 'answer',          'type' => 'string'],
+                ['name' => 'searchable_text', 'type' => 'string'],
+                ['name' => 'priority',        'type' => 'int32'],
+                ['name' => 'is_active',       'type' => 'bool',    'index' => true],
+                ['name' => 'created_at',      'type' => 'int64'],
+                [
+                    'name'     => 'embedding',
+                    'type'     => 'float[]',
+                    'num_dim'  => $dimensions,
+                    'optional' => true,   // allows indexing FAQs even when embedding fails
+                ],
+            ],
+            'default_sorting_field' => 'priority',
+        ];
     }
 }

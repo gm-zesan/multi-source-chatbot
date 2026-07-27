@@ -21,6 +21,16 @@ class FAQIndexJob implements ShouldQueue
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     /**
+     * The queue connection to use.
+     */
+    public $connection = 'database';
+
+    /**
+     * The queue name to use.
+     */
+    public $queue = 'faq';
+
+    /**
      * Typesense collection name for FAQs.
      */
     private const COLLECTION = 'faqs';

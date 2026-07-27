@@ -12,9 +12,6 @@ return [
     |
     | All values are sourced from environment variables — no hardcoded secrets.
     |
-    | NOTE: Laravel Scout has its own Typesense settings in config/scout.php
-    | for Scout-managed indexing. This file is for direct API access.
-    |
     */
 
     /*

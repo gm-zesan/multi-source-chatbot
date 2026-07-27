@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\FAQ;
 
 use App\Models\FAQ;
+use Illuminate\Support\Facades\Cache;
 
 class FAQScoreCalculator
 {
@@ -218,34 +219,38 @@ class FAQScoreCalculator
 
     /**
      * Get the max priority across all FAQs.
+     * Uses a 60-second TTL cache to auto-invalidate in long-running queue workers.
      */
     private function getMaxPriority(): int
     {
-        if (self::$maxPriority === null) {
-            self::$maxPriority = (int) FAQ::max('priority');
+        if (self::$maxPriority !== null) {
+            return self::$maxPriority;
         }
 
-        return self::$maxPriority;
+        return Cache::remember('faq_max_priority', 60, fn () => (int) FAQ::max('priority'));
     }
 
     /**
      * Get the max hit_count across all FAQs.
+     * Uses a 60-second TTL cache to auto-invalidate in long-running queue workers.
      */
     private function getMaxHitCount(): int
     {
-        if (self::$maxHitCount === null) {
-            self::$maxHitCount = (int) FAQ::max('hit_count');
+        if (self::$maxHitCount !== null) {
+            return self::$maxHitCount;
         }
 
-        return self::$maxHitCount;
+        return Cache::remember('faq_max_hit_count', 60, fn () => (int) FAQ::max('hit_count'));
     }
 
     /**
-     * Reset cached max values (useful for testing).
+     * Reset cached max values (useful for testing and queue worker resets).
      */
     public static function resetCache(): void
     {
         self::$maxHitCount = null;
         self::$maxPriority = null;
+        Cache::forget('faq_max_priority');
+        Cache::forget('faq_max_hit_count');
     }
 }
