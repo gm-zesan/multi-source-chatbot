@@ -30,6 +30,12 @@
                     <span class="nav-label">Conversations</span>
                 </a>
             </li>
+            <li class="nav-item">
+                <a href="{{ route('simulator.index') }}" class="nav-link {{ Route::is('simulator.index') ? 'active' : '' }}">
+                    <i class="ri-robot-2-line nav-icon"></i>
+                    <span class="nav-label">Chat Simulator</span>
+                </a>
+            </li>
 
             <!-- Knowledge Base Section -->
             <li class="nav-section">

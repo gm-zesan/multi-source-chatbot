@@ -19,6 +19,7 @@ class ReindexFaqs extends Command
     protected $signature = 'faq:reindex
         {--chunk=200 : Number of FAQs to process per chunk}
         {--force : Skip confirmation prompt}
+        {--fresh : Drop and recreate the Typesense collection before indexing}
         {--create-collection : Create the Typesense collection if it does not exist}';
 
     /**
@@ -164,6 +165,10 @@ class ReindexFaqs extends Command
     {
         $this->line('Validating Typesense collection...');
 
+        if ($this->option('fresh')) {
+            return $this->createCollection();
+        }
+
         try {
             $schema = $this->typesense->getCollectionSchema(self::COLLECTION);
 
@@ -194,7 +199,7 @@ class ReindexFaqs extends Command
 
             if (! $hasEmbedding) {
                 $this->error("Typesense collection 'faqs' exists but is missing the 'embedding' float[] field.");
-                $this->error('Drop and recreate it: php artisan faq:reindex --create-collection');
+                $this->error('Drop and recreate it: php artisan faq:reindex --fresh');
 
                 return false;
             }
@@ -215,9 +220,13 @@ class ReindexFaqs extends Command
      */
     private function createCollection(): bool
     {
-        $this->line("  Collection 'faqs' not found — creating it now...");
-
         try {
+            if ($this->typesense->collectionExists(self::COLLECTION)) {
+                $this->line("  Deleting existing collection '" . self::COLLECTION . "' to purge stale records...");
+                $this->typesense->deleteCollection(self::COLLECTION);
+            }
+
+            $this->line("  Creating collection '" . self::COLLECTION . "'...");
             $this->typesense->createCollection(self::COLLECTION, $this->getFaqsSchema());
 
             $this->info("  Collection 'faqs' created successfully.");

@@ -14,7 +14,7 @@ class FAQAnswerEngine
     /**
      * Default minimum confidence threshold (0–100) to return an answer.
      */
-    private const DEFAULT_THRESHOLD = 50.0;
+    private const DEFAULT_THRESHOLD = 40.0;
 
     /**
      * How many top results to fetch from the search layer for scoring.
@@ -187,8 +187,10 @@ class FAQAnswerEngine
         string $answerSource,
     ): void {
         try {
+            $defaultWorkspaceId = $workspaceId ?? \App\Models\Workspace::first()?->id ?? 1;
+
             KnowledgeSearchLog::create([
-                'workspace_id'    => $workspaceId ?? 0,
+                'workspace_id'    => $defaultWorkspaceId,
                 'conversation_id' => $conversationId,
                 'message_id'      => $messageId,
                 'customer_query'  => $query,
@@ -217,7 +219,9 @@ class FAQAnswerEngine
         string $normalizedQuery,
     ): void {
         try {
-            $existing = UnansweredQuestion::where('workspace_id', $workspaceId ?? 0)
+            $defaultWorkspaceId = $workspaceId ?? \App\Models\Workspace::first()?->id ?? 1;
+
+            $existing = UnansweredQuestion::where('workspace_id', $defaultWorkspaceId)
                 ->where('original_question', $originalQuery)
                 ->where('status', 'pending')
                 ->first();
@@ -230,7 +234,7 @@ class FAQAnswerEngine
                 ]);
             } else {
                 UnansweredQuestion::create([
-                    'workspace_id'        => $workspaceId ?? 0,
+                    'workspace_id'        => $defaultWorkspaceId,
                     'conversation_id'     => $conversationId,
                     'original_question'   => $originalQuery,
                     'normalized_question' => $normalizedQuery,

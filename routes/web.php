@@ -5,6 +5,7 @@ use App\Enums\Permissions\MessagePermission;
 use App\Enums\Permissions\RolePermission;
 use App\Enums\Permissions\UserPermission;
 use App\Http\Controllers\AssignRoleController;
+use App\Http\Controllers\ChatSimulatorController;
 use App\Http\Controllers\ContactFormController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\FAQCategoryController;
@@ -29,6 +30,10 @@ Route::match(['GET', 'POST'], '/webhook', [WebhookController::class, 'handle']);
 Route::middleware('auth')->prefix('dashboard')->group(function () {
     Route::get('/', [DashboardController::class, 'dashboard'])->name('dashboard');
     Route::get('/cache-clear', [DashboardController::class,'cacheClear'])->name('cache-clear');
+
+    // Chat Simulator & Pipeline Tester
+    Route::get('/simulator', [ChatSimulatorController::class, 'index'])->name('simulator.index');
+    Route::post('/simulator/send', [ChatSimulatorController::class, 'send'])->name('simulator.send');
 
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::get('/profile/password-change', [DashboardController::class, 'changePassword'])->name('password-change.profile');

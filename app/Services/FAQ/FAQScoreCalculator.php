@@ -13,11 +13,11 @@ class FAQScoreCalculator
      * Weight configuration for each scoring factor.
      * All weights must sum to 1.0.
      */
-    private const WEIGHT_SEMANTIC   = 0.30;
-    private const WEIGHT_KEYWORD    = 0.30;
-    private const WEIGHT_PRIORITY   = 0.15;
-    private const WEIGHT_POPULARITY = 0.10;
+    private const WEIGHT_SEMANTIC   = 0.40;
+    private const WEIGHT_KEYWORD    = 0.35;
     private const WEIGHT_EXACT      = 0.15;
+    private const WEIGHT_PRIORITY   = 0.05;
+    private const WEIGHT_POPULARITY = 0.05;
 
     /**
      * Exact match bonus when the query matches the question exactly.

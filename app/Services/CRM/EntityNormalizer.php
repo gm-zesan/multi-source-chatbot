@@ -18,10 +18,12 @@ class EntityNormalizer
             $entities['contact']['emails']
         );
 
-        $entities['contact']['websites'] = array_map(
+        $normalizedWebsites = array_map(
             fn($url) => $this->website($url),
-            $entities['contact']['websites']
+            $entities['contact']['websites'] ?? []
         );
+
+        $entities['contact']['websites'] = array_values(array_unique(array_filter($normalizedWebsites)));
 
         return $entities;
     }
@@ -43,7 +45,9 @@ class EntityNormalizer
 
     protected function website(string $url): string
     {
-        if (!preg_match('/^https?:\/\//', $url)) {
+        $url = rtrim(trim($url), '.,!?:;)');
+
+        if (!preg_match('/^https?:\/\//i', $url)) {
             $url = 'https://' . $url;
         }
 

@@ -387,7 +387,8 @@ class TypesenseService
         // Build the vector_query string: "field_name:([vector], k:N, flat_search_cutoff:M)"
         $vectorQueryStr = $vectorField . ':([ ' . implode(',', $vector) . ' ], k: ' . $vectorK . ')';
 
-        $searchParams = [
+        $searchRequest = [
+            'collection'   => $name,
             'q'            => $query,
             'query_by'     => $params['query_by'] ?? 'searchable_text',
             'vector_query' => $vectorQueryStr,
@@ -395,15 +396,20 @@ class TypesenseService
         ];
 
         if (! empty($params['filter_by'])) {
-            $searchParams['filter_by'] = $params['filter_by'];
+            $searchRequest['filter_by'] = $params['filter_by'];
         }
 
         if (! empty($params['sort_by'])) {
-            $searchParams['sort_by'] = $params['sort_by'];
+            $searchRequest['sort_by'] = $params['sort_by'];
         }
 
         try {
-            $response = $this->client()->getCollections()->{$name}->documents->search($searchParams);
+            // Use multiSearch (HTTP POST) to avoid GET query string length limits (4000 chars) for 768-dim vectors
+            $multiResponse = $this->client()->getMultiSearch()->perform([
+                'searches' => [$searchRequest],
+            ], []);
+
+            $response = $multiResponse['results'][0] ?? [];
 
             $hits = $response['hits'] ?? [];
             $found = (int) ($response['found'] ?? 0);
