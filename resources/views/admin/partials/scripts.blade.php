@@ -60,112 +60,58 @@
 </script>
 
 
-{{-- sidebar dropdown menu --}}
+{{-- Sidebar toggle functionality --}}
 <script>
-    $(function() {
-        var $ul = $('.sidebar-navigation > ul');
+    document.addEventListener('DOMContentLoaded', function() {
+        const sidebarToggle = document.querySelector('#btn');
+        const sidebar = document.querySelector('.sidebar');
 
-        $ul.find('li a').click(function(e) {
-            var $li = $(this).parent();
+        if (sidebarToggle && sidebar) {
+            sidebarToggle.addEventListener('click', function() {
+                sidebar.classList.toggle('active');
+            });
 
-            if ($li.find('ul').length > 0) {
-                e.preventDefault();
-
-                if ($li.hasClass('selected')) {
-                    $li.removeClass('selected').find('li').removeClass('selected');
-                    $li.find('ul').slideUp(400);
-                    $li.find('a em').removeClass('mdi-flip-v');
-                } else {
-
-                    if ($li.parents('li.selected').length == 0) {
-                        $ul.find('li').removeClass('selected');
-                        $ul.find('ul').slideUp(400);
-                        $ul.find('li a em').removeClass('mdi-flip-v');
-                    } else {
-                        $li.parent().find('li').removeClass('selected');
-                        $li.parent().find('> li ul').slideUp(400);
-                        $li.parent().find('> li a em').removeClass('mdi-flip-v');
+            // Close sidebar on mobile when clicking a link
+            const navLinks = sidebar.querySelectorAll('.nav-link');
+            navLinks.forEach(link => {
+                link.addEventListener('click', function() {
+                    if (window.innerWidth < 992) {
+                        sidebar.classList.remove('active');
                     }
+                });
+            });
 
-                    $li.addClass('selected');
-                    $li.find('>ul').slideDown(400);
-                    $li.find('>a>em').addClass('mdi-flip-v');
-                }
-            }
-        });
-
-
-        $('.sidebar-navigation > ul ul').each(function(i) {
-            if ($(this).find('>li>ul').length > 0) {
-                var paddingLeft = $(this).parent().parent().find('>li>a').css('padding-left');
-                var pIntPLeft = parseInt(paddingLeft);
-                var result = pIntPLeft + 20;
-
-                $(this).find('>li>a').css('padding-left', result);
-            } else {
-                var paddingLeft = $(this).parent().parent().find('>li>a').css('padding-left');
-                var pIntPLeft = parseInt(paddingLeft);
-                var result = pIntPLeft + 20;
-
-                $(this).find('>li>a').css('padding-left', result).parent().addClass('selected--last');
-            }
-        });
-
-        var t = ' li > ul ';
-        for (var i = 1; i <= 10; i++) {
-            $('.sidebar-navigation > ul > ' + t.repeat(i)).addClass('subMenuColor' + i);
-        }
-
-        var activeLi = $('li.selected');
-        if (activeLi.length) {
-            opener(activeLi);
-        }
-
-        function opener(li) {
-            var ul = li.closest('ul');
-            if (ul.length) {
-
-                li.addClass('selected');
-                ul.addClass('open');
-                li.find('>a>em').addClass('mdi-flip-v');
-
-                if (ul.closest('li').length) {
-                    opener(ul.closest('li'));
+            // Responsive sidebar behavior
+            function checkScreenSize() {
+                if (window.innerWidth < 992) {
+                    sidebar.classList.remove('active');
                 } else {
-                    return false;
+                    sidebar.classList.add('active');
                 }
-
             }
-        }
 
+            checkScreenSize();
+            window.addEventListener('resize', checkScreenSize);
+        }
     });
 </script>
 
-{{-- Sidebar active --}}
+{{-- Logout form functionality --}}
 <script>
-    let btn = document.querySelector("#btn");
-    let sidebar = document.querySelector(".sidebar");
-
-    btn.onclick = function() {
-        sidebar.classList.toggle("active");
-    }
-
-    function checkScreenSize() {
-        const sidebar = document.querySelector('.sidebar');
-        if (window.innerWidth < 991) {
-            if (sidebar.classList.contains('active')) {
-                sidebar.classList.remove('active');
-            }
-        } else {
-            if (!sidebar.classList.contains('active')) {
-                sidebar.classList.add('active');
-            }
+    document.addEventListener('DOMContentLoaded', function() {
+        const logoutForm = document.getElementById('logout-form');
+        const sidebarLogoutBtn = document.querySelector('.sidebar .logout-btn');
+        
+        if (sidebarLogoutBtn) {
+            sidebarLogoutBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                if (logoutForm) {
+                    logoutForm.submit();
+                }
+            });
         }
-    }
-    checkScreenSize();
-    window.addEventListener('resize', checkScreenSize);
+    });
 </script>
-
 
 <!-- Common Scripts -->
 <script>

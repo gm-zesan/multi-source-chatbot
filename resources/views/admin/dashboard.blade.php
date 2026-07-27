@@ -50,31 +50,9 @@
 @endpush
 
 @section('content')
-    <div class="container-fluid my-3">
-
-        {{-- Header with Breadcrumb --}}
-        <div class="row mb-4">
-            <div class="col-12">
-                <div class="card table-card">
-                    <div class="card-header table-header">
-                        <div class="title-with-breadcrumb">
-                            <div class="table-title">Dashboard</div>
-                            <nav aria-label="breadcrumb">
-                                <ol class="breadcrumb mb-0">
-                                    <li class="breadcrumb-item active" aria-current="page">Dashboard</li>
-                                </ol>
-                            </nav>
-                        </div>
-                        <a href="{{ route('dashboard') }}" class="add-new">
-                            <i class="ri-refresh-line me-1"></i>Refresh
-                        </a>
-                    </div>
-                </div>
-            </div>
-        </div>
-
+    <div class="container-fluid">
         {{-- Summary Cards --}}
-        <div class="row g-3 mb-4">
+        <div class="row g-3 mb-3">
             <div class="col-md-3">
                 <div class="card table-card dashboard-stat-card">
                     <div class="card-body">
@@ -136,7 +114,7 @@
         </div>
 
         {{-- Queue Worker Status --}}
-        <div class="row mb-4">
+        <div class="row mb-3">
             <div class="col-12">
                 <div class="card table-card">
                     <div class="card-header table-header">
@@ -234,7 +212,7 @@
         </div>
 
         {{-- Conversations & Messages --}}
-        <div class="row g-3 mb-4">
+        <div class="row g-3 mb-3">
             <div class="col-md-6">
                 <div class="card table-card">
                     <div class="card-header table-header">
@@ -297,7 +275,7 @@
         </div>
 
         {{-- Knowledge Base & Unanswered --}}
-        <div class="row g-3 mb-4">
+        <div class="row g-3 mb-3">
             <div class="col-md-6">
                 <div class="card table-card">
                     <div class="card-header table-header">
@@ -371,7 +349,6 @@
                 </div>
             </div>
         </div>
-
     </div>
 @endsection
 

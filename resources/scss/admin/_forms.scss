@@ -1,0 +1,614 @@
+@use 'variables' as *;
+@use 'mixins' as *;
+
+/* =====================================================
+   ========== FORM STYLES & COMPONENTS ==============
+===================================================== */
+
+/* ==================== FORM WRAPPER ==================== */
+.form-group,
+.form-field {
+    @include form-field;
+}
+
+/* ==================== LABELS ==================== */
+label {
+    @include label-styles;
+}
+
+.form-label {
+    @include label-styles;
+}
+
+.form-label-inline {
+    display: inline-block;
+    margin-right: $space-md;
+    margin-bottom: 0;
+}
+
+/* ==================== TEXT INPUTS ==================== */
+input[type='text'],
+input[type='email'],
+input[type='password'],
+input[type='number'],
+input[type='tel'],
+input[type='url'],
+input[type='date'],
+input[type='time'],
+input[type='datetime-local'],
+input[type='month'],
+input[type='week'],
+input[type='color'],
+textarea,
+select {
+    @include input-base;
+}
+
+.form-control {
+    @include input-base;
+
+    &.form-control-sm {
+        padding: $space-3 $space-sm;
+        font-size: $text-xs;
+        min-height: $height-input-sm;
+    }
+
+    &.form-control-lg {
+        padding: $space-md $space-lg;
+        font-size: $text-base;
+        min-height: $height-input-lg;
+    }
+}
+
+/* Input Group */
+.input-group {
+    display: flex;
+    align-items: center;
+    border: 1px solid $border-color;
+    border-radius: $radius-input;
+    overflow: hidden;
+    transition: $transition-base;
+
+    &:focus-within {
+        border-color: $primary;
+        box-shadow: 0 0 0 3px rgba($primary, 0.1);
+    }
+
+    .input-group-icon {
+        padding: 0 $space-md;
+        background-color: $bg-tertiary;
+        color: $text-secondary;
+        border-right: 1px solid $border-light;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 40px;
+        height: 100%;
+    }
+
+    .input-group-addon {
+        padding: $space-sm $space-md;
+        background-color: $bg-tertiary;
+        border-right: 1px solid $border-light;
+        color: $text-secondary;
+        font-weight: $font-medium;
+        white-space: nowrap;
+    }
+
+    input,
+    textarea,
+    select {
+        border: none;
+        flex: 1;
+
+        &:focus {
+            box-shadow: none;
+            border-color: transparent;
+        }
+    }
+}
+
+/* ==================== TEXTAREA ==================== */
+textarea {
+    resize: vertical;
+    min-height: 100px;
+
+    &.form-control-sm {
+        min-height: 60px;
+    }
+
+    &.form-control-lg {
+        min-height: 150px;
+    }
+}
+
+/* ==================== SELECT ==================== */
+select {
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cpath fill='%236b7280' d='M1 1l5 5 5-5'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right $space-md center;
+    background-size: 16px;
+    padding-right: $space-2xl;
+    cursor: pointer;
+
+    &::-ms-expand {
+        display: none;
+    }
+
+    option {
+        padding: $space-sm $space-md;
+        color: $text-primary;
+        background-color: $white;
+
+        &:checked {
+            background: linear-gradient($primary, $primary);
+            background-color: $primary;
+            color: $white;
+        }
+    }
+}
+
+/* ==================== CHECKBOXES ==================== */
+.form-check {
+    @include form-field;
+    display: flex;
+    align-items: center;
+    gap: $space-md;
+
+    input[type='checkbox'] {
+        appearance: none;
+        width: 18px;
+        height: 18px;
+        border: 1.5px solid $border-color;
+        border-radius: $radius-sm;
+        background-color: $white;
+        cursor: pointer;
+        transition: $transition-fast;
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        &:hover {
+            border-color: $primary;
+            background-color: $primary-50;
+        }
+
+        &:checked {
+            border-color: $primary;
+            background-color: $primary;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 16 16' fill='white' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 11-1.06-1.06l7.25-7.25a.75.75 0 011.06 0z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: center;
+            background-size: 14px;
+        }
+
+        &:focus-visible {
+            outline: 2px solid transparent;
+            box-shadow: 0 0 0 3px rgba($primary, 0.2);
+        }
+
+        &:disabled {
+            cursor: not-allowed;
+            opacity: 0.5;
+            background-color: $input-bg-disabled;
+            border-color: $border-light;
+        }
+    }
+
+    .form-check-label {
+        margin: 0;
+        cursor: pointer;
+        font-weight: $font-normal;
+        padding-top: 2px;
+    }
+}
+
+/* ==================== RADIO BUTTONS ==================== */
+.form-radio {
+    @include form-field;
+    display: flex;
+    align-items: center;
+    gap: $space-md;
+
+    input[type='radio'] {
+        appearance: none;
+        width: 18px;
+        height: 18px;
+        border: 1.5px solid $border-color;
+        border-radius: 50%;
+        background-color: $white;
+        cursor: pointer;
+        transition: $transition-fast;
+        flex-shrink: 0;
+
+        &:hover {
+            border-color: $primary;
+            background-color: $primary-50;
+        }
+
+        &:checked {
+            border-color: $primary;
+            background-color: $white;
+            box-shadow: inset 0 0 0 4px $primary;
+        }
+
+        &:focus-visible {
+            outline: 2px solid transparent;
+            box-shadow: 0 0 0 3px rgba($primary, 0.2);
+        }
+
+        &:disabled {
+            cursor: not-allowed;
+            opacity: 0.5;
+            background-color: $input-bg-disabled;
+            border-color: $border-light;
+        }
+    }
+
+    .form-check-label {
+        margin: 0;
+        cursor: pointer;
+        font-weight: $font-normal;
+        padding-top: 2px;
+    }
+}
+
+/* ==================== TOGGLE SWITCH ==================== */
+.form-switch {
+    @include form-field;
+    display: flex;
+    align-items: center;
+    gap: $space-md;
+
+    input[type='checkbox'] {
+        appearance: none;
+        width: 44px;
+        height: 24px;
+        border: none;
+        border-radius: $radius-full;
+        background-color: $border-color;
+        cursor: pointer;
+        transition: background-color $transition-base;
+        flex-shrink: 0;
+        position: relative;
+
+        &::before {
+            content: '';
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background-color: $white;
+            top: 2px;
+            left: 2px;
+            transition: left $transition-base;
+            box-shadow: $shadow-sm;
+        }
+
+        &:hover:not(:disabled) {
+            background-color: $gray-400;
+        }
+
+        &:checked {
+            background-color: $success;
+
+            &::before {
+                left: 22px;
+            }
+        }
+
+        &:focus-visible {
+            outline: 2px solid transparent;
+            box-shadow: 0 0 0 3px rgba($success, 0.2);
+        }
+
+        &:disabled {
+            cursor: not-allowed;
+            opacity: 0.5;
+            background-color: $border-light;
+        }
+    }
+
+    .form-check-label {
+        margin: 0;
+        cursor: pointer;
+        font-weight: $font-normal;
+    }
+}
+
+/* ==================== FILE INPUT ==================== */
+.form-file {
+    @include form-field;
+
+    input[type='file'] {
+        display: none;
+    }
+
+    .file-input-label {
+        @include flex-box(flex, center, center);
+        gap: $space-md;
+        padding: $space-lg;
+        border: 2px dashed $border-color;
+        border-radius: $radius-input;
+        background-color: $bg-tertiary;
+        cursor: pointer;
+        transition: $transition-base;
+        text-align: center;
+
+        &:hover {
+            border-color: $primary;
+            background-color: $primary-50;
+        }
+
+        .file-icon {
+            font-size: $text-3xl;
+            color: $primary;
+        }
+
+        .file-text {
+            p {
+                margin: 0;
+                font-size: $text-sm;
+                color: $text-primary;
+                font-weight: $font-semibold;
+            }
+
+            span {
+                font-size: $text-xs;
+                color: $text-secondary;
+            }
+        }
+    }
+
+    &.has-file {
+        .file-input-label {
+            background-color: $success-light;
+            border-color: $success;
+
+            .file-icon {
+                color: $success;
+            }
+        }
+    }
+}
+
+/* ==================== FORM VALIDATION ==================== */
+.is-invalid,
+.form-control.is-invalid {
+    border-color: $danger;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='12 12 24 24'%3e%3ccircle cx='24' cy='24' r='12' fill='none' stroke='%23ef4444' stroke-width='2'/%3e%3cpath fill='none' stroke='%23ef4444' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M12 24h24M24 12v24'/%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right $space-lg center;
+    background-size: 20px;
+
+    &:focus {
+        border-color: $danger;
+        box-shadow: 0 0 0 3px rgba($danger, 0.1);
+    }
+}
+
+.invalid-feedback {
+    display: block;
+    color: $danger;
+    font-size: $text-xs;
+    font-weight: $font-medium;
+    margin-top: $space-xs;
+}
+
+.valid-feedback {
+    display: block;
+    color: $success;
+    font-size: $text-xs;
+    font-weight: $font-medium;
+    margin-top: $space-xs;
+}
+
+/* ==================== FORM HELPER TEXT ==================== */
+.form-text,
+.form-hint {
+    display: block;
+    font-size: $text-xs;
+    color: $text-secondary;
+    margin-top: $space-xs;
+}
+
+/* ==================== FORM LAYOUT ==================== */
+.form-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: $space-2xl;
+
+    @include mobile-only {
+        grid-template-columns: 1fr;
+    }
+}
+
+.form-horizontal {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: $space-2xl;
+
+    @include tablet-up {
+        grid-template-columns: 200px 1fr;
+    }
+
+    @include mobile-only {
+        grid-template-columns: 1fr;
+    }
+}
+
+.form-inline {
+    display: flex;
+    align-items: flex-end;
+    gap: $space-lg;
+
+    .form-group,
+    .form-field {
+        margin-bottom: 0;
+        flex: 1;
+        min-width: 200px;
+    }
+
+    @include mobile-only {
+        flex-direction: column;
+        align-items: stretch;
+
+        .form-group,
+        .form-field {
+            min-width: auto;
+        }
+    }
+}
+
+/* ==================== FORM BUTTONS ==================== */
+.form-actions {
+    @include flex-box(flex, center, flex-end);
+    padding-top: $space-2xl;
+    border-top: 1px solid $border-color;
+    margin-top: $space-2xl;
+
+    @include mobile-only {
+        flex-direction: column-reverse;
+        align-items: stretch;
+
+        .btn {
+            width: 100%;
+        }
+    }
+}
+
+/* ==================== FORM SECTIONS ==================== */
+.form-section {
+    margin-bottom: $space-3xl;
+
+    &:last-child {
+        margin-bottom: 0;
+    }
+
+    .form-section-title {
+        @include heading(3);
+        margin-bottom: $space-lg;
+        padding-bottom: $space-lg;
+        border-bottom: 1px solid $border-color;
+    }
+
+    .form-section-description {
+        font-size: $text-sm;
+        color: $text-secondary;
+        margin-bottom: $space-lg;
+    }
+}
+
+/* ==================== CUSTOM FORM STYLES ==================== */
+.custom-form {
+    .custom-label {
+        @include label-styles;
+    }
+
+    .custom-input {
+        @include input-base;
+    }
+
+    .custom-checkbox {
+        appearance: none;
+        width: 18px;
+        height: 18px;
+        border: 1.5px solid $border-color;
+        border-radius: $radius-sm;
+        background-color: $white;
+        cursor: pointer;
+        transition: $transition-fast;
+
+        &:checked {
+            border-color: $primary;
+            background-color: $primary;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 16 16' fill='white' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 11-1.06-1.06l7.25-7.25a.75.75 0 011.06 0z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: center;
+            background-size: 14px;
+        }
+
+        &:focus {
+            border-color: $primary;
+            box-shadow: 0 0 0 3px rgba($primary, 0.1);
+        }
+    }
+
+    .error_msg {
+        display: block;
+        color: $danger;
+        font-size: $text-xs;
+        font-weight: $font-medium;
+        margin-top: $space-xs;
+    }
+
+    .submit-button {
+        @include button-base;
+        @include button-variant($primary, $white, $primary-dark, $white);
+        width: 100%;
+    }
+
+    .cancel-button {
+        @include button-base;
+        @include button-variant($bg-secondary, $text-primary, $bg-tertiary, $text-primary);
+        width: 100%;
+        border: 1px solid $border-color;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+}
+
+/* ==================== FORM ACTION BUTTONS ==================== */
+.form-actions {
+    .row {
+        margin-right: 0;
+        margin-left: 0;
+        justify-content: flex-end;
+    }
+
+    [class*='col-'] {
+        padding-right: $space-sm;
+        padding-left: $space-sm;
+        // flex: 0 0 auto;
+        // width: auto;
+        // min-width: 140px;
+
+        &:first-child {
+            padding-left: 0;
+        }
+
+        &:last-child {
+            padding-right: 0;
+        }
+    }
+
+    .submit-button,
+    .cancel-button {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+}
+
+/* ==================== CUSTOM FORM GRID ==================== */
+.custom-form {
+    .row {
+        margin-right: -$space-sm;
+        margin-left: -$space-sm;
+        width: 100%;
+    }
+
+    [class*='col-'] {
+        padding-right: $space-sm;
+        padding-left: $space-sm;
+    }
+}
+
+.table-card .card-body.custom-form {
+    padding: $space-md;
+    overflow-x: hidden;
+}

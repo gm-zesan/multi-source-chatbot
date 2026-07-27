@@ -84,7 +84,7 @@ body {
 }
 
 body {
-    background: var(--bg-primary);
+    background: var(--bg-tertiary);
     color: var(--text-primary);
     font-family: "Inter", sans-serif;
     overflow: hidden;

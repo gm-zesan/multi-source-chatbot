@@ -156,4 +156,4 @@
 
 
 {{-- <!-- Style css --> --}}
-@vite(['resources/scss/admin/style.scss', 'resources/scss/admin/table.scss', 'resources/js/app.js'])
+@vite(['resources/scss/admin/style.scss', 'resources/js/app.js'])
