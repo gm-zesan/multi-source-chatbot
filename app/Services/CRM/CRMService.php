@@ -10,14 +10,78 @@ use Illuminate\Support\Facades\DB;
 
 class CRMService
 {
-    public function __construct(protected IdentityResolver $identityResolver) {}
+    public function __construct(
+        protected IdentityResolver $identityResolver,
+        protected EntityExtractor $extractor,
+        protected EntityNormalizer $normalizer,
+    ) {}
+
+    /**
+     * Extract and normalize CRM entities from raw message text.
+     *
+     * @return array<string, mixed>
+     */
+    public function extractEntities(?string $text): array
+    {
+        $raw = $this->extractor->extract($text);
+
+        return $this->normalizer->normalize($raw);
+    }
+
+    /**
+     * Process message for a workspace: extracts entities, normalizes, and saves if present.
+     * Returns structured diagnostic payload.
+     *
+     * @return array{
+     *     has_data: bool,
+     *     db_saved: bool,
+     *     contact: ?CRMContact,
+     *     contact_id: ?int,
+     *     emails: array<string>,
+     *     phones: array<string>,
+     *     websites: array<string>,
+     *     nid: ?string,
+     * }
+     */
+    public function processForWorkspace(int $workspaceId, string $text, ?string $name = null): array
+    {
+        $entities = $this->extractEntities($text);
+
+        $emails   = $entities['contact']['emails'] ?? [];
+        $phones   = $entities['contact']['phones'] ?? [];
+        $websites = $entities['contact']['websites'] ?? [];
+        $nid      = $entities['document']['nid'] ?? null;
+
+        $hasData = ! empty($emails) || ! empty($phones) || ! empty($websites) || ! empty($nid);
+
+        $savedContact = null;
+        if ($hasData) {
+            $savedContact = $this->syncForWorkspace($workspaceId, $entities, $name);
+        }
+
+        return [
+            'has_data'   => $hasData,
+            'db_saved'   => $savedContact !== null,
+            'contact'    => $savedContact,
+            'contact_id' => $savedContact?->id,
+            'emails'     => $emails,
+            'phones'     => $phones,
+            'websites'   => $websites,
+            'nid'        => $nid,
+        ];
+    }
 
     /**
      * Sync extracted contact entities for a specific conversation.
      */
-    public function sync(Conversation $conversation, array $entities): CRMContact
+    public function sync(Conversation $conversation, ?array $entities = null): CRMContact
     {
         $conversation->loadMissing('channelAccount.channel');
+
+        if ($entities === null) {
+            $lastMessage = $conversation->messages()->where('direction', 'inbound')->latest('id')->first();
+            $entities = $this->extractEntities($lastMessage?->body ?? '');
+        }
 
         return DB::transaction(function () use ($conversation, $entities) {
             $contact = $this->identityResolver->resolve($conversation);
@@ -29,7 +93,7 @@ class CRMService
     }
 
     /**
-     * Sync extracted contact entities directly for a workspace (e.g. via Chat Simulator or direct API).
+     * Sync extracted contact entities directly for a workspace.
      */
     public function syncForWorkspace(int $workspaceId, array $entities, ?string $name = null): ?CRMContact
     {
@@ -42,21 +106,20 @@ class CRMService
         }
 
         return DB::transaction(function () use ($workspaceId, $entities, $name) {
-            $emails   = array_unique($entities['contact']['emails'] ?? []);
-            $phones   = array_unique($entities['contact']['phones'] ?? []);
+            $emails = array_unique($entities['contact']['emails'] ?? []);
+            $phones = array_unique($entities['contact']['phones'] ?? []);
 
-            // Lookup existing contact by email or phone in workspace
             $contact = null;
 
             if (! empty($emails)) {
                 $contact = CRMContact::where('workspace_id', $workspaceId)
-                    ->whereHas('emails', fn($q) => $q->whereIn('email', $emails))
+                    ->whereHas('emails', fn ($q) => $q->whereIn('email', $emails))
                     ->first();
             }
 
             if (! $contact && ! empty($phones)) {
                 $contact = CRMContact::where('workspace_id', $workspaceId)
-                    ->whereHas('phones', fn($q) => $q->whereIn('phone', $phones))
+                    ->whereHas('phones', fn ($q) => $q->whereIn('phone', $phones))
                     ->first();
             }
 
@@ -101,3 +164,4 @@ class CRMService
         }
     }
 }
+

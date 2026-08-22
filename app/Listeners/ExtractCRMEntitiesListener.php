@@ -6,8 +6,6 @@ namespace App\Listeners;
 
 use App\Events\IncomingMessageReceived;
 use App\Services\CRM\CRMService;
-use App\Services\CRM\EntityExtractor;
-use App\Services\CRM\EntityNormalizer;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Support\Facades\Log;
@@ -37,11 +35,14 @@ class ExtractCRMEntitiesListener implements ShouldQueue
     public int $maxExceptions = 3;
 
     /**
+     * The number of seconds the job can run before timing out.
+     */
+    public int $timeout = 120;
+
+    /**
      * Create a new listener instance.
      */
     public function __construct(
-        private readonly EntityExtractor $extractor,
-        private readonly EntityNormalizer $normalizer,
         private readonly CRMService $crmService,
     ) {
         $this->connection = 'database';
@@ -59,11 +60,6 @@ class ExtractCRMEntitiesListener implements ShouldQueue
     }
 
     /**
-     * The number of seconds the job can run before timing out.
-     */
-    public int $timeout = 120;
-
-    /**
      * Handle the event.
      */
     public function handle(IncomingMessageReceived $event): void
@@ -74,13 +70,12 @@ class ExtractCRMEntitiesListener implements ShouldQueue
         ]);
 
         try {
-            $entities = $this->extractor->extract($event->message->body);
-            $normalizedEntities = $this->normalizer->normalize($entities);
-            $this->crmService->sync($event->conversation, $normalizedEntities);
+            $entities = $this->crmService->extractEntities($event->message->body);
+            $this->crmService->sync($event->conversation, $entities);
 
             Log::info('[CRM Listener] CRM extraction completed', [
                 'conversation_id' => $event->conversation->id,
-                'entities_found'  => count($entities),
+                'entities_found'  => count($entities['contact']['emails'] ?? []) + count($entities['contact']['phones'] ?? []),
             ]);
         } catch (\Throwable $e) {
             Log::error('[CRM Listener] CRM extraction failed', [
