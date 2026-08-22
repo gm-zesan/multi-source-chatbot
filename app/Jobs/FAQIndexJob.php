@@ -5,10 +5,7 @@ declare(strict_types=1);
 namespace App\Jobs;
 
 use App\Models\FAQ;
-use App\Services\FAQ\FAQIndexer;
-use App\Services\NLP\Embedding\EmbeddingService;
-use App\Services\NLP\TextPreprocessor;
-use App\Services\Search\TypesenseService;
+use App\Services\Retrieval\RetrievalClient;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -19,21 +16,6 @@ use Illuminate\Support\Facades\Log;
 class FAQIndexJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
-
-    /**
-     * The queue connection to use.
-     */
-    public $connection = 'database';
-
-    /**
-     * The queue name to use.
-     */
-    public $queue = 'faq';
-
-    /**
-     * Typesense collection name for FAQs.
-     */
-    private const COLLECTION = 'faqs';
 
     /**
      * The number of times the job may be attempted.
@@ -56,29 +38,29 @@ class FAQIndexJob implements ShouldQueue
     public function __construct(
         public readonly FAQ $faq,
         public readonly string $action, // 'index', 'update', 'delete'
-    ) {}
+    ) {
+        $this->connection = 'database';
+        $this->queue = 'faq';
+    }
 
     /**
      * Execute the job.
      */
-    public function handle(
-        TextPreprocessor $preprocessor,
-        EmbeddingService $embeddings,
-        TypesenseService $typesense,
-        FAQIndexer $indexer,
-    ): void {
+    public function handle(RetrievalClient $retrievalClient): void
+    {
         try {
-            match ($this->action) {
-                'delete' => $this->handleDelete($typesense),
-                default  => $this->handleIndex($typesense, $indexer),
-            };
+            if ($this->action === 'delete' || ! $this->faq->shouldBeSearchable()) {
+                $retrievalClient->deleteFaq($this->faq->id, $this->faq->workspace_id);
+            } else {
+                $retrievalClient->syncFaq($this->faq);
+            }
 
-            Log::debug('[FAQIndexJob] Completed', [
+            Log::debug('[FAQIndexJob] Synced FAQ to Python retrieval service', [
                 'faq_id' => $this->faq->id,
                 'action' => $this->action,
             ]);
         } catch (\Throwable $e) {
-            Log::error('[FAQIndexJob] Failed', [
+            Log::error('[FAQIndexJob] Sync failed', [
                 'faq_id' => $this->faq->id,
                 'action' => $this->action,
                 'error'  => $e->getMessage(),
@@ -86,50 +68,6 @@ class FAQIndexJob implements ShouldQueue
 
             throw $e;
         }
-    }
-
-    /**
-     * Index or update the FAQ in Typesense.
-     */
-    private function handleIndex(
-        TypesenseService $typesense,
-        FAQIndexer $indexer,
-    ): void {
-        $faq = $this->faq;
-
-        // Guard: skip indexing if FAQ is no longer searchable
-        if (! $faq->shouldBeSearchable()) {
-            $typesense->deleteDocument(self::COLLECTION, (string) $faq->id);
-
-            Log::info('[FAQIndexJob] Skipped indexing, FAQ is not searchable; document removed from Typesense', [
-                'faq_id' => $faq->id,
-                'action' => $this->action,
-            ]);
-
-            return;
-        }
-
-        // Delegate document building to FAQIndexer (single source of truth)
-        $document = $indexer->buildDocument($faq);
-
-        $typesense->upsertDocument(self::COLLECTION, $document);
-
-        Log::debug('[FAQIndexJob] Document upserted to Typesense', [
-            'faq_id'     => $faq->id,
-            'has_vector' => ! empty($document['embedding'] ?? []),
-        ]);
-    }
-
-    /**
-     * Remove the FAQ from Typesense.
-     */
-    private function handleDelete(TypesenseService $typesense): void
-    {
-        $typesense->deleteDocument(self::COLLECTION, (string) $this->faq->id);
-
-        Log::debug('[FAQIndexJob] Document deleted from Typesense', [
-            'faq_id' => $this->faq->id,
-        ]);
     }
 
     /**

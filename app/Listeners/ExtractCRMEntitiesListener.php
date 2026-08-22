@@ -19,12 +19,12 @@ class ExtractCRMEntitiesListener implements ShouldQueue
     /**
      * The queue connection to use.
      */
-    public $connection = 'database';
+    public string $connection = 'database';
 
     /**
      * The queue name to use.
      */
-    public $queue = 'crm';
+    public string $queue = 'crm';
 
     /**
      * The number of times the job may be attempted.
@@ -43,7 +43,10 @@ class ExtractCRMEntitiesListener implements ShouldQueue
         private readonly EntityExtractor $extractor,
         private readonly EntityNormalizer $normalizer,
         private readonly CRMService $crmService,
-    ) {}
+    ) {
+        $this->connection = 'database';
+        $this->queue = 'crm';
+    }
 
     /**
      * The backoff strategy.

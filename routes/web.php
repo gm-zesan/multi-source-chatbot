@@ -46,6 +46,8 @@ Route::middleware('auth')->prefix('dashboard')->group(function () {
         ->middleware('permission:' . ConversationPermission::VIEW->value);
     Route::post('/conversations/{conversation}/reply', [ConversationController::class,'reply'])
         ->middleware('permission:' . ConversationPermission::UPDATE->value);
+    Route::post('/conversations/{conversation}/ai-reply', [ConversationController::class,'aiReply'])
+        ->middleware('permission:' . ConversationPermission::UPDATE->value);
 
     // Users
     Route::resource('/users', UserController::class)->except(['show'])

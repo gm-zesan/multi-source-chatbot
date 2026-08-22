@@ -4,8 +4,7 @@ namespace App\Providers;
 
 use App\Enums\RoleEnum;
 use App\Models\User;
-use App\Services\NLP\Embedding\EmbeddingService;
-use App\Services\Search\TypesenseService;
+use App\Services\Retrieval\RetrievalClient;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\ServiceProvider;
@@ -17,15 +16,12 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        $this->app->singleton(EmbeddingService::class, function () {
-            return new EmbeddingService(
-                config: config('embedding'),
-            );
-        });
-
-        $this->app->singleton(TypesenseService::class, function () {
-            return new TypesenseService(
-                config: config('typesense'),
+        $this->app->singleton(RetrievalClient::class, function () {
+            return new RetrievalClient(
+                baseUrl: config('retrieval.base_url'),
+                apiKey: config('retrieval.api_key'),
+                timeout: (int) config('retrieval.timeout', 15),
+                defaultTopK: (int) config('retrieval.top_k', 5),
             );
         });
     }
@@ -52,31 +48,9 @@ class AppServiceProvider extends ServiceProvider
      */
     private function validateConfiguration(): void
     {
-        // Embedding dimensions check
-        $configuredDim = (int) config('embedding.dimensions', 0);
-        if ($configuredDim !== 768) {
-            Log::warning('[Config] Embedding dimensions mismatch', [
-                'configured' => $configuredDim,
-                'expected'   => 768,
-                'model'      => config('embedding.model', 'unknown'),
-                'hint'       => 'Set CHATBOT_EMBEDDING_DIMENSIONS=768 in .env for paraphrase-multilingual-mpnet-base-v2',
-            ]);
-        }
-
-        // Embedding service URL validation
-        $embeddingUrl = config('embedding.base_url', '');
-        if (empty($embeddingUrl)) {
-            Log::warning('[Config] Embedding service URL is not configured');
-        }
-
-        // Typesense configuration validation
-        $typesenseHost = config('typesense.host', '');
-        $typesenseKey = config('typesense.api_key', '');
-        if (empty($typesenseHost)) {
-            Log::warning('[Config] Typesense host is not configured');
-        }
-        if (empty($typesenseKey)) {
-            Log::warning('[Config] Typesense API key is not configured');
+        $retrievalUrl = config('retrieval.base_url', '');
+        if (empty($retrievalUrl)) {
+            Log::warning('[Config] Python Retrieval Service URL is not configured');
         }
     }
 }

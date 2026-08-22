@@ -5,8 +5,7 @@ declare(strict_types=1);
 namespace App\Console\Commands;
 
 use App\Models\FAQ;
-use App\Services\FAQ\FAQIndexer;
-use App\Services\Search\TypesenseService;
+use App\Services\Retrieval\RetrievalClient;
 use Illuminate\Console\Command;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Log;
@@ -18,23 +17,15 @@ class ReindexFaqs extends Command
      */
     protected $signature = 'faq:reindex
         {--chunk=200 : Number of FAQs to process per chunk}
-        {--force : Skip confirmation prompt}
-        {--fresh : Drop and recreate the Typesense collection before indexing}
-        {--create-collection : Create the Typesense collection if it does not exist}';
+        {--force : Skip confirmation prompt}';
 
     /**
      * The console command description.
      */
-    protected $description = 'Reindex all searchable FAQs into Typesense. Use --create-collection on first deployment.';
-
-    /**
-     * Typesense collection name for FAQs.
-     */
-    private const COLLECTION = 'faqs';
+    protected $description = 'Sync all searchable FAQs to the Python Retrieval Service for embedding & indexing.';
 
     public function __construct(
-        private readonly FAQIndexer $indexer,
-        private readonly TypesenseService $typesense,
+        private readonly RetrievalClient $retrievalClient,
     ) {
         parent::__construct();
     }
@@ -44,29 +35,25 @@ class ReindexFaqs extends Command
      */
     public function handle(): int
     {
-        if (! $this->validateCollection()) {
-            return Command::FAILURE;
-        }
-
         $chunkSize = (int) $this->option('chunk');
 
         if (! $this->option('force')) {
             $totalFaqs = FAQ::where('is_active', true)->count();
             if ($totalFaqs === 0) {
-                $this->warn('No active FAQs found to reindex.');
+                $this->warn('No active FAQs found to sync.');
 
                 return Command::SUCCESS;
             }
 
-            if (! $this->confirm("Found {$totalFaqs} active FAQs. Proceed with reindexing into Typesense?", true)) {
-                $this->info('Reindex cancelled.');
+            if (! $this->confirm("Found {$totalFaqs} active FAQs. Proceed with syncing to Python Retrieval Service?", true)) {
+                $this->info('Sync cancelled.');
 
                 return Command::SUCCESS;
             }
         }
 
         $this->output->writeln('');
-        $this->info('Starting FAQ reindex...');
+        $this->info('Starting FAQ synchronization to Python Retrieval Service...');
         $this->output->writeln('');
 
         $bar = $this->output->createProgressBar();
@@ -85,23 +72,24 @@ class ReindexFaqs extends Command
                 &$totalErrors,
                 $bar,
             ) {
-                $documents = [];
-
                 foreach ($faqs as $faq) {
                     try {
                         if (! $faq->shouldBeSearchable()) {
-                            // Remove from Typesense if it exists
-                            $this->typesense->deleteDocument(self::COLLECTION, (string) $faq->id);
+                            $this->retrievalClient->deleteFaq((int) $faq->id, $faq->workspace_id);
                             $totalSkipped++;
                             $bar->advance();
                             continue;
                         }
 
-                        $documents[] = $this->indexer->buildDocument($faq);
-                        $totalIndexed++;
+                        $success = $this->retrievalClient->syncFaq($faq);
+                        if ($success) {
+                            $totalIndexed++;
+                        } else {
+                            $totalErrors++;
+                        }
                     } catch (\Throwable $e) {
                         $totalErrors++;
-                        Log::error('[ReindexFaqs] Failed to process FAQ', [
+                        Log::error('[ReindexFaqs] Failed to sync FAQ', [
                             'faq_id' => $faq->id,
                             'error'  => $e->getMessage(),
                         ]);
@@ -110,175 +98,29 @@ class ReindexFaqs extends Command
 
                     $bar->advance();
                 }
-
-                // Batch upsert documents for this chunk
-                if (! empty($documents)) {
-                    try {
-                        $this->typesense->upsertDocuments(self::COLLECTION, $documents);
-                    } catch (\Throwable $e) {
-                        $totalErrors += count($documents);
-                        Log::error('[ReindexFaqs] Batch upsert failed', [
-                            'count' => count($documents),
-                            'error' => $e->getMessage(),
-                        ]);
-                        $this->warn("  Batch upsert failed: {$e->getMessage()}");
-                    }
-                }
             });
 
         $bar->finish();
         $this->output->writeln('');
         $this->output->writeln('');
 
-        // Summary
         $this->table(
             ['Metric', 'Count'],
             [
-                ['Total indexed', number_format($totalIndexed)],
-                ['Skipped (inactive/deleted)', number_format($totalSkipped)],
+                ['Total Synced to Python Service', number_format($totalIndexed)],
+                ['Deleted / Inactive', number_format($totalSkipped)],
                 ['Errors', number_format($totalErrors)],
             ],
         );
 
         if ($totalErrors > 0) {
-            $this->warn("Reindex completed with {$totalErrors} errors. Check the logs for details.");
+            $this->warn("Sync completed with {$totalErrors} errors. Check the logs for details.");
 
             return Command::SUCCESS;
         }
 
-        $this->info('Reindex completed successfully.');
+        $this->info('FAQ synchronization completed successfully.');
 
         return Command::SUCCESS;
-    }
-
-    // ─────────────────────────────────────────────────────────────────────
-    // Collection Management
-    // ─────────────────────────────────────────────────────────────────────
-
-    /**
-     * Validate that the Typesense collection exists and has the expected schema.
-     *
-     * When --create-collection is passed and the collection is absent, it is
-     * created automatically using the canonical schema defined in getFaqsSchema().
-     */
-    private function validateCollection(): bool
-    {
-        $this->line('Validating Typesense collection...');
-
-        if ($this->option('fresh')) {
-            return $this->createCollection();
-        }
-
-        try {
-            $schema = $this->typesense->getCollectionSchema(self::COLLECTION);
-
-            if ($schema === null) {
-                if ($this->option('create-collection')) {
-                    return $this->createCollection();
-                }
-
-                $this->error("Typesense collection 'faqs' does not exist.");
-                $this->line('');
-                $this->line('  Run the following to create it automatically:');
-                $this->line('  php artisan faq:reindex --create-collection');
-                $this->line('');
-
-                return false;
-            }
-
-            // Verify the embedding float[] field exists
-            $fields       = $schema['fields'] ?? [];
-            $hasEmbedding = false;
-
-            foreach ($fields as $field) {
-                if (($field['name'] ?? '') === 'embedding') {
-                    $hasEmbedding = true;
-                    break;
-                }
-            }
-
-            if (! $hasEmbedding) {
-                $this->error("Typesense collection 'faqs' exists but is missing the 'embedding' float[] field.");
-                $this->error('Drop and recreate it: php artisan faq:reindex --fresh');
-
-                return false;
-            }
-
-            $this->info('Typesense collection validated successfully.');
-            $this->line('');
-
-            return true;
-        } catch (\Throwable $e) {
-            $this->error("Failed to validate Typesense collection: {$e->getMessage()}");
-
-            return false;
-        }
-    }
-
-    /**
-     * Create the 'faqs' Typesense collection using the canonical schema.
-     */
-    private function createCollection(): bool
-    {
-        try {
-            if ($this->typesense->collectionExists(self::COLLECTION)) {
-                $this->line("  Deleting existing collection '" . self::COLLECTION . "' to purge stale records...");
-                $this->typesense->deleteCollection(self::COLLECTION);
-            }
-
-            $this->line("  Creating collection '" . self::COLLECTION . "'...");
-            $this->typesense->createCollection(self::COLLECTION, $this->getFaqsSchema());
-
-            $this->info("  Collection 'faqs' created successfully.");
-            $this->line('');
-
-            Log::info('[ReindexFaqs] Typesense collection created', [
-                'collection' => self::COLLECTION,
-            ]);
-
-            return true;
-        } catch (\Throwable $e) {
-            $this->error("  Failed to create collection: {$e->getMessage()}");
-
-            Log::error('[ReindexFaqs] Failed to create Typesense collection', [
-                'collection' => self::COLLECTION,
-                'error'      => $e->getMessage(),
-            ]);
-
-            return false;
-        }
-    }
-
-    /**
-     * Return the canonical Typesense schema for the 'faqs' collection.
-     *
-     * This is the single source of truth for the collection structure.
-     * Embedding dimensions are read from config/embedding.php (CHATBOT_EMBEDDING_DIMENSIONS).
-     *
-     * @return array<string, mixed>
-     */
-    private function getFaqsSchema(): array
-    {
-        $dimensions = (int) config('embedding.dimensions', 768);
-
-        return [
-            'fields' => [
-                ['name' => 'id',              'type' => 'string'],
-                ['name' => 'workspace_id',    'type' => 'int32'],
-                ['name' => 'question',        'type' => 'string'],
-                ['name' => 'answer',          'type' => 'string'],
-                ['name' => 'searchable_text', 'type' => 'string'],
-                ['name' => 'priority',        'type' => 'int32'],
-                ['name' => 'is_active',       'type' => 'bool',    'index' => true],
-                ['name' => 'created_at',      'type' => 'int64'],
-                [
-                    'name'     => 'embedding',
-                    'type'     => 'float[]',
-                    'num_dim'  => $dimensions,
-                    'optional' => true,   // allows indexing FAQs even when embedding fails
-                ],
-            ],
-            'default_sorting_field' => 'priority',
-        ];
     }
 }

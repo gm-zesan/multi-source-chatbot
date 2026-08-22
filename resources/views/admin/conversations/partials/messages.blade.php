@@ -72,10 +72,14 @@
                 <div class="message-meta">
 
                     <span>
-
                         {{ $message->created_at->format('h:i A') }}
-
                     </span>
+
+                    @if(($message->metadata['source'] ?? '') === 'customer_support_agent' || ($message->metadata['source'] ?? '') === 'faq_engine')
+                        <span class="badge bg-primary text-white" style="font-size: 10px; padding: 2px 6px; border-radius: 4px; display: inline-flex; align-items: center; gap: 3px;">
+                            <i class="bi bi-robot"></i> AI
+                        </span>
+                    @endif
 
                     @if($message->direction == 'outbound')
 

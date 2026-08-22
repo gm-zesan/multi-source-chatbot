@@ -4,14 +4,14 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
-use App\Services\NLP\Embedding\EmbeddingService;
+use App\Services\Retrieval\RetrievalClient;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
 
 class HealthController extends Controller
 {
     public function __construct(
-        private readonly EmbeddingService $embeddings,
+        private readonly RetrievalClient $retrievalClient,
     ) {}
 
     /**
@@ -20,10 +20,10 @@ class HealthController extends Controller
     public function __invoke(): JsonResponse
     {
         $checks = [
-            'database' => $this->checkDatabase(),
-            'queue'    => $this->checkQueue(),
-            'embedding'=> $this->checkEmbedding(),
-            'cache'    => $this->checkCache(),
+            'database'  => $this->checkDatabase(),
+            'queue'     => $this->checkQueue(),
+            'retrieval' => $this->checkRetrieval(),
+            'cache'     => $this->checkCache(),
         ];
 
         $allHealthy = collect($checks)->every(fn ($c) => $c['healthy']);
@@ -72,14 +72,14 @@ class HealthController extends Controller
         }
     }
 
-    private function checkEmbedding(): array
+    private function checkRetrieval(): array
     {
         try {
-            $health = $this->embeddings->health();
+            $health = $this->retrievalClient->health();
             return [
-                'healthy'    => $health['status'] === 'ok',
-                'model'      => $health['model'],
+                'healthy'    => $health['ok'],
                 'latency_ms' => $health['latency_ms'],
+                'error'      => $health['error'],
             ];
         } catch (\Throwable $e) {
             return ['healthy' => false, 'error' => $e->getMessage()];

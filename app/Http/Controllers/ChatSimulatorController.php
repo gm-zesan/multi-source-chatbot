@@ -4,15 +4,18 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\AI\Agents\CustomerSupportAgent;
+use App\AI\Tools\KnowledgeRetrievalTool;
 use App\Services\CRM\CRMService;
 use App\Services\CRM\EntityExtractor;
 use App\Services\CRM\EntityNormalizer;
 use App\Services\FAQ\FAQAnswerEngine;
-use App\Services\NLP\Embedding\EmbeddingService;
-use App\Services\Search\TypesenseService;
+use App\Services\FAQ\FAQSearch;
+use App\Services\Retrieval\RetrievalClient;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use Illuminate\View\View;
 
 class ChatSimulatorController extends Controller
@@ -21,9 +24,9 @@ class ChatSimulatorController extends Controller
         private readonly EntityExtractor $extractor,
         private readonly EntityNormalizer $normalizer,
         private readonly CRMService $crmService,
-        private readonly EmbeddingService $embeddings,
-        private readonly TypesenseService $typesense,
+        private readonly RetrievalClient $retrievalClient,
         private readonly FAQAnswerEngine $answerEngine,
+        private readonly FAQSearch $faqSearch,
     ) {}
 
     /**
@@ -39,7 +42,7 @@ class ChatSimulatorController extends Controller
      * 1. Contact / CRM Entity Extraction & Persistence
      * 2. Python FastAPI Embedding Service Call
      * 3. Typesense Vector & Hybrid Search
-     * 4. FAQ Answer Engine Confidence & Auto-Reply Calculation
+     * 4. FAQ Knowledge Retrieval & Laravel AI SDK Agent Execution
      */
     public function send(Request $request): JsonResponse
     {
@@ -77,90 +80,73 @@ class ChatSimulatorController extends Controller
                 );
             } catch (\Throwable $e) {
                 // Log failure gracefully without breaking pipeline diagnostics
-                \Illuminate\Support\Facades\Log::error('[ChatSimulator] CRM persistence error', [
+                Log::error('[ChatSimulator] CRM persistence error', [
                     'error' => $e->getMessage(),
                 ]);
             }
         }
 
-        // ── 2. Python FastAPI Embedding Diagnostics ─────────────────────
+        // ── 2. Python Retrieval Service Diagnostics ─────────────────────
         $pythonDiag = [
             'status'       => 'unknown',
             'latency_ms'   => 0,
-            'dimensions'   => 0,
-            'model'        => 'unknown',
+            'dimensions'   => 768,
+            'model'        => 'paraphrase-multilingual-mpnet-base-v2',
             'vector_sample'=> [],
             'error'        => null,
         ];
 
-        $pyStart = microtime(true);
-        try {
-            $embedResponse = $this->embeddings->embed($query);
-            $pythonDiag = [
-                'status'       => 'ok',
-                'latency_ms'   => round((microtime(true) - $pyStart) * 1000, 2),
-                'dimensions'   => $embedResponse->dimensions,
-                'model'        => config('embedding.model', 'paraphrase-multilingual-mpnet-base-v2'),
-                'vector_sample'=> array_slice($embedResponse->vector, 0, 5), // First 5 floats for display
-                'error'        => null,
-            ];
-        } catch (\Throwable $e) {
-            $pythonDiag = [
-                'status'     => 'failed',
-                'latency_ms' => round((microtime(true) - $pyStart) * 1000, 2),
-                'dimensions' => 0,
-                'model'      => config('embedding.model', 'unknown'),
-                'error'      => $e->getMessage(),
-            ];
-        }
+        $pyHealth = $this->retrievalClient->health();
+        $pythonDiag = [
+            'status'       => $pyHealth['ok'] ? 'ok' : 'degraded',
+            'latency_ms'   => $pyHealth['latency_ms'],
+            'dimensions'   => 768,
+            'model'        => 'paraphrase-multilingual-mpnet-base-v2',
+            'vector_sample'=> [],
+            'error'        => $pyHealth['error'],
+        ];
 
-        // ── 3. Typesense Search Diagnostics ─────────────────────────────
+        // ── 3. Retrieval Search Diagnostics ─────────────────────────────
+        $tsStart = microtime(true);
+        $retrievalHits = $this->faqSearch->search(query: $query, perPage: 5, workspaceId: $workspaceId);
         $typesenseDiag = [
-            'status'     => 'unknown',
-            'latency_ms' => 0,
-            'hits_found' => 0,
+            'status'     => $retrievalHits->isNotEmpty() ? 'ok' : 'degraded',
+            'latency_ms' => round((microtime(true) - $tsStart) * 1000, 2),
+            'hits_found' => $retrievalHits->count(),
             'error'      => null,
         ];
 
-        $tsStart = microtime(true);
-        try {
-            $tsHealth = $this->typesense->health();
-            $exists = $this->typesense->collectionExists('faqs');
-
-            if ($tsHealth['ok'] && $exists) {
-                $typesenseDiag = [
-                    'status'     => 'ok',
-                    'latency_ms' => round((microtime(true) - $tsStart) * 1000, 2),
-                    'hits_found' => 0, // Will be updated by FAQ answer engine run
-                    'error'      => null,
-                ];
-            } else {
-                $typesenseDiag = [
-                    'status'     => 'degraded',
-                    'latency_ms' => round((microtime(true) - $tsStart) * 1000, 2),
-                    'error'      => ! $exists ? "Collection 'faqs' missing" : 'Typesense unreachable',
-                ];
-            }
-        } catch (\Throwable $e) {
-            $typesenseDiag = [
-                'status'     => 'failed',
-                'latency_ms' => round((microtime(true) - $tsStart) * 1000, 2),
-                'error'      => $e->getMessage(),
-            ];
-        }
-
-        // ── 4. Full FAQ Answer Pipeline Run ──────────────────────────────
+        // ── 4. FAQ Knowledge Retrieval & Laravel AI SDK Agent Execution ──
         $answerResult = $this->answerEngine->answer(
             query: $query,
             workspaceId: $workspaceId,
         );
 
-        $totalElapsed = round((microtime(true) - $startTime) * 1000, 2);
+        $retrievalTool = new KnowledgeRetrievalTool(
+            faqSearch: $this->faqSearch,
+            workspaceId: $workspaceId,
+        );
 
-        // Standard auto-reply output
-        $replyText = $answerResult->answered && $answerResult->getAnswer()
-            ? $answerResult->getAnswer()
-            : "I'm sorry, I couldn't find a direct answer to your question in our knowledge base. A support agent will be with you shortly!";
+        $agent = new CustomerSupportAgent(
+            conversation: null,
+            retrievalTool: $retrievalTool,
+        );
+
+        try {
+            $provider = config('ai.default', 'openrouter');
+            $model = config('ai.default_model', 'deepseek/deepseek-chat');
+            $aiResponse = $agent->prompt($query, provider: $provider, model: $model);
+            $replyText = (string) $aiResponse;
+        } catch (\Throwable $e) {
+            Log::warning('[ChatSimulator] AI Agent prompt fallback', [
+                'error' => $e->getMessage(),
+            ]);
+            $replyText = $answerResult->answered && $answerResult->getAnswer()
+                ? $answerResult->getAnswer()
+                : "I'm sorry, I couldn't find a direct answer to your question in our knowledge base. A support agent will be with you shortly!";
+        }
+
+        $totalElapsed = round((microtime(true) - $startTime) * 1000, 2);
 
         return response()->json([
             'success'   => true,

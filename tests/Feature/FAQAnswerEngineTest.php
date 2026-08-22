@@ -12,7 +12,6 @@ use App\Services\FAQ\FAQAnswerEngine;
 use App\Services\FAQ\FAQScoreCalculator;
 use App\Services\FAQ\FAQSearch;
 use App\Services\NLP\TextPreprocessor;
-use App\Services\NLP\Embedding\EmbeddingService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -31,17 +30,6 @@ class FAQAnswerEngineTest extends TestCase
         parent::setUp();
 
         $preprocessor = TextPreprocessor::make();
-
-        // Mock EmbeddingService — returns zero vector
-        $embeddingMock = $this->createMock(EmbeddingService::class);
-        $embeddingMock->method('embed')->willReturn(
-            new \App\Services\NLP\Embedding\EmbeddingResponse(
-                vector: array_fill(0, 384, 0.01),
-                dimensions: 384,
-                model: 'test-model',
-            )
-        );
-        $embeddingMock->method('config')->willReturn('test-model');
 
         // Mock FAQSearch — returns empty (no Typesense running)
         $searchMock = $this->createMock(FAQSearch::class);

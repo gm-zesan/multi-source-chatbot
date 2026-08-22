@@ -85,10 +85,10 @@ class FAQ extends Model
         $this->update(['last_used_at' => now()]);
     }
 
-    // ─── Typesense Indexing ──────────────────────────────────────────
+    // ─── Search Indexing ──────────────────────────────────────────
 
     /**
-     * Determine if the model should be searchable in Typesense.
+     * Determine if the model should be searchable.
      */
     public function shouldBeSearchable(): bool
     {

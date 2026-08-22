@@ -128,4 +128,56 @@ class EventSourcingTest extends TestCase
         $this->assertSame('crm', $crmRef->getProperty('queue')->getValue($crmListener));
         $this->assertSame('faq', $faqRef->getProperty('queue')->getValue($faqListener));
     }
+
+    public function test_run_faq_engine_listener_executes_ai_agent_and_saves_outbound_reply(): void
+    {
+        \App\AI\Agents\CustomerSupportAgent::fake([
+            'Click forgot password on the login screen to reset your password.',
+        ]);
+
+        \Illuminate\Support\Facades\Http::fake([
+            'https://graph.facebook.com/*' => \Illuminate\Support\Facades\Http::response(['message_id' => 'fb_mid_123'], 200),
+        ]);
+
+        $listener = app(RunFAQEngineListener::class);
+        $listener->handle(new IncomingMessageReceived(
+            conversation: $this->conversation,
+            message: $this->message,
+            account: $this->account,
+            rawPayload: [],
+        ));
+
+        $this->assertDatabaseHas('messages', [
+            'conversation_id' => $this->conversation->id,
+            'direction' => 'outbound',
+            'body' => 'Click forgot password on the login screen to reset your password.',
+        ]);
+    }
+
+    public function test_run_faq_engine_listener_delivers_to_channel_driver(): void
+    {
+        \App\AI\Agents\CustomerSupportAgent::fake([
+            'Our standard shipping takes 2-3 business days.',
+        ]);
+
+        \Illuminate\Support\Facades\Http::fake([
+            'https://graph.facebook.com/*' => \Illuminate\Support\Facades\Http::response([
+                'recipient_id' => 'user_123',
+                'message_id' => 'm_mid_facebook_reply_999',
+            ], 200),
+        ]);
+
+        $listener = app(RunFAQEngineListener::class);
+        $listener->handle(new IncomingMessageReceived(
+            conversation: $this->conversation,
+            message: $this->message,
+            account: $this->account,
+            rawPayload: [],
+        ));
+
+        \Illuminate\Support\Facades\Http::assertSent(function ($request) {
+            return str_contains($request->url(), 'graph.facebook.com')
+                && str_contains($request['message']['text'], 'Our standard shipping takes 2-3 business days.');
+        });
+    }
 }

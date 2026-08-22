@@ -6,4 +6,5 @@ use App\Providers\EventServiceProvider;
 return [
     AppServiceProvider::class,
     EventServiceProvider::class,
+    \Laravel\Ai\AiServiceProvider::class,
 ];
