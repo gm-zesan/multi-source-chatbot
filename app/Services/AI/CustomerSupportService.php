@@ -64,8 +64,8 @@ class CustomerSupportService
             message: $replyText,
             response: array_merge($deliveryResponse, [
                 'source'   => 'customer_support_agent',
-                'provider' => config('ai.default', 'openrouter'),
-                'model'    => config('ai.default_model', 'deepseek/deepseek-chat'),
+                'provider' => config('ai.default', 'deepseek'),
+                'model'    => config('ai.default_model', 'deepseek-chat'),
             ]),
         );
     }
@@ -149,8 +149,8 @@ class CustomerSupportService
         ?\Illuminate\Database\Eloquent\Collection $fallbackHits = null,
     ): ?string {
         try {
-            $provider = config('ai.default', 'openrouter');
-            $model = config('ai.default_model', 'deepseek/deepseek-chat');
+            $provider = config('ai.default', 'deepseek');
+            $model = config('ai.default_model', 'deepseek-chat');
 
             $response = $agent->prompt($query, provider: $provider, model: $model);
 

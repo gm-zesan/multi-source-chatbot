@@ -12,8 +12,8 @@ return [
     |
     */
 
-    'default' => env('AI_DEFAULT_PROVIDER', 'openrouter'),
-    'default_model' => env('AI_DEFAULT_MODEL', 'deepseek/deepseek-chat'),
+    'default' => env('AI_DEFAULT_PROVIDER', 'deepseek'),
+    'default_model' => env('AI_DEFAULT_MODEL', 'deepseek-chat'),
 
     /*
     |--------------------------------------------------------------------------
@@ -49,7 +49,7 @@ return [
         'deepseek' => [
             'driver' => 'deepseek',
             'key' => env('DEEPSEEK_API_KEY'),
-            'url' => env('DEEPSEEK_URL', 'https://api.deepseek.com/v1'),
+            'url' => env('DEEPSEEK_URL', 'https://api.deepseek.com'),
         ],
 
         'openai' => [
