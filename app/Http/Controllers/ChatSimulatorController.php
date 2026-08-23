@@ -4,23 +4,19 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
-use App\AI\Agents\CustomerSupportAgent;
-use App\AI\Tools\KnowledgeRetrievalTool;
+use App\Services\AI\CustomerSupportService;
 use App\Services\CRM\CRMService;
-use App\Services\FAQ\FAQSearch;
 use App\Services\Retrieval\RetrievalClient;
-use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Log;
 use Illuminate\View\View;
 
 class ChatSimulatorController extends Controller
 {
     public function __construct(
         private readonly CRMService $crmService,
-        private readonly FAQSearch $faqSearch,
+        private readonly CustomerSupportService $customerSupportService,
         private readonly RetrievalClient $retrievalClient,
     ) {}
 
@@ -35,9 +31,8 @@ class ChatSimulatorController extends Controller
     /**
      * Process an incoming customer message through the full pipeline:
      * 1. Extract CRM entities and persist contact profile.
-     * 2. Perform knowledge base retrieval.
-     * 3. Run CustomerSupportAgent with tool calling.
-     * 4. Return structured response with diagnostics.
+     * 2. Run CustomerSupportService (Agent + Tool + Retrieval + LLM).
+     * 3. Return structured response with diagnostics.
      */
     public function send(Request $request): JsonResponse
     {
@@ -56,27 +51,24 @@ class ChatSimulatorController extends Controller
             name: Auth::user()?->name ?? 'Simulator User',
         );
 
-        // ── 2. Knowledge Base Retrieval Search ───────────────────────────
+        // ── 2. Run Unified CustomerSupportService ────────────────────────
         $tsStart = microtime(true);
-        $retrievalHits = $this->faqSearch->search(
+        $supportResult = $this->customerSupportService->handleQuery(
             query: $query,
-            perPage: 5,
             workspaceId: $workspaceId,
         );
         $tsLatency = round((microtime(true) - $tsStart) * 1000, 2);
 
-        // ── 3. AI Agent Execution (Laravel AI SDK + DeepSeek) ────────────
-        $replyText = $this->executeAiAgent($query, $workspaceId, $retrievalHits);
-
-        // ── 4. Diagnostics & Structured Response ────────────────────────
+        // ── 3. Diagnostics & Structured Response ────────────────────────
         $totalElapsed = round((microtime(true) - $startTime) * 1000, 2);
-        $topHit = $retrievalHits->first();
+        $topHit = $supportResult['top_hit'];
+        $retrievalHits = $supportResult['retrieval_hits'];
 
         return response()->json([
             'success'     => true,
             'query'       => $query,
-            'reply'       => $replyText,
-            'answered'    => $topHit !== null,
+            'reply'       => $supportResult['reply'],
+            'answered'    => $supportResult['answered'],
             'confidence'  => $topHit ? round($topHit->finalScore * 100, 1) : 0.0,
             'match_type'  => $topHit?->matchType ?? 'none',
             'matched_faq' => $topHit?->faq ? [
@@ -129,39 +121,6 @@ class ChatSimulatorController extends Controller
     }
 
     /**
-     * Run the CustomerSupportAgent with tool calling and fallback.
-     */
-    private function executeAiAgent(string $query, int $workspaceId, Collection $retrievalHits): string
-    {
-        $retrievalTool = new KnowledgeRetrievalTool(
-            faqSearch: $this->faqSearch,
-            workspaceId: $workspaceId,
-        );
-
-        $agent = new CustomerSupportAgent(
-            conversation: null,
-            retrievalTool: $retrievalTool,
-        );
-
-        try {
-            $provider = config('ai.default', 'openrouter');
-            $model = config('ai.default_model', 'deepseek/deepseek-chat');
-            $aiResponse = $agent->prompt($query, provider: $provider, model: $model);
-
-            return (string) $aiResponse;
-        } catch (\Throwable $e) {
-            Log::warning('[ChatSimulator] AI Agent prompt fallback', [
-                'error' => $e->getMessage(),
-            ]);
-
-            $topHit = $retrievalHits->first();
-
-            return $topHit?->faq?->answer
-                ?? "I'm sorry, I couldn't find a direct answer to your question in our knowledge base. A support agent will be with you shortly!";
-        }
-    }
-
-    /**
      * Gather Python service health diagnostics.
      *
      * @return array<string, mixed>
@@ -180,5 +139,6 @@ class ChatSimulatorController extends Controller
         ];
     }
 }
+
 
 

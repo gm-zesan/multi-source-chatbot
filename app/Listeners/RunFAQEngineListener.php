@@ -4,11 +4,8 @@ declare(strict_types=1);
 
 namespace App\Listeners;
 
-use App\AI\Agents\CustomerSupportAgent;
-use App\AI\Tools\KnowledgeRetrievalTool;
 use App\Events\IncomingMessageReceived;
-use App\Services\Chat\ConversationService;
-use App\Services\FAQ\FAQSearch;
+use App\Services\AI\CustomerSupportService;
 use App\Support\ChannelManager;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Queue\InteractsWithQueue;
@@ -47,8 +44,7 @@ class RunFAQEngineListener implements ShouldQueue
      * Create a new listener instance.
      */
     public function __construct(
-        private readonly ConversationService $conversationService,
-        private readonly FAQSearch $faqSearch,
+        private readonly CustomerSupportService $customerSupportService,
     ) {
         $this->connection = 'database';
         $this->queue = 'faq';
@@ -75,21 +71,11 @@ class RunFAQEngineListener implements ShouldQueue
         ]);
 
         try {
-            $retrievalTool = new KnowledgeRetrievalTool(
-                faqSearch: $this->faqSearch,
+            $replyText = $this->customerSupportService->generateReply(
+                conversation: $event->conversation,
+                query: $event->message->body,
                 workspaceId: $event->account->workspace_id,
             );
-
-            $agent = new CustomerSupportAgent(
-                conversation: $event->conversation,
-                retrievalTool: $retrievalTool,
-            );
-
-            $provider = config('ai.default', 'openrouter');
-            $model = config('ai.default_model', 'deepseek/deepseek-chat');
-
-            $response = $agent->prompt($event->message->body, provider: $provider, model: $model);
-            $replyText = (string) $response;
 
             if (trim($replyText) !== '') {
                 $deliveryResponse = [];
@@ -107,15 +93,10 @@ class RunFAQEngineListener implements ShouldQueue
                     }
                 }
 
-                $this->conversationService->saveOutgoing(
+                $this->customerSupportService->saveOutboundReply(
                     conversation: $event->conversation,
-                    message: $replyText,
-                    response: array_merge($deliveryResponse, [
-                        'source'     => 'customer_support_agent',
-                        'provider'   => $provider,
-                        'model'      => $model,
-                        'usage'      => $response->usage ?? null,
-                    ]),
+                    replyText: $replyText,
+                    deliveryResponse: $deliveryResponse,
                 );
 
                 Log::info('[FAQ Listener] AI Customer Support Agent response saved and sent', [
@@ -143,3 +124,4 @@ class RunFAQEngineListener implements ShouldQueue
         ]);
     }
 }
+
