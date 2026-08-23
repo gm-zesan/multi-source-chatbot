@@ -59,6 +59,20 @@ class RetrievalClient
             if ($response->successful()) {
                 $data = $response->json();
                 $results = $data['results'] ?? [];
+                $telemetry = $data['telemetry'] ?? [];
+
+                if (! empty($telemetry)) {
+                    Log::info('[Retrieval Observability]', [
+                        'workspace_id'     => $workspaceId,
+                        'query'            => mb_substr($trimmed, 0, 60),
+                        'first_pass_score' => $telemetry['first_pass_score'] ?? null,
+                        'expansion'        => $telemetry['expansion_triggered'] ?? false,
+                        'expanded_query'   => $telemetry['expanded_query'] ?? null,
+                        'final_score'      => $telemetry['final_score'] ?? null,
+                        'latency_total_ms' => $telemetry['total_retrieval_latency_ms'] ?? null,
+                        'returned_ids'     => $telemetry['returned_faq_ids'] ?? [],
+                    ]);
+                }
 
                 return $this->mapResults($results, $topK);
             }
