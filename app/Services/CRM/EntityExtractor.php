@@ -14,10 +14,11 @@ class EntityExtractor
         $phones   = $this->phones($text);
         $websites = $this->websites($text, $emails);
         $nid      = $this->nid($text, $phones);
+        $name     = $this->names($text);
 
         return [
             'person' => [
-                'name' => null,
+                'name' => $name,
             ],
 
             'contact' => [
@@ -38,6 +39,43 @@ class EntityExtractor
                 'nid' => $nid,
             ],
         ];
+    }
+
+    protected function names(string $text): ?string
+    {
+        // 1. Explicit English Name patterns
+        if (preg_match('/(?:my\s+name\s+is|i\s+am|i\'m|name\s*[:\-])\s*([a-zA-Z\s\.\']{2,40})/i', $text, $matches)) {
+            $candidate = trim($matches[1]);
+            // Strip trailing conjunctions, punctuation, or action verbs
+            $candidate = preg_split('/[,.\n\r\t!?;]|\b(?:and|from|with|calling|asking|interested|here|looking)\b/i', $candidate)[0];
+            $candidate = trim($candidate);
+            if (mb_strlen($candidate) >= 2 && !preg_match('/\b(?:a|an|the|customer|user|admin|support)\b/i', $candidate)) {
+                return $candidate;
+            }
+        }
+
+        // 2. Banglish Name patterns
+        if (preg_match('/(?:amar\s+nam|amar\s+naam)\s*(?:is|holo|hoche)?\s*([a-zA-Z\s\.\']{2,40})/i', $text, $matches)) {
+            $candidate = trim($matches[1]);
+            $candidate = preg_split('/[,.\n\r\t!?;]|\b(?:and|ami|theke)\b/i', $candidate)[0];
+            $candidate = trim($candidate);
+            if (mb_strlen($candidate) >= 2) {
+                return $candidate;
+            }
+        }
+
+        // 3. Bengali Name patterns
+        if (preg_match('/(?:আমার\s*নাম|আমি)\s*([^\s,।!?\n\r\t0-9]{2,30}(?:\s+[^\s,।!?\n\r\t0-9]{2,30})*)/u', $text, $matches)) {
+            $candidate = trim($matches[1]);
+            // Strip trailing Bengali conjunctions and punctuation without ASCII \b
+            $candidate = preg_split('/[,।!?\n\r\t]|\s+(?:এবং|থেকে|বলছি|আমি|জানতে|চাই|হলো|হল)(?:\s|$|[,।!?])/u', $candidate)[0];
+            $candidate = trim($candidate);
+            if (mb_strlen($candidate) >= 2 && !in_array($candidate, ['কি', 'কী', 'কেমন', 'একটা', 'একটু', 'কিভাবে', 'কোন', 'সাহায্য'])) {
+                return $candidate;
+            }
+        }
+
+        return null;
     }
 
     protected function emails(string $text): array

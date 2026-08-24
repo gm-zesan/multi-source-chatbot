@@ -142,6 +142,11 @@ class CRMService
      */
     protected function persistEntities(CRMContact $contact, array $entities): void
     {
+        $extractedName = $entities['person']['name'] ?? null;
+        if (!empty($extractedName) && (empty($contact->name) || $contact->name === 'Extracted Contact' || filter_var($contact->name, FILTER_VALIDATE_EMAIL))) {
+            $contact->update(['name' => $extractedName]);
+        }
+
         foreach (array_unique($entities['contact']['phones'] ?? []) as $phone) {
             $contact->phones()->firstOrCreate(
                 ['phone' => $phone],
