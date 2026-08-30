@@ -560,19 +560,21 @@ class HybridRouter
             'where is', 'can i', 'could i', 'can you tell me', 'could you tell me', 'is it possible',
             'is it allowed', 'why do', 'when will', 'when can i', 'tell me about', 'explain',
             'steps to', 'guide for', 'let me know', 'please tell me', 'i want to know how',
-            'is there a way', 'how is', 'what plans', 'what are the',
+            'is there a way', 'how is', 'what plans', 'what are the', 'do you offer', 'do you have',
+            'do you provide', 'does it', 'is there', 'are there', 'can we', 'how does', 'what do',
             // Bangla
             'কীভাবে', 'কিভাবে', 'কোথায়', 'কোথায়', 'কী কী', 'কি কি', 'কোন কোন', 'নিয়ম কী', 'নিয়ম কি',
             'পলিসি কী', 'পলিসি কি', 'করা যাবে কি', 'করা যাবে', 'করা সম্ভব কি', 'করা সম্ভব',
             'জানা যাবে কি', 'কোথায় পাব', 'কোথায় পাব', 'খরচ কত', 'কত টাকা', 'কত চার্জ', 'চার্জ কত',
-            'দাম কত', 'ফি কত', 'কখন', 'কেমন করে',
+            'দাম কত', 'ফি কত', 'কখন', 'কেমন করে', 'আছে কি', 'সুবিধা আছে কি', 'অফার আছে কি',
+            'পাওয়া যায় কি', 'পাওয়া যায় কি', 'দেওয়া হয় কি', 'দেওয়া হয় কি',
             'প্ল্যান কি কি', 'ইনভয়েস কোথায়', 'এনক্রিপশন কিভাবে', 'হয়েছে কি', 'হয়েছে কি',
             'করবেন কি', 'জানাবেন কি', 'বলে দিন', 'ব্যাখ্যা করুন', 'পারবো কি', 'পারি কি',
             // Banglish
             'kivabe', 'ki vabe', 'ki bhabe', 'kemne', 'ki ki', 'kora jabe', 'kora jabe ki', 'kora sombhob',
             'policy ki', 'plans ki', 'rules ki', 'kothay pabo', 'dekhte chai', 'janbo kivabe',
             'hoyeche ki', 'hoyeche', 'korbo naki', 'korben naki', 'korben', 'parbo ki',
-            'janaben ki', 'bolben ki', 'possible naki', 'koto charge', 'koto taka'
+            'janaben ki', 'bolben ki', 'possible naki', 'koto charge', 'koto taka', 'ache ki', 'offer ache'
         ];
 
         foreach ($inquiryStarters as $starter) {
@@ -597,12 +599,13 @@ class HybridRouter
 
         // Domain knowledge topics
         $topics = [
-            'policy', 'pricing', 'plans', 'features', 'invoice', 'invoices', 'encryption',
+            'policy', 'pricing', 'plans', 'plan', 'features', 'invoice', 'invoices', 'encryption',
             'security', 'multi-channel', 'channels', 'documentation', 'guidance', 'return policy',
             'refund policy', 'shipping', 'payment method', 'password', 'login', 'charge', 'cost', 'fee',
+            'trial', 'free trial', 'discount', 'rate limit', 'api key', 'webhook', 'whatsapp', 'telegram',
             'delivery charge', 'হটলাইন', 'হটলাইন নম্বর', 'hotline', 'number', 'ডেলিভারি', 'ডেলিভারি চার্জ',
             'চার্জ', 'খরচ', 'পেমেন্ট', 'ইনভয়েস', 'পাসওয়ার্ড', 'রিফান্ড', 'অ্যাকাউন্ট', 'সিকিউরিটি', 'পলিসি',
-            'নিয়ম', 'নিয়ম'
+            'নিয়ম', 'নিয়ম', 'ট্রায়াল', 'ট্রায়াল', 'ডিসকাউন্ট', 'প্ল্যান', 'টেলিগ্রাম', 'হোয়াটসঅ্যাপ'
         ];
 
         foreach ($topics as $topic) {
@@ -859,10 +862,10 @@ class HybridRouter
             'order', 'ticket', 'invoice', 'invoices', 'payment', 'card', 'subscription', 'refund', 'policy',
             'pricing', 'plans', 'plan', 'feature', 'features', 'encryption', 'encrypted', 'encrypt', 'security', 'channel', 'channels',
             'guidance', 'documentation', 'return', 'shipping', 'password', 'login', 'charge', 'cost', 'fee',
-            'delivery', 'hotline', 'account', 'api', 'key', 'data',
+            'delivery', 'hotline', 'account', 'api', 'key', 'data', 'trial', 'free trial', 'discount', 'rate limit', 'webhook', 'whatsapp', 'telegram',
             'অর্ডার', 'টিকিট', 'ইনভয়েস', 'পেমেন্ট', 'কার্ড', 'সাবস্ক্রিপশন', 'রিফান্ড', 'পলিসি', 'নিয়ম', 'নিয়ম',
             'ফিচার', 'এনক্রিপশন', 'সিকিউরিটি', 'চ্যানেল', 'ডকুমেন্টেশন', 'রিটার্ন', 'শিপিং', 'পাসওয়ার্ড', 'লগইন',
-            'চার্জ', 'খরচ', 'ডেলিভারি', 'হটলাইন', 'অ্যাকাউন্ট', 'ডাটা', 'তথ্য',
+            'চার্জ', 'খরচ', 'ডেলিভারি', 'হটলাইন', 'অ্যাকাউন্ট', 'ডাটা', 'তথ্য', 'ট্রায়াল', 'ট্রায়াল', 'ডিসকাউন্ট', 'টেলিগ্রাম', 'হোয়াটসঅ্যাপ',
             // Mutation / Action verbs
             'cancel', 'change', 'update', 'delete', 'track', 'বাতিল', 'ক্যানসেল', 'পরিবর্তন', 'আপডেট', 'ফেরত'
         ];
