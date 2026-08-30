@@ -326,6 +326,11 @@ class CustomerSupportService
             return true;
         }
 
+        // Elliptical concept follow-up patterns (e.g. "tahole signup?", "and registration?", "ar webhook?")
+        if (preg_match('/^(tahole|taile|তাহলে|and|ar|আর|what about|how about)\s+(ki\s+)?(login|signin|sign in|signup|sign up|register|registration|api|webhook|json|xml|http|https|rest|graphql)\b/u', $qLower)) {
+            return true;
+        }
+
         return false;
     }
 

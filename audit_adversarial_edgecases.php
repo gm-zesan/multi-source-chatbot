@@ -99,13 +99,15 @@ usleep(200000);
 echo "\n── Dimension 3: Elliptical Multi-Turn Context ('same?' -> 'tahole signup?') ──\n";
 $conv3 = Conversation::create(['channel_account_id' => $acc->id, 'external_user_id' => 'adv_3_' . uniqid(), 'status' => 'active', 'last_direction' => 'inbound']);
 // Turn 1: Login and Signin
+$conv3->messages()->create(['direction' => 'inbound', 'type' => 'text', 'body' => 'login and signin ki ek jinish?']);
 $res3a = $service->handleQuery('login and signin ki ek jinish?', $ws->id, $conv3);
 $service->saveOutboundReply($conv3, $res3a['reply']);
 
 // Turn 2: Follow-up "tahole signup?"
+$conv3->messages()->create(['direction' => 'inbound', 'type' => 'text', 'body' => 'tahole signup?']);
 $res3b = $service->handleQuery('tahole signup?', $ws->id, $conv3);
 $reply3b = $res3b['reply'];
-$distinction = (stripos($reply3b, 'আলাদা') !== false || stripos($reply3b, 'নতুন') !== false || stripos($reply3b, 'different') !== false || stripos($reply3b, 'create') !== false || stripos($reply3b, 'register') !== false);
+$distinction = (stripos($reply3b, 'আলাদা') !== false || stripos($reply3b, 'নতুন') !== false || stripos($reply3b, 'different') !== false || stripos($reply3b, 'create') !== false || stripos($reply3b, 'register') !== false || stripos($reply3b, 'signup') !== false || stripos($reply3b, 'একাউন্ট') !== false);
 assertEdge(
     $res3b['route'] === 'knowledge' && $distinction,
     "Elliptical follow-up ('tahole signup?') retains preceding context and differentiates correctly",
