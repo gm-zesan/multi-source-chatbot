@@ -27,6 +27,9 @@ Route::get('/health', HealthController::class)->name('health');
 
 Route::match(['GET', 'POST'], '/webhook', [WebhookController::class, 'handle']);
 
+// Simulator Route: Redirect to Canonical /dashboard/simulator
+Route::get('/simulator', fn () => redirect()->route('simulator.index'))->middleware('auth');
+
 Route::middleware('auth')->prefix('dashboard')->group(function () {
     Route::get('/', [DashboardController::class, 'dashboard'])->name('dashboard');
     Route::get('/cache-clear', [DashboardController::class,'cacheClear'])->name('cache-clear');
@@ -34,6 +37,7 @@ Route::middleware('auth')->prefix('dashboard')->group(function () {
     // Chat Simulator & Pipeline Tester
     Route::get('/simulator', [ChatSimulatorController::class, 'index'])->name('simulator.index');
     Route::post('/simulator/send', [ChatSimulatorController::class, 'send'])->name('simulator.send');
+    Route::post('/simulator/clear', [ChatSimulatorController::class, 'clear'])->name('simulator.clear');
 
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::get('/profile/password-change', [DashboardController::class, 'changePassword'])->name('password-change.profile');

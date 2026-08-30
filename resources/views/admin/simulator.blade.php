@@ -197,6 +197,104 @@
         margin-right: 4px;
         margin-bottom: 4px;
     }
+
+    /* ── Route Badges & Cards ── */
+    .route-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        padding: 2px 8px;
+        border-radius: 12px;
+    }
+    .route-pill.chat { background: #ede9fe; color: #6d28d9; border: 1px solid #ddd6fe; }
+    .route-pill.knowledge { background: #dcfce7; color: #15803d; border: 1px solid #bbf7d0; }
+    .route-pill.ood { background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1; }
+    .route-pill.uncertain { background: #fef3c7; color: #b45309; border: 1px solid #fde68a; }
+    .route-pill.action { background: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; }
+
+    .suggestions-container {
+        margin-top: 10px;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+    }
+    .suggestion-label {
+        font-size: 11px;
+        font-weight: 600;
+        color: #64748b;
+        margin-bottom: 2px;
+    }
+    .suggestion-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 12px;
+        border-radius: 8px;
+        background: #ffffff;
+        border: 1.5px solid #d97706;
+        color: #92400e;
+        font-size: 12px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.15s ease-in-out;
+        text-align: left;
+        box-shadow: 0 1px 3px rgba(217, 119, 6, 0.08);
+    }
+    .suggestion-chip:hover {
+        background: #fef3c7;
+        color: #78350f;
+        transform: translateY(-1px);
+        box-shadow: 0 3px 6px rgba(217, 119, 6, 0.15);
+    }
+
+    .sources-container {
+        margin-top: 10px;
+        padding-top: 8px;
+        border-top: 1px dashed #e2e8f0;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        align-items: center;
+    }
+    .source-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        font-size: 11px;
+        font-weight: 500;
+        padding: 3px 8px;
+        border-radius: 6px;
+        background: #f0fdf4;
+        color: #166534;
+        border: 1px solid #bbf7d0;
+    }
+
+    .handoff-alert-card {
+        margin-top: 8px;
+        padding: 10px 14px;
+        border-radius: 8px;
+        background: #f0f9ff;
+        border: 1.5px solid #7dd3fc;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    .handoff-icon {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        background: #0284c7;
+        color: #ffffff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 16px;
+        flex-shrink: 0;
+    }
 </style>
 @endpush
 
@@ -216,7 +314,7 @@
             <a href="{{ route('health') }}" target="_blank" class="btn btn-outline-info btn-sm me-2">
                 <i class="ri-heart-pulse-line me-1"></i> Health Status
             </a>
-            <a href="#" class="btn btn-outline-secondary btn-sm" onclick="window.location.reload();">
+            <a href="#" class="btn btn-outline-secondary btn-sm" onclick="clearSimulatorChat(); return false;">
                 <i class="ri-refresh-line me-1"></i> Clear Chat
             </a>
         </div>
@@ -284,6 +382,24 @@
                 </div>
 
                 <div class="diag-body" id="diagBody">
+                    <!-- Step 0: Hybrid Router Capability Decision -->
+                    <div class="diag-section" style="background: #faf5ff; border-color: #e9d5ff;">
+                        <div class="diag-title" style="color: #7e22ce;">
+                            <span><i class="ri-compass-3-line me-1"></i> 0. Hybrid Router Capability</span>
+                            <span class="route-pill chat" id="routerBadge">Idle</span>
+                        </div>
+                        <div id="routerResults">
+                            <div class="d-flex justify-content-between small text-muted">
+                                <span>Route: <strong id="routerRoute" class="text-dark">N/A</strong></span>
+                                <span>Intent: <strong id="routerIntent" class="text-dark">None</strong></span>
+                            </div>
+                            <div class="d-flex justify-content-between small text-muted mt-1">
+                                <span>Router Latency: <strong id="routerLatency">0 ms</strong></span>
+                                <span>Confidence: <strong id="routerConfidence">0%</strong></span>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- Step 1: CRM Entity Extraction -->
                     <div class="diag-section">
                         <div class="diag-title text-purple">
@@ -369,8 +485,14 @@
         document.getElementById('userInput').focus();
     }
 
+    function setQueryAndSend(text) {
+        document.getElementById('userInput').value = text;
+        const fakeEvent = { preventDefault: () => {} };
+        handleSend(fakeEvent);
+    }
+
     async function handleSend(e) {
-        e.preventDefault();
+        if (e && e.preventDefault) e.preventDefault();
 
         const input = document.getElementById('userInput');
         const sendBtn = document.getElementById('sendBtn');
@@ -402,7 +524,7 @@
             sendBtn.disabled = false;
 
             if (data.success) {
-                // Append bot reply
+                // Append bot reply with route-aware cards
                 appendMessage(data.reply, 'bot', data);
                 // Update diagnostic panel
                 updateDiagnostics(data);
@@ -422,22 +544,81 @@
         const div = document.createElement('div');
         div.className = `message-bubble message-${sender}`;
 
+        let headerBadgeHtml = '';
+        let extraCardsHtml = '';
         let metaHtml = '';
-        if (sender === 'bot' && data) {
-            const isAnswered = data.answered;
-            const badgeClass = isAnswered ? 'bg-success-subtle text-success' : 'bg-warning-subtle text-warning';
-            const badgeText = isAnswered ? `Match (${data.confidence}%)` : `Fallback (${data.confidence}%)`;
 
+        if (sender === 'bot' && data) {
+            const route = (data.route || 'knowledge').toLowerCase();
+
+            // 1. Route badge in header
+            if (route === 'chat') {
+                headerBadgeHtml = `<div class="mb-2"><span class="route-pill chat"><i class="ri-chat-smile-2-line"></i> Conversational</span></div>`;
+            } else if (route === 'knowledge') {
+                headerBadgeHtml = `<div class="mb-2"><span class="route-pill knowledge"><i class="ri-book-open-line"></i> Grounded KB Answer</span></div>`;
+            } else if (route === 'ood') {
+                headerBadgeHtml = `<div class="mb-2"><span class="route-pill ood"><i class="ri-shield-cross-line"></i> Out-of-Domain Scope</span></div>`;
+            } else if (route === 'uncertain') {
+                headerBadgeHtml = `<div class="mb-2"><span class="route-pill uncertain"><i class="ri-question-line"></i> Clarification Needed</span></div>`;
+            } else if (route === 'action' || data.is_handoff) {
+                headerBadgeHtml = `<div class="mb-2"><span class="route-pill action"><i class="ri-user-shared-line"></i> Support Specialist Transfer</span></div>`;
+            }
+
+            // 2. UNCERTAIN Interactive Clickable Suggestions
+            if (route === 'uncertain' && Array.isArray(data.suggestions) && data.suggestions.length > 0) {
+                const chipsHtml = data.suggestions.map(s => `
+                    <button type="button" class="suggestion-chip" onclick="setQueryAndSend('${escapeJs(s)}')">
+                        <i class="ri-arrow-right-s-line text-warning"></i> ${escapeHtml(s)}
+                    </button>
+                `).join('');
+
+                extraCardsHtml += `
+                    <div class="suggestions-container">
+                        <span class="suggestion-label"><i class="ri-lightbulb-line text-warning me-1"></i> Did you mean (Click to select):</span>
+                        ${chipsHtml}
+                    </div>
+                `;
+            }
+
+            // 3. KNOWLEDGE Grounded Citations & Sources
+            if (route === 'knowledge' && Array.isArray(data.sources) && data.sources.length > 0) {
+                const sourceChips = data.sources.map(src => `
+                    <span class="source-chip" title="Score: ${src.score}%">
+                        <i class="ri-checkbox-circle-fill text-success"></i> ${escapeHtml(src.question)}
+                    </span>
+                `).join('');
+
+                extraCardsHtml += `
+                    <div class="sources-container">
+                        <span class="text-muted small fw-bold"><i class="ri-shield-check-line text-success me-1"></i> Grounded from FAQ:</span>
+                        ${sourceChips}
+                    </div>
+                `;
+            }
+
+            // 4. ACTION / 3x UNCERTAIN Safe Human Handoff Notice Card
+            if (data.is_handoff || route === 'action') {
+                extraCardsHtml += `
+                    <div class="handoff-alert-card">
+                        <div class="handoff-icon"><i class="ri-customer-service-2-line"></i></div>
+                        <div>
+                            <strong class="d-block text-dark small" style="font-size:12px;">Human Support Request Registered</strong>
+                            <small class="text-muted">A customer support specialist will review your request shortly.</small>
+                        </div>
+                    </div>
+                `;
+            }
+
+            // Footer metadata
             metaHtml = `
                 <div class="message-meta">
-                    <span class="badge ${badgeClass}">${badgeText}</span>
                     <span>${data.pipeline_diagnostics?.total_time_ms || 0} ms</span>
-                    ${isAnswered && data.matched_faq ? `<span>FAQ: #${data.matched_faq.id.substring(0, 8)}...</span>` : ''}
+                    <span>Route: <strong>${route.toUpperCase()}</strong></span>
                 </div>
             `;
         }
 
-        div.innerHTML = `<div>${escapeHtml(content)}</div>${metaHtml}`;
+        div.innerHTML = `${headerBadgeHtml}<div>${escapeHtml(content)}</div>${extraCardsHtml}${metaHtml}`;
         container.appendChild(div);
         container.scrollTop = container.scrollHeight;
     }
@@ -448,7 +629,7 @@
         const id = 'typing_' + Date.now();
         div.id = id;
         div.className = 'message-bubble message-bot text-muted small';
-        div.innerHTML = `<i class="ri-loader-4-line ri-spin me-1"></i> Running pipeline through Python & Typesense...`;
+        div.innerHTML = `<i class="ri-loader-4-line ri-spin me-1"></i> Processing query through HybridRouter & AI Agent...`;
         container.appendChild(div);
         container.scrollTop = container.scrollHeight;
         return id;
@@ -467,13 +648,24 @@
         document.getElementById('totalTimeBadge').textContent = `${diag.total_time_ms} ms`;
         document.getElementById('totalTimeBadge').className = 'status-badge status-ok';
 
+        // 0. Hybrid Router
+        const telemetry = diag.routing_telemetry || {};
+        const route = (data.route || 'knowledge').toLowerCase();
+        const routerBadge = document.getElementById('routerBadge');
+        routerBadge.textContent = route.toUpperCase();
+        routerBadge.className = `route-pill ${route}`;
+        document.getElementById('routerRoute').textContent = route.toUpperCase();
+        document.getElementById('routerIntent').textContent = telemetry.intent || 'direct_match';
+        document.getElementById('routerLatency').textContent = `${telemetry.router_latency_ms || 0} ms`;
+        document.getElementById('routerConfidence').textContent = `${Math.round((telemetry.confidence || 1.0) * 100)}%`;
+
         // 1. CRM
         const crm = diag.crm_extracted;
         const crmBadge = document.getElementById('crmBadge');
         const crmResults = document.getElementById('crmResults');
 
-        if (crm.has_data) {
-            crmBadge.textContent = crm.db_saved ? `Extracted & Saved (Contact #${crm.contact_id})` : "Extracted";
+        if (crm && crm.has_data) {
+            crmBadge.textContent = crm.db_saved ? `Saved (#${crm.contact_id})` : "Extracted";
             crmBadge.className = "status-badge status-ok";
             let tags = "";
             (crm.emails || []).forEach(e => tags += `<span class="entity-tag">✉ ${escapeHtml(e)}</span>`);
@@ -490,27 +682,27 @@
         // 2. Python
         const py = diag.python_service;
         const pyBadge = document.getElementById('pyBadge');
-        if (py.status === 'ok') {
+        if (py && py.status === 'ok') {
             pyBadge.textContent = `OK (${py.latency_ms} ms)`;
             pyBadge.className = 'status-badge status-ok';
             document.getElementById('pyModel').textContent = py.model;
             document.getElementById('pyDims').textContent = py.dimensions;
             document.getElementById('pyVectorSample').textContent = `Vector Sample: [${(py.vector_sample || []).join(', ')}...]`;
         } else {
-            pyBadge.textContent = 'FAILED';
-            pyBadge.className = 'status-badge status-failed';
-            document.getElementById('pyVectorSample').textContent = `Error: ${py.error || 'Connection error'}`;
+            pyBadge.textContent = 'BYPASSED / IDLE';
+            pyBadge.className = 'status-badge status-none';
+            document.getElementById('pyVectorSample').textContent = (route === 'chat' || route === 'ood') ? '0 Embedding calls (Bypassed by HybridRouter)' : 'Idle';
         }
 
         // 3. Typesense
         const ts = diag.typesense;
         const tsBadge = document.getElementById('tsBadge');
-        if (ts.status === 'ok') {
+        if (ts && ts.status === 'ok') {
             tsBadge.textContent = `OK (${ts.latency_ms} ms)`;
             tsBadge.className = 'status-badge status-ok';
         } else {
-            tsBadge.textContent = ts.status.toUpperCase();
-            tsBadge.className = 'status-badge status-failed';
+            tsBadge.textContent = (route === 'chat' || route === 'ood') ? 'BYPASSED' : (ts?.status || 'IDLE').toUpperCase();
+            tsBadge.className = (route === 'chat' || route === 'ood') ? 'status-badge status-none' : 'status-badge status-failed';
         }
 
         document.getElementById('tsMatchType').textContent = (data.match_type || 'none').toUpperCase();
@@ -519,21 +711,42 @@
         // 4. Scores
         const scores = diag.scores;
         const scoreBadge = document.getElementById('scoreBadge');
-        scoreBadge.textContent = `${scores.final_confidence}%`;
-        scoreBadge.className = data.answered ? 'status-badge status-ok' : 'status-badge status-degraded';
+        if (scores) {
+            scoreBadge.textContent = `${scores.final_confidence}%`;
+            scoreBadge.className = data.answered ? 'status-badge status-ok' : 'status-badge status-degraded';
 
-        document.getElementById('kwScoreText').textContent = `${scores.keyword_score}%`;
-        document.getElementById('kwBar').style.width = `${scores.keyword_score}%`;
+            document.getElementById('kwScoreText').textContent = `${scores.keyword_score}%`;
+            document.getElementById('kwBar').style.width = `${scores.keyword_score}%`;
 
-        document.getElementById('semScoreText').textContent = `${scores.semantic_score}%`;
-        document.getElementById('semBar').style.width = `${scores.semantic_score}%`;
+            document.getElementById('semScoreText').textContent = `${scores.semantic_score}%`;
+            document.getElementById('semBar').style.width = `${scores.semantic_score}%`;
 
-        document.getElementById('finalScoreText').textContent = `${scores.final_confidence}%`;
-        document.getElementById('finalBar').style.width = `${scores.final_confidence}%`;
+            document.getElementById('finalScoreText').textContent = `${scores.final_confidence}%`;
+            document.getElementById('finalBar').style.width = `${scores.final_confidence}%`;
+        }
+    }
+
+    async function clearSimulatorChat() {
+        try {
+            await fetch("{{ route('simulator.clear') }}", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-CSRF-TOKEN": "{{ csrf_token() }}"
+                }
+            });
+        } catch (e) {
+            console.error("Failed to clear chat session:", e);
+        }
+        window.location.reload();
     }
 
     function escapeHtml(str) {
         return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    function escapeJs(str) {
+        return String(str).replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '\\"');
     }
 </script>
 @endpush

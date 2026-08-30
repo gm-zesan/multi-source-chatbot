@@ -14,6 +14,22 @@ use Laravel\Ai\Messages\UserMessage;
 use Laravel\Ai\Promptable;
 use Stringable;
 
+/**
+ * @deprecated
+ *
+ * Legacy Serial AI Agent (Phase 2E/2F/2G.2 Baseline)
+ *
+ * USAGE POLICY:
+ * ├── Production runtime:           ❌ (DO NOT USE in new controllers, jobs, or listeners)
+ * ├── New features:                 ❌ (DO NOT ADD new tools or rules here)
+ * ├── Historical benchmarks:        ✅ (Retained for Phase 2F/2G.2 serial baseline evaluation)
+ * ├── Existing test compatibility:  ✅ (Retained for CustomerSupportAgent::fake() test fakes)
+ * └── Rollback / Reference:         ✅ (Reference for single-agent serial baseline)
+ *
+ * All live production traffic MUST use App\Services\AI\CustomerSupportService,
+ * which routes via HybridRouter to specialized agents (KnowledgeSupportAgent,
+ * ConversationalSupportAgent, ActionOrchestratorAgent).
+ */
 class CustomerSupportAgent implements Agent, Conversational, HasTools
 {
     use Promptable;

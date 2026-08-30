@@ -4,10 +4,9 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
-use App\AI\Agents\CustomerSupportAgent;
-use App\AI\Tools\KnowledgeRetrievalTool;
 use App\Http\Requests\SendMessageRequest;
 use App\Models\Conversation;
+use App\Services\AI\CustomerSupportService;
 use App\Services\Chat\ConversationService;
 use App\Services\FAQ\FAQSearch;
 use App\Support\ChannelManager;
@@ -20,6 +19,7 @@ class ConversationController extends Controller
     public function __construct(
         protected ConversationService $conversationService,
         protected FAQSearch $faqSearch,
+        protected CustomerSupportService $customerSupportService,
     ) {}
 
     /**
@@ -60,21 +60,19 @@ class ConversationController extends Controller
         // Send message to external platform
         $response = $driver->send($conversation->channelAccount, $conversation, $message);
 
-        Log::info('Message sent', [
-            'conversation_id' => $conversation->id,
-            'channel_account_id' => $conversation->channel_account_id,
-            'message' => $message,
-            'response' => $response,
-        ]);
+        // Save staff outgoing message
+        $this->conversationService->saveOutgoing(
+            conversation: $conversation,
+            message: $message,
+            response: $response,
+        );
 
-        // Save outgoing message
-        $this->conversationService->saveOutgoing($conversation, $message, $response);
-
-        return redirect()->back()->with('success', 'Message sent successfully.');
+        return redirect()->route('admin.conversations.show', $conversation)
+            ->with('status', 'Reply sent successfully!');
     }
 
     /**
-     * Generate AI Agent Reply for Conversation.
+     * Trigger AI Agent Reply for a Conversation Thread.
      */
     public function aiReply(Conversation $conversation): RedirectResponse
     {
@@ -82,22 +80,13 @@ class ConversationController extends Controller
 
         $lastInbound = $conversation->messages()->where('direction', 'inbound')->latest('id')->first();
         $prompt = $lastInbound?->body ?? 'Hello, how can I help you today?';
+        $workspaceId = $conversation->channelAccount?->workspace_id;
 
-        $retrievalTool = new KnowledgeRetrievalTool(
-            faqSearch: $this->faqSearch,
-            workspaceId: $conversation->channelAccount?->workspace_id,
-        );
-
-        $agent = new CustomerSupportAgent(
+        $replyText = $this->customerSupportService->generateReply(
             conversation: $conversation,
-            retrievalTool: $retrievalTool,
+            query: $prompt,
+            workspaceId: $workspaceId,
         );
-
-        $provider = config('ai.default', 'openrouter');
-        $model = config('ai.default_model', 'deepseek/deepseek-chat');
-
-        $response = $agent->prompt($prompt, provider: $provider, model: $model);
-        $replyText = (string) $response;
 
         if (trim($replyText) !== '') {
             $deliveryResponse = [];
@@ -113,15 +102,10 @@ class ConversationController extends Controller
                 }
             }
 
-            $this->conversationService->saveOutgoing(
+            $this->customerSupportService->saveOutboundReply(
                 conversation: $conversation,
-                message: $replyText,
-                response: array_merge($deliveryResponse, [
-                    'source'     => 'customer_support_agent',
-                    'provider'   => $provider,
-                    'model'      => $model,
-                    'usage'      => $response->usage ?? null,
-                ]),
+                replyText: $replyText,
+                deliveryResponse: $deliveryResponse,
             );
         }
 
