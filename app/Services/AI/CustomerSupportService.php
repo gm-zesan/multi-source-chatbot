@@ -186,10 +186,10 @@ class CustomerSupportService
                 workspaceId: $workspaceId,
             );
             $topHit = $retrievalHits->first();
-            $answered = $topHit !== null && $topHit->finalScore >= 0.38;
+            $answered = $topHit !== null && $topHit->finalScore >= 0.45;
         }
 
-        $groundedHits = $retrievalHits->filter(fn ($h) => $h->finalScore >= 0.38);
+        $groundedHits = $retrievalHits->filter(fn ($h) => $h->finalScore >= 0.45);
 
         $replyText = match ($routingResult->route) {
             RouteType::KNOWLEDGE => $this->promptKnowledgeAgent(
@@ -222,7 +222,7 @@ class CustomerSupportService
         $totalE2eMs = round((microtime(true) - $t_start) * 1000, 2);
 
         $suggestions = $routingResult->isUncertain() ? $this->getClarificationSuggestions($query) : [];
-        $sources = $routingResult->isKnowledge() ? $this->formatGroundedSources($retrievalHits) : [];
+        $sources = $routingResult->isKnowledge() ? $this->formatGroundedSources($retrievalHits, $query) : [];
         $isHandoff = ($routingResult->route === RouteType::ACTION) ||
             (!empty($conversation?->metadata['handoff_to_human'])) ||
             (stripos($replyText ?? '', 'team member will contact you') !== false);
@@ -288,11 +288,15 @@ class CustomerSupportService
      *
      * @return array<int, array{id: string, question: string, category: string, score: float}>
      */
-    public function formatGroundedSources(\Illuminate\Database\Eloquent\Collection $retrievalHits): array
+    public function formatGroundedSources(\Illuminate\Database\Eloquent\Collection $retrievalHits, string $query = ''): array
     {
+        if ($query !== '' && $this->isGeneralConceptualQuery($query)) {
+            return [];
+        }
+
         $sources = [];
         foreach ($retrievalHits as $hit) {
-            if ($hit->faq) {
+            if ($hit->faq && $hit->finalScore >= 0.45) {
                 $sources[] = [
                     'id'       => (string) $hit->faq->id,
                     'question' => $hit->faq->question,
@@ -302,6 +306,27 @@ class CustomerSupportService
             }
         }
         return $sources;
+    }
+
+    /**
+     * Determine if a query is a general conceptual / terminology question that does not require company FAQ citations.
+     */
+    public function isGeneralConceptualQuery(string $query): bool
+    {
+        $qLower = mb_strtolower(trim($query));
+
+        // Terminology comparison patterns (e.g. "x and y ki same?", "difference between x and y")
+        if (preg_match('/\b(same|ek jinish|ek|different|alada|difference|versus|vs|তুলনা|পার্থক্য)\b/u', $qLower) &&
+            preg_match('/\b(login|signin|sign in|signup|sign up|register|registration|api|webhook|json|xml|http|https|rest|graphql|sync|async)\b/u', $qLower)) {
+            return true;
+        }
+
+        // Generic definition patterns (e.g. "what is json", "what is an enterprise sla in cloud", "explain webhook")
+        if (preg_match('/^(what is|what are|what does|explain|how does|ki|কী|কাকে বলে|বলতে কি বোঝায়)\s+([\p{L}\p{M}\w\s-]{0,25}\s+)?(json|api|webhook|rest|graphql|sla|uptime|oauth|jwt|http|https|tls|ssl|mvc|orm|database|cloud|saas|paas|iaas)\b/u', $qLower)) {
+            return true;
+        }
+
+        return false;
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -323,7 +348,7 @@ class CustomerSupportService
             workspaceId: $workspaceId,
         );
 
-        $groundedHits = $retrievalHits->filter(fn ($h) => $h->finalScore >= 0.38);
+        $groundedHits = $retrievalHits->filter(fn ($h) => $h->finalScore >= 0.45);
 
         return $this->promptKnowledgeAgent(
             conversation: $conversation,
@@ -468,58 +493,112 @@ class CustomerSupportService
         int $workspaceId,
         \Illuminate\Database\Eloquent\Collection $retrievedHits,
     ): string {
-        try {
-            $provider = config('ai.default', 'deepseek');
-            $model = config('ai.default_model', 'deepseek-chat');
+        $provider = config('ai.default', 'deepseek');
+        $model = config('ai.default_model', 'deepseek-chat');
 
-            // Check if CustomerSupportAgent was faked in testing
-            if (CustomerSupportAgent::isFaked()) {
-                $fakeAgent = new CustomerSupportAgent(
-                    conversation: $conversation,
-                    retrievalTool: new KnowledgeRetrievalTool($this->faqSearch, $workspaceId),
-                );
-                return (string) $fakeAgent->prompt($query, provider: $provider, model: $model);
-            }
-
-            $agent = new KnowledgeSupportAgent(
+        // Check if CustomerSupportAgent was faked in testing
+        if (CustomerSupportAgent::isFaked()) {
+            $fakeAgent = new CustomerSupportAgent(
                 conversation: $conversation,
-                retrievedKnowledge: $retrievedHits,
+                retrievalTool: new KnowledgeRetrievalTool($this->faqSearch, $workspaceId),
             );
-
-            $response = $agent->prompt($query, provider: $provider, model: $model);
-            return (string) $response;
-        } catch (\Throwable $e) {
-            Log::warning('[CustomerSupportService] Knowledge agent failed, executing fallback', [
-                'error' => $e->getMessage(),
-                'workspace_id' => $workspaceId,
-            ]);
-
-            $topHit = $retrievedHits->first();
-            if ($topHit && $topHit->finalScore >= 0.38) {
-                return $topHit->faq?->answer ?? $this->defaultFallbackText();
-            }
-            return $this->defaultFallbackText();
+            return (string) $fakeAgent->prompt($query, provider: $provider, model: $model);
         }
+
+        $agent = new KnowledgeSupportAgent(
+            conversation: $conversation,
+            retrievedKnowledge: $retrievedHits,
+        );
+
+        for ($attempt = 1; $attempt <= 2; $attempt++) {
+            try {
+                $response = $agent->prompt($query, provider: $provider, model: $model);
+                return (string) $response;
+            } catch (\Throwable $e) {
+                $isTransient = $this->isTransientError($e);
+
+                if ($attempt === 1 && $isTransient) {
+                    usleep(400000); // 400ms retry backoff
+                    continue;
+                }
+
+                Log::warning('[CustomerSupportService] Knowledge agent failed, executing fallback', [
+                    'error'        => $e->getMessage(),
+                    'is_transient' => $isTransient,
+                    'workspace_id' => $workspaceId,
+                    'attempt'      => $attempt,
+                ]);
+
+                $topHit = $retrievedHits->first();
+                if ($topHit && $topHit->finalScore >= 0.75) {
+                    return $topHit->faq?->answer ?? $this->defaultFallbackText();
+                }
+                return $this->defaultFallbackText();
+            }
+        }
+
+        return $this->defaultFallbackText();
     }
 
     private function promptConversationalAgent(
         ?Conversation $conversation,
         string $query,
     ): string {
-        try {
-            $provider = config('ai.default', 'deepseek');
-            $model = config('ai.default_model', 'deepseek-chat');
+        $provider = config('ai.default', 'deepseek');
+        $model = config('ai.default_model', 'deepseek-chat');
 
-            if (CustomerSupportAgent::isFaked()) {
-                $fakeAgent = new CustomerSupportAgent(conversation: $conversation);
-                return (string) $fakeAgent->prompt($query, provider: $provider, model: $model);
-            }
-
-            $agent = new ConversationalSupportAgent(conversation: $conversation);
-            return (string) $agent->prompt($query, provider: $provider, model: $model);
-        } catch (\Throwable $e) {
-            return "হ্যালো! আপনাকে কীভাবে সাহায্য করতে পারি?";
+        if (CustomerSupportAgent::isFaked()) {
+            $fakeAgent = new CustomerSupportAgent(conversation: $conversation);
+            return (string) $fakeAgent->prompt($query, provider: $provider, model: $model);
         }
+
+        $agent = new ConversationalSupportAgent(conversation: $conversation);
+
+        for ($attempt = 1; $attempt <= 2; $attempt++) {
+            try {
+                return (string) $agent->prompt($query, provider: $provider, model: $model);
+            } catch (\Throwable $e) {
+                $isTransient = $this->isTransientError($e);
+
+                if ($attempt === 1 && $isTransient) {
+                    usleep(400000);
+                    continue;
+                }
+
+                Log::warning('[CustomerSupportService] Conversational agent failed', [
+                    'error'        => $e->getMessage(),
+                    'is_transient' => $isTransient,
+                    'attempt'      => $attempt,
+                ]);
+
+                return "হ্যালো! আপনাকে কীভাবে সাহায্য করতে পারি?";
+            }
+        }
+
+        return "হ্যালো! আপনাকে কীভাবে সাহায্য করতে পারি?";
+    }
+
+    /**
+     * Determine if an LLM provider exception is transient and eligible for retry.
+     */
+    private function isTransientError(\Throwable $e): bool
+    {
+        $msg = mb_strtolower($e->getMessage());
+
+        $transientPatterns = [
+            '429', 'rate limit', 'rate-limit', 'too many requests',
+            '504', 'gateway timeout', '502', 'bad gateway', '503', 'service unavailable',
+            'timeout', 'timed out', 'operation was aborted', 'connection reset',
+            'curl error 28', 'curl error 52', 'curl error 56',
+        ];
+
+        foreach ($transientPatterns as $pattern) {
+            if (str_contains($msg, $pattern)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private function promptActionOrchestratorAgent(

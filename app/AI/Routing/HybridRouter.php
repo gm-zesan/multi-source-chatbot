@@ -705,7 +705,11 @@ class HybridRouter
 
         if (count($nonChatWords) === 1) {
             $single = $nonChatWords[0];
-            return in_array($single, ['cancel', 'change', 'refund', 'delete', 'বাতিল', 'ক্যানসেল', 'রিফান্ড'], true);
+            return in_array($single, [
+                'cancel', 'change', 'update', 'refund', 'delete', 'invoice', 'invoices', 'bill',
+                'payment', 'payments', 'order', 'orders',
+                'বাতিল', 'ক্যানসেল', 'আপডেট', 'পরিবর্তন', 'রিফান্ড', 'ইনভয়েস', 'বিল', 'পেমেন্ট', 'অর্ডার'
+            ], true);
         }
 
         if (count($nonChatWords) === 2) {

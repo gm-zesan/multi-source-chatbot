@@ -75,46 +75,16 @@ class ContextualQueryBuilder
         $wordCount = count($words);
 
         // Ambiguous pronouns, elliptical openers, or anaphoric phrases indicate non-self-contained follow-ups
-        $hasDanglingPronoun = (bool) preg_match('/\b(it|this|that|them|these|those|its|eta|ota|eita|এটা|ওটা)\b/ui', $qLower);
-        $isEllipticalOpener = (bool) preg_match('/^(and\s+|what\s+about\s+|how\s+about\s+|আর\s+|এবং\s+)/ui', $qLower);
-        $hasAnaphoricPhrase = (bool) preg_match('/\b(the\s+token\s+issue|the\s+issue|the\s+problem|the\s+error|this\s+issue)\b/ui', $qLower);
+        $hasDanglingPronoun = (bool) preg_match('/\b(it|this|that|them|they|these|those|its|their|theirs|eta|ota|eita|oita|etar|otar|eitar|oitar|এটা|ওটা|এইটা|ওইটা|এটার|ওটার|এগুলো|ওগুলো|তারা|তাদের)\b/ui', $qLower);
+        $isEllipticalOpener = (bool) preg_match('/^(and\s+|what\s+about\s+|how\s+about\s+|ar\s+|aar\s+|ebong\s+|আর\s+|এবং\s+)/ui', $qLower);
+        $hasAnaphoricPhrase = (bool) preg_match('/\b(the\s+token\s+issue|the\s+issue|the\s+problem|the\s+error|this\s+issue|the\s+service|the\s+topic|the\s+process)\b/ui', $qLower);
 
         if ($hasDanglingPronoun || $isEllipticalOpener || $hasAnaphoricPhrase) {
             return false;
         }
 
-        // Domain-specific entities that make a query standalone
-        $standaloneKeywords = [
-            'how do i create an account', 'what are the available subscription plans',
-            'how is my data encrypted', 'does the platform comply with gdpr',
-            'how do i enable two-factor authentication', 'what are the api rate limits',
-            'how do i authenticate api requests', 'how often should i update my faqs',
-            'how can i improve chatbot response accuracy', 'why is my chatbot not responding',
-            'why are my messages not being delivered', 'what should i do if i encounter an error',
-        ];
-
-        foreach ($standaloneKeywords as $kw) {
-            if (str_contains($qLower, $kw)) {
-                return true;
-            }
-        }
-
-        // If >= 4 words and contains explicit domain nouns without pronouns, it is self-contained
-        $domainNouns = [
-            'subscription plan', 'two-factor authentication', 'rate limits',
-            'api key', 'encryption', 'gdpr', 'webhook', 'invoice history',
-            'payment method', 'whatsapp', 'telegram', 'non-profit discount',
-        ];
-
-        if ($wordCount >= 4) {
-            foreach ($domainNouns as $noun) {
-                if (str_contains($qLower, $noun)) {
-                    return true;
-                }
-            }
-        }
-
-        return false;
+        // If the query has at least 3 words and no dangling references, it is complete and self-contained
+        return $wordCount >= 3;
     }
 
     /**

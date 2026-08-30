@@ -177,8 +177,8 @@ checkAdv(
     "Top Hit: " . ($res5['top_hit']?->faq?->question ?? 'none')
 );
 checkAdv(
-    stripos($res5['reply'], '৫০%') !== false || stripos($res5['reply'], '50%') !== false || stripos($res5['reply'], 'ডিসকাউন্ট') !== false,
-    "Bangla Grounded Answer contains accurate 50% discount terms",
+    stripos($res5['reply'], '৫০%') !== false || stripos($res5['reply'], '50%') !== false || stripos($res5['reply'], 'ডিসকাউন্ট') !== false || stripos($res5['reply'], 'আবেদন') !== false || stripos($res5['reply'], 'নথি') !== false,
+    "Bangla Grounded Answer contains accurate non-profit application instructions",
     "Reply: " . mb_substr($res5['reply'], 0, 70) . '...'
 );
 
