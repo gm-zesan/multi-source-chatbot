@@ -55,7 +55,7 @@ class FAQService
      */
     public function getDataTables(?Request $request = null): JsonResponse
     {
-        $query = $this->workspaceQuery()->with('category');
+        $query = $this->workspaceQuery()->with(['category', 'lexicon']);
 
         $status = $request?->input('status');
         if ($status === 'trashed') {
@@ -83,6 +83,21 @@ class FAQService
             ->addColumn('category', function (FAQ $faq) {
                 return $faq->category?->name ?? '<span class="text-muted">Uncategorized</span>';
             })
+            ->addColumn('commerce_domain', function (FAQ $faq) {
+                $domain = $faq->lexicon?->domain ?? 'General Support';
+                return '<span class="badge" style="background-color: #f1f5f9; color: #334155; border: 1px solid #cbd5e1; font-weight: 500; font-size: 11px;">'
+                    . '<i class="ri-store-2-line me-1 text-primary"></i>' . e($domain) . '</span>';
+            })
+            ->addColumn('lexicon_badge', function (FAQ $faq) {
+                if (!$faq->lexicon) {
+                    return '<span class="badge bg-secondary-subtle text-secondary" style="font-size: 11px;">Pending Sync</span>';
+                }
+                $terms = $faq->lexicon->allTerms();
+                $termCount = count($terms);
+                $sample = e(implode(', ', array_slice($terms, 0, 5)));
+                return '<span class="badge" style="background-color: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; font-weight: 500; font-size: 11px;" title="' . $sample . '">'
+                    . '<i class="ri-sparkling-line me-1"></i>' . $termCount . ' Terms</span>';
+            })
             ->addColumn('priority', function (FAQ $faq) {
                 return $faq->priority;
             })
@@ -103,7 +118,7 @@ class FAQService
             ->addColumn('action-btn', function (FAQ $faq) {
                 return ['id' => $faq->id, 'trashed' => $faq->trashed()];
             })
-            ->rawColumns(['category', 'hit_count', 'status_badge'])
+            ->rawColumns(['category', 'commerce_domain', 'lexicon_badge', 'hit_count', 'status_badge'])
             ->make(true);
     }
 

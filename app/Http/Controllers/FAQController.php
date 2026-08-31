@@ -63,6 +63,7 @@ class FAQController extends Controller
     public function edit(FAQ $faq): View
     {
         $this->authorizeWorkspace($faq);
+        $faq->load('lexicon');
 
         return view('admin.faqs.edit', [
             'faq'        => $faq,

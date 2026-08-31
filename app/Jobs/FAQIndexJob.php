@@ -46,16 +46,24 @@ class FAQIndexJob implements ShouldQueue
     /**
      * Execute the job.
      */
-    public function handle(RetrievalClient $retrievalClient): void
-    {
+    public function handle(
+        RetrievalClient $retrievalClient,
+        ?\App\Services\FAQ\FaqLexiconGeneratorService $lexiconGenerator = null,
+    ): void {
+        $lexiconGenerator = $lexiconGenerator ?? app(\App\Services\FAQ\FaqLexiconGeneratorService::class);
+
         try {
             if ($this->action === 'delete' || ! $this->faq->shouldBeSearchable()) {
                 $retrievalClient->deleteFaq($this->faq->id, $this->faq->workspace_id);
             } else {
+                // Generate & validate commerce domain lexicon
+                $lexiconGenerator->generateAndStore($this->faq);
+                $this->faq->load('lexicon');
+
                 $retrievalClient->syncFaq($this->faq);
             }
 
-            Log::debug('[FAQIndexJob] Synced FAQ to Python retrieval service', [
+            Log::debug('[FAQIndexJob] Synced FAQ and lexicon to Python retrieval service', [
                 'faq_id' => $this->faq->id,
                 'action' => $this->action,
             ]);

@@ -46,6 +46,78 @@
                             </div>
                         </div>
                     </div>
+
+                    {{-- AI Retrieval & Dynamic Commerce Lexicon Panel --}}
+                    <div class="card table-card mt-3">
+                        <div class="card-header table-header d-flex align-items-center justify-content-between">
+                            <div class="table-title d-flex align-items-center">
+                                <i class="ri-sparkling-fill text-primary me-2 fs-5"></i>
+                                AI Retrieval & Commerce Ontology
+                            </div>
+                            @if ($faq->lexicon)
+                                <span class="badge" style="background-color: #dcfce7; color: #15803d; border: 1px solid #bbf7d0; font-size: 11px;">
+                                    <i class="ri-checkbox-circle-line me-1"></i>Validated & Synced
+                                </span>
+                            @else
+                                <span class="badge bg-secondary-subtle text-secondary" style="font-size: 11px;">Pending Ingestion</span>
+                            @endif
+                        </div>
+                        <div class="card-body p-3">
+                            <div class="row g-3">
+                                <div class="col-md-6 col-12">
+                                    <label class="form-label text-muted small mb-1 fw-bold text-uppercase" style="font-size: 11px;">Commerce Domain Category</label>
+                                    <div class="p-2" style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px;">
+                                        <span class="badge" style="background-color: #3b82f6; color: #ffffff; font-size: 12px;">
+                                            <i class="ri-store-2-line me-1"></i>{{ $faq->lexicon?->domain ?? 'General Support' }}
+                                        </span>
+                                        <span class="text-muted small ms-2">Intent: <code>{{ $faq->lexicon?->intent ?? 'support_faq_inquiry' }}</code></span>
+                                    </div>
+                                </div>
+                                <div class="col-md-6 col-12">
+                                    <label class="form-label text-muted small mb-1 fw-bold text-uppercase" style="font-size: 11px;">Canonical Search Concepts</label>
+                                    <div class="p-2" style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; min-height: 42px;">
+                                        @forelse ($faq->lexicon?->canonical_terms ?? [] as $term)
+                                            <span class="badge" style="background-color: #e2e8f0; color: #334155; margin-right: 4px; margin-bottom: 4px; font-size: 11px;">
+                                                {{ $term }}
+                                            </span>
+                                        @empty
+                                            <span class="text-muted small">None generated yet</span>
+                                        @endforelse
+                                    </div>
+                                </div>
+                                <div class="col-md-6 col-12">
+                                    <label class="form-label text-muted small mb-1 fw-bold text-uppercase" style="font-size: 11px;">Bengali (বাংলা) & Banglish Variations</label>
+                                    <div class="p-2" style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; min-height: 42px;">
+                                        @forelse ($faq->lexicon?->bangla_terms ?? [] as $term)
+                                            <span class="badge" style="background-color: #ecfdf5; color: #047857; border: 1px solid #a7f3d0; margin-right: 4px; margin-bottom: 4px; font-size: 11px;">
+                                                {{ $term }}
+                                            </span>
+                                        @empty
+                                            <span class="text-muted small">None generated yet</span>
+                                        @endforelse
+                                    </div>
+                                </div>
+                                <div class="col-md-6 col-12">
+                                    <label class="form-label text-muted small mb-1 fw-bold text-uppercase" style="font-size: 11px;">F-Commerce & Social Aliases</label>
+                                    <div class="p-2" style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; min-height: 42px;">
+                                        @forelse ($faq->lexicon?->commerce_terms ?? [] as $term)
+                                            <span class="badge" style="background-color: #fef3c7; color: #b45309; border: 1px solid #fde68a; margin-right: 4px; margin-bottom: 4px; font-size: 11px;">
+                                                {{ $term }}
+                                            </span>
+                                        @empty
+                                            <span class="text-muted small">None generated yet</span>
+                                        @endforelse
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="mt-3 p-2 d-flex align-items-center" style="background-color: #f0f9ff; border: 1px dashed #bae6fd; border-radius: 6px;">
+                                <i class="ri-information-line text-info me-2 fs-5"></i>
+                                <span class="small text-muted">
+                                    <strong>Automatic Lifecycle:</strong> Updating this FAQ will asynchronously regenerate these terms and re-index them in Typesense with zero runtime latency.
+                                </span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="col-md-4 col-12">

@@ -98,13 +98,16 @@ class RetrievalClient
     public function syncFaq(FAQ $faq): bool
     {
         $url = "{$this->baseUrl()}/api/v1/faqs/sync";
+        $lexiconTerms = $faq->relationLoaded('lexicon') && $faq->lexicon ? $faq->lexicon->allTerms() : [];
+
         $payload = [
-            'id'           => $faq->id,
-            'workspace_id' => $faq->workspace_id,
-            'question'     => $faq->question,
-            'answer'       => $faq->answer,
-            'priority'     => $faq->priority ?? 100,
-            'is_active'    => (bool) $faq->is_active,
+            'id'            => $faq->id,
+            'workspace_id'  => $faq->workspace_id,
+            'question'      => $faq->question,
+            'answer'        => $faq->answer,
+            'priority'      => $faq->priority ?? 100,
+            'is_active'     => (bool) $faq->is_active,
+            'lexicon_terms' => $lexiconTerms,
         ];
 
         try {

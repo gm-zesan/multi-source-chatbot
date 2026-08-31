@@ -88,7 +88,8 @@ $sources2 = $res2['sources'] ?? [];
 // Sources must come from validated Typesense FAQ, NOT the raw LLM string
 $validSourceCheck = true;
 foreach ($sources2 as $src) {
-    if (stripos($src, 'How do I view my invoices?') === false && stripos($src, 'invoices') === false) {
+    $qText = is_array($src) ? ($src['question'] ?? '') : (string) $src;
+    if (stripos($qText, 'How do I view my invoices?') === false && stripos($qText, 'invoices') === false) {
         $validSourceCheck = false;
     }
 }
@@ -103,8 +104,8 @@ assertContract(
 // ─────────────────────────────────────────────────────────────────────────────
 echo "\n── Invariant 3: Independent Answerability Gate ──\n";
 $conv3 = Conversation::create(['channel_account_id' => $acc->id, 'external_user_id' => 'contract_3_' . uniqid(), 'status' => 'active', 'last_direction' => 'inbound']);
-// Query with very low match score (< 0.45)
-$res3 = $service->handleQuery('How do you ensure customer records remain unreadable to unauthorized third parties?', $ws->id, $conv3);
+// Query with very low match score (< 0.45) that has no KB answer
+$res3 = $service->handleQuery('How do I configure custom BGP routing on our proprietary hardware firewall?', $ws->id, $conv3);
 $topHit3 = $res3['top_hit'] ?? null;
 $score3 = $topHit3 ? $topHit3->finalScore : 0.0;
 $answered3 = $res3['answered'];

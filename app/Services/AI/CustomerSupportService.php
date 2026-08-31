@@ -237,6 +237,13 @@ class CustomerSupportService
             'retrieval_hits' => $retrievalHits,
             'top_hit' => $topHit,
             'answered' => $answered,
+            'raw_llm_response' => [
+                'provider' => config('ai.default', 'deepseek'),
+                'model' => config('ai.default_model', 'deepseek-chat'),
+                'raw_reply_text' => $replyText,
+                'grounded_documents_count' => $groundedHits->count(),
+                'grounded_faq_questions' => $groundedHits->map(fn($h) => $h->faq?->question)->values()->all(),
+            ],
             'routing_telemetry' => array_merge($routingResult->toArray(), [
                 'total_e2e_ms' => $totalE2eMs,
             ]),
@@ -535,11 +542,16 @@ class CustomerSupportService
                 ]);
 
                 $topHit = $retrievedHits->first();
-                if ($topHit && $topHit->finalScore >= 0.75) {
-                    return $topHit->faq?->answer ?? $this->defaultFallbackText();
+                if ($topHit && $topHit->finalScore >= 0.45 && !empty($topHit->faq?->answer)) {
+                    return $topHit->faq->answer;
                 }
                 return $this->defaultFallbackText();
             }
+        }
+
+        $topHit = $retrievedHits->first();
+        if ($topHit && $topHit->finalScore >= 0.45 && !empty($topHit->faq?->answer)) {
+            return $topHit->faq->answer;
         }
 
         return $this->defaultFallbackText();
@@ -589,6 +601,11 @@ class CustomerSupportService
     private function isTransientError(\Throwable $e): bool
     {
         $msg = mb_strtolower($e->getMessage());
+
+        // Quota exhaustion is non-transient — fail fast to grounded KB answer immediately
+        if (str_contains($msg, 'free-models-per-day') || str_contains($msg, 'credits') || str_contains($msg, 'insufficient_quota')) {
+            return false;
+        }
 
         $transientPatterns = [
             '429', 'rate limit', 'rate-limit', 'too many requests',

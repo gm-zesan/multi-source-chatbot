@@ -66,6 +66,8 @@
                                     <th scope="col">SL NO</th>
                                     <th scope="col">Question</th>
                                     <th scope="col">Category</th>
+                                    <th scope="col">Commerce Domain</th>
+                                    <th scope="col">AI Lexicon</th>
                                     <th scope="col">Priority</th>
                                     <th scope="col">Hits</th>
                                     <th scope="col">Status</th>
@@ -133,6 +135,16 @@
                         data: 'category',
                         name: 'category',
                         orderable: true
+                    },
+                    {
+                        data: 'commerce_domain',
+                        name: 'commerce_domain',
+                        orderable: false
+                    },
+                    {
+                        data: 'lexicon_badge',
+                        name: 'lexicon_badge',
+                        orderable: false
                     },
                     {
                         data: 'priority',
