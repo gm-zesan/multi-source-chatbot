@@ -100,7 +100,7 @@ class MemoryRelevanceGate
             '/\b(previous|earlier|last\s+(time|one|week|order)|that\s+one|same\s+as\s+before)\b|' .
             '\b(delivering\s+it|tracking\s+it|about\s+it|which\s+courier)\b|' .
             '\b(ager|ager\s+ta|sheta|oita|ager\s+order|eita\s+kon\s+courier)\b|' .
-            'আগেরটা|আগের\s+অর্ডার|আগের\s+পণ্য|সেটা|ঐটা|আগের\s+বারের|কোন\s+কুরিয়ারে|এটি\s+কোন/u',
+            'আগেরটা|আগের\s+অর্ডার|আগের\s+পণ্য|আগের\s+কেনা|আমার\s+আগের|সেটা|ঐটা|আগের\s+বারের|কোন\s+কুরিয়ারে|এটি\s+কোন/u',
             $lower
         );
 
