@@ -71,51 +71,57 @@ class MemoryRelevanceGate
             return false;
         }
 
-        // 3. Generic policy/FAQ query without personal intent should bypass memory
-        // Directives like "tell me", "inform me", "help me" do not constitute personal ownership/preference
-        $cleanedDirective = preg_replace('/\b(tell|give|show|inform|help)\s+me\b/i', '', $lower);
-        $hasPersonalRef = (bool) preg_match('/\b(my|mine|amar|amr|ami)\b|\b(i\s+(want|need|ordered|bought|prefer|have|wear|am|pay|like)|can\s+i)\b|আমার|আমাকে|আমি/u', $cleanedDirective);
-        foreach (self::GENERIC_FAQ_KEYWORDS as $faqKw) {
-            if (str_contains($lower, $faqKw) && !$hasPersonalRef) {
-                return false;
-            }
-        }
-
-        // 4. Explicit order number pattern (#1234 or order 1234)
-        if (preg_match('/#\d{3,10}|\border\s+\d{3,8}\b|\bঅর্ডার\s+\d{3,8}\b/u', $lower) === 1) {
+        // 3. Explicit order number pattern (#1234 or order 1234 or অর্ডার 1234)
+        if (preg_match('/#\d{3,10}|\border\s+#?\d{3,8}\b|\bঅর্ডার\s+#?\d{3,8}\b/u', $lower) === 1) {
             return true;
         }
 
-        // 5. Personal pronoun, preference, or conversational anaphora
-        $hasConversationalContext = (bool) preg_match(
-            '/\b(previous|earlier|last\s+(time|one|week|order)|that\s+one|remember|prefer)\b|' .
-            '\b(ager|ager\s+ta|sheta|oita|mone\s+ache)\b|' .
-            'আগের|আগেরটা|সেটা|ঐটা|মনে\s+আছে/u',
+        // 4. Explicit personal preference disclosure or memory recall inquiry
+        // Must be genuinely personal, e.g.:
+        // "I prefer", "my favorite", "my size is", "what was my", "do you remember", "my chest"
+        // "আমার পছন্দের", "আমার প্রিয়", "আমার সাইজ", "আমার পেমেন্ট", "মনে আছে", "কী ছিল"
+        $hasPersonalPreferenceOrRecall = (bool) preg_match(
+            '/\b(i\s+(always\s+)?(prefer|like|wear|bought|ordered|chose))\b|' .
+            '\b(my\s+(favorite|preferred|preference|size|order|payment|choice|info|color|wardrobe|chest|method))\b|' .
+            '\b(what\s+(is|was)\s+my|remember\s+my|do\s+you\s+remember|keep\s+my)\b|' .
+            '\b(amar\s+(favorite|preferred|preference|size|ordar|order|payment|choice|color|chest|wardrobe|default))\b|' .
+            '\b(amar\s+ki\s+mone\s+ache|mone\s+rakhte\s+parben|mone\s+ache|mone\s+rakhben|save\s+thakbe|mathay\s+rakhben)\b|' .
+            '\b(ami\s+(shobshomoy|always|standard)?.*(prefer|size|choice))\b|' .
+            '\b(pochonder\s+size|default\s+payment|purchase\s+suggestion|pathao\s+consignment)\b|' .
+            'আমার\s+(পছন্দের|পছন্দ|প্রিয়|বিকাশ|পেমেন্ট|অর্ডার|তথ্য|কালার|চেস্ট|বুকের)|' .
+            'আমি\s+(সবসময়|সাধারণত|আগে|স্ট্যান্ডার্ড).*(পছন্দ\s+করি|পরি|কিনেছি|অর্ডার\s+দিয়েছি)|' .
+            'পাঞ্জাবির\s+পছন্দের\s+সাইজ|চেস্ট\s+সাইজ|বুকের\s+মাপ|' .
+            'মনে\s+রাখতে\s+পারবেন|মনে\s+রাখবেন|মনে\s+আছে|কী\s+ছিল/u',
             $lower
         );
 
-        if ($hasPersonalRef || $hasConversationalContext) {
-            // Check if paired with any commercial entity or question
-            foreach (self::COMMERCIAL_INTENTS as $kw) {
-                if (str_contains($lower, $kw)) {
-                    return true;
-                }
-            }
-            // Even if general, personal context query should check memory
+        // 5. Conversational anaphora / continuity / follow-up pronouns
+        $hasConversationalAnaphora = (bool) preg_match(
+            '/\b(previous|earlier|last\s+(time|one|week|order)|that\s+one|same\s+as\s+before)\b|' .
+            '\b(delivering\s+it|tracking\s+it|about\s+it|which\s+courier)\b|' .
+            '\b(ager|ager\s+ta|sheta|oita|ager\s+order|eita\s+kon\s+courier)\b|' .
+            'আগেরটা|আগের\s+অর্ডার|আগের\s+পণ্য|সেটা|ঐটা|আগের\s+বারের|কোন\s+কুরিয়ারে|এটি\s+কোন/u',
+            $lower
+        );
+
+        // 6. Active reported issue on received customer goods with personal ownership
+        // e.g. "আমার পাওয়া পার্সেলের বোতাম ভাঙা", "parcel khule dekhi button venge gese", "I opened my parcel and found a broken button"
+        $hasPersonalDamagedIssue = (bool) preg_match(
+            '/(my\s+parcel|my\s+item|i\s+opened|i\s+received|amar\s+parcel|parcel\s+khule|delivered\s+parcel|আমার\s+(পাওয়া\s+)?পার্সেল|আমার\s+জামা).*(damaged|broken|defect|venge|ভাঙা|ছেঁড়া|নষ্ট)/u',
+            $lower
+        );
+
+        // 7. Specific product variant or sizing inquiry (e.g. "Do you have size XL in black?", "সাইজ কত পাওয়া যাবে?")
+        // Excluding generic exchange/return policy framing
+        $isSpecificVariant = (bool) preg_match('/\b(size\s+(xl|xxl|m|l|s|small|medium|large))\b|\b(in\s+(black|blue|navy|white|red))\b|সাইজ\s+কত/ui', $lower);
+        $isPolicyFraming = (bool) preg_match('/(বদলা|চেঞ্জ|change|না\s+মিললে|exchange|policy|পলিসি|চার্ট|chart|গাইড|guide|হলে\s+কি)/ui', $lower);
+
+        if ($hasPersonalPreferenceOrRecall || $hasConversationalAnaphora || $hasPersonalDamagedIssue || ($isSpecificVariant && !$isPolicyFraming)) {
             return true;
         }
 
-        // 6. Direct sizing or variant inquiry (e.g. "Do you have size XL in black?", "সাইজ কত পাওয়া যাবে?")
-        if (preg_match('/\b(size|xl|xxl|medium|large|small|সাইজ|মাপ)\b/u', $lower) === 1) {
-            return true;
-        }
-
-        // 7. Reported issue, damaged goods, or problem inquiry
-        if (preg_match('/\b(damaged|broken|defect|wrong|ভাঙ্গা|নষ্ট|ভুল)\b/u', $lower) === 1) {
-            return true;
-        }
-
-        // 8. Default: Generic informational or corporate inquiries do NOT need memory
+        // 8. General commercial inquiries, general policy questions, sizing charts, warranty rules,
+        // out-of-domain queries, and corporate questions strictly bypass memory
         return false;
     }
 }
