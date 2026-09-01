@@ -8,6 +8,7 @@ use App\AI\Agents\ActionOrchestratorAgent;
 use App\AI\Agents\ConversationalSupportAgent;
 use App\AI\Agents\CustomerSupportAgent;
 use App\AI\Agents\KnowledgeSupportAgent;
+use App\AI\LLM\LLMClient;
 use App\AI\Routing\HybridRouter;
 use App\AI\Routing\RouteType;
 use App\AI\Routing\RoutingResult;
@@ -32,6 +33,7 @@ class CustomerSupportService
     private readonly ContextualQueryBuilder $contextualQueryBuilder;
     private readonly ConversationMemoryService $memoryService;
     private readonly BusinessSourceOfTruthService $businessService;
+    private readonly LLMClient $llmClient;
 
     public function __construct(
         private readonly FAQSearch $faqSearch,
@@ -41,12 +43,14 @@ class CustomerSupportService
         ?ContextualQueryBuilder $contextualQueryBuilder = null,
         ?ConversationMemoryService $memoryService = null,
         ?BusinessSourceOfTruthService $businessService = null,
+        ?LLMClient $llmClient = null,
     ) {
         $this->router = $router ?? new HybridRouter();
         $this->actionSafety = $actionSafety ?? new ActionSafetyService();
         $this->contextualQueryBuilder = $contextualQueryBuilder ?? new ContextualQueryBuilder();
         $this->memoryService = $memoryService ?? app(ConversationMemoryService::class);
         $this->businessService = $businessService ?? new BusinessSourceOfTruthService();
+        $this->llmClient = $llmClient ?? new LLMClient();
     }
 
     /**
