@@ -36,9 +36,10 @@ class KnowledgeSupportAgent implements Agent, Conversational
             $docs = [];
             foreach ($this->retrievedKnowledge as $idx => $hit) {
                 $n = $idx + 1;
+                $type = method_exists($hit->faq ?? null, 'documentTypeLabel') ? $hit->faq->documentTypeLabel() : 'FAQ';
                 $q = $hit->faq?->question ?? 'N/A';
                 $a = $hit->faq?->answer ?? 'N/A';
-                $docs[] = "[Document #{$n}]\nQuestion: {$q}\nAnswer: {$a}";
+                $docs[] = "[Document #{$n} ({$type})]\nQuestion: {$q}\nAnswer: {$a}";
             }
             $contextSection = "[Layer 1: Official Knowledge Base Documents]\nRetrieved Knowledge Base Documents:\n" . implode("\n\n", $docs);
         }

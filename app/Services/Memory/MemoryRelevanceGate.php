@@ -34,7 +34,11 @@ class MemoryRelevanceGate
     private const GENERIC_FAQ_KEYWORDS = [
         'policy', 'পলিসি', 'terms', 'শর্ত', 'how to', 'কীভাবে', 'কিভাবে',
         'office address', 'contact us', 'opening hours', 'সময়সূচী', 'হেল্পলাইন',
-        'faq', 'রুলস', 'rules', 'refund policy', 'return policy',
+        'faq', 'রুলস', 'rules', 'refund policy', 'return policy', 'exchange policy',
+        'delivery policy', 'shipping policy', 'payment policy', 'cancellation policy',
+        'warranty policy', 'privacy policy', 'about us', 'about company', 'customer support',
+        'রিফান্ড পলিসি', 'রিটার্ন পলিসি', 'এক্সচেঞ্জ পলিসি', 'ডেলিভারি পলিসি', 'পেমেন্ট পলিসি',
+        'ওয়ারেন্টি পলিসি', 'বাতিল পলিসি', 'যোগাযোগ', 'অফিস ঠিকানা', 'গোপনীয়তা নীতি',
     ];
 
     /**
@@ -60,7 +64,9 @@ class MemoryRelevanceGate
         }
 
         // 3. Generic policy/FAQ query without personal intent should bypass memory
-        $hasPersonalRef = (bool) preg_match('/\b(my|i|me|mine|amar|amr)\b|আমি|আমার|আমাকে/u', $lower);
+        // Directives like "tell me", "inform me", "help me" do not constitute personal ownership/preference
+        $cleanedDirective = preg_replace('/\b(tell|give|show|inform|help)\s+me\b/i', '', $lower);
+        $hasPersonalRef = (bool) preg_match('/\b(my|mine|amar|amr)\b|\b(i\s+(want|need|ordered|bought|prefer|have|wear|am))\b|আমার|আমাকে|আমি/u', $cleanedDirective);
         foreach (self::GENERIC_FAQ_KEYWORDS as $faqKw) {
             if (str_contains($lower, $faqKw) && !$hasPersonalRef) {
                 return false;

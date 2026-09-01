@@ -105,6 +105,7 @@ class RetrievalClient
             'workspace_id'  => $faq->workspace_id,
             'question'      => $faq->question,
             'answer'        => $faq->answer,
+            'document_type' => $faq->document_type ?? 'faq',
             'priority'      => $faq->priority ?? 100,
             'is_active'     => (bool) $faq->is_active,
             'lexicon_terms' => $lexiconTerms,
@@ -221,11 +222,12 @@ class RetrievalClient
             if ($faq === null && isset($item['question'], $item['answer'])) {
                 // If model not in local DB (e.g. distributed store), build a transient instance
                 $faq = new FAQ([
-                    'id'           => $id ?? 0,
-                    'question'     => (string) $item['question'],
-                    'answer'       => (string) $item['answer'],
-                    'workspace_id' => $item['workspace_id'] ?? null,
-                    'is_active'    => true,
+                    'id'            => $id ?? 0,
+                    'question'      => (string) $item['question'],
+                    'answer'        => (string) $item['answer'],
+                    'document_type' => (string) ($item['document_type'] ?? 'faq'),
+                    'workspace_id'  => $item['workspace_id'] ?? null,
+                    'is_active'     => true,
                 ]);
                 $faq->exists = true;
             }

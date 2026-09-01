@@ -29,6 +29,7 @@ class FAQ extends Model
     protected $fillable = [
         'workspace_id',
         'category_id',
+        'document_type',
         'question',
         'answer',
         'searchable_text',
@@ -40,6 +41,42 @@ class FAQ extends Model
         'created_by',
         'updated_by',
     ];
+
+    /**
+     * Whether this document represents an official policy or legal document.
+     */
+    public function isPolicy(): bool
+    {
+        return in_array($this->document_type, [
+            'terms', 'privacy_policy', 'refund_policy', 'return_policy',
+            'exchange_policy', 'delivery_policy', 'payment_policy',
+            'cancellation_policy', 'warranty_policy', 'customer_support',
+            'social_media_policy',
+        ], true);
+    }
+
+    /**
+     * Human-readable document type badge label.
+     */
+    public function documentTypeLabel(): string
+    {
+        return match ($this->document_type) {
+            'about_us'            => 'About Us',
+            'terms'               => 'Terms & Conditions',
+            'privacy_policy'      => 'Privacy Policy',
+            'refund_policy'       => 'Refund Policy',
+            'return_policy'       => 'Return Policy',
+            'exchange_policy'     => 'Exchange Policy',
+            'delivery_policy'     => 'Delivery Policy',
+            'payment_policy'      => 'Payment Policy',
+            'cancellation_policy' => 'Cancellation Policy',
+            'warranty_policy'     => 'Warranty Policy',
+            'contact'             => 'Contact Information',
+            'customer_support'    => 'Customer Support Policy',
+            'social_media_policy' => 'F-Commerce & Social Policy',
+            default               => 'FAQ',
+        };
+    }
 
     /**
      * The attributes that should be cast.
