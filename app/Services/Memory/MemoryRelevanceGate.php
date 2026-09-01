@@ -29,6 +29,15 @@ class MemoryRelevanceGate
     ];
 
     /**
+     * Generic FAQ and policy phrases that should bypass memory retrieval unless personal intent is present.
+     */
+    private const GENERIC_FAQ_KEYWORDS = [
+        'policy', 'পলিসি', 'terms', 'শর্ত', 'how to', 'কীভাবে', 'কিভাবে',
+        'office address', 'contact us', 'opening hours', 'সময়সূচী', 'হেল্পলাইন',
+        'faq', 'রুলস', 'rules', 'refund policy', 'return policy',
+    ];
+
+    /**
      * Determine if Conversation Graph Memory should be searched and injected.
      */
     public function shouldRetrieve(string $query, ?Conversation $conversation = null): bool
@@ -50,19 +59,27 @@ class MemoryRelevanceGate
             return false;
         }
 
-        // 3. Commercial intent, personal preference, or order enquiry
+        // 3. Generic policy/FAQ query without personal intent should bypass memory
+        $hasPersonalRef = (bool) preg_match('/\b(my|i|me|mine|amar|amr)\b|আমি|আমার|আমাকে/u', $lower);
+        foreach (self::GENERIC_FAQ_KEYWORDS as $faqKw) {
+            if (str_contains($lower, $faqKw) && !$hasPersonalRef) {
+                return false;
+            }
+        }
+
+        // 4. Commercial intent, personal preference, or order enquiry
         foreach (self::COMMERCIAL_INTENTS as $kw) {
             if (str_contains($lower, $kw)) {
                 return true;
             }
         }
 
-        // 4. Order number pattern (#1234 or order 1234)
+        // 5. Order number pattern (#1234 or order 1234)
         if (preg_match('/#\d{3,10}|\b\d{4,8}\b/', $lower) === 1) {
             return true;
         }
 
-        // 5. Default: If query is moderately complex and conversational, allow retrieval
+        // 6. Default: If query is moderately complex and conversational, allow retrieval
         // (The Python service relevance gate will filter if nothing matches anyway)
         return mb_strlen($trimmed) >= 15;
     }

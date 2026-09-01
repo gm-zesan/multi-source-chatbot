@@ -1,0 +1,222 @@
+{
+  "benchmark_metadata": {
+    "version": "1.0.0",
+    "evaluation_target": "Conversation Graph Memory (KGM v1) vs Sliding Window Buffer",
+    "primary_llm_provider": "deepseek",
+    "primary_llm_model": "deepseek-chat",
+    "services": {
+      "retrieval_engine": "http://127.0.0.1:8001",
+      "memory_service": "http://127.0.0.1:8002",
+      "neo4j": "bolt://127.0.0.1:7687",
+      "typesense": "http://127.0.0.1:8108"
+    }
+  },
+  "test_cases": [
+    {
+      "id": "PRONOUN_01",
+      "dimension": "Context Understanding (Pronoun)",
+      "dialogue_history": [
+        {"direction": "inbound", "body": "I am looking at the Royal Blue Silk Panjabi."},
+        {"direction": "outbound", "body": "The Royal Blue Silk Panjabi is one of our top festive choices!"}
+      ],
+      "current_query": "Can you tell me its price and available sizes?",
+      "target_entity": "Royal Blue Silk Panjabi",
+      "expected_gate_action": "USE",
+      "expected_resolution": "Royal Blue Silk Panjabi"
+    },
+    {
+      "id": "PRONOUN_02",
+      "dimension": "Context Understanding (Pronoun)",
+      "dialogue_history": [
+        {"direction": "inbound", "body": "Do you have the Slim Fit Denim Jacket in stock?"},
+        {"direction": "outbound", "body": "Yes, we have it in sizes M and L."}
+      ],
+      "current_query": "Is it made of stretch denim?",
+      "target_entity": "Slim Fit Denim Jacket",
+      "expected_gate_action": "USE",
+      "expected_resolution": "Slim Fit Denim Jacket"
+    },
+    {
+      "id": "ELLIPSIS_01",
+      "dimension": "Context Understanding (Ellipsis)",
+      "dialogue_history": [
+        {"direction": "inbound", "body": "I previously ordered the Linen Casual Shirt in Navy Blue."},
+        {"direction": "outbound", "body": "Hope you enjoyed your Linen Casual Shirt!"}
+      ],
+      "current_query": "I want the same one in white.",
+      "target_entity": "Linen Casual Shirt",
+      "expected_gate_action": "USE",
+      "expected_resolution": "Linen Casual Shirt"
+    },
+    {
+      "id": "MULTI_ENTITY_01",
+      "dimension": "Context Understanding (Multi-Entity)",
+      "dialogue_history": [
+        {"direction": "inbound", "body": "My order #1042 was a Blue Panjabi in size XL."},
+        {"direction": "outbound", "body": "Recorded Order #1042: Blue Panjabi XL."},
+        {"direction": "inbound", "body": "And my order #1098 was a Black Panjabi in size M."},
+        {"direction": "outbound", "body": "Recorded Order #1098: Black Panjabi M."}
+      ],
+      "current_query": "What size was the first order I placed?",
+      "target_entity": "Order #1042",
+      "expected_gate_action": "USE",
+      "expected_resolution": "XL"
+    },
+    {
+      "id": "TEMPORAL_01",
+      "dimension": "Temporal Memory State Transition",
+      "dialogue_history": [
+        {"direction": "inbound", "body": "I always pay using my bKash wallet."},
+        {"direction": "outbound", "body": "Preference saved: bKash."},
+        {"direction": "inbound", "body": "I lost my bKash SIM yesterday. From now on I only use my Visa Card."},
+        {"direction": "outbound", "body": "Updated preference to Visa Card."}
+      ],
+      "current_query": "What payment method do I currently prefer?",
+      "target_entity": "PaymentMethod",
+      "expected_gate_action": "USE",
+      "expected_resolution": "Visa Card",
+      "stale_resolution_rejected": "bKash"
+    },
+    {
+      "id": "TEMPORAL_02",
+      "dimension": "Temporal Memory State Transition",
+      "dialogue_history": [
+        {"direction": "inbound", "body": "I normally wear size M for t-shirts."},
+        {"direction": "outbound", "body": "Noted, size M for t-shirts."},
+        {"direction": "inbound", "body": "Actually for Punjabi I strictly wear size XL."},
+        {"direction": "outbound", "body": "Updated Punjabi size preference to XL."}
+      ],
+      "current_query": "What size should I choose for Punjabi?",
+      "target_entity": "SizePreference",
+      "expected_gate_action": "USE",
+      "expected_resolution": "XL"
+    },
+    {
+      "id": "CROSS_SESSION_01",
+      "dimension": "Cross-Session Recall",
+      "dialogue_history": [
+        {"direction": "inbound", "body": "Please remember that I prefer home delivery in Dhanmondi."},
+        {"direction": "outbound", "body": "Home delivery to Dhanmondi noted in your profile!"}
+      ],
+      "current_query": "Where do I usually prefer my deliveries sent?",
+      "target_entity": "DeliveryPreference",
+      "expected_gate_action": "USE",
+      "expected_resolution": "Dhanmondi"
+    },
+    {
+      "id": "MULTILINGUAL_EN_01",
+      "dimension": "Multilingual (English)",
+      "dialogue_history": [],
+      "current_query": "I prefer XL size for polo shirts.",
+      "target_entity": "SizePreference",
+      "expected_gate_action": "USE",
+      "expected_resolution": "XL"
+    },
+    {
+      "id": "MULTILINGUAL_BN_01",
+      "dimension": "Multilingual (Native Bangla)",
+      "dialogue_history": [],
+      "current_query": "আমি সাধারণত পাঞ্জাবির জন্য XL সাইজ পছন্দ করি।",
+      "target_entity": "SizePreference",
+      "expected_gate_action": "USE",
+      "expected_resolution": "XL"
+    },
+    {
+      "id": "MULTILINGUAL_BANGLISH_01",
+      "dimension": "Multilingual (Banglish)",
+      "dialogue_history": [],
+      "current_query": "ami shobshomoy XL size er panjabi pochondo kori",
+      "target_entity": "SizePreference",
+      "expected_gate_action": "USE",
+      "expected_resolution": "XL"
+    },
+    {
+      "id": "PHONETIC_VAR_01",
+      "dimension": "Banglish Phonetic Variations",
+      "dialogue_history": [],
+      "current_query": "ami bikash e payment korte chai",
+      "target_entity": "PaymentMethod",
+      "expected_gate_action": "USE",
+      "expected_resolution": "bKash"
+    },
+    {
+      "id": "PHONETIC_VAR_02",
+      "dimension": "Banglish Phonetic Variations",
+      "dialogue_history": [],
+      "current_query": "amar ordar ta kothay ase?",
+      "target_entity": "OrderQuery",
+      "expected_gate_action": "USE",
+      "expected_resolution": "Order"
+    },
+    {
+      "id": "CODE_MIXED_01",
+      "dimension": "Code-Mixed Sentences",
+      "dialogue_history": [],
+      "current_query": "bhai amar previous order ta shipped hoyeche ki na check koren toh?",
+      "target_entity": "OrderQuery",
+      "expected_gate_action": "USE",
+      "expected_resolution": "Order"
+    },
+    {
+      "id": "CODE_MIXED_02",
+      "dimension": "Code-Mixed Sentences",
+      "dialogue_history": [],
+      "current_query": "Can I pay বিকাশ দিয়ে at checkout?",
+      "target_entity": "PaymentMethod",
+      "expected_gate_action": "USE",
+      "expected_resolution": "bKash"
+    },
+    {
+      "id": "FAQ_GATE_01",
+      "dimension": "FAQ + Memory Interaction (Gating)",
+      "dialogue_history": [
+        {"direction": "inbound", "body": "I wear size XXL and use Visa card."},
+        {"direction": "outbound", "body": "Noted XXL and Visa Card!"}
+      ],
+      "current_query": "What is the return policy of your store?",
+      "target_entity": "ReturnPolicy",
+      "expected_gate_action": "SKIP",
+      "expected_memory_tokens_injected": 0,
+      "expected_resolution": "Official KB"
+    },
+    {
+      "id": "CONFLICT_KB_01",
+      "dimension": "KB vs Memory Conflict Precedence",
+      "dialogue_history": [
+        {"direction": "inbound", "body": "A customer rep told me I can return items within 30 days."},
+        {"direction": "outbound", "body": "Noted what you were told."}
+      ],
+      "current_query": "How many days do I have to return an item according to official store policy?",
+      "target_entity": "ReturnPeriod",
+      "expected_precedence_winner": "KB",
+      "expected_resolution": "7 days",
+      "rejected_memory_claim": "30 days"
+    },
+    {
+      "id": "CONFLICT_ORDER_01",
+      "dimension": "Live Order DB vs Memory Conflict Precedence",
+      "dialogue_history": [
+        {"direction": "inbound", "body": "Earlier my order #1042 was marked as Processing."},
+        {"direction": "outbound", "body": "Order #1042 processing noted."}
+      ],
+      "current_query": "What is the live tracking status of my order #1042 right now?",
+      "target_entity": "OrderStatus",
+      "expected_precedence_winner": "Live_DB",
+      "expected_resolution": "Dispatched",
+      "carrier": "Pathao Express",
+      "rejected_memory_claim": "Processing"
+    },
+    {
+      "id": "COMPOSITE_3LAYER_01",
+      "dimension": "Composite 3-Layer Context Synthesis",
+      "dialogue_history": [
+        {"direction": "inbound", "body": "I prefer size XL in Royal Blue."}
+      ],
+      "current_query": "Where is my order #1042, and do you deliver outside Dhaka?",
+      "target_entity": "3LayerComposite",
+      "expected_layers": ["Live Order DB", "Typesense KB", "Graph Memory"],
+      "expected_gate_action": "USE",
+      "expected_resolution": "Dispatched via Pathao"
+    }
+  ]
+}
