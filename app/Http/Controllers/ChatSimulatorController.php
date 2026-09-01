@@ -82,6 +82,9 @@ class ChatSimulatorController extends Controller
                 conversation: $conversation,
                 replyText: $supportResult['reply'],
             );
+
+            // Dispatch asynchronous Graph Memory Ingestion (Non-blocking, port 8002)
+            \App\Jobs\IngestConversationMemoryJob::dispatch($conversation);
         }
 
         // ── 3. Diagnostics & Structured Response ────────────────────────
@@ -109,8 +112,12 @@ class ChatSimulatorController extends Controller
             ] : null,
 
             'pipeline_diagnostics' => [
-                'total_time_ms'     => $totalElapsed,
-                'routing_telemetry' => $supportResult['routing_telemetry'] ?? [],
+                'total_time_ms'        => $totalElapsed,
+                'memory_context'       => $supportResult['memory_context'] ?? null,
+                'has_memory_context'   => !empty($supportResult['memory_context']),
+                'business_context'     => $supportResult['business_context'] ?? null,
+                'has_business_context' => !empty($supportResult['business_context']),
+                'routing_telemetry'    => $supportResult['routing_telemetry'] ?? [],
                 'crm_extracted'  => [
                     'has_data'   => $crm['has_data'],
                     'db_saved'   => $crm['db_saved'],

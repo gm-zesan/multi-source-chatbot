@@ -18,8 +18,10 @@ use App\AI\Tools\KnowledgeRetrievalTool;
 use App\Models\Conversation;
 use App\Models\Message;
 use App\Models\Workspace;
+use App\Services\Business\BusinessSourceOfTruthService;
 use App\Services\Chat\ConversationService;
 use App\Services\FAQ\FAQSearch;
+use App\Services\Memory\ConversationMemoryService;
 use Illuminate\Support\Collection as SupportCollection;
 use Illuminate\Support\Facades\Log;
 
@@ -28,6 +30,8 @@ class CustomerSupportService
     private readonly HybridRouter $router;
     private readonly ActionSafetyService $actionSafety;
     private readonly ContextualQueryBuilder $contextualQueryBuilder;
+    private readonly ConversationMemoryService $memoryService;
+    private readonly BusinessSourceOfTruthService $businessService;
 
     public function __construct(
         private readonly FAQSearch $faqSearch,
@@ -35,10 +39,14 @@ class CustomerSupportService
         ?HybridRouter $router = null,
         ?ActionSafetyService $actionSafety = null,
         ?ContextualQueryBuilder $contextualQueryBuilder = null,
+        ?ConversationMemoryService $memoryService = null,
+        ?BusinessSourceOfTruthService $businessService = null,
     ) {
         $this->router = $router ?? new HybridRouter();
         $this->actionSafety = $actionSafety ?? new ActionSafetyService();
         $this->contextualQueryBuilder = $contextualQueryBuilder ?? new ContextualQueryBuilder();
+        $this->memoryService = $memoryService ?? app(ConversationMemoryService::class);
+        $this->businessService = $businessService ?? new BusinessSourceOfTruthService();
     }
 
     /**
@@ -63,17 +71,33 @@ class CustomerSupportService
             workspaceId: $effectiveWorkspaceId,
         );
 
+        // ── 1.5 Retrieve Memory & Live Business Source of Truth ─────────────
+        $memoryContext = $this->memoryService->retrieveContext(
+            conversation: $conversation,
+            query: $query,
+            workspaceId: $effectiveWorkspaceId,
+        );
+
+        $businessContext = $this->businessService->buildBusinessContext(
+            query: $query,
+            conversation: $conversation,
+            workspaceId: $effectiveWorkspaceId,
+        );
+
         // ── 2. Route Execution ───────────────────────────────────────────────
         $replyText = match ($routingResult->route) {
             RouteType::KNOWLEDGE => $this->executeKnowledgeRoute(
                 conversation: $conversation,
                 query: $query,
                 workspaceId: $effectiveWorkspaceId,
+                memoryContext: $memoryContext,
+                businessContext: $businessContext,
             ),
             RouteType::CHAT => $this->executeChatRoute(
                 conversation: $conversation,
                 query: $query,
                 routingResult: $routingResult,
+                memoryContext: $memoryContext,
             ),
             RouteType::ACTION => $this->executeActionRoute(
                 conversation: $conversation,
@@ -191,16 +215,32 @@ class CustomerSupportService
 
         $groundedHits = $retrievalHits->filter(fn ($h) => $h->finalScore >= 0.45);
 
+        // ── Retrieve Unified Memory & Live Business Data ─────
+        $memoryContext = $this->memoryService->retrieveContext(
+            conversation: $conversation,
+            query: $query,
+            workspaceId: $workspaceId,
+        );
+
+        $businessContext = $this->businessService->buildBusinessContext(
+            query: $query,
+            conversation: $conversation,
+            workspaceId: $workspaceId,
+        );
+
         $replyText = match ($routingResult->route) {
             RouteType::KNOWLEDGE => $this->promptKnowledgeAgent(
                 conversation: $conversation,
                 query: $query,
                 workspaceId: $workspaceId,
                 retrievedHits: $groundedHits,
+                memoryContext: $memoryContext,
+                businessContext: $businessContext,
             ),
             RouteType::CHAT => $this->promptConversationalAgent(
                 conversation: $conversation,
                 query: $query,
+                memoryContext: $memoryContext,
             ),
             RouteType::ACTION => $this->executeActionRoute(
                 conversation: $conversation ?? new Conversation(),
@@ -234,6 +274,8 @@ class CustomerSupportService
             'suggestions' => $suggestions,
             'sources' => $sources,
             'is_handoff' => $isHandoff,
+            'memory_context' => $memoryContext,
+            'business_context' => $businessContext,
             'retrieval_hits' => $retrievalHits,
             'top_hit' => $topHit,
             'answered' => $answered,
@@ -349,6 +391,8 @@ class CustomerSupportService
         Conversation $conversation,
         string $query,
         int $workspaceId,
+        ?string $memoryContext = null,
+        ?string $businessContext = null,
     ): string {
         $this->resetUncertainCount($conversation);
 
@@ -367,6 +411,8 @@ class CustomerSupportService
             query: $query,
             workspaceId: $workspaceId,
             retrievedHits: $groundedHits,
+            memoryContext: $memoryContext,
+            businessContext: $businessContext,
         );
     }
 
@@ -374,6 +420,7 @@ class CustomerSupportService
         Conversation $conversation,
         string $query,
         RoutingResult $routingResult,
+        ?string $memoryContext = null,
     ): string {
         $this->resetUncertainCount($conversation);
 
@@ -386,6 +433,7 @@ class CustomerSupportService
         return $this->promptConversationalAgent(
             conversation: $conversation,
             query: $query,
+            memoryContext: $memoryContext,
         );
     }
 
@@ -504,9 +552,13 @@ class CustomerSupportService
         string $query,
         int $workspaceId,
         \Illuminate\Database\Eloquent\Collection $retrievedHits,
+        ?string $memoryContext = null,
+        ?string $businessContext = null,
     ): string {
-        $provider = config('ai.default', 'deepseek');
-        $model = config('ai.default_model', 'deepseek-chat');
+        $primaryProvider = config('ai.default', 'deepseek');
+        $primaryModel = config('ai.default_model', 'deepseek-chat');
+        $fallbackProvider = config('ai.fallback_provider', 'openrouter');
+        $fallbackModel = config('ai.fallback_model', 'openrouter/free');
 
         // Check if CustomerSupportAgent was faked in testing
         if (CustomerSupportAgent::isFaked()) {
@@ -514,85 +566,96 @@ class CustomerSupportService
                 conversation: $conversation,
                 retrievalTool: new KnowledgeRetrievalTool($this->faqSearch, $workspaceId),
             );
-            return (string) $fakeAgent->prompt($query, provider: $provider, model: $model);
+            return (string) $fakeAgent->prompt($query, provider: $primaryProvider, model: $primaryModel);
         }
 
         $agent = new KnowledgeSupportAgent(
             conversation: $conversation,
             retrievedKnowledge: $retrievedHits,
+            memoryContext: $memoryContext,
+            businessContext: $businessContext,
         );
 
-        for ($attempt = 1; $attempt <= 2; $attempt++) {
-            try {
-                $response = $agent->prompt($query, provider: $provider, model: $model);
-                return (string) $response;
-            } catch (\Throwable $e) {
-                $isTransient = $this->isTransientError($e);
+        // Tier 1: Try Primary Provider
+        try {
+            $response = $agent->prompt($query, provider: $primaryProvider, model: $primaryModel);
+            return (string) $response;
+        } catch (\Throwable $ePrimary) {
+            Log::warning('[CustomerSupportService] Primary provider failed, attempting fallback provider', [
+                'primary_provider'  => $primaryProvider,
+                'fallback_provider' => $fallbackProvider,
+                'error'             => $ePrimary->getMessage(),
+                'workspace_id'      => $workspaceId,
+            ]);
 
-                if ($attempt === 1 && $isTransient) {
-                    usleep(400000); // 400ms retry backoff
-                    continue;
+            // Tier 2: Try Secondary Fallback Provider
+            if (!empty($fallbackProvider) && $fallbackProvider !== $primaryProvider) {
+                try {
+                    $response = $agent->prompt($query, provider: $fallbackProvider, model: $fallbackModel);
+                    return (string) $response;
+                } catch (\Throwable $eFallback) {
+                    Log::warning('[CustomerSupportService] Fallback provider also failed', [
+                        'fallback_provider' => $fallbackProvider,
+                        'error'             => $eFallback->getMessage(),
+                    ]);
                 }
-
-                Log::warning('[CustomerSupportService] Knowledge agent failed, executing fallback', [
-                    'error'        => $e->getMessage(),
-                    'is_transient' => $isTransient,
-                    'workspace_id' => $workspaceId,
-                    'attempt'      => $attempt,
-                ]);
-
-                $topHit = $retrievedHits->first();
-                if ($topHit && $topHit->finalScore >= 0.45 && !empty($topHit->faq?->answer)) {
-                    return $topHit->faq->answer;
-                }
-                return $this->defaultFallbackText();
             }
-        }
 
-        $topHit = $retrievedHits->first();
-        if ($topHit && $topHit->finalScore >= 0.45 && !empty($topHit->faq?->answer)) {
-            return $topHit->faq->answer;
-        }
+            // Tier 3: Deterministic Grounded Fallback
+            $topHit = $retrievedHits->first();
+            if ($topHit && $topHit->finalScore >= 0.45 && !empty($topHit->faq?->answer)) {
+                return $topHit->faq->answer;
+            }
 
-        return $this->defaultFallbackText();
+            return $this->defaultFallbackText();
+        }
     }
 
     private function promptConversationalAgent(
         ?Conversation $conversation,
         string $query,
+        ?string $memoryContext = null,
     ): string {
-        $provider = config('ai.default', 'deepseek');
-        $model = config('ai.default_model', 'deepseek-chat');
+        $primaryProvider = config('ai.default', 'deepseek');
+        $primaryModel = config('ai.default_model', 'deepseek-chat');
+        $fallbackProvider = config('ai.fallback_provider', 'openrouter');
+        $fallbackModel = config('ai.fallback_model', 'openrouter/free');
 
         if (CustomerSupportAgent::isFaked()) {
             $fakeAgent = new CustomerSupportAgent(conversation: $conversation);
-            return (string) $fakeAgent->prompt($query, provider: $provider, model: $model);
+            return (string) $fakeAgent->prompt($query, provider: $primaryProvider, model: $primaryModel);
         }
 
-        $agent = new ConversationalSupportAgent(conversation: $conversation);
+        $agent = new ConversationalSupportAgent(
+            conversation: $conversation,
+            memoryContext: $memoryContext,
+        );
 
-        for ($attempt = 1; $attempt <= 2; $attempt++) {
-            try {
-                return (string) $agent->prompt($query, provider: $provider, model: $model);
-            } catch (\Throwable $e) {
-                $isTransient = $this->isTransientError($e);
+        // Tier 1: Try Primary Provider
+        try {
+            return (string) $agent->prompt($query, provider: $primaryProvider, model: $primaryModel);
+        } catch (\Throwable $ePrimary) {
+            Log::warning('[CustomerSupportService] Primary conversational agent failed, attempting fallback', [
+                'primary_provider'  => $primaryProvider,
+                'fallback_provider' => $fallbackProvider,
+                'error'             => $ePrimary->getMessage(),
+            ]);
 
-                if ($attempt === 1 && $isTransient) {
-                    usleep(400000);
-                    continue;
+            // Tier 2: Try Fallback Provider
+            if (!empty($fallbackProvider) && $fallbackProvider !== $primaryProvider) {
+                try {
+                    return (string) $agent->prompt($query, provider: $fallbackProvider, model: $fallbackModel);
+                } catch (\Throwable $eFallback) {
+                    Log::warning('[CustomerSupportService] Fallback conversational provider also failed', [
+                        'fallback_provider' => $fallbackProvider,
+                        'error'             => $eFallback->getMessage(),
+                    ]);
                 }
-
-                Log::warning('[CustomerSupportService] Conversational agent failed', [
-                    'error'        => $e->getMessage(),
-                    'is_transient' => $isTransient,
-                    'attempt'      => $attempt,
-                ]);
-
-                return "হ্যালো! আপনাকে কীভাবে সাহায্য করতে পারি?";
             }
-        }
 
-        return "হ্যালো! আপনাকে কীভাবে সাহায্য করতে পারি?";
+            // Tier 3: Deterministic Polite Greeting Fallback
+            return "হ্যালো! আপনাকে কীভাবে সাহায্য করতে পারি?";
+        }
     }
 
     /**

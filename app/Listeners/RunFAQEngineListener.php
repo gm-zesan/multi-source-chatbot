@@ -99,7 +99,10 @@ class RunFAQEngineListener implements ShouldQueue
                     deliveryResponse: $deliveryResponse,
                 );
 
-                Log::info('[FAQ Listener] AI Customer Support Agent response saved and sent', [
+                // Dispatch asynchronous Graph Memory Ingestion (Non-blocking, port 8002)
+                \App\Jobs\IngestConversationMemoryJob::dispatch($event->conversation);
+
+                Log::info('[FAQ Listener] AI Customer Support Agent response saved, memory ingestion queued', [
                     'conversation_id' => $event->conversation->id,
                 ]);
             }

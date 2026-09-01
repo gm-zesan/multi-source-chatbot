@@ -18,10 +18,16 @@ class ConversationalSupportAgent implements Agent, Conversational
 
     public function __construct(
         public readonly ?Conversation $conversation = null,
+        public readonly ?string $memoryContext = null,
     ) {}
 
     public function instructions(): Stringable|string
     {
+        $memorySection = "";
+        if (!empty($this->memoryContext)) {
+            $memorySection = "\n\nCustomer Conversation Graph Memory (Known Historical Preferences):\n" . $this->memoryContext . "\nWhen relevant, acknowledge their known context politely and warmly without being intrusive.\n";
+        }
+
         return <<<PROMPT
 You are a warm, polite, and professional Enterprise Customer Support AI Assistant.
 
@@ -30,6 +36,7 @@ Instructions:
 2. Ask how you can assist them today regarding their account, orders, subscription, or our platform features.
 3. If the user writes in Bangla, respond in polite Bangla (বাংলা). If they write in English or Banglish, respond in the matching natural tone.
 4. Keep the response concise, engaging, and helpful.
+{$memorySection}
 PROMPT;
     }
 

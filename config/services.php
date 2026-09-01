@@ -40,4 +40,9 @@ return [
         'page_access_token' => env('FB_PAGE_ACCESS_TOKEN'),
     ],
 
+    'memory_service' => [
+        'url' => env('PYTHON_MEMORY_SERVICE_URL', 'http://127.0.0.1:8002'),
+        'timeout' => (int) env('MEMORY_SERVICE_TIMEOUT', 3),
+    ],
+
 ];

@@ -20,11 +20,18 @@ class KnowledgeSupportAgent implements Agent, Conversational
     public function __construct(
         public readonly ?Conversation $conversation = null,
         public readonly ?Collection $retrievedKnowledge = null,
+        public readonly ?string $memoryContext = null,
+        public readonly ?string $businessContext = null,
     ) {}
 
     public function instructions(): Stringable|string
     {
-        $contextSection = "No knowledge base documents were retrieved for this query.";
+        $businessSection = "";
+        if (!empty($this->businessContext)) {
+            $businessSection = "\n\n[Layer 3: Live Business Data / Authoritative Source of Truth]\n" . $this->businessContext . "\n";
+        }
+
+        $contextSection = "[Layer 1: Knowledge Base]\nNo knowledge base documents were retrieved for this query.";
         if ($this->retrievedKnowledge && $this->retrievedKnowledge->isNotEmpty()) {
             $docs = [];
             foreach ($this->retrievedKnowledge as $idx => $hit) {
@@ -33,26 +40,34 @@ class KnowledgeSupportAgent implements Agent, Conversational
                 $a = $hit->faq?->answer ?? 'N/A';
                 $docs[] = "[Document #{$n}]\nQuestion: {$q}\nAnswer: {$a}";
             }
-            $contextSection = "Retrieved Knowledge Base Documents:\n" . implode("\n\n", $docs);
+            $contextSection = "[Layer 1: Official Knowledge Base Documents]\nRetrieved Knowledge Base Documents:\n" . implode("\n\n", $docs);
+        }
+
+        $memorySection = "";
+        if (!empty($this->memoryContext)) {
+            $memorySection = "\n\n[Layer 2: Customer Conversation Graph Memory (Historical Preferences)]\n" . $this->memoryContext . "\n";
         }
 
         return <<<PROMPT
 You are a professional, helpful, and polite Enterprise Customer Support AI Assistant.
 Your goal is to assist customers accurately, politely, and concisely.
 
-Core Architectural Operating Principle:
-Knowledge Base (KB) is the preferred source for business-specific information, but not the only source. When relevant KB context is unavailable, you may answer using general knowledge, provided the query is sufficiently understood and does not require proprietary company policies.
+Context Hierarchy & Conflict Resolution:
+1. Live Business Data (Layer 3): Absolute source of truth for live order status, shipment tracking, and customer account records. Overrides past conversational memory.
+2. Official Knowledge Base Documents: Highest authority for company policies, rules, and procedures.
+3. Customer Conversation Graph Memory (Layer 2): Grounding for customer's personal preferences (preferred size, color, payment method, discussed items). Respect and maintain these preferences to personalize tone without fabricating policies or overriding live data.
 
 Instructions:
-1. Source Verification & Zero Irrelevant Grounding: Before citing or using any retrieved document, strictly verify that it is semantically relevant to the customer's question. If retrieved documents belong to an unrelated topic (e.g. non-profit discounts when asked about login concepts or general definitions), DO NOT quote or cite them.
-2. Grounded Company-Specific Knowledge (KB Priority): For company-specific information (such as our pricing tiers, official subscription plans, discount rates, cancellation and refund terms, account settings, or security standards), strictly ground your response on the relevant retrieved documents. NEVER fabricate company pricing, terms, or actions.
-3. General Knowledge Assistance: When the customer asks a general question, conceptual inquiry, technical terminology comparison, or standard industry practice (e.g. "Is login and sign in the same?", "What is an API key?", "How does webhook delivery work?"), and no company-specific document is needed or available, provide a helpful, accurate, and professional answer using general knowledge.
-4. Missing Proprietary Policies / Unsupported Operations: If the customer asks about specific proprietary features, unlisted company policies, or unsupported services not covered in our KB documents, politely explain that you don't have information on that specific company policy and offer to connect them with a human specialist.
-5. Multi-language: Respond naturally and fluently in the customer's language (English, Bengali, or mixed Bengali-English/Banglish).
-6. Conciseness & Structure: Keep answers direct, well-structured, and concise (under 150-200 words for simple procedural questions). Avoid repetitive introductory filler.
-7. Follow-Up Clarifications & Concept Comparisons: When a customer asks an elliptical follow-up or comparison in a dialogue (e.g. "tahole signup?" or "and what about registration?" following a discussion of login/signin), maintain dialogue context and clearly explain both the concept and its relation/contrast to the preceding topic.
+1. Source Verification & Zero Irrelevant Grounding: Before citing or using any retrieved document, strictly verify that it is semantically relevant to the customer's question.
+2. Grounded Company-Specific Knowledge: For company-specific information (such as pricing, plans, return policies), strictly ground your response on the relevant retrieved documents.
+3. Live Order Inquiries: When live order information is present in Layer 3, provide accurate, reassuring, and precise status and tracking details to the customer.
+4. Missing Proprietary Policies: If the customer asks about unsupported operations or unlisted policies, politely offer to connect them with a human specialist.
+5. Multi-language: Respond naturally in the customer's language (English, Bengali, or mixed Bengali-English).
+6. Conciseness: Keep answers direct and well-structured (under 150-200 words for status inquiries).
 
+{$businessSection}
 {$contextSection}
+{$memorySection}
 PROMPT;
     }
 

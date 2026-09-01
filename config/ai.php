@@ -15,6 +15,9 @@ return [
     'default' => env('AI_DEFAULT_PROVIDER', 'deepseek'),
     'default_model' => env('AI_DEFAULT_MODEL', 'deepseek-chat'),
 
+    'fallback_provider' => env('AI_FALLBACK_PROVIDER', 'openrouter'),
+    'fallback_model' => env('AI_FALLBACK_MODEL', 'openrouter/free'),
+
     /*
     |--------------------------------------------------------------------------
     | Memory / Conversation Context Limits
