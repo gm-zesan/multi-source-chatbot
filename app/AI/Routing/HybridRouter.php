@@ -290,7 +290,7 @@ class HybridRouter
             '/(president|prime minister|election|parliament|government of|রাষ্ট্রপতি|প্রধানমন্ত্রী|সংসদ|নির্বাচন)/u',
             '/(cricket|football|match|score|fifa|world cup|ক্রিকেট|ফুটবল|বিশ্বকাপ)/u',
             '/(hospital|doctor|clinic|pharmacy|ambulance|medical|হাসপাতাল|ডাক্তার|ফার্মেসি|অ্যাম্বুলেন্স)/u',
-            '/(stock price|apple stock|nasdaq|crypto|bitcoin|flight to|flights to|শেয়ার বাজার|বিটকয়েন|ফ্লাইট)/u',
+            '/(stock price|apple stock|nasdaq|crypto|bitcoin|flight|airline|airport|boarding|শেয়ার বাজার|বিটকয়েন|ফ্লাইট|বিমান|এয়ারলাইন)/u',
             '/(nuclear|submarine|rocket fuel|rocket parts|weapons|explosive|drugs|পারমাণবিক|রকেট)/u',
             '/(poem|write a story|write a song|joke|riddle|কবিতা|গল্প লিখুন|গান লিখুন|কৌতুক)/u',
             '/^(asdf|qwerty|zxcvbnm|ghjk|test123|abcxyz)/u',
@@ -503,6 +503,71 @@ class HybridRouter
                 'signals'    => array_merge($signals, ['reason' => 'soft_action_desire_without_entity']),
                 'entities'   => $entities,
             ];
+        }
+
+        // ── Rule 3.5: Explicit Order Status / Courier Tracking ACTION ───────────────────────────────────────
+        $hasOrderId = !empty($entities['order_id']);
+        $hasStatusIntent = (bool) preg_match('/\b(status|track|tracking|where\s+is|update|shipment|obostha|state|live\s+shipment)\b|অবস্থা|আপডেট|ট্র্যাকিং|কোথায়|কোথায়/ui', $normalized);
+        $isActionPolicy = (bool) preg_match('/(policy|পলিসি|কীভাবে|কিভাবে|kivabe|how\s+does|how\s+to|how\s+do\s+i|rules|রুলস|rules\s+for)/ui', $normalized);
+
+        if ($hasOrderId && $hasStatusIntent && !$isActionPolicy) {
+            return [
+                'route'      => RouteType::ACTION,
+                'confidence' => 0.95,
+                'intent'     => 'get_order',
+                'signals'    => array_merge($signals, ['reason' => 'explicit_order_status_tracking']),
+                'entities'   => $entities,
+            ];
+        }
+
+        $isSpecificCourierInquiry = (bool) preg_match('/\b(which\s+courier|kon\s+courier|consignment\s+tracking|delivering\s+it)\b|কোন\s+কুরি[য়য়]ারে|কোন\s+কুরি[য়য়]ার|কুরি[য়য়]ারে\s+আছে/ui', $normalized);
+        $isGeneralCourierPolicy = (bool) preg_match('/\b(do\s+you\s+use|charge|policy|rules|partner|service|kivabe|how\s+to|how\s+do\s+i)\b|চার্জ|পলিসি|নিয়ম|পার্টনার|ব্যবহার\s+করেন|কীভাবে|কিভাবে/ui', $normalized);
+        if ($isSpecificCourierInquiry && !$isGeneralCourierPolicy) {
+            return [
+                'route'      => RouteType::ACTION,
+                'confidence' => 0.90,
+                'intent'     => 'courier_consignment_tracking',
+                'signals'    => array_merge($signals, ['reason' => 'courier_consignment_tracking']),
+                'entities'   => $entities,
+            ];
+        }
+
+        // ── Rule 3.6: Personal Dialogue / Preference Disclosure / Memory Recall / Damaged Complaint CHAT ─────
+        $hasMutationVerb = (bool) preg_match('/\b(cancel|cncl|change|refund|update|delete)\b|বাতিল|ক্যানসেল|পরিবর্তন/ui', $normalized);
+        $isInventoryInquiry = (bool) preg_match('/\b(do\s+you\s+have|available|stock|in\s+stock)\b|আছে\s+কি|পাওয়া\s+যাবে|পাওয়া\s+যাবে/ui', $normalized);
+        $isStorePolicyInquiry = (bool) preg_match('/\b(accept|payment\s+methods?\s+do\s+you|return\s+policy|exchange\s+policy|refund\s+policy|can\s+i\s+(return|exchange|cancel))\b|গ্রহণ\s+করেন|পলিসি|শর্ত|ফেরত\s+দেওয়া|বদলানো\s+যাবে/ui', $normalized);
+
+        if (!$hasMutationVerb && !$isInventoryInquiry && !$isStorePolicyInquiry) {
+            $hasPersonalPref = (bool) preg_match(
+                '/\b(i\s+(always\s+)?(prefer|like|wear))\b|' .
+                '\b(my\s+(favorite|preferred|preference|size|payment\s+method|choice|color))\b|' .
+                '\b(what\s+(is|was)\s+my|remember\s+my|do\s+you\s+remember|keep\s+my)\b|' .
+                '\b(amar\s+(favorite|preferred|preference|size|payment\s+preference|choice|color|default))\b|' .
+                '\b(amar\s+ki\s+mone\s+ache|mone\s+rakhte\s+parben|mone\s+ache|mone\s+rakhben|save\s+thakbe|mathay\s+rakhben)\b|' .
+                '\b(ami.*(prefer|size|choice))\b|' .
+                '\b(pochonder\s+size|default\s+payment|purchase\s+suggestion)\b|' .
+                'আমার\s+(পছন্দের|পছন্দ|প্রিয়|কালার)|' .
+                'আমার\s+পেমেন্ট\s+(মাধ্যম|প্রেফারেন্স)|' .
+                'আমি.*(পছন্দ\s+করি|পরি)|' .
+                'পাঞ্জাবির\s+পছন্দের\s+সাইজ|' .
+                'মনে\s+রাখতে\s+পারবেন|মনে\s+রাখবেন|মনে\s+আছে|কী\s+ছিল/ui',
+                $normalized
+            );
+
+            $hasDamaged = (bool) preg_match(
+                '/(my\s+parcel|my\s+item|i\s+opened|amar\s+parcel|parcel\s+khule|delivered\s+parcel|আমার\s+(পাওয়া\s+)?পার্সেল|আমার\s+জামা).*(damaged|broken|defect|venge|ভাঙা|ছেঁড়া|নষ্ট)/ui',
+                $normalized
+            );
+
+            if ($hasPersonalPref || $hasDamaged) {
+                return [
+                    'route'      => RouteType::CHAT,
+                    'confidence' => 0.90,
+                    'intent'     => $hasDamaged ? 'customer_damaged_goods_issue' : 'personal_preference_dialogue',
+                    'signals'    => array_merge($signals, ['reason' => $hasDamaged ? 'damaged_goods_complaint' : 'personal_preference_disclosure']),
+                    'entities'   => $entities,
+                ];
+            }
         }
 
         // ── Rule 4: Substantive Knowledge Inquiry (Question / Policy / How-To / "Can I cancel?") ─────────────
