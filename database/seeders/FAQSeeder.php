@@ -56,9 +56,9 @@ class FAQSeeder extends Seeder
             ],
             [
                 'category_slug' => 'account-billing',
-                'question' => 'How do I view my invoices?',
+                'question' => 'How do I view my SaaS platform subscription invoices?',
                 'answer' => 'Invoices are available under Settings > Billing > Invoice History. You can download individual invoices as PDF or request them via email. Invoices are generated at the start of each billing cycle.',
-                'priority' => 80,
+                'priority' => 30,
             ],
             [
                 'category_slug' => 'account-billing',
@@ -136,9 +136,9 @@ class FAQSeeder extends Seeder
             ],
             [
                 'category_slug' => 'api-reference',
-                'question' => 'What are the API rate limits?',
+                'question' => 'What are the API platform rate limits?',
                 'answer' => 'API rate limits vary by plan. The free plan allows 100 requests per minute, while paid plans have higher limits. Rate limit headers are included in all API responses so you can monitor your usage.',
-                'priority' => 90,
+                'priority' => 30,
             ],
             [
                 'category_slug' => 'api-reference',

@@ -83,8 +83,8 @@ class StaticBusinessKnowledgeSeeder extends Seeder
             [
                 'document_type' => 'return_policy',
                 'category_id'   => $catPolicy->id,
-                'question'      => 'Official Return Policy & Eligibility / পণ্য রিটার্ন করার নিয়ম ও শর্তাবলী',
-                'answer'        => 'Items can be returned within 7 days of delivery. To be eligible for a return, products must be unworn, unwashed, in their original packaging, and with all manufacturer tags intact. Defective, damaged, or wrongly shipped items are eligible for 100% free return courier pickup. Innerwear, discounted final-sale clearance items, and customized tailored garments cannot be returned.',
+                'question'      => 'Official Return Policy & Eligibility / পণ্য রিটার্ন করার নিয়ম, কোন পোশাক ফেরতযোগ্য নয় ও নন-রিটার্নেবল আইটেম',
+                'answer'        => 'Items can be returned within 7 days of delivery. To be eligible for a return, products must be unworn, unwashed, in their original packaging, and with all manufacturer tags intact. Defective, damaged, or wrongly shipped items are eligible for 100% free return courier pickup. Innerwear, discounted final-sale clearance items, and customized tailored garments cannot be returned. সব ধরনের পোশাক কি রিটার্ন করা যায়? কোন আইটেমগুলো নন-রিটার্নেবল? ডেলিভারির ৭ দিনের মধ্যে বেশিরভাগ পণ্য রিটার্ন করা যায়। তবে ইনারওয়্যার, কাস্টমাইজড পোশাক এবং ক্লিয়ারেন্স সেলের আইটেম নন-রিটার্নেবল (কোন পোশাক ফেরতযোগ্য নয়)। অফিসিয়াল রিটার্ন পলিসি ৩০ দিন নয়, বরং ৭ দিন। ফেরত পাঠানোর জন্য ডেলিভারি চার্জ সম্পূর্ণ ফ্রি যদি পণ্যটিতে কোনো ত্রুটি থাকে।',
                 'priority'      => 100,
             ],
 
@@ -101,8 +101,8 @@ class StaticBusinessKnowledgeSeeder extends Seeder
             [
                 'document_type' => 'delivery_policy',
                 'category_id'   => $catOrders->id,
-                'question'      => 'Delivery & Shipping Rates, Timeframes & Coverage / ডেলিভারি চার্জ ও সময়সীমা',
-                'answer'        => 'We deliver across all 64 districts of Bangladesh via Pathao Express, Paperfly, and Steadfast Courier. Inside Dhaka delivery takes 24 to 48 hours at a standard charge of 70 BDT. Outside Dhaka delivery takes 3 to 5 business days at 130 BDT. Express same-day delivery inside Dhaka is available for orders confirmed before 11:00 AM at 150 BDT. Customers receive an SMS with live courier tracking upon dispatch.',
+                'question'      => 'Delivery & Shipping Rates, Timeframes, Tracking & Coverage / ডেলিভারি চার্জ, সময়সীমা, পার্সেল ট্র্যাক করব কীভাবে ও কুরিয়ার ট্র্যাকিং',
+                'answer'        => 'We deliver across all 64 districts of Bangladesh via Pathao Express, Paperfly, and Steadfast Courier. Inside Dhaka delivery takes 24 to 48 hours at a standard charge of 70 BDT. Outside Dhaka delivery takes 3 to 5 business days at 130 BDT. Express same-day delivery inside Dhaka is available for orders confirmed before 11:00 AM at 150 BDT. Customers receive an SMS with live courier tracking upon dispatch. ডেলিভারি পেতে কত দিন সময় লাগবে: ঢাকার ভেতরে ২৪-৪৮ ঘণ্টা, ঢাকার বাইরে ৩-৫ দিন। আজকের মধ্যেই এক্সপ্রেস সেইম ডে ডেলিভারির ফি ও চার্জ ১৫০ টাকা। পার্সেল ট্র্যাক করবেন কীভাবে: ডিসপ্যাচ হওয়ার পর এসএমএসে পাঠানো কুরিয়ার ট্র্যাকিং কোড দিয়ে লাইভ পার্সেল ট্র্যাক করা যাবে। কনসাইনমেন্ট ট্র্যাকিং কোড দিয়ে ওয়েবসাইটে ট্র্যাক করা সম্ভব। চার্জ কত: ঢাকার ভেতরে ৭০ টাকা, বাইরে ১৩০ টাকা। সারাদেশে সম্পূর্ণ ফ্রি ডেলিভারি অফার প্রমোশনাল ক্যাম্পেইনে প্রযোজ্য হয়।',
                 'priority'      => 100,
             ],
 
@@ -110,8 +110,8 @@ class StaticBusinessKnowledgeSeeder extends Seeder
             [
                 'document_type' => 'payment_policy',
                 'category_id'   => $catPayment->id,
-                'question'      => 'Accepted Payment Methods & Gateway Security / পেমেন্ট মাধ্যম ও নিয়মাবলী',
-                'answer'        => 'We support multiple secure payment methods: Cash on Delivery (COD), bKash Merchant Gateway, Nagad, Rocket, and Visa/Mastercard/Amex through SSLCommerz. For COD orders outside Dhaka, an advance courier commitment fee of 150 BDT may be required to prevent fake bookings. We do not charge any extra merchant gateway transaction fees to customers.',
+                'question'      => 'Accepted Payment Methods & Gateway Security / পেমেন্ট মাধ্যম, কি কি পেমেন্ট গ্রহণ করেন ও নিয়মাবলী (বিকাশ, নগদ, কার্ড, ক্যাশ অন ডেলিভারি)',
+                'answer'        => 'We support multiple secure payment methods: Cash on Delivery (COD), bKash Merchant Gateway, Nagad, Rocket, and Visa/Mastercard/Amex through SSLCommerz. For COD orders outside Dhaka, an advance courier commitment fee of 150 BDT may be required to prevent fake bookings. We do not charge any extra merchant gateway transaction fees to customers. আপনারা কি কি পেমেন্ট গ্রহণ করেন: ক্যাশ অন ডেলিভারি (COD), বিকাশ (bKash), নগদ, রকেট এবং ডেবিট/ক্রেডিট কার্ড। বিকাশ পেমেন্ট নেওয়া হয়।',
                 'priority'      => 100,
             ],
 
@@ -128,8 +128,8 @@ class StaticBusinessKnowledgeSeeder extends Seeder
             [
                 'document_type' => 'warranty_policy',
                 'category_id'   => $catProducts->id,
-                'question'      => 'Product Warranty & Quality Guarantee / প্রডাক্ট ওয়ারেন্টি ও গ্যারান্টি পলিসি',
-                'answer'        => 'Smart accessories, watches, and electronics carry a 6-month to 1-year brand service warranty as specified on the product page. Apparel and leather shoes carry a 30-day manufacturing defect guarantee (stitching, sole bonding, zipper). Warranty claims require proof of purchase (invoice or order number). Physical damage, water damage, and normal wear-and-tear are excluded.',
+                'question'      => 'Product Warranty & Quality Guarantee / প্রডাক্ট ওয়ারেন্টি, গ্যারান্টি, ত্রুটি ক্লেইম, ইনভয়েস ও ক্রয়ের রসিদ',
+                'answer'        => 'Smart accessories, watches, and electronics carry a 6-month to 1-year brand service warranty as specified on the product page. Apparel and leather shoes carry a 30-day manufacturing defect guarantee (stitching, sole bonding, zipper). Warranty claims require proof of purchase (invoice or order number). Physical damage, water damage, and normal wear-and-tear are excluded. পোশাকের সেলাই ছুটে গেলে, বোতাম ভাঙা থাকলে, বা নষ্ট কাপড়ের ক্ষেত্রে ৩০ দিনের মধ্যে ম্যানুফ্যাকচারিং ডিফেক্ট গ্যারান্টির আওতায় ক্লেইম করা যাবে। ক্লেইম করার জন্য কি ইনভয়েস লাগবে? হ্যাঁ, ক্রয়ের রসিদ বা ইনভয়েস অথবা অর্ডার নম্বর প্রুফ অব পারচেজ হিসেবে লাগবে। স্মার্ট ওয়াচে সার্ভিস চার্জ ছাড়াই ফ্রি সার্ভিসিং পাওয়া যায়।',
                 'priority'      => 90,
             ],
 
@@ -146,8 +146,8 @@ class StaticBusinessKnowledgeSeeder extends Seeder
             [
                 'document_type' => 'customer_support',
                 'category_id'   => $catPolicy->id,
-                'question'      => 'Customer Support Hours & Helpdesk Operations / কাস্টমার কেয়ার ও হেল্পডেস্ক সময়সূচী',
-                'answer'        => 'Our AI Support Assistant is available 24/7 for instant order lookups, parcel tracking, and store policies. Human support specialists are available 7 days a week from 9:00 AM to 10:00 PM BST. Inquiries received after 10:00 PM are queued and answered first thing the next morning.',
+                'question'      => 'Customer Support Hours & Helpdesk Operations / কাস্টমার কেয়ার ও কাস্টমার কেয়ার হেল্পলাইন কয়টা পর্যন্ত খোলা থাকে',
+                'answer'        => 'Our AI Support Assistant is available 24/7 for instant order lookups, parcel tracking, and store policies. Human support specialists are available 7 days a week from 9:00 AM to 10:00 PM BST. Inquiries received after 10:00 PM are queued and answered first thing the next morning. কাস্টমার কেয়ার হেল্পলাইন কয়টা পর্যন্ত খোলা থাকে: প্রতিদিন সকাল ৯টা থেকে রাত ১০টা পর্যন্ত।',
                 'priority'      => 95,
             ],
 
@@ -180,9 +180,9 @@ class StaticBusinessKnowledgeSeeder extends Seeder
             [
                 'document_type' => 'faq',
                 'category_id'   => $catOrders->id,
-                'question'      => 'Can I open and check the parcel before paying the courier (COD)? / ডেলিভারিম্যানের সামনে দেখে নেওয়া যাবে কি?',
-                'answer'        => 'Yes! We allow parcel opening and inspection in front of the courier delivery representative for all Cash on Delivery orders. If the item is damaged or incorrect, you can return it to the delivery agent immediately without paying.',
-                'priority'      => 85,
+                'question'      => 'Can I open and check the parcel before paying the courier (COD)? / ডেলিভারিম্যানের সামনে দেখে নেওয়া যাবে কি ও পার্সেল চেক করার নিয়ম',
+                'answer'        => 'Yes! We allow parcel opening and inspection in front of the courier delivery representative for all Cash on Delivery orders. If the item is damaged or incorrect, you can return it to the delivery agent immediately without paying. ডেলিভারি ম্যানের সামনে কি পার্সেল চেক করা যাবে? হ্যাঁ, ক্যাশ অন ডেলিভারিতে চেক করে নেওয়া যাবে।',
+                'priority'      => 95,
             ],
             [
                 'document_type' => 'faq',
@@ -208,14 +208,19 @@ class StaticBusinessKnowledgeSeeder extends Seeder
         ];
 
         foreach ($documents as $doc) {
+            $attributes = ['workspace_id' => $workspaceId];
+            if ($doc['document_type'] === 'faq') {
+                $attributes['question'] = $doc['question'];
+            } else {
+                $attributes['document_type'] = $doc['document_type'];
+            }
+
             FAQ::updateOrCreate(
-                [
-                    'workspace_id'  => $workspaceId,
-                    'question'      => $doc['question'],
-                ],
+                $attributes,
                 [
                     'category_id'   => $doc['category_id'],
                     'document_type' => $doc['document_type'],
+                    'question'      => $doc['question'],
                     'answer'        => $doc['answer'],
                     'priority'      => $doc['priority'],
                     'is_active'     => true,
