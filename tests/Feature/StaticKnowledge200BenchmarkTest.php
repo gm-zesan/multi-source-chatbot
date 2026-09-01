@@ -66,4 +66,18 @@ class StaticKnowledge200BenchmarkTest extends TestCase
         $this->assertTrue($gate->shouldRetrieve('Where is my order #1042?', $conversation));
         $this->assertTrue($gate->shouldRetrieve('আমার আগের কেনা পাঞ্জাবিটা রিটার্ন করতে চাই', $conversation));
     }
+
+    public function test_phase_c_baseline_scorecard_is_immutable_and_valid(): void
+    {
+        $path = base_path('tests/Datasets/phase_c_baseline_scorecard.json');
+        $this->assertFileExists($path);
+
+        $baseline = json_decode((string) file_get_contents($path), true);
+        $this->assertNotNull($baseline);
+        $this->assertSame('phase_c_baseline_v1', $baseline['benchmark_version']);
+        $this->assertSame(0.73, $baseline['metrics']['top_1_accuracy']);
+        $this->assertSame(0.88, $baseline['metrics']['top_3_accuracy']);
+        $this->assertSame(0.76, $baseline['language_breakdown']['banglish']['top_1_accuracy']);
+        $this->assertSame(0.76, $baseline['language_breakdown']['native_bangla']['top_1_accuracy']);
+    }
 }
