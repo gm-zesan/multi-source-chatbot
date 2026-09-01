@@ -148,7 +148,7 @@ class StaticBusinessKnowledgeSeeder extends Seeder
                 'category_id'   => $catPolicy->id,
                 'question'      => 'Customer Support Hours & Helpdesk Operations / কাস্টমার কেয়ার ও হেল্পডেস্ক সময়সূচী',
                 'answer'        => 'Our AI Support Assistant is available 24/7 for instant order lookups, parcel tracking, and store policies. Human support specialists are available 7 days a week from 9:00 AM to 10:00 PM BST. Inquiries received after 10:00 PM are queued and answered first thing the next morning.',
-                'priority'      => 85,
+                'priority'      => 95,
             ],
 
             // ── 13. Social / F-Commerce Policy ────────────────────────────────
@@ -166,7 +166,7 @@ class StaticBusinessKnowledgeSeeder extends Seeder
                 'category_id'   => $catPolicy->id,
                 'question'      => 'If I return an item, do I get a cash refund? / প্রোডাক্ট ফেরত দিলে টাকা ফেরত পাবো কি?',
                 'answer'        => 'Yes! If you return a product in accordance with our Return Policy (within 7 days, unworn with original tags intact), your refund will be issued under our Refund Policy within 7 to 10 business days via your original digital payment channel (bKash/Nagad/Card). Cash on Delivery orders are refunded via customer bKash or Nagad wallet.',
-                'priority'      => 95,
+                'priority'      => 80,
             ],
 
             // ── Additional Commerce FAQs ─────────────────────────────────────

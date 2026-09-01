@@ -70,7 +70,8 @@
       "challenge": "direct",
       "query": "Can I exchange an item for a different size?",
       "expected_document_types": [
-        "exchange_policy"
+        "exchange_policy",
+        "faq"
       ],
       "should_answer": true,
       "requires_personal_memory": false
@@ -103,7 +104,8 @@
       "challenge": "direct",
       "query": "What are your customer support working hours?",
       "expected_document_types": [
-        "customer_support"
+        "customer_support",
+        "contact"
       ],
       "should_answer": true,
       "requires_personal_memory": false
@@ -182,7 +184,8 @@
       "challenge": "paraphrase",
       "query": "Can I swap this shirt for a smaller size?",
       "expected_document_types": [
-        "exchange_policy"
+        "exchange_policy",
+        "faq"
       ],
       "should_answer": true,
       "requires_personal_memory": false
@@ -377,7 +380,8 @@
       "query": "If I return the parcel via courier, do I receive a cash refund or store credit?",
       "expected_document_types": [
         "return_policy",
-        "refund_policy"
+        "refund_policy",
+        "faq"
       ],
       "should_answer": true,
       "requires_personal_memory": false
@@ -412,7 +416,8 @@
       "query": "If I paid through bKash, will the refund come directly to my bKash number?",
       "expected_document_types": [
         "payment_policy",
-        "refund_policy"
+        "refund_policy",
+        "faq"
       ],
       "should_answer": true,
       "requires_personal_memory": false
@@ -424,7 +429,8 @@
       "query": "I don't like the color, should I ask for an exchange or a return?",
       "expected_document_types": [
         "exchange_policy",
-        "return_policy"
+        "return_policy",
+        "faq"
       ],
       "should_answer": true,
       "requires_personal_memory": false
@@ -635,7 +641,8 @@
       "challenge": "direct",
       "query": "পোশাকের সাইজ পছন্দ না হলে কি বদলানো বা এক্সচেঞ্জ করা যাবে?",
       "expected_document_types": [
-        "exchange_policy"
+        "exchange_policy",
+        "faq"
       ],
       "should_answer": true,
       "requires_personal_memory": false
@@ -703,7 +710,8 @@
       "challenge": "paraphrase",
       "query": "আমার বিকাশ একাউন্টে টাকা ফেরত আসতে কতক্ষণ লাগবে?",
       "expected_document_types": [
-        "refund_policy"
+        "refund_policy",
+        "faq"
       ],
       "should_answer": true,
       "requires_personal_memory": false
@@ -725,7 +733,8 @@
       "challenge": "paraphrase",
       "query": "নগদ বা রকেট দিয়ে কি পেমেন্ট করা সম্ভব?",
       "expected_document_types": [
-        "payment_policy"
+        "payment_policy",
+        "faq"
       ],
       "should_answer": true,
       "requires_personal_memory": false
@@ -747,7 +756,8 @@
       "challenge": "paraphrase",
       "query": "পাঞ্জাবির এল সাইজ বদলে এক্সেল সাইজ পেতে কী করতে হবে?",
       "expected_document_types": [
-        "exchange_policy"
+        "exchange_policy",
+        "faq"
       ],
       "should_answer": true,
       "requires_personal_memory": false
@@ -930,7 +940,8 @@
       "query": "কর্পোরেট উপহার হিসেবে ৫০টি পাঞ্জাবি পাইকারি অর্ডারের ক্ষেত্রে আপনারা কি ভ্যাট চালান দেন এবং ক্রয়ের শর্তাবলী কী কী?",
       "expected_document_types": [
         "terms",
-        "payment_policy"
+        "payment_policy",
+        "faq"
       ],
       "should_answer": true,
       "requires_personal_memory": false
@@ -978,7 +989,8 @@
       "query": "অনলাইনে কার্ড দিয়ে পেমেন্ট করলে রিফান্ড কি বিকাশে নেওয়া যাবে?",
       "expected_document_types": [
         "payment_policy",
-        "refund_policy"
+        "refund_policy",
+        "faq"
       ],
       "should_answer": true,
       "requires_personal_memory": false
@@ -990,7 +1002,8 @@
       "query": "পোশাক পছন্দ না হলে কি টাকা ফেরত পাব নাকি শুধু এক্সচেঞ্জ করতে পারব?",
       "expected_document_types": [
         "exchange_policy",
-        "return_policy"
+        "return_policy",
+        "faq"
       ],
       "should_answer": true,
       "requires_personal_memory": false
@@ -1189,7 +1202,8 @@
       "challenge": "direct",
       "query": "apnader office er thikana ta bolben?",
       "expected_document_types": [
-        "contact"
+        "contact",
+        "about_us"
       ],
       "should_answer": true,
       "requires_personal_memory": false
@@ -1200,7 +1214,8 @@
       "challenge": "direct",
       "query": "size na mille ki exchange kora jabe?",
       "expected_document_types": [
-        "exchange_policy"
+        "exchange_policy",
+        "faq"
       ],
       "should_answer": true,
       "requires_personal_memory": false
@@ -1233,7 +1248,8 @@
       "challenge": "direct",
       "query": "customer support koyta porjonto khola thake?",
       "expected_document_types": [
-        "customer_support"
+        "customer_support",
+        "contact"
       ],
       "should_answer": true,
       "requires_personal_memory": false
@@ -1267,7 +1283,8 @@
       "challenge": "paraphrase",
       "query": "taka ferot ashbe kobe amar bkash e?",
       "expected_document_types": [
-        "refund_policy"
+        "refund_policy",
+        "faq"
       ],
       "should_answer": true,
       "requires_personal_memory": false
@@ -1289,7 +1306,8 @@
       "challenge": "paraphrase",
       "query": "nagad ba card diye payment kora jabe to?",
       "expected_document_types": [
-        "payment_policy"
+        "payment_policy",
+        "faq"
       ],
       "should_answer": true,
       "requires_personal_memory": false
@@ -1300,7 +1318,8 @@
       "challenge": "paraphrase",
       "query": "banani te apnader showroom kothay?",
       "expected_document_types": [
-        "contact"
+        "contact",
+        "about_us"
       ],
       "should_answer": true,
       "requires_personal_memory": false
@@ -1311,7 +1330,8 @@
       "challenge": "paraphrase",
       "query": "l size er poriborte xl size nite chai.",
       "expected_document_types": [
-        "exchange_policy"
+        "exchange_policy",
+        "faq"
       ],
       "should_answer": true,
       "requires_personal_memory": false
@@ -1542,7 +1562,8 @@
       "query": "bkash e advance pay korle refund ki direct bkash e ashe?",
       "expected_document_types": [
         "payment_policy",
-        "refund_policy"
+        "refund_policy",
+        "faq"
       ],
       "should_answer": true,
       "requires_personal_memory": false
@@ -1554,7 +1575,8 @@
       "query": "poshondo na hole ki refund pabo naki shudhu exchange kora jabe?",
       "expected_document_types": [
         "exchange_policy",
-        "return_policy"
+        "return_policy",
+        "faq"
       ],
       "should_answer": true,
       "requires_personal_memory": false
@@ -1754,7 +1776,8 @@
       "challenge": "direct",
       "query": "Company r Banani corporate office address ta bolben?",
       "expected_document_types": [
-        "contact"
+        "contact",
+        "about_us"
       ],
       "should_answer": true,
       "requires_personal_memory": false
@@ -1765,7 +1788,8 @@
       "challenge": "direct",
       "query": "Size issue hole shirt exchange policy ki rokom?",
       "expected_document_types": [
-        "exchange_policy"
+        "exchange_policy",
+        "faq"
       ],
       "should_answer": true,
       "requires_personal_memory": false
@@ -1798,7 +1822,8 @@
       "challenge": "direct",
       "query": "Customer care helpdesk er operational hours koto?",
       "expected_document_types": [
-        "customer_support"
+        "customer_support",
+        "contact"
       ],
       "should_answer": true,
       "requires_personal_memory": false
@@ -1877,7 +1902,8 @@
       "challenge": "paraphrase",
       "query": "Panjabi ta change kore alternative color nite parbo?",
       "expected_document_types": [
-        "exchange_policy"
+        "exchange_policy",
+        "faq"
       ],
       "should_answer": true,
       "requires_personal_memory": false
@@ -2108,7 +2134,8 @@
       "query": "Credit card e payment korle refund ki bKash wallet e transfer kora possible?",
       "expected_document_types": [
         "payment_policy",
-        "refund_policy"
+        "refund_policy",
+        "faq"
       ],
       "should_answer": true,
       "requires_personal_memory": false
@@ -2120,7 +2147,8 @@
       "query": "Color preference issue hole cash refund pabo নাকি product exchange korte hobe?",
       "expected_document_types": [
         "exchange_policy",
-        "return_policy"
+        "return_policy",
+        "faq"
       ],
       "should_answer": true,
       "requires_personal_memory": false
