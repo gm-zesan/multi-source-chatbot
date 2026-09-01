@@ -86,10 +86,10 @@ class BenchmarkE2EMultiTurn100Command extends Command
         $groundedTurns = 0;
 
         $langStats = [
-            'bn'         => ['turns' => 0, 'routed' => 0, 'top1' => 0, 'top3' => 0, 'mem_ok' => 0],
-            'en'         => ['turns' => 0, 'routed' => 0, 'top1' => 0, 'top3' => 0, 'mem_ok' => 0],
-            'banglish'   => ['turns' => 0, 'routed' => 0, 'top1' => 0, 'top3' => 0, 'mem_ok' => 0],
-            'code_mixed' => ['turns' => 0, 'routed' => 0, 'top1' => 0, 'top3' => 0, 'mem_ok' => 0],
+            'bn'         => ['turns' => 0, 'routed' => 0, 'top1' => 0, 'top3' => 0, 'mem_ok' => 0, 'knowledge_turns' => 0],
+            'en'         => ['turns' => 0, 'routed' => 0, 'top1' => 0, 'top3' => 0, 'mem_ok' => 0, 'knowledge_turns' => 0],
+            'banglish'   => ['turns' => 0, 'routed' => 0, 'top1' => 0, 'top3' => 0, 'mem_ok' => 0, 'knowledge_turns' => 0],
+            'code_mixed' => ['turns' => 0, 'routed' => 0, 'top1' => 0, 'top3' => 0, 'mem_ok' => 0, 'knowledge_turns' => 0],
         ];
 
         $latencies = [];
@@ -103,12 +103,11 @@ class BenchmarkE2EMultiTurn100Command extends Command
             $extUserId = $sc['external_user_id'];
 
             // Fresh conversation for each scenario
-            $conversation = Conversation::create([
-                'channel_account_id' => $channelAccount->id,
-                'external_user_id'   => $extUserId,
-                'status'             => 'open',
-                'last_direction'     => 'inbound',
-            ]);
+            $conversation = Conversation::firstOrCreate(
+                ['channel_account_id' => $channelAccount->id, 'external_user_id' => $extUserId],
+                ['status' => 'open', 'last_direction' => 'inbound']
+            );
+            $conversation->messages()->delete();
 
             foreach ($sc['turns'] as $turn) {
                 $totalTurns++;
@@ -153,6 +152,7 @@ class BenchmarkE2EMultiTurn100Command extends Command
                 // 3. Retrieval Top-1 & Top-3 on knowledge turns
                 if (!empty($expectedDocs)) {
                     $knowledgeTurns++;
+                    $langStats[$lang]['knowledge_turns']++;
                     $hits = $faqSearch->search($query, 3, $workspace->id);
                     $topDoc = $hits->first()?->faq?->document_type;
                     $top3Docs = $hits->map(fn($h) => $h->faq->document_type)->toArray();
@@ -247,8 +247,9 @@ class BenchmarkE2EMultiTurn100Command extends Command
         foreach ($langStats as $langKey => $s) {
             $tCount = $s['turns'];
             $rPct = $tCount > 0 ? round(($s['routed'] / $tCount) * 100, 1) : 0;
-            $t1Pct = $tCount > 0 ? round(($s['top1'] / max(1, $knowledgeTurns / 4)) * 100, 1) : 0;
-            $t3Pct = $tCount > 0 ? round(($s['top3'] / max(1, $knowledgeTurns / 4)) * 100, 1) : 0;
+            $kCount = $s['knowledge_turns'] ?? 0;
+            $t1Pct = $kCount > 0 ? round(($s['top1'] / $kCount) * 100, 1) : 0;
+            $t3Pct = $kCount > 0 ? round(($s['top3'] / $kCount) * 100, 1) : 0;
             $mPct = $tCount > 0 ? round(($s['mem_ok'] / $tCount) * 100, 1) : 0;
 
             $langRows[] = [
