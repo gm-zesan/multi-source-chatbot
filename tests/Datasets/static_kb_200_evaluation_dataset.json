@@ -1,0 +1,2273 @@
+{
+  "version": "1.0",
+  "total_queries": 200,
+  "dimensions": {
+    "english": 50,
+    "bangla": 50,
+    "banglish": 50,
+    "code_mixed": 50
+  },
+  "queries": [
+    {
+      "id": "EN001",
+      "language": "en",
+      "challenge": "direct",
+      "query": "What is your official return policy?",
+      "expected_document_types": [
+        "return_policy"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "EN002",
+      "language": "en",
+      "challenge": "direct",
+      "query": "How long does a refund take to process?",
+      "expected_document_types": [
+        "refund_policy"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "EN003",
+      "language": "en",
+      "challenge": "direct",
+      "query": "What are your delivery charges inside Dhaka?",
+      "expected_document_types": [
+        "delivery_policy"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "EN004",
+      "language": "en",
+      "challenge": "direct",
+      "query": "Do you accept Cash on Delivery (COD)?",
+      "expected_document_types": [
+        "payment_policy"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "EN005",
+      "language": "en",
+      "challenge": "direct",
+      "query": "Where is your flagship retail store located?",
+      "expected_document_types": [
+        "contact",
+        "about_us"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "EN006",
+      "language": "en",
+      "challenge": "direct",
+      "query": "Can I exchange an item for a different size?",
+      "expected_document_types": [
+        "exchange_policy"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "EN007",
+      "language": "en",
+      "challenge": "direct",
+      "query": "What is the warranty period for watches and accessories?",
+      "expected_document_types": [
+        "warranty_policy"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "EN008",
+      "language": "en",
+      "challenge": "direct",
+      "query": "How can I cancel my order before shipping?",
+      "expected_document_types": [
+        "cancellation_policy"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "EN009",
+      "language": "en",
+      "challenge": "direct",
+      "query": "What are your customer support working hours?",
+      "expected_document_types": [
+        "customer_support"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "EN010",
+      "language": "en",
+      "challenge": "direct",
+      "query": "Tell me about Entrepreneurs Automation company history.",
+      "expected_document_types": [
+        "about_us"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "EN011",
+      "language": "en",
+      "challenge": "paraphrase",
+      "query": "How many days do I have to send back a dress that doesn't fit?",
+      "expected_document_types": [
+        "return_policy",
+        "exchange_policy"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "EN012",
+      "language": "en",
+      "challenge": "paraphrase",
+      "query": "When will my money be returned to my bank card?",
+      "expected_document_types": [
+        "refund_policy"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "EN013",
+      "language": "en",
+      "challenge": "paraphrase",
+      "query": "How much do you bill for delivery to Chittagong?",
+      "expected_document_types": [
+        "delivery_policy"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "EN014",
+      "language": "en",
+      "challenge": "paraphrase",
+      "query": "Can I pay using bKash merchant gateway?",
+      "expected_document_types": [
+        "payment_policy"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "EN015",
+      "language": "en",
+      "challenge": "paraphrase",
+      "query": "Is there a physical outlet where I can try the clothes?",
+      "expected_document_types": [
+        "contact",
+        "about_us"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "EN016",
+      "language": "en",
+      "challenge": "paraphrase",
+      "query": "Can I swap this shirt for a smaller size?",
+      "expected_document_types": [
+        "exchange_policy"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "EN017",
+      "language": "en",
+      "challenge": "paraphrase",
+      "query": "Does your warranty cover stitching defects or loose buttons?",
+      "expected_document_types": [
+        "warranty_policy"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "EN018",
+      "language": "en",
+      "challenge": "paraphrase",
+      "query": "I made a mistake in my booking, can I stop it before dispatch?",
+      "expected_document_types": [
+        "cancellation_policy"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "EN019",
+      "language": "en",
+      "challenge": "typo",
+      "query": "wht is ur rfnd plcy?",
+      "expected_document_types": [
+        "refund_policy"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "EN020",
+      "language": "en",
+      "challenge": "typo",
+      "query": "retrn policy inside dhaka?",
+      "expected_document_types": [
+        "return_policy"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "EN021",
+      "language": "en",
+      "challenge": "typo",
+      "query": "delivry chargs outside dkha?",
+      "expected_document_types": [
+        "delivery_policy"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "EN022",
+      "language": "en",
+      "challenge": "typo",
+      "query": "bksh pyment accepted?",
+      "expected_document_types": [
+        "payment_policy"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "EN023",
+      "language": "en",
+      "challenge": "short",
+      "query": "return policy",
+      "expected_document_types": [
+        "return_policy"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "EN024",
+      "language": "en",
+      "challenge": "short",
+      "query": "delivery time",
+      "expected_document_types": [
+        "delivery_policy"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "EN025",
+      "language": "en",
+      "challenge": "short",
+      "query": "office location",
+      "expected_document_types": [
+        "contact"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "EN026",
+      "language": "en",
+      "challenge": "short",
+      "query": "helpline number",
+      "expected_document_types": [
+        "contact",
+        "customer_support"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "EN027",
+      "language": "en",
+      "challenge": "long",
+      "query": "I ordered a luxury panjabi last week but the sleeves are a bit too long, can I visit your Banani showroom to exchange it for a medium size or return it?",
+      "expected_document_types": [
+        "exchange_policy",
+        "return_policy",
+        "contact"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "EN028",
+      "language": "en",
+      "challenge": "long",
+      "query": "Could you explain the entire process of getting my prepaid money back if the parcel arrives in a torn condition or is completely missing an item?",
+      "expected_document_types": [
+        "refund_policy",
+        "return_policy"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "EN029",
+      "language": "en",
+      "challenge": "long",
+      "query": "What is your standard shipping turnaround for urgent courier deliveries inside Dhanmondi, Dhaka if I order right now before noon?",
+      "expected_document_types": [
+        "delivery_policy"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "EN030",
+      "language": "en",
+      "challenge": "long",
+      "query": "Are card transactions on your website secured by SSL encryption or do you store customer CVV details on your internal database?",
+      "expected_document_types": [
+        "privacy_policy",
+        "payment_policy"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "EN031",
+      "language": "en",
+      "challenge": "long",
+      "query": "What happens if I receive a damaged leather belt with broken stitching, do I have to pay the courier fee to return it under your warranty?",
+      "expected_document_types": [
+        "warranty_policy",
+        "return_policy"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "EN032",
+      "language": "en",
+      "challenge": "long",
+      "query": "If I place a large wholesale bulk order for corporate Eid gifts, what terms and conditions and payment milestones apply?",
+      "expected_document_types": [
+        "terms",
+        "payment_policy"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "EN033",
+      "language": "en",
+      "challenge": "overlapping_return_refund",
+      "query": "If I return the parcel via courier, do I receive a cash refund or store credit?",
+      "expected_document_types": [
+        "return_policy",
+        "refund_policy"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "EN034",
+      "language": "en",
+      "challenge": "overlapping_refund_cancellation",
+      "query": "I want to cancel my prepaid order, how soon will the refund hit my card?",
+      "expected_document_types": [
+        "cancellation_policy",
+        "refund_policy"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "EN035",
+      "language": "en",
+      "challenge": "overlapping_delivery_order",
+      "query": "How fast is express shipping and how can I track the courier?",
+      "expected_document_types": [
+        "delivery_policy"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "EN036",
+      "language": "en",
+      "challenge": "overlapping_payment_refund",
+      "query": "If I paid through bKash, will the refund come directly to my bKash number?",
+      "expected_document_types": [
+        "payment_policy",
+        "refund_policy"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "EN037",
+      "language": "en",
+      "challenge": "overlapping_exchange_return",
+      "query": "I don't like the color, should I ask for an exchange or a return?",
+      "expected_document_types": [
+        "exchange_policy",
+        "return_policy"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "EN038",
+      "language": "en",
+      "challenge": "overlapping_warranty_return",
+      "query": "The zipper broke on day 10, is this a 7-day return or a 30-day warranty issue?",
+      "expected_document_types": [
+        "return_policy",
+        "warranty_policy"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "EN039",
+      "language": "en",
+      "challenge": "overlapping_terms_privacy",
+      "query": "What are your customer data protection rules and terms of purchase?",
+      "expected_document_types": [
+        "terms",
+        "privacy_policy"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "EN040",
+      "language": "en",
+      "challenge": "overlapping_social_contact",
+      "query": "Is your Facebook page verified and what is the official hotline?",
+      "expected_document_types": [
+        "social_media_policy",
+        "contact"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "EN041",
+      "language": "en",
+      "challenge": "policy_contradiction",
+      "query": "A friend told me you allow product returns within 30 days, can I send it back after 3 weeks?",
+      "expected_document_types": [
+        "return_policy"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "EN042",
+      "language": "en",
+      "challenge": "policy_contradiction",
+      "query": "Is delivery completely free everywhere in Bangladesh without any minimum spend?",
+      "expected_document_types": [
+        "delivery_policy"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "EN043",
+      "language": "en",
+      "challenge": "policy_contradiction",
+      "query": "Can I return an item after cutting off all the price tags and wearing it once?",
+      "expected_document_types": [
+        "return_policy"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "EN044",
+      "language": "en",
+      "challenge": "policy_contradiction",
+      "query": "Can I cancel an order while the delivery man is ringing my doorbell?",
+      "expected_document_types": [
+        "cancellation_policy",
+        "delivery_policy"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "EN045",
+      "language": "en",
+      "challenge": "policy_contradiction",
+      "query": "Do you offer cash refunds for credit card online payments?",
+      "expected_document_types": [
+        "refund_policy"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "EN046",
+      "language": "en",
+      "challenge": "pronoun_memory",
+      "query": "I want to return my previous XL order, how should I proceed?",
+      "expected_document_types": [
+        "return_policy"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": true
+    },
+    {
+      "id": "EN047",
+      "language": "en",
+      "challenge": "pronoun_memory",
+      "query": "Can I exchange the blue shirt I bought last week for a different color?",
+      "expected_document_types": [
+        "exchange_policy"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": true
+    },
+    {
+      "id": "EN048",
+      "language": "en",
+      "challenge": "pronoun_memory",
+      "query": "Refund the money to my bKash wallet as we discussed earlier.",
+      "expected_document_types": [
+        "refund_policy",
+        "payment_policy"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": true
+    },
+    {
+      "id": "EN049",
+      "language": "en",
+      "challenge": "ood",
+      "query": "Can you book a domestic flight from Dhaka to Cox's Bazar?",
+      "expected_document_types": [],
+      "should_answer": false,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "EN050",
+      "language": "en",
+      "challenge": "ood",
+      "query": "What is the current stock price of Apple Inc on NASDAQ?",
+      "expected_document_types": [],
+      "should_answer": false,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "BN001",
+      "language": "bn",
+      "challenge": "direct",
+      "query": "আপনাদের পণ্য রিটার্ন করার অফিসিয়াল নিয়ম কী?",
+      "expected_document_types": [
+        "return_policy"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "BN002",
+      "language": "bn",
+      "challenge": "direct",
+      "query": "টাকা রিফান্ড পেতে কত দিন সময় লাগে?",
+      "expected_document_types": [
+        "refund_policy"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "BN003",
+      "language": "bn",
+      "challenge": "direct",
+      "query": "ঢাকার ভেতরে ও বাইরে ডেলিভারি চার্জ কত?",
+      "expected_document_types": [
+        "delivery_policy"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "BN004",
+      "language": "bn",
+      "challenge": "direct",
+      "query": "ক্যাশ অন ডেলিভারিতে অর্ডার দেওয়া যাবে কি?",
+      "expected_document_types": [
+        "payment_policy"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "BN005",
+      "language": "bn",
+      "challenge": "direct",
+      "query": "আপনাদের প্রধান শোরুম ও অফিসের ঠিকানা কোথায়?",
+      "expected_document_types": [
+        "contact",
+        "about_us"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "BN006",
+      "language": "bn",
+      "challenge": "direct",
+      "query": "পোশাকের সাইজ পছন্দ না হলে কি বদলানো বা এক্সচেঞ্জ করা যাবে?",
+      "expected_document_types": [
+        "exchange_policy"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "BN007",
+      "language": "bn",
+      "challenge": "direct",
+      "query": "প্রোডাক্টে কোনো ম্যানুফ্যাকচারিং ত্রুটি থাকলে কি ওয়ারেন্টি পাওয়া যাবে?",
+      "expected_document_types": [
+        "warranty_policy"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "BN008",
+      "language": "bn",
+      "challenge": "direct",
+      "query": "অর্ডার পাঠানোর আগে কীভাবে বাতিল করা যায়?",
+      "expected_document_types": [
+        "cancellation_policy"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "BN009",
+      "language": "bn",
+      "challenge": "direct",
+      "query": "আপনাদের কাস্টমার কেয়ার হেল্পলাইন কয়টা পর্যন্ত খোলা থাকে?",
+      "expected_document_types": [
+        "customer_support",
+        "contact"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "BN010",
+      "language": "bn",
+      "challenge": "direct",
+      "query": "এন্টারপ্রেনারস অটোমেশন কোম্পানি সম্পর্কে বিস্তারিত জানতে চাই।",
+      "expected_document_types": [
+        "about_us"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "BN011",
+      "language": "bn",
+      "challenge": "paraphrase",
+      "query": "জামাটা গায়ে লাগেনি, ফেরত পাঠিয়ে অন্য একটা নেওয়া যাবে?",
+      "expected_document_types": [
+        "exchange_policy",
+        "return_policy"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "BN012",
+      "language": "bn",
+      "challenge": "paraphrase",
+      "query": "আমার বিকাশ একাউন্টে টাকা ফেরত আসতে কতক্ষণ লাগবে?",
+      "expected_document_types": [
+        "refund_policy"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "BN013",
+      "language": "bn",
+      "challenge": "paraphrase",
+      "query": "সিলেটে পার্সেল পাঠাতে কত টাকা ডেলিভারি ফি কাটবেন?",
+      "expected_document_types": [
+        "delivery_policy"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "BN014",
+      "language": "bn",
+      "challenge": "paraphrase",
+      "query": "নগদ বা রকেট দিয়ে কি পেমেন্ট করা সম্ভব?",
+      "expected_document_types": [
+        "payment_policy"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "BN015",
+      "language": "bn",
+      "challenge": "paraphrase",
+      "query": "বনানীতে আপনাদের দোকানটা কোন রোডে?",
+      "expected_document_types": [
+        "contact"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "BN016",
+      "language": "bn",
+      "challenge": "paraphrase",
+      "query": "পাঞ্জাবির এল সাইজ বদলে এক্সেল সাইজ পেতে কী করতে হবে?",
+      "expected_document_types": [
+        "exchange_policy"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "BN017",
+      "language": "bn",
+      "challenge": "paraphrase",
+      "query": "জুতার সেলাই বা আঠা ছুটে গেলে কি ওয়ারেন্টি দাবি করা যাবে?",
+      "expected_document_types": [
+        "warranty_policy"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "BN018",
+      "language": "bn",
+      "challenge": "paraphrase",
+      "query": "ভুল করে অর্ডার করে ফেলেছি, এটা ক্যানসেল করব কীভাবে?",
+      "expected_document_types": [
+        "cancellation_policy"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "BN019",
+      "language": "bn",
+      "challenge": "typo",
+      "query": "রিটারন পলিসি কি?",
+      "expected_document_types": [
+        "return_policy"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "BN020",
+      "language": "bn",
+      "challenge": "typo",
+      "query": "রিফান্দ পেতে কতদিন লাগে?",
+      "expected_document_types": [
+        "refund_policy"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "BN021",
+      "language": "bn",
+      "challenge": "typo",
+      "query": "ঢাকায় ডেলিভারি চাজ কত?",
+      "expected_document_types": [
+        "delivery_policy"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "BN022",
+      "language": "bn",
+      "challenge": "typo",
+      "query": "বিকাশ পেমেনট নেওয়া হয়?",
+      "expected_document_types": [
+        "payment_policy"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "BN023",
+      "language": "bn",
+      "challenge": "short",
+      "query": "রিটার্ন নীতি",
+      "expected_document_types": [
+        "return_policy"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "BN024",
+      "language": "bn",
+      "challenge": "short",
+      "query": "ডেলিভারি সময়",
+      "expected_document_types": [
+        "delivery_policy"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "BN025",
+      "language": "bn",
+      "challenge": "short",
+      "query": "অফিস ঠিকানা",
+      "expected_document_types": [
+        "contact"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "BN026",
+      "language": "bn",
+      "challenge": "short",
+      "query": "হেল্পলাইন নাম্বার",
+      "expected_document_types": [
+        "contact",
+        "customer_support"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "BN027",
+      "language": "bn",
+      "challenge": "long",
+      "query": "আমি গত সপ্তাহে একটা প্রিমিয়াম কাতান শাড়ি অর্ডার করেছিলাম কিন্তু শাড়ির পাড়ের রং ছবিতে দেখার মতো উজ্জ্বল নয়, আমি কি এটি বনানী আউটলেটে নিয়ে গিয়ে সরাসরি পরিবর্তন করে অন্য ডিজাইনের শাড়ি নিতে পারব?",
+      "expected_document_types": [
+        "exchange_policy",
+        "return_policy",
+        "contact"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "BN028",
+      "language": "bn",
+      "challenge": "long",
+      "query": "কুরিয়ারের মাধ্যমে পাঠানো পণ্য যদি ভাঙা বা ছেঁড়া অবস্থায় হাতে পাই, তবে ডেলিভারি ম্যানের সামনেই কি সেটা ফেরত দিয়ে আমার পুরো অগ্রিম টাকা রিফান্ড পেতে পারি?",
+      "expected_document_types": [
+        "return_policy",
+        "refund_policy",
+        "faq"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "BN029",
+      "language": "bn",
+      "challenge": "long",
+      "query": "জরুরি প্রয়োজনে ঢাকার ভেতরে সেম ডে অর্থাৎ একই দিনে পার্সেল পাওয়ার কোনো বিশেষ এক্সপ্রেস ডেলিভারি ব্যবস্থা কি আপনাদের আছে?",
+      "expected_document_types": [
+        "delivery_policy"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "BN030",
+      "language": "bn",
+      "challenge": "long",
+      "query": "অনলাইনে ভিসা কার্ডে পেমেন্ট করলে আমার কার্ডের তথ্য বা পাসওয়ার্ড কি আপনাদের সিস্টেমে জমা থাকে নাকি এটি ব্যাংকের গেটওয়ে দিয়ে সুরক্ষিত থাকে?",
+      "expected_document_types": [
+        "privacy_policy",
+        "payment_policy"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "BN031",
+      "language": "bn",
+      "challenge": "long",
+      "query": "স্মার্ট ওয়াচ কেনার ৩ মাসের মাথায় যদি ডিসপ্লে নষ্ট হয়ে যায়, তবে কি সার্ভিসিং ফ্রিতে পাব নাকি আলাদা সার্ভিস চার্জ দিতে হবে?",
+      "expected_document_types": [
+        "warranty_policy"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "BN032",
+      "language": "bn",
+      "challenge": "long",
+      "query": "কর্পোরেট উপহার হিসেবে ৫০টি পাঞ্জাবি পাইকারি অর্ডারের ক্ষেত্রে আপনারা কি ভ্যাট চালান দেন এবং ক্রয়ের শর্তাবলী কী কী?",
+      "expected_document_types": [
+        "terms",
+        "payment_policy"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "BN033",
+      "language": "bn",
+      "challenge": "overlapping_return_refund",
+      "query": "প্রোডাক্ট ফেরত দিলে টাকা ক্যাশ ফেরত পাবো নাকি ব্যাংকে দেওয়া হবে?",
+      "expected_document_types": [
+        "return_policy",
+        "refund_policy",
+        "faq"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "BN034",
+      "language": "bn",
+      "challenge": "overlapping_refund_cancellation",
+      "query": "অর্ডার পাঠিয়ে দেওয়ার আগেই যদি বাতিল করি, তবে অগ্রিম দেওয়া টাকা রিফান্ড পাব কীভাবে?",
+      "expected_document_types": [
+        "cancellation_policy",
+        "refund_policy"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "BN035",
+      "language": "bn",
+      "challenge": "overlapping_delivery_order",
+      "query": "ডেলিভারি হতে কত দিন লাগবে এবং পার্সেল ট্র্যাকিং কোড কীভাবে পাব?",
+      "expected_document_types": [
+        "delivery_policy"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "BN036",
+      "language": "bn",
+      "challenge": "overlapping_payment_refund",
+      "query": "অনলাইনে কার্ড দিয়ে পেমেন্ট করলে রিফান্ড কি বিকাশে নেওয়া যাবে?",
+      "expected_document_types": [
+        "payment_policy",
+        "refund_policy"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "BN037",
+      "language": "bn",
+      "challenge": "overlapping_exchange_return",
+      "query": "পোশাক পছন্দ না হলে কি টাকা ফেরত পাব নাকি শুধু এক্সচেঞ্জ করতে পারব?",
+      "expected_document_types": [
+        "exchange_policy",
+        "return_policy"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "BN038",
+      "language": "bn",
+      "challenge": "overlapping_warranty_return",
+      "query": "ঘড়ির বেল্ট ছিঁড়ে গেলে সেটা কি ৭ দিনের রিটার্নের আওতায় পড়ে নাকি ওয়ারেন্টির আওতায়?",
+      "expected_document_types": [
+        "return_policy",
+        "warranty_policy"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "BN039",
+      "language": "bn",
+      "challenge": "overlapping_terms_privacy",
+      "query": "গ্রাহকের ব্যক্তিগত ফোন নম্বর ও ঠিকানার নিরাপত্তা এবং ওয়েবসাইটের ব্যবহারের নিয়মাবলী কী?",
+      "expected_document_types": [
+        "privacy_policy",
+        "terms"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "BN040",
+      "language": "bn",
+      "challenge": "overlapping_social_contact",
+      "query": "ফেসবুকে আপনাদের ভেরিফাইড পেজের লিংক এবং অফিশিয়াল হোয়াটসঅ্যাপ নম্বর কত?",
+      "expected_document_types": [
+        "social_media_policy",
+        "contact"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "BN041",
+      "language": "bn",
+      "challenge": "policy_contradiction",
+      "query": "আমি শুনেছি যেকোনো পণ্য কেনার এক মাস পরেও কোনো কারণ ছাড়াই ফেরত দেওয়া যায়, এটা কি সত্যি?",
+      "expected_document_types": [
+        "return_policy"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "BN042",
+      "language": "bn",
+      "challenge": "policy_contradiction",
+      "query": "সারা বাংলাদেশে কি সব জায়গায় সম্পূর্ণ ফ্রিতে ডেলিভারি দেওয়া হয়?",
+      "expected_document_types": [
+        "delivery_policy"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "BN043",
+      "language": "bn",
+      "challenge": "policy_contradiction",
+      "query": "প্রোডাক্টের প্রাইস ট্যাগ ছিঁড়ে ফেলে কয়েকবার পরার পর কি সাইজ এক্সচেঞ্জ করা যাবে?",
+      "expected_document_types": [
+        "return_policy",
+        "exchange_policy"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "BN044",
+      "language": "bn",
+      "challenge": "policy_contradiction",
+      "query": "ডেলিভারিম্যান দরজায় এসে বেল বাজানোর পর কি অর্ডার বাতিল করা সম্ভব?",
+      "expected_document_types": [
+        "cancellation_policy"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "BN045",
+      "language": "bn",
+      "challenge": "policy_contradiction",
+      "query": "অনলাইনে বিকাশে পেমেন্ট করলে কি রিফান্ডের সময় হাতে নগদ টাকা পাওয়া যায়?",
+      "expected_document_types": [
+        "refund_policy"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "BN046",
+      "language": "bn",
+      "challenge": "pronoun_memory",
+      "query": "আমার আগের কেনা পাঞ্জাবিটা রিটার্ন করতে চাই, নিয়মটা বলুন।",
+      "expected_document_types": [
+        "return_policy"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": true
+    },
+    {
+      "id": "BN047",
+      "language": "bn",
+      "challenge": "pronoun_memory",
+      "query": "আমি গত সপ্তাহে যে নীল রঙের শার্ট অর্ডার করেছিলাম সেটা বদলে অন্য কালার নিতে চাই।",
+      "expected_document_types": [
+        "exchange_policy"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": true
+    },
+    {
+      "id": "BN048",
+      "language": "bn",
+      "challenge": "pronoun_memory",
+      "query": "আমার আগের অর্ডারের রিফান্ড টাকাটা কি আমার বিকাশ অ্যাকাউন্টে পাঠাবেন?",
+      "expected_document_types": [
+        "refund_policy",
+        "payment_policy"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": true
+    },
+    {
+      "id": "BN049",
+      "language": "bn",
+      "challenge": "ood",
+      "query": "আজকের ঢাকার আবহাওয়া ও বৃষ্টির সম্ভাবনা কেমন?",
+      "expected_document_types": [],
+      "should_answer": false,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "BN050",
+      "language": "bn",
+      "challenge": "ood",
+      "query": "মিরপুর ১০ থেকে ফার্মগেট যাওয়ার সবচেয়ে ভালো বাস কোনটি?",
+      "expected_document_types": [],
+      "should_answer": false,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "BG001",
+      "language": "banglish",
+      "challenge": "direct",
+      "query": "apnader product return korar rules ki?",
+      "expected_document_types": [
+        "return_policy"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "BG002",
+      "language": "banglish",
+      "challenge": "direct",
+      "query": "refund pete koto din shomoy lage?",
+      "expected_document_types": [
+        "refund_policy"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "BG003",
+      "language": "banglish",
+      "challenge": "direct",
+      "query": "dhakar moddhe delivery charge koto taka?",
+      "expected_document_types": [
+        "delivery_policy"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "BG004",
+      "language": "banglish",
+      "challenge": "direct",
+      "query": "cash on delivery option ki ache?",
+      "expected_document_types": [
+        "payment_policy"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "BG005",
+      "language": "banglish",
+      "challenge": "direct",
+      "query": "apnader office er thikana ta bolben?",
+      "expected_document_types": [
+        "contact"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "BG006",
+      "language": "banglish",
+      "challenge": "direct",
+      "query": "size na mille ki exchange kora jabe?",
+      "expected_document_types": [
+        "exchange_policy"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "BG007",
+      "language": "banglish",
+      "challenge": "direct",
+      "query": "product e defect thakle warranty pabo?",
+      "expected_document_types": [
+        "warranty_policy"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "BG008",
+      "language": "banglish",
+      "challenge": "direct",
+      "query": "dispatch er age order cancel kora jay?",
+      "expected_document_types": [
+        "cancellation_policy"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "BG009",
+      "language": "banglish",
+      "challenge": "direct",
+      "query": "customer support koyta porjonto khola thake?",
+      "expected_document_types": [
+        "customer_support"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "BG010",
+      "language": "banglish",
+      "challenge": "direct",
+      "query": "apnader company somporke jante chai.",
+      "expected_document_types": [
+        "about_us"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "BG011",
+      "language": "banglish",
+      "challenge": "paraphrase",
+      "query": "bhai jama ta choto hoise ferot pathabo kivabe?",
+      "expected_document_types": [
+        "return_policy",
+        "exchange_policy"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "BG012",
+      "language": "banglish",
+      "challenge": "paraphrase",
+      "query": "taka ferot ashbe kobe amar bkash e?",
+      "expected_document_types": [
+        "refund_policy"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "BG013",
+      "language": "banglish",
+      "challenge": "paraphrase",
+      "query": "chittagong e delivery nite koto charge lagbe?",
+      "expected_document_types": [
+        "delivery_policy"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "BG014",
+      "language": "banglish",
+      "challenge": "paraphrase",
+      "query": "nagad ba card diye payment kora jabe to?",
+      "expected_document_types": [
+        "payment_policy"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "BG015",
+      "language": "banglish",
+      "challenge": "paraphrase",
+      "query": "banani te apnader showroom kothay?",
+      "expected_document_types": [
+        "contact"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "BG016",
+      "language": "banglish",
+      "challenge": "paraphrase",
+      "query": "l size er poriborte xl size nite chai.",
+      "expected_document_types": [
+        "exchange_policy"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "BG017",
+      "language": "banglish",
+      "challenge": "paraphrase",
+      "query": "shart er selai khule gele warranty claim kora jabe?",
+      "expected_document_types": [
+        "warranty_policy"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "BG018",
+      "language": "banglish",
+      "challenge": "paraphrase",
+      "query": "bhul kore order kore felsi cancel korte chai.",
+      "expected_document_types": [
+        "cancellation_policy"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "BG019",
+      "language": "banglish",
+      "challenge": "typo",
+      "query": "retrn ruls ki?",
+      "expected_document_types": [
+        "return_policy"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "BG020",
+      "language": "banglish",
+      "challenge": "typo",
+      "query": "rfnd pete koto din?",
+      "expected_document_types": [
+        "refund_policy"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "BG021",
+      "language": "banglish",
+      "challenge": "typo",
+      "query": "delivry crg koto dhakay?",
+      "expected_document_types": [
+        "delivery_policy"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "BG022",
+      "language": "banglish",
+      "challenge": "typo",
+      "query": "bks pymnt kora jabe?",
+      "expected_document_types": [
+        "payment_policy"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "BG023",
+      "language": "banglish",
+      "challenge": "short",
+      "query": "return policy",
+      "expected_document_types": [
+        "return_policy"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "BG024",
+      "language": "banglish",
+      "challenge": "short",
+      "query": "delivery somoy",
+      "expected_document_types": [
+        "delivery_policy"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "BG025",
+      "language": "banglish",
+      "challenge": "short",
+      "query": "office thikana",
+      "expected_document_types": [
+        "contact"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "BG026",
+      "language": "banglish",
+      "challenge": "short",
+      "query": "helpline number",
+      "expected_document_types": [
+        "contact",
+        "customer_support"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "BG027",
+      "language": "banglish",
+      "challenge": "long",
+      "query": "ami ekta panjabi kinchilam kintu fit hocche na, ami ki banani store e giye physically change kore onno size nite parbo naki courier e pathate hobe?",
+      "expected_document_types": [
+        "exchange_policy",
+        "contact"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "BG028",
+      "language": "banglish",
+      "challenge": "long",
+      "query": "parcel delivery r shomoy jodi fete jay ba nosto hoy tahole delivery rider k ferot diye amar bkash er full advance taka refund pabo kivabe?",
+      "expected_document_types": [
+        "return_policy",
+        "refund_policy",
+        "faq"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "BG029",
+      "language": "banglish",
+      "challenge": "long",
+      "query": "dhakar moddhe same day ba 24 hours er moddhe urgent delivery pawar kono way ache ki?",
+      "expected_document_types": [
+        "delivery_policy"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "BG030",
+      "language": "banglish",
+      "challenge": "long",
+      "query": "website e card info dile oita ki secure thake naki apnader database e save hoye jay?",
+      "expected_document_types": [
+        "privacy_policy",
+        "payment_policy"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "BG031",
+      "language": "banglish",
+      "challenge": "long",
+      "query": "leather belt er buckle 15 diner moddhe venge gele eta ki warranty r under e replace pabo?",
+      "expected_document_types": [
+        "warranty_policy"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "BG032",
+      "language": "banglish",
+      "challenge": "long",
+      "query": "eid er jonno 30 ta shirt bulk order korle payment terms ebong delivery deadline ki rokom hoy?",
+      "expected_document_types": [
+        "terms",
+        "payment_policy",
+        "delivery_policy"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "BG033",
+      "language": "banglish",
+      "challenge": "overlapping_return_refund",
+      "query": "product ferot dile taka refund pabo naki voucher diben?",
+      "expected_document_types": [
+        "return_policy",
+        "refund_policy",
+        "faq"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "BG034",
+      "language": "banglish",
+      "challenge": "overlapping_refund_cancellation",
+      "query": "dispatch er age order cancel korle advance taka kobe ferot pabo?",
+      "expected_document_types": [
+        "cancellation_policy",
+        "refund_policy"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "BG035",
+      "language": "banglish",
+      "challenge": "overlapping_delivery_order",
+      "query": "delivery koto din lagbe ar courier tracking code kothay pabo?",
+      "expected_document_types": [
+        "delivery_policy"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "BG036",
+      "language": "banglish",
+      "challenge": "overlapping_payment_refund",
+      "query": "bkash e advance pay korle refund ki direct bkash e ashe?",
+      "expected_document_types": [
+        "payment_policy",
+        "refund_policy"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "BG037",
+      "language": "banglish",
+      "challenge": "overlapping_exchange_return",
+      "query": "poshondo na hole ki refund pabo naki shudhu exchange kora jabe?",
+      "expected_document_types": [
+        "exchange_policy",
+        "return_policy"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "BG038",
+      "language": "banglish",
+      "challenge": "overlapping_warranty_return",
+      "query": "ghorir display nosto hole eta 7 days return naki 6 months warranty?",
+      "expected_document_types": [
+        "return_policy",
+        "warranty_policy"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "BG039",
+      "language": "banglish",
+      "challenge": "overlapping_terms_privacy",
+      "query": "customer data privacy ebong service er terms and conditions ki?",
+      "expected_document_types": [
+        "privacy_policy",
+        "terms"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "BG040",
+      "language": "banglish",
+      "challenge": "overlapping_social_contact",
+      "query": "official facebook page konta ar whatsapp helpline number ta koto?",
+      "expected_document_types": [
+        "social_media_policy",
+        "contact"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "BG041",
+      "language": "banglish",
+      "challenge": "policy_contradiction",
+      "query": "shunlam 30 din por o return kora jay, eta ki shotti?",
+      "expected_document_types": [
+        "return_policy"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "BG042",
+      "language": "banglish",
+      "challenge": "policy_contradiction",
+      "query": "shob product e ki free delivery shara bangladesh e?",
+      "expected_document_types": [
+        "delivery_policy"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "BG043",
+      "language": "banglish",
+      "challenge": "policy_contradiction",
+      "query": "price tag felle diye pore dekhar por o ki exchange kora jabe?",
+      "expected_document_types": [
+        "return_policy",
+        "exchange_policy"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "BG044",
+      "language": "banglish",
+      "challenge": "policy_contradiction",
+      "query": "delivery man bashay ashar por order cancel kora jay?",
+      "expected_document_types": [
+        "cancellation_policy"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "BG045",
+      "language": "banglish",
+      "challenge": "policy_contradiction",
+      "query": "card e pay korle refund ki cash e pawa jay?",
+      "expected_document_types": [
+        "refund_policy"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "BG046",
+      "language": "banglish",
+      "challenge": "pronoun_memory",
+      "query": "amar ager order er dress ta return korte chai, rules bolen.",
+      "expected_document_types": [
+        "return_policy"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": true
+    },
+    {
+      "id": "BG047",
+      "language": "banglish",
+      "challenge": "pronoun_memory",
+      "query": "amar last week e kena blue shirt ta change kore black nite chai.",
+      "expected_document_types": [
+        "exchange_policy"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": true
+    },
+    {
+      "id": "BG048",
+      "language": "banglish",
+      "challenge": "pronoun_memory",
+      "query": "amar ager order er refund taka ta amar bkash number e pathan.",
+      "expected_document_types": [
+        "refund_policy",
+        "payment_policy"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": true
+    },
+    {
+      "id": "BG049",
+      "language": "banglish",
+      "challenge": "ood",
+      "query": "bhai bangladesh vs india cricket match kobe shuru hobe?",
+      "expected_document_types": [],
+      "should_answer": false,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "BG050",
+      "language": "banglish",
+      "challenge": "ood",
+      "query": "chittagong jaoar shobcheye bhalo train konta?",
+      "expected_document_types": [],
+      "should_answer": false,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "CM001",
+      "language": "code_mixed",
+      "challenge": "direct",
+      "query": "Product return korar official policy ta ki?",
+      "expected_document_types": [
+        "return_policy"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "CM002",
+      "language": "code_mixed",
+      "challenge": "direct",
+      "query": "Prepaid order cancel korle refund koto din e pabo?",
+      "expected_document_types": [
+        "cancellation_policy",
+        "refund_policy"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "CM003",
+      "language": "code_mixed",
+      "challenge": "direct",
+      "query": "Inside Dhaka and outside Dhaka delivery charge koto?",
+      "expected_document_types": [
+        "delivery_policy"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "CM004",
+      "language": "code_mixed",
+      "challenge": "direct",
+      "query": "COD te order place korar rules ki?",
+      "expected_document_types": [
+        "payment_policy"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "CM005",
+      "language": "code_mixed",
+      "challenge": "direct",
+      "query": "Company r Banani corporate office address ta bolben?",
+      "expected_document_types": [
+        "contact"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "CM006",
+      "language": "code_mixed",
+      "challenge": "direct",
+      "query": "Size issue hole shirt exchange policy ki rokom?",
+      "expected_document_types": [
+        "exchange_policy"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "CM007",
+      "language": "code_mixed",
+      "challenge": "direct",
+      "query": "Watch and accessories er warranty claim korbo kivabe?",
+      "expected_document_types": [
+        "warranty_policy"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "CM008",
+      "language": "code_mixed",
+      "challenge": "direct",
+      "query": "Parcel shipping er age order cancel kora jabe?",
+      "expected_document_types": [
+        "cancellation_policy"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "CM009",
+      "language": "code_mixed",
+      "challenge": "direct",
+      "query": "Customer care helpdesk er operational hours koto?",
+      "expected_document_types": [
+        "customer_support"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "CM010",
+      "language": "code_mixed",
+      "challenge": "direct",
+      "query": "Entrepreneurs Automation er brand details jante chai.",
+      "expected_document_types": [
+        "about_us"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "CM011",
+      "language": "code_mixed",
+      "challenge": "paraphrase",
+      "query": "Dress ta size e fit hocche na, return process ta bolben?",
+      "expected_document_types": [
+        "return_policy",
+        "exchange_policy"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "CM012",
+      "language": "code_mixed",
+      "challenge": "paraphrase",
+      "query": "Bank gateway diye payment korsi, refund amount kobe credit hobe?",
+      "expected_document_types": [
+        "refund_policy"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "CM013",
+      "language": "code_mixed",
+      "challenge": "paraphrase",
+      "query": "Sylhet courier dispatch korle shipping timeline koto din?",
+      "expected_document_types": [
+        "delivery_policy"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "CM014",
+      "language": "code_mixed",
+      "challenge": "paraphrase",
+      "query": "bKash merchant e pay korle extra transaction fee katbe?",
+      "expected_document_types": [
+        "payment_policy"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "CM015",
+      "language": "code_mixed",
+      "challenge": "paraphrase",
+      "query": "Outlet e giye trial room e check kora jabe?",
+      "expected_document_types": [
+        "contact",
+        "about_us"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "CM016",
+      "language": "code_mixed",
+      "challenge": "paraphrase",
+      "query": "Panjabi ta change kore alternative color nite parbo?",
+      "expected_document_types": [
+        "exchange_policy"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "CM017",
+      "language": "code_mixed",
+      "challenge": "paraphrase",
+      "query": "Fabric defect er jonno warranty cover korbe to?",
+      "expected_document_types": [
+        "warranty_policy"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "CM018",
+      "language": "code_mixed",
+      "challenge": "paraphrase",
+      "query": "Accidental order place korechi, dispatch stop kora jabe?",
+      "expected_document_types": [
+        "cancellation_policy"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "CM019",
+      "language": "code_mixed",
+      "challenge": "typo",
+      "query": "rfund plcy kivabe kaj kore?",
+      "expected_document_types": [
+        "refund_policy"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "CM020",
+      "language": "code_mixed",
+      "challenge": "typo",
+      "query": "retrn window koto days?",
+      "expected_document_types": [
+        "return_policy"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "CM021",
+      "language": "code_mixed",
+      "challenge": "typo",
+      "query": "delvry fee for outsd dhaka?",
+      "expected_document_types": [
+        "delivery_policy"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "CM022",
+      "language": "code_mixed",
+      "challenge": "typo",
+      "query": "crd pymnt support ache?",
+      "expected_document_types": [
+        "payment_policy"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "CM023",
+      "language": "code_mixed",
+      "challenge": "short",
+      "query": "return policy",
+      "expected_document_types": [
+        "return_policy"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "CM024",
+      "language": "code_mixed",
+      "challenge": "short",
+      "query": "courier timeframe",
+      "expected_document_types": [
+        "delivery_policy"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "CM025",
+      "language": "code_mixed",
+      "challenge": "short",
+      "query": "store location",
+      "expected_document_types": [
+        "contact"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "CM026",
+      "language": "code_mixed",
+      "challenge": "short",
+      "query": "support hotline",
+      "expected_document_types": [
+        "contact",
+        "customer_support"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "CM027",
+      "language": "code_mixed",
+      "challenge": "long",
+      "query": "Ami ekta silk panjabi order korechi kintu chest measurement e tight hocche, ami ki Banani experience center e giye larger size exchange korte parbo naki courier return raise korte hobe?",
+      "expected_document_types": [
+        "exchange_policy",
+        "return_policy",
+        "contact"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "CM028",
+      "language": "code_mixed",
+      "challenge": "long",
+      "query": "Pathao courier delivery boy er samne open box inspection e jodi product damaged pai, sheta instantly reject korle prepaid bKash refund koto diner moddhe process hobe?",
+      "expected_document_types": [
+        "return_policy",
+        "refund_policy",
+        "faq"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "CM029",
+      "language": "code_mixed",
+      "challenge": "long",
+      "query": "Inside Dhaka urgent emergency order er khetre same day express courier service charge koto ebong cutoff time kokhon?",
+      "expected_document_types": [
+        "delivery_policy"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "CM030",
+      "language": "code_mixed",
+      "challenge": "long",
+      "query": "Payment gateway SSLCommerz use korle customer credit card data ki securely encrypted thake নাকি server e log thake?",
+      "expected_document_types": [
+        "privacy_policy",
+        "payment_policy"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "CM031",
+      "language": "code_mixed",
+      "challenge": "long",
+      "query": "Leather shoe er sole bonding 20 days er moddhe detach hoye gele sheta ki manufacturer warranty guarantee te claim kora jabe?",
+      "expected_document_types": [
+        "warranty_policy"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "CM032",
+      "language": "code_mixed",
+      "challenge": "long",
+      "query": "Official bulk corporate gifting er invoice and VAT registration terms somporke jante chai.",
+      "expected_document_types": [
+        "terms",
+        "payment_policy"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "CM033",
+      "language": "code_mixed",
+      "challenge": "overlapping_return_refund",
+      "query": "Product ta ফেরত দিলে টাকা refund পাবো কীভাবে?",
+      "expected_document_types": [
+        "return_policy",
+        "refund_policy",
+        "faq"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "CM034",
+      "language": "code_mixed",
+      "challenge": "overlapping_refund_cancellation",
+      "query": "Dispatch er age order cancellation korle advance payment refund policy ki?",
+      "expected_document_types": [
+        "cancellation_policy",
+        "refund_policy"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "CM035",
+      "language": "code_mixed",
+      "challenge": "overlapping_delivery_order",
+      "query": "Courier shipping duration koto din ebong parcel tracking update kivabe ashbe?",
+      "expected_document_types": [
+        "delivery_policy"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "CM036",
+      "language": "code_mixed",
+      "challenge": "overlapping_payment_refund",
+      "query": "Credit card e payment korle refund ki bKash wallet e transfer kora possible?",
+      "expected_document_types": [
+        "payment_policy",
+        "refund_policy"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "CM037",
+      "language": "code_mixed",
+      "challenge": "overlapping_exchange_return",
+      "query": "Color preference issue hole cash refund pabo নাকি product exchange korte hobe?",
+      "expected_document_types": [
+        "exchange_policy",
+        "return_policy"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "CM038",
+      "language": "code_mixed",
+      "challenge": "overlapping_warranty_return",
+      "query": "Accessory defect 10 days e dhora porle eta 7-day return policy te ashbe নাকি warranty service e?",
+      "expected_document_types": [
+        "return_policy",
+        "warranty_policy"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "CM039",
+      "language": "code_mixed",
+      "challenge": "overlapping_terms_privacy",
+      "query": "Terms of service and customer personal data security policy ki?",
+      "expected_document_types": [
+        "privacy_policy",
+        "terms"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "CM040",
+      "language": "code_mixed",
+      "challenge": "overlapping_social_contact",
+      "query": "Facebook Messenger e order confirm korar rules and official support hotline ki?",
+      "expected_document_types": [
+        "social_media_policy",
+        "contact"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "CM041",
+      "language": "code_mixed",
+      "challenge": "policy_contradiction",
+      "query": "Ami shunechi 30 days por o product exchange kora jay, right?",
+      "expected_document_types": [
+        "return_policy",
+        "exchange_policy"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "CM042",
+      "language": "code_mixed",
+      "challenge": "policy_contradiction",
+      "query": "Shob order ei ki free courier shipping everywhere in BD?",
+      "expected_document_types": [
+        "delivery_policy"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "CM043",
+      "language": "code_mixed",
+      "challenge": "policy_contradiction",
+      "query": "Brand tags remove korar por wash kore return kora jabe?",
+      "expected_document_types": [
+        "return_policy"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "CM044",
+      "language": "code_mixed",
+      "challenge": "policy_contradiction",
+      "query": "Courier man bashar dorjay ashar por parcel cancel kora jabe?",
+      "expected_document_types": [
+        "cancellation_policy"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "CM045",
+      "language": "code_mixed",
+      "challenge": "policy_contradiction",
+      "query": "Online card payment er refund ki cash delivery man dibe?",
+      "expected_document_types": [
+        "refund_policy"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "CM046",
+      "language": "code_mixed",
+      "challenge": "pronoun_memory",
+      "query": "Amar previous order er XL panjabi ta return korte chai, step gulo bolun.",
+      "expected_document_types": [
+        "return_policy"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": true
+    },
+    {
+      "id": "CM047",
+      "language": "code_mixed",
+      "challenge": "pronoun_memory",
+      "query": "Amar last order er Navy Blue shirt ta exchange kore onno size nite chai.",
+      "expected_document_types": [
+        "exchange_policy"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": true
+    },
+    {
+      "id": "CM048",
+      "language": "code_mixed",
+      "challenge": "pronoun_memory",
+      "query": "Amar previous cancelled order er refund ta bKash e process kore din.",
+      "expected_document_types": [
+        "refund_policy",
+        "payment_policy"
+      ],
+      "should_answer": true,
+      "requires_personal_memory": true
+    },
+    {
+      "id": "CM049",
+      "language": "code_mixed",
+      "challenge": "ood",
+      "query": "Can you generate Python code for quick sort algorithm?",
+      "expected_document_types": [],
+      "should_answer": false,
+      "requires_personal_memory": false
+    },
+    {
+      "id": "CM050",
+      "language": "code_mixed",
+      "challenge": "ood",
+      "query": "Dhaka airport theke Uttara jete uber er fare koto hote pare?",
+      "expected_document_types": [],
+      "should_answer": false,
+      "requires_personal_memory": false
+    }
+  ]
+}
