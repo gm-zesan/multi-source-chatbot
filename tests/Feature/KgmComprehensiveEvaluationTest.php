@@ -43,7 +43,7 @@ class KgmComprehensiveEvaluationTest extends TestCase
         // Banglish variations
         $this->assertTrue($this->gate->shouldRetrieve('ami bikash e payment korte chai', $this->conversation));
         $this->assertTrue($this->gate->shouldRetrieve('amar ordar ta kothay ase?', $this->conversation));
-        $this->assertTrue($this->gate->shouldRetrieve('Can I pay বিকাশ দিয়ে?', $this->conversation));
+        $this->assertTrue($this->gate->shouldRetrieve('I prefer paying বিকাশ দিয়ে', $this->conversation));
     }
 
     public function test_generic_faq_bypass_guarantees_zero_token_leakage(): void

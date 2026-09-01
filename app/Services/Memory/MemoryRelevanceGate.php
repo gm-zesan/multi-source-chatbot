@@ -86,10 +86,10 @@ class MemoryRelevanceGate
             '\b(what\s+(is|was)\s+my|remember\s+my|do\s+you\s+remember|keep\s+my)\b|' .
             '\b(amar\s+(favorite|preferred|preference|size|ordar|order|payment|choice|color|chest|wardrobe|default))\b|' .
             '\b(amar\s+ki\s+mone\s+ache|mone\s+rakhte\s+parben|mone\s+ache|mone\s+rakhben|save\s+thakbe|mathay\s+rakhben)\b|' .
-            '\b(ami\s+(shobshomoy|always|standard)?.*(prefer|size|choice))\b|' .
+            '\b(ami.*(prefer|size|choice|bikash|bkash|korte\s+chai))\b|' .
             '\b(pochonder\s+size|default\s+payment|purchase\s+suggestion|pathao\s+consignment)\b|' .
             'আমার\s+(পছন্দের|পছন্দ|প্রিয়|বিকাশ|পেমেন্ট|অর্ডার|তথ্য|কালার|চেস্ট|বুকের)|' .
-            'আমি\s+(সবসময়|সাধারণত|আগে|স্ট্যান্ডার্ড).*(পছন্দ\s+করি|পরি|কিনেছি|অর্ডার\s+দিয়েছি)|' .
+            'আমি.*(পছন্দ\s+করি|পরি|কিনেছি|অর্ডার\s+দিয়েছি)|' .
             'পাঞ্জাবির\s+পছন্দের\s+সাইজ|চেস্ট\s+সাইজ|বুকের\s+মাপ|' .
             'মনে\s+রাখতে\s+পারবেন|মনে\s+রাখবেন|মনে\s+আছে|কী\s+ছিল/u',
             $lower
