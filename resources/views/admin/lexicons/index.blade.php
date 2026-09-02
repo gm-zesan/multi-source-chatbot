@@ -6,8 +6,34 @@
 
 @push('custom-style')
     <link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/jquery.dataTables.min.css">
-    <link rel="stylesheet" href="https://cdn.datatables.net/1.10.25/css/dataTables.semanticui.min.css">
     <style>
+        .dataTables_wrapper .dataTables_length {
+            margin-bottom: 12px;
+        }
+        .dataTables_wrapper .dataTables_length select {
+            display: inline-block !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+            width: auto !important;
+            min-width: 65px !important;
+            height: 32px !important;
+            padding: 4px 8px !important;
+            font-size: 13px !important;
+            font-weight: 500 !important;
+            color: #1e293b !important;
+            background-color: #ffffff !important;
+            border: 1px solid #cbd5e1 !important;
+            border-radius: 6px !important;
+            cursor: pointer !important;
+            margin: 0 4px !important;
+        }
+        .dataTables_wrapper .dataTables_filter input {
+            height: 32px !important;
+            border: 1px solid #cbd5e1 !important;
+            border-radius: 6px !important;
+            padding: 4px 8px !important;
+            font-size: 13px !important;
+        }
         .nav-tabs {
             border-bottom: 1px solid #e2e8f0;
             gap: 4px;
@@ -217,7 +243,7 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                @forelse($domainEntries as $entry)
+                                @foreach($domainEntries as $entry)
                                     <tr>
                                         <td>
                                             <span class="badge-subtle badge-subtle-secondary">{{ $entry->concept_key }}</span>
@@ -241,11 +267,7 @@
                                             </form>
                                         </td>
                                     </tr>
-                                @empty
-                                    <tr>
-                                        <td colspan="7" class="text-center text-muted py-4">No domain synonyms configured for this scope.</td>
-                                    </tr>
-                                @endforelse
+                                @endforeach
                             </tbody>
                         </table>
                     </div>
@@ -279,7 +301,7 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                @forelse($rawConceptPatterns as $p)
+                                @foreach($rawConceptPatterns as $p)
                                     <tr>
                                         <td><strong>{{ $p->concept_key }}</strong></td>
                                         <td>
@@ -315,11 +337,7 @@
                                             </form>
                                         </td>
                                     </tr>
-                                @empty
-                                    <tr>
-                                        <td colspan="7" class="text-center text-muted py-4">No concept patterns found for this scope.</td>
-                                    </tr>
-                                @endforelse
+                                @endforeach
                             </tbody>
                         </table>
                     </div>
@@ -352,7 +370,7 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                @forelse($actionMappings as $action)
+                                @foreach($actionMappings as $action)
                                     <tr>
                                         <td><span class="badge-subtle badge-subtle-primary">{{ $action->intent_name }}</span></td>
                                         <td><strong>{{ $action->action_keyword }}</strong></td>
@@ -375,11 +393,7 @@
                                             </form>
                                         </td>
                                     </tr>
-                                @empty
-                                    <tr>
-                                        <td colspan="6" class="text-center text-muted py-4">No action rules configured for this scope.</td>
-                                    </tr>
-                                @endforelse
+                                @endforeach
                             </tbody>
                         </table>
                     </div>
@@ -412,7 +426,7 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                @forelse($policyMappings as $pol)
+                                @foreach($policyMappings as $pol)
                                     <tr>
                                         <td><strong>{{ $pol->policy_name }}</strong></td>
                                         <td><code>{{ $pol->cue_phrase }}</code></td>
@@ -433,11 +447,7 @@
                                             </form>
                                         </td>
                                     </tr>
-                                @empty
-                                    <tr>
-                                        <td colspan="6" class="text-center text-muted py-4">No policy rules configured for this scope.</td>
-                                    </tr>
-                                @endforelse
+                                @endforeach
                             </tbody>
                         </table>
                     </div>
@@ -708,11 +718,30 @@
                 document.body.appendChild(modalEl);
             });
 
+            var dtOptions = function(emptyMsg) {
+                return {
+                    pageLength: 15,
+                    lengthMenu: [10, 15, 25, 50, 100],
+                    language: {
+                        emptyTable: emptyMsg,
+                        lengthMenu: "Show _MENU_ entries",
+                        search: "Search:",
+                        info: "Showing _START_ to _END_ of _TOTAL_ entries",
+                        paginate: {
+                            first: "First",
+                            last: "Last",
+                            next: "Next",
+                            previous: "Prev"
+                        }
+                    }
+                };
+            };
+
             if (typeof $.fn.DataTable !== 'undefined') {
-                $('#table-domain-entries').DataTable({ pageLength: 15 });
-                $('#table-concept-patterns').DataTable({ pageLength: 15 });
-                $('#table-action-mappings').DataTable({ pageLength: 15 });
-                $('#table-policy-mappings').DataTable({ pageLength: 15 });
+                $('#table-domain-entries').DataTable(dtOptions("No domain synonyms configured for this scope."));
+                $('#table-concept-patterns').DataTable(dtOptions("No concept patterns found for this scope."));
+                $('#table-action-mappings').DataTable(dtOptions("No action rules configured for this scope."));
+                $('#table-policy-mappings').DataTable(dtOptions("No policy rules configured for this scope."));
             }
         });
 

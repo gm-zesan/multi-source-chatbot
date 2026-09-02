@@ -236,6 +236,12 @@ class RetrievalClient
 
             $response = $req->post($url);
 
+            // If 404 on /api/v1/lexicon/reload, try fallback /lexicon/reload
+            if ($response->status() === 404) {
+                $altUrl = "{$this->baseUrl()}/lexicon/reload?workspace_id={$workspaceId}";
+                $response = $req->post($altUrl);
+            }
+
             if ($response->successful()) {
                 $data = $response->json();
                 Log::info('[RetrievalClient] Lexicon reloaded successfully', [
@@ -258,10 +264,14 @@ class RetrievalClient
                 'body'         => $response->body(),
             ]);
 
+            $errorDetail = $response->status() === 404
+                ? 'Python service returned 404. Please restart the embedding service (uvicorn app.main:app --port 8001 --reload) to load the /api/v1/lexicon/reload route.'
+                : "HTTP {$response->status()}";
+
             return [
                 'ok'           => false,
                 'workspace_id' => $workspaceId,
-                'error'        => "HTTP {$response->status()}",
+                'error'        => $errorDetail,
             ];
         } catch (\Throwable $e) {
             Log::warning('[RetrievalClient] Lexicon reload request failed', [
