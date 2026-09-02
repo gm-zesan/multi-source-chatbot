@@ -19,6 +19,7 @@ class LLMResponse
         public array $usage = [],
         public ?string $finishReason = null,
         public array $rawResponse = [],
+        public array $telemetry = [],
     ) {}
 
     public function hasToolCalls(): bool

@@ -146,4 +146,53 @@ class LLMProviderAbstractionTest extends TestCase
         $resp2 = $client->generate(LLMRequest::fromPrompt('Q2'));
         $this->assertEquals('Faked response 2', $resp2->content);
     }
+
+    public function test_auth_error_does_not_trigger_blind_fallback(): void
+    {
+        Config::set('ai.default', 'deepseek');
+        Config::set('ai.fallback_provider', 'openrouter');
+
+        // Primary fails with 401 Invalid Key
+        Http::fake([
+            'https://api.deepseek.com/chat/completions' => Http::response('Unauthorized - Invalid API Key', 401),
+            'https://openrouter.ai/api/v1/chat/completions' => Http::response('Should not be called', 200),
+        ]);
+
+        $client = new LLMClient([
+            'deepseek'   => new DeepSeekProvider('sk-bad-key', 'https://api.deepseek.com'),
+            'openrouter' => new OpenRouterProvider('sk-good-key', 'https://openrouter.ai/api/v1'),
+        ]);
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessageMatches('/401/');
+
+        $client->generate(LLMRequest::fromPrompt('Test query'));
+    }
+
+    public function test_telemetry_is_populated_on_llm_response(): void
+    {
+        Http::fake([
+            'https://api.deepseek.com/chat/completions' => Http::response([
+                'choices' => [
+                    [
+                        'message' => ['role' => 'assistant', 'content' => 'Telemetry test response'],
+                        'finish_reason' => 'stop',
+                    ]
+                ],
+                'usage' => ['prompt_tokens' => 20, 'completion_tokens' => 10, 'total_tokens' => 30],
+            ], 200),
+        ]);
+
+        $client = new LLMClient([
+            'deepseek' => new DeepSeekProvider('sk-test', 'https://api.deepseek.com'),
+        ]);
+
+        $response = $client->generate(LLMRequest::fromPrompt('Test'));
+
+        $this->assertNotEmpty($response->telemetry);
+        $this->assertArrayHasKey('latency_ms', $response->telemetry);
+        $this->assertFalse($response->telemetry['fallback_used']);
+        $this->assertEquals('deepseek', $response->telemetry['active_provider']);
+        $this->assertEquals(30, $response->telemetry['total_tokens']);
+    }
 }
