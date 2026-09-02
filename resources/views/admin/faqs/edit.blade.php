@@ -127,6 +127,29 @@
                         </div>
                         <div class="card-body custom-form">
                             <div class="mb-3">
+                                <label for="document_type" class="form-label custom-label">Policy / Document Type <span class="text-danger">*</span></label>
+                                <select name="document_type" id="document_type" class="form-control custom-input single-select2 @error('document_type') is-invalid @enderror">
+                                    <option value="faq" {{ old('document_type', $faq->document_type) == 'faq' ? 'selected' : '' }}>General FAQ</option>
+                                    <option value="refund_policy" {{ old('document_type', $faq->document_type) == 'refund_policy' ? 'selected' : '' }}>Refund Policy</option>
+                                    <option value="return_policy" {{ old('document_type', $faq->document_type) == 'return_policy' ? 'selected' : '' }}>Return Policy</option>
+                                    <option value="exchange_policy" {{ old('document_type', $faq->document_type) == 'exchange_policy' ? 'selected' : '' }}>Exchange Policy</option>
+                                    <option value="delivery_policy" {{ old('document_type', $faq->document_type) == 'delivery_policy' ? 'selected' : '' }}>Delivery Policy</option>
+                                    <option value="payment_policy" {{ old('document_type', $faq->document_type) == 'payment_policy' ? 'selected' : '' }}>Payment Policy</option>
+                                    <option value="cancellation_policy" {{ old('document_type', $faq->document_type) == 'cancellation_policy' ? 'selected' : '' }}>Cancellation Policy</option>
+                                    <option value="warranty_policy" {{ old('document_type', $faq->document_type) == 'warranty_policy' ? 'selected' : '' }}>Warranty Policy</option>
+                                    <option value="terms" {{ old('document_type', $faq->document_type) == 'terms' ? 'selected' : '' }}>Terms & Conditions</option>
+                                    <option value="privacy_policy" {{ old('document_type', $faq->document_type) == 'privacy_policy' ? 'selected' : '' }}>Privacy Policy</option>
+                                    <option value="about_us" {{ old('document_type', $faq->document_type) == 'about_us' ? 'selected' : '' }}>About Us</option>
+                                    <option value="contact" {{ old('document_type', $faq->document_type) == 'contact' ? 'selected' : '' }}>Contact Information</option>
+                                    <option value="customer_support" {{ old('document_type', $faq->document_type) == 'customer_support' ? 'selected' : '' }}>Customer Support Desk</option>
+                                    <option value="social_media_policy" {{ old('document_type', $faq->document_type) == 'social_media_policy' ? 'selected' : '' }}>Social Media Policy</option>
+                                </select>
+                                @error('document_type')
+                                    <div class="error_msg">{{ $message }}</div>
+                                @enderror
+                            </div>
+
+                            <div class="mb-3">
                                 <label for="category_id" class="form-label custom-label">Category</label>
                                 <select name="category_id" id="category_id" class="form-control custom-input single-select2">
                                     <option value="">No Category</option>
@@ -163,6 +186,12 @@
                                 <small class="text-muted d-block">Created: <strong>{{ $faq->created_at?->format('M d, Y') }}</strong></small>
                             </div>
 
+                            <div class="mb-3">
+                                <button type="button" class="btn btn-sm w-100 py-2 text-primary" style="background-color: #eff6ff; border: 1px solid #bfdbfe; font-weight: 500;" onclick="triggerResync('{{ $faq->id }}')">
+                                    <i class="ri-refresh-line me-1"></i> Re-sync to Typesense & Regenerate Lexicon
+                                </button>
+                            </div>
+
                             <div class="form-actions">
                                 <div class="row">
                                     <div class="col-6">
@@ -192,4 +221,33 @@
             });
         </script>
     @endif
+
+    <script>
+        function triggerResync(faqId) {
+            swal({
+                title: "Re-sync to Typesense?",
+                text: "This will regenerate the commerce ontology lexicon and immediately sync vectors to Typesense.",
+                icon: "info",
+                buttons: ["Cancel", "Sync Now"],
+            }).then((willSync) => {
+                if (willSync) {
+                    fetch(`/dashboard/faqs/${faqId}/resync`, {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                            'Accept': 'application/json',
+                        }
+                    })
+                    .then(res => res.json())
+                    .then(data => {
+                        swal("Synced!", data.message || "FAQ synced successfully.", "success")
+                            .then(() => location.reload());
+                    })
+                    .catch(err => {
+                        swal("Error", "Failed to dispatch sync job.", "error");
+                    });
+                }
+            });
+        }
+    </script>
 @endpush

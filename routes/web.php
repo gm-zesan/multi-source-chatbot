@@ -11,6 +11,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\FAQCategoryController;
 use App\Http\Controllers\FAQController;
 use App\Http\Controllers\HealthController;
+use App\Http\Controllers\ObservabilityController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ConversationController;
 use App\Http\Controllers\RoleController;
@@ -38,6 +39,9 @@ Route::middleware('auth')->prefix('dashboard')->group(function () {
     Route::get('/simulator', [ChatSimulatorController::class, 'index'])->name('simulator.index');
     Route::post('/simulator/send', [ChatSimulatorController::class, 'send'])->name('simulator.send');
     Route::post('/simulator/clear', [ChatSimulatorController::class, 'clear'])->name('simulator.clear');
+
+    // Observability & Telemetry Dashboard
+    Route::get('/observability', [ObservabilityController::class, 'index'])->name('observability.index');
 
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::get('/profile/password-change', [DashboardController::class, 'changePassword'])->name('password-change.profile');
@@ -111,6 +115,9 @@ Route::middleware('auth')->prefix('dashboard')->group(function () {
         ]));
     Route::post('/faqs/{faq}/toggle-active', [FAQController::class, 'toggleActive'])
         ->name('faqs.toggle-active')
+        ->middleware('permission:' . \App\Enums\Permissions\FAQPermission::UPDATE->value);
+    Route::post('/faqs/{faq}/resync', [FAQController::class, 'resync'])
+        ->name('faqs.resync')
         ->middleware('permission:' . \App\Enums\Permissions\FAQPermission::UPDATE->value);
     Route::post('/faqs/{id}/restore', [FAQController::class, 'restore'])
         ->name('faqs.restore')

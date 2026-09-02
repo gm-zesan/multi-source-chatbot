@@ -24,11 +24,12 @@ class UpdateFAQRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'category_id' => 'nullable|exists:faq_categories,id',
-            'question'    => 'required|string|max:500',
-            'answer'      => 'required|string',
-            'priority'    => 'nullable|integer|min:0|max:999999',
-            'is_active'   => 'nullable|boolean',
+            'category_id'   => 'nullable|exists:faq_categories,id',
+            'document_type' => 'nullable|string|max:100',
+            'question'      => 'required|string|max:500',
+            'answer'        => 'required|string',
+            'priority'      => 'nullable|integer|min:0|max:999999',
+            'is_active'     => 'nullable|boolean',
         ];
     }
 

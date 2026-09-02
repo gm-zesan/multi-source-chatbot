@@ -141,6 +141,25 @@ class FAQController extends Controller
     }
 
     /**
+     * Manually trigger re-sync to Typesense and lexicon regeneration.
+     */
+    public function resync(Request $request, FAQ $faq): JsonResponse|RedirectResponse
+    {
+        $this->authorizeWorkspace($faq);
+
+        $this->faqService->resync($faq);
+
+        if ($request->ajax() || $request->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Sync job queued successfully. Typesense and Lexicon are updating.',
+            ]);
+        }
+
+        return redirect()->back()->with('success', 'FAQ re-sync job dispatched successfully.');
+    }
+
+    /**
      * Ensure the FAQ belongs to the user's workspace.
      * Superadmins are allowed to manage FAQs across all workspaces.
      */

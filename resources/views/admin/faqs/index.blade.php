@@ -60,12 +60,13 @@
                             </div>
                         </div> --}}
 
-                        <table class="table dataTable w-100" id="data-table" style="min-width: 900px;">
+                        <table class="table dataTable w-100" id="data-table" style="min-width: 950px;">
                             <thead>
                                 <tr>
                                     <th scope="col">SL NO</th>
                                     <th scope="col">Question</th>
                                     <th scope="col">Category</th>
+                                    <th scope="col">Policy Type</th>
                                     <th scope="col">Commerce Domain</th>
                                     <th scope="col">AI Lexicon</th>
                                     <th scope="col">Priority</th>
@@ -99,6 +100,33 @@
 
     <script type="text/javascript">
         var listUrl = SITEURL + '/dashboard/faqs';
+
+        function triggerResync(faqId) {
+            swal({
+                title: "Re-sync to Typesense?",
+                text: "This will regenerate the commerce ontology lexicon and immediately sync vectors to Typesense.",
+                icon: "info",
+                buttons: ["Cancel", "Sync Now"],
+            }).then((willSync) => {
+                if (willSync) {
+                    fetch(`/dashboard/faqs/${faqId}/resync`, {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                            'Accept': 'application/json',
+                        }
+                    })
+                    .then(res => res.json())
+                    .then(data => {
+                        swal("Synced!", data.message || "FAQ synced successfully.", "success");
+                        $('#data-table').DataTable().ajax.reload(null, false);
+                    })
+                    .catch(err => {
+                        swal("Error", "Failed to dispatch sync job.", "error");
+                    });
+                }
+            });
+        }
 
         $(document).ready(function() {
             var table = $('#data-table').DataTable({
@@ -137,6 +165,11 @@
                         orderable: true
                     },
                     {
+                        data: 'document_type',
+                        name: 'document_type',
+                        orderable: true
+                    },
+                    {
                         data: 'commerce_domain',
                         name: 'commerce_domain',
                         orderable: false
@@ -166,7 +199,9 @@
                         orderable: false,
                         render: function(data) {
                             var btns = '';
-                            btns += '<div class="action-btn">';
+                            btns += '<div class="action-btn d-flex align-items-center gap-1">';
+
+                            btns += '<button type="button" class="btn btn-sm btn-outline-primary" style="padding: 3px 7px;" title="Re-sync & Regenerate Lexicon" onclick="triggerResync(\'' + data.id + '\')"><i class="ri-refresh-line"></i></button>';
 
                             btns += '<a href="' + SITEURL + '/dashboard/faqs/' + data.id +
                                 '/edit" title="Edit" class="btn btn-edit"><i class="ri-edit-line"></i></a>';

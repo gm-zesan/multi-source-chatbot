@@ -54,6 +54,29 @@
                         </div>
                         <div class="card-body custom-form">
                             <div class="mb-3">
+                                <label for="document_type" class="form-label custom-label">Policy / Document Type <span class="text-danger">*</span></label>
+                                <select name="document_type" id="document_type" class="form-control custom-input single-select2 @error('document_type') is-invalid @enderror">
+                                    <option value="faq" {{ old('document_type') == 'faq' ? 'selected' : '' }}>General FAQ</option>
+                                    <option value="refund_policy" {{ old('document_type') == 'refund_policy' ? 'selected' : '' }}>Refund Policy</option>
+                                    <option value="return_policy" {{ old('document_type') == 'return_policy' ? 'selected' : '' }}>Return Policy</option>
+                                    <option value="exchange_policy" {{ old('document_type') == 'exchange_policy' ? 'selected' : '' }}>Exchange Policy</option>
+                                    <option value="delivery_policy" {{ old('document_type') == 'delivery_policy' ? 'selected' : '' }}>Delivery Policy</option>
+                                    <option value="payment_policy" {{ old('document_type') == 'payment_policy' ? 'selected' : '' }}>Payment Policy</option>
+                                    <option value="cancellation_policy" {{ old('document_type') == 'cancellation_policy' ? 'selected' : '' }}>Cancellation Policy</option>
+                                    <option value="warranty_policy" {{ old('document_type') == 'warranty_policy' ? 'selected' : '' }}>Warranty Policy</option>
+                                    <option value="terms" {{ old('document_type') == 'terms' ? 'selected' : '' }}>Terms & Conditions</option>
+                                    <option value="privacy_policy" {{ old('document_type') == 'privacy_policy' ? 'selected' : '' }}>Privacy Policy</option>
+                                    <option value="about_us" {{ old('document_type') == 'about_us' ? 'selected' : '' }}>About Us</option>
+                                    <option value="contact" {{ old('document_type') == 'contact' ? 'selected' : '' }}>Contact Information</option>
+                                    <option value="customer_support" {{ old('document_type') == 'customer_support' ? 'selected' : '' }}>Customer Support Desk</option>
+                                    <option value="social_media_policy" {{ old('document_type') == 'social_media_policy' ? 'selected' : '' }}>Social Media Policy</option>
+                                </select>
+                                @error('document_type')
+                                    <div class="error_msg">{{ $message }}</div>
+                                @enderror
+                            </div>
+
+                            <div class="mb-3">
                                 <label for="category_id" class="form-label custom-label">Category</label>
                                 <select name="category_id" id="category_id" class="form-control custom-input single-select2">
                                     <option value="">No Category</option>

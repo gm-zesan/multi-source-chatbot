@@ -636,6 +636,28 @@
                                 </div>
                             </div>
                         </div>
+
+                        <!-- Step 5: Semantic Answerability & Safety Gate (Tier 4) -->
+                        <div class="diag-section" style="background: #f0fdf4; border-color: #bbf7d0;">
+                            <div class="diag-title" style="color: #166534;">
+                                <span><i class="ri-shield-check-line me-1"></i> 5. Semantic Answerability Gate</span>
+                                <span class="status-badge status-none" id="gateBadge">IDLE</span>
+                            </div>
+                            <div id="gateResults">
+                                <div class="d-flex justify-content-between small text-muted mb-1">
+                                    <span>Gate Decision: <strong id="gateStatusText" class="text-dark">N/A</strong></span>
+                                    <span>Confidence: <strong id="gateConfidenceText">0.0%</strong></span>
+                                </div>
+                                <div class="d-flex justify-content-between small text-muted mb-1">
+                                    <span>Barrier Rule: <strong id="gateRuleText" class="text-dark">None</strong></span>
+                                    <span>Score Margin: <strong id="gateMarginText">0.00</strong></span>
+                                </div>
+                                <div class="small text-muted mt-2">
+                                    <span>Grounded Hits Authorized: <strong id="gateGroundedCount" class="text-success">0</strong></span>
+                                    <div id="gateGroundedDocs" class="mt-1"></div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -953,6 +975,64 @@
 
                 document.getElementById('finalScoreText').textContent = `${scores.final_confidence}%`;
                 document.getElementById('finalBar').style.width = `${scores.final_confidence}%`;
+            }
+
+            // 5. Semantic Answerability Gate
+            const gate = diag.answerability_decision;
+            const gateBadge = document.getElementById('gateBadge');
+            const gateStatusText = document.getElementById('gateStatusText');
+            const gateConfidenceText = document.getElementById('gateConfidenceText');
+            const gateRuleText = document.getElementById('gateRuleText');
+            const gateMarginText = document.getElementById('gateMarginText');
+            const gateGroundedCount = document.getElementById('gateGroundedCount');
+            const gateGroundedDocs = document.getElementById('gateGroundedDocs');
+
+            if (gate) {
+                const status = (gate.status || 'unanswerable').toUpperCase();
+                gateBadge.textContent = status;
+                if (status === 'CONFIDENT') {
+                    gateBadge.className = 'status-badge status-ok';
+                    gateStatusText.className = 'text-success fw-bold';
+                } else if (status === 'AMBIGUOUS') {
+                    gateBadge.className = 'status-badge status-degraded';
+                    gateStatusText.className = 'text-warning fw-bold';
+                } else {
+                    gateBadge.className = 'status-badge status-failed';
+                    gateStatusText.className = 'text-danger fw-bold';
+                }
+                gateStatusText.textContent = status;
+                gateConfidenceText.textContent = `${Math.round((gate.confidence_score || 0) * 100)}%`;
+
+                const reasons = gate.reasons || {};
+                gateRuleText.textContent = reasons.rule || (status === 'CONFIDENT' ? 'evidence_sufficient' : 'none');
+                const margin = reasons.margin !== undefined ? reasons.margin.toFixed(4) : 'N/A';
+                gateMarginText.textContent = margin;
+
+                gateGroundedCount.textContent = gate.grounded_count || 0;
+
+                // Render document badges
+                let docHtml = '';
+                const sources = data.sources || [];
+                if (sources.length > 0) {
+                    sources.forEach(s => {
+                        docHtml += `<div class="d-flex justify-content-between align-items-center p-1 px-2 mb-1" style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 4px; font-size: 11px;">
+                            <span class="text-truncate" style="max-width: 220px;"><strong>[${escapeHtml(s.category)}]</strong> ${escapeHtml(s.question)}</span>
+                            <span class="badge bg-success-subtle text-success">${s.score}%</span>
+                        </div>`;
+                    });
+                } else {
+                    docHtml = '<span class="text-muted small">Zero ungrounded documents passed to LLM (Safe fallback).</span>';
+                }
+                gateGroundedDocs.innerHTML = docHtml;
+            } else {
+                gateBadge.textContent = (route === 'chat' || route === 'action') ? 'BYPASSED' : 'IDLE';
+                gateBadge.className = 'status-badge status-none';
+                gateStatusText.textContent = (route === 'chat' || route === 'action') ? 'Bypassed (Chat/Action)' : 'Idle';
+                gateConfidenceText.textContent = 'N/A';
+                gateRuleText.textContent = 'None';
+                gateMarginText.textContent = 'N/A';
+                gateGroundedCount.textContent = '0';
+                gateGroundedDocs.innerHTML = '<span class="text-muted small">No knowledge documents retrieved for this turn.</span>';
             }
         }
 

@@ -36,6 +36,12 @@
                     <span class="nav-label">Chat Simulator</span>
                 </a>
             </li>
+            <li class="nav-item">
+                <a href="{{ route('observability.index') }}" class="nav-link {{ Route::is('observability.index') ? 'active' : '' }}">
+                    <i class="ri-pulse-line nav-icon"></i>
+                    <span class="nav-label">Observability & Telemetry</span>
+                </a>
+            </li>
 
             <!-- Knowledge Base Section -->
             <li class="nav-section">

@@ -83,6 +83,16 @@ class FAQService
             ->addColumn('category', function (FAQ $faq) {
                 return $faq->category?->name ?? '<span class="text-muted">Uncategorized</span>';
             })
+            ->addColumn('document_type', function (FAQ $faq) {
+                $label = $faq->documentTypeLabel();
+                $isPolicy = $faq->isPolicy();
+                $badgeStyle = $isPolicy
+                    ? 'background-color: #ede9fe; color: #6d28d9; border: 1px solid #ddd6fe;'
+                    : 'background-color: #f1f5f9; color: #475569; border: 1px solid #e2e8f0;';
+                $icon = $isPolicy ? 'ri-shield-check-line' : 'ri-question-line';
+                return '<span class="badge" style="' . $badgeStyle . ' font-weight: 500; font-size: 11px;">'
+                    . '<i class="' . $icon . ' me-1"></i>' . e($label) . '</span>';
+            })
             ->addColumn('commerce_domain', function (FAQ $faq) {
                 $domain = $faq->lexicon?->domain ?? 'General Support';
                 return '<span class="badge" style="background-color: #f1f5f9; color: #334155; border: 1px solid #cbd5e1; font-weight: 500; font-size: 11px;">'
@@ -118,7 +128,7 @@ class FAQService
             ->addColumn('action-btn', function (FAQ $faq) {
                 return ['id' => $faq->id, 'trashed' => $faq->trashed()];
             })
-            ->rawColumns(['category', 'commerce_domain', 'lexicon_badge', 'hit_count', 'status_badge'])
+            ->rawColumns(['category', 'document_type', 'commerce_domain', 'lexicon_badge', 'hit_count', 'status_badge'])
             ->make(true);
     }
 
@@ -235,5 +245,13 @@ class FAQService
         }
 
         return $fresh->is_active;
+    }
+
+    /**
+     * Manually trigger immediate re-sync to Typesense and regenerate AI lexicon.
+     */
+    public function resync(FAQ $faq): void
+    {
+        $this->indexer->dispatchIndex($faq, 'index');
     }
 }

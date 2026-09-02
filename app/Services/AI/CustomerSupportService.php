@@ -166,10 +166,14 @@ class CustomerSupportService
         Message $message,
         array $deliveryResponse = [],
     ): ?Message {
-        $replyText = $this->generateReply(
-            conversation: $conversation,
+        $workspaceId = $conversation->channelAccount?->workspace_id ?? (int) (\App\Models\Workspace::first()?->id ?? 1);
+        $result = $this->handleQuery(
             query: $message->body,
+            workspaceId: $workspaceId,
+            conversation: $conversation,
         );
+
+        $replyText = $result['reply'] ?? '';
 
         if (trim($replyText) === '') {
             return null;
@@ -178,7 +182,14 @@ class CustomerSupportService
         return $this->saveOutboundReply(
             conversation: $conversation,
             replyText: $replyText,
-            deliveryResponse: $deliveryResponse,
+            deliveryResponse: array_merge($deliveryResponse, [
+                'route' => $result['route'] ?? 'knowledge',
+                'confidence' => $result['confidence'] ?? 1.0,
+                'answered' => $result['answered'] ?? false,
+                'total_time_ms' => $result['routing_telemetry']['total_e2e_ms'] ?? null,
+                'answerability_decision' => $result['answerability_decision'] ?? null,
+                'routing_telemetry' => $result['routing_telemetry'] ?? [],
+            ]),
         );
     }
 

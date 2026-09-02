@@ -79,6 +79,17 @@
                         <span class="badge bg-primary text-white" style="font-size: 10px; padding: 2px 6px; border-radius: 4px; display: inline-flex; align-items: center; gap: 3px;">
                             <i class="bi bi-robot"></i> AI
                         </span>
+                        @if(isset($message->metadata['route']))
+                            <span class="badge" style="background: #f1f5f9; color: #334155; font-size: 9px; padding: 2px 5px; border-radius: 4px; text-transform: uppercase;">
+                                {{ $message->metadata['route'] }}
+                            </span>
+                        @endif
+                        @if(isset($message->metadata['answerability_decision']['status']))
+                            @php $gateStatus = strtolower($message->metadata['answerability_decision']['status']); @endphp
+                            <span class="badge" style="background: {{ $gateStatus === 'confident' ? '#dcfce7' : ($gateStatus === 'ambiguous' ? '#fef9c3' : '#fee2e2') }}; color: {{ $gateStatus === 'confident' ? '#166534' : ($gateStatus === 'ambiguous' ? '#854d0e' : '#991b1b') }}; font-size: 9px; padding: 2px 5px; border-radius: 4px;">
+                                {{ ucfirst($gateStatus) }}
+                            </span>
+                        @endif
                     @endif
 
                     @if($message->direction == 'outbound')

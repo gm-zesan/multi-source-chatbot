@@ -80,13 +80,15 @@ class ConversationController extends Controller
 
         $lastInbound = $conversation->messages()->where('direction', 'inbound')->latest('id')->first();
         $prompt = $lastInbound?->body ?? 'Hello, how can I help you today?';
-        $workspaceId = $conversation->channelAccount?->workspace_id;
+        $workspaceId = (int) ($conversation->channelAccount?->workspace_id ?? 1);
 
-        $replyText = $this->customerSupportService->generateReply(
-            conversation: $conversation,
+        $supportResult = $this->customerSupportService->handleQuery(
             query: $prompt,
             workspaceId: $workspaceId,
+            conversation: $conversation,
         );
+
+        $replyText = $supportResult['reply'] ?? '';
 
         if (trim($replyText) !== '') {
             $deliveryResponse = [];
@@ -105,7 +107,14 @@ class ConversationController extends Controller
             $this->customerSupportService->saveOutboundReply(
                 conversation: $conversation,
                 replyText: $replyText,
-                deliveryResponse: $deliveryResponse,
+                deliveryResponse: array_merge($deliveryResponse, [
+                    'route' => $supportResult['route'] ?? 'knowledge',
+                    'confidence' => $supportResult['confidence'] ?? 1.0,
+                    'answered' => $supportResult['answered'] ?? false,
+                    'total_time_ms' => $supportResult['routing_telemetry']['total_e2e_ms'] ?? null,
+                    'answerability_decision' => $supportResult['answerability_decision'] ?? null,
+                    'routing_telemetry' => $supportResult['routing_telemetry'] ?? [],
+                ]),
             );
         }
 
