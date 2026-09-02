@@ -291,7 +291,7 @@ class HybridRouter
             '/(cricket|football|match|score|fifa|world cup|ক্রিকেট|ফুটবল|বিশ্বকাপ)/u',
             '/(hospital|doctor|clinic|pharmacy|ambulance|medical|হাসপাতাল|ডাক্তার|ফার্মেসি|অ্যাম্বুলেন্স)/u',
             '/(stock price|apple stock|nasdaq|crypto|bitcoin|flight|airline|airport|boarding|শেয়ার বাজার|বিটকয়েন|ফ্লাইট|বিমান|এয়ারলাইন)/u',
-            '/(nuclear|submarine|rocket fuel|rocket parts|weapons|explosive|drugs|পারমাণবিক|রকেট)/u',
+            '/(nuclear|submarine|rocket fuel|rocket parts|weapons|explosive|drugs|পারমাণবিক|স্পেস\s*রকেট|রকেট\s*ফুয়েল|রকেট\s*ইঞ্জিন)/u',
             '/(poem|write a story|write a song|joke|riddle|কবিতা|গল্প লিখুন|গান লিখুন|কৌতুক)/u',
             '/^(asdf|qwerty|zxcvbnm|ghjk|test123|abcxyz)/u',
         ];

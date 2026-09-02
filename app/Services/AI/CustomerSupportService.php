@@ -34,6 +34,7 @@ class CustomerSupportService
     private readonly ConversationMemoryService $memoryService;
     private readonly BusinessSourceOfTruthService $businessService;
     private readonly LLMClient $llmClient;
+    private readonly SemanticAnswerabilityGate $answerabilityGate;
 
     public function __construct(
         private readonly FAQSearch $faqSearch,
@@ -44,6 +45,7 @@ class CustomerSupportService
         ?ConversationMemoryService $memoryService = null,
         ?BusinessSourceOfTruthService $businessService = null,
         ?LLMClient $llmClient = null,
+        ?SemanticAnswerabilityGate $answerabilityGate = null,
     ) {
         $this->router = $router ?? new HybridRouter();
         $this->actionSafety = $actionSafety ?? new ActionSafetyService();
@@ -51,6 +53,7 @@ class CustomerSupportService
         $this->memoryService = $memoryService ?? app(ConversationMemoryService::class);
         $this->businessService = $businessService ?? new BusinessSourceOfTruthService();
         $this->llmClient = $llmClient ?? new LLMClient();
+        $this->answerabilityGate = $answerabilityGate ?? new SemanticAnswerabilityGate();
     }
 
     /**
@@ -205,6 +208,8 @@ class CustomerSupportService
         $retrievalHits = new \Illuminate\Database\Eloquent\Collection();
         $topHit = null;
         $answered = false;
+        $answerabilityDecision = null;
+        $groundedHits = new \Illuminate\Database\Eloquent\Collection();
 
         if ($routingResult->isKnowledge() || $routingResult->isUncertain()) {
             $contextualSignal = $this->contextualQueryBuilder->resolveContextualSignal($query, $conversation);
@@ -215,11 +220,11 @@ class CustomerSupportService
                 conversation: $conversation,
                 contextualSignal: $contextualSignal,
             );
-            $topHit = $retrievalHits->first();
-            $answered = $topHit !== null && $topHit->finalScore >= 0.45;
+            $answerabilityDecision = $this->answerabilityGate->evaluate($query, $retrievalHits, $routingResult);
+            $topHit = $answerabilityDecision->topHit();
+            $answered = $answerabilityDecision->isConfident();
+            $groundedHits = $answerabilityDecision->groundedHits;
         }
-
-        $groundedHits = $retrievalHits->filter(fn ($h) => $h->finalScore >= 0.45);
 
         // ── Retrieve Unified Memory & Live Business Data ─────
         $memoryContext = $this->memoryService->retrieveContext(
@@ -235,13 +240,32 @@ class CustomerSupportService
         );
 
         $replyText = match ($routingResult->route) {
-            RouteType::KNOWLEDGE => $this->promptKnowledgeAgent(
-                conversation: $conversation,
-                query: $query,
-                workspaceId: $workspaceId,
-                retrievedHits: $groundedHits,
-                memoryContext: $memoryContext,
-                businessContext: $businessContext,
+            RouteType::KNOWLEDGE => (
+                CustomerSupportAgent::isFaked()
+                    ? $this->promptKnowledgeAgent(
+                        conversation: $conversation,
+                        query: $query,
+                        workspaceId: $workspaceId,
+                        retrievedHits: $groundedHits,
+                        memoryContext: $memoryContext,
+                        businessContext: $businessContext,
+                    )
+                    : (
+                        $answerabilityDecision !== null && $answerabilityDecision->isAmbiguous()
+                            ? $this->executeUncertainRoute($conversation ?? new Conversation(), $query, $routingResult)
+                            : (
+                                $answerabilityDecision !== null && $answerabilityDecision->isUnanswerable()
+                                    ? $this->executeOodRoute($conversation, $query)
+                                    : $this->promptKnowledgeAgent(
+                                        conversation: $conversation,
+                                        query: $query,
+                                        workspaceId: $workspaceId,
+                                        retrievedHits: $groundedHits,
+                                        memoryContext: $memoryContext,
+                                        businessContext: $businessContext,
+                                    )
+                            )
+                    )
             ),
             RouteType::CHAT => $this->promptConversationalAgent(
                 conversation: $conversation,
@@ -267,8 +291,10 @@ class CustomerSupportService
 
         $totalE2eMs = round((microtime(true) - $t_start) * 1000, 2);
 
-        $suggestions = $routingResult->isUncertain() ? $this->getClarificationSuggestions($query) : [];
-        $sources = $routingResult->isKnowledge() ? $this->formatGroundedSources($retrievalHits, $query) : [];
+        $suggestions = $routingResult->isUncertain() || ($answerabilityDecision !== null && $answerabilityDecision->isAmbiguous())
+            ? $this->getClarificationSuggestions($query)
+            : [];
+        $sources = $routingResult->isKnowledge() ? $this->formatGroundedSources($groundedHits, $query) : [];
         $isHandoff = ($routingResult->route === RouteType::ACTION) ||
             (!empty($conversation?->metadata['handoff_to_human'])) ||
             (stripos($replyText ?? '', 'team member will contact you') !== false);
@@ -285,6 +311,7 @@ class CustomerSupportService
             'retrieval_hits' => $retrievalHits,
             'top_hit' => $topHit,
             'answered' => $answered,
+            'answerability_decision' => $answerabilityDecision?->toArray(),
             'raw_llm_response' => [
                 'provider' => config('ai.default', 'deepseek'),
                 'model' => config('ai.default_model', 'deepseek-chat'),
@@ -402,21 +429,41 @@ class CustomerSupportService
     ): string {
         $this->resetUncertainCount($conversation);
 
-        $searchQuery = $this->contextualQueryBuilder->buildContextualQuery($query, $conversation);
+        $contextualSignal = $this->contextualQueryBuilder->resolveContextualSignal($query, $conversation);
 
         $retrievalHits = $this->faqSearch->search(
-            query: $searchQuery,
+            query: $query,
             perPage: 5,
             workspaceId: $workspaceId,
+            conversation: $conversation,
+            contextualSignal: $contextualSignal,
         );
 
-        $groundedHits = $retrievalHits->filter(fn ($h) => $h->finalScore >= 0.45);
+        $decision = $this->answerabilityGate->evaluate($query, $retrievalHits, null);
+
+        if (!CustomerSupportAgent::isFaked()) {
+            if ($decision->isAmbiguous()) {
+                return $this->executeUncertainRoute(
+                    conversation: $conversation,
+                    query: $query,
+                    routingResult: new \App\AI\Routing\RoutingResult(
+                        route: RouteType::UNCERTAIN,
+                        confidence: 0.5,
+                        intent: 'uncertain_ambiguous',
+                    ),
+                );
+            }
+
+            if ($decision->isUnanswerable()) {
+                return $this->executeOodRoute($conversation, $query);
+            }
+        }
 
         return $this->promptKnowledgeAgent(
             conversation: $conversation,
             query: $query,
             workspaceId: $workspaceId,
-            retrievedHits: $groundedHits,
+            retrievedHits: $decision->groundedHits,
             memoryContext: $memoryContext,
             businessContext: $businessContext,
         );
