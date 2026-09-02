@@ -82,17 +82,32 @@ class AuditStep2MultilingualLinguisticCommand extends Command
             'code_mixed' => ['name' => 'Code-Mixed (BN + EN)', 'total' => 0, 'top1' => 0, 'top3' => 0, 'failures' => []],
         ];
 
+        $contextualBuilder = app(\App\Services\AI\ContextualQueryBuilder::class);
+
         foreach ($e2eData['scenarios'] as $sc) {
             $lang = $sc['language'];
             $scId = $sc['id'];
+            $scenarioHistory = [];
 
             foreach ($sc['turns'] as $turnIdx => $turn) {
                 $expected = $turn['expected_document_types'];
-                if (empty($expected)) continue; // Skip personal / general turns without static KB targets
+                $q = $turn['user_message'];
+
+                if (empty($expected)) {
+                    $scenarioHistory[] = ['user_message' => $q];
+                    continue; // Skip personal / general turns without static KB targets
+                }
 
                 $langStats[$lang]['total']++;
-                $q = $turn['user_message'];
-                $hits = $faqSearch->search($q, 3, $workspace->id);
+                $ctxSignal = $contextualBuilder->resolveContextualSignal($q, null, $scenarioHistory);
+                $hits = $faqSearch->search(
+                    query: $q,
+                    perPage: 3,
+                    workspaceId: $workspace->id,
+                    contextualSignal: $ctxSignal,
+                );
+
+                $scenarioHistory[] = ['user_message' => $q];
 
                 $top1 = $hits->first();
                 $top1Doc = $top1?->faq?->document_type;

@@ -32,7 +32,12 @@ class RetrievalClient
      *
      * @return Collection<int, FAQSearchResult>
      */
-    public function search(string $query, ?int $workspaceId = null, ?int $topK = null): Collection
+    public function search(
+        string $query,
+        ?int $workspaceId = null,
+        ?int $topK = null,
+        ?string $contextualSignal = null,
+    ): Collection
     {
         $trimmed = trim($query);
         if ($trimmed === '') {
@@ -42,9 +47,10 @@ class RetrievalClient
         $topK = $topK ?? $this->defaultTopK;
         $url = "{$this->baseUrl()}/api/v1/search";
         $payload = [
-            'query'        => $trimmed,
-            'workspace_id' => $workspaceId,
-            'top_k'        => $topK,
+            'query'             => $trimmed,
+            'workspace_id'      => $workspaceId,
+            'top_k'             => $topK,
+            'contextual_signal' => $contextualSignal,
         ];
 
         try {

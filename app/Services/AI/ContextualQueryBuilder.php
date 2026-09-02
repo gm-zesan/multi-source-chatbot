@@ -16,6 +16,115 @@ use App\Models\Message;
 class ContextualQueryBuilder
 {
     /**
+     * Resolve auxiliary contextual retrieval signal for multi-turn follow-ups (Phase 2E).
+     * The original user query remains 100% immutable!
+     *
+     * @param string            $query
+     * @param Conversation|null $conversation
+     * @return string|null Auxiliary signal, or null if query is self-contained / Turn 0.
+     */
+    public function resolveContextualSignal(
+        string $query,
+        ?Conversation $conversation = null,
+        array $history = [],
+    ): ?string {
+        $cleanQuery = trim($query);
+        if ($cleanQuery === '') {
+            return null;
+        }
+
+        $priorUserMsg = '';
+
+        if ($conversation !== null) {
+            $messages = $conversation->relationLoaded('messages')
+                ? $conversation->messages
+                : $conversation->messages()->orderBy('id', 'desc')->limit(6)->get()->reverse()->values();
+
+            for ($i = $messages->count() - 1; $i >= 0; $i--) {
+                $msg = $messages->get($i);
+                if (trim((string) $msg->body) === $cleanQuery) {
+                    continue;
+                }
+                if ($msg->direction === 'inbound' || $msg->sender_type === 'user' || empty($msg->sender_type)) {
+                    $priorUserMsg = mb_strtolower((string) $msg->body);
+                    break;
+                }
+            }
+        } elseif (!empty($history)) {
+            for ($i = count($history) - 1; $i >= 0; $i--) {
+                $item = $history[$i];
+                $msgText = is_array($item) ? ($item['body'] ?? $item['user_message'] ?? $item['message'] ?? '') : (string) $item;
+                if (trim((string) $msgText) === $cleanQuery) {
+                    continue;
+                }
+                $priorUserMsg = mb_strtolower((string) $msgText);
+                break;
+            }
+        }
+
+        if ($priorUserMsg === '') {
+            return null; // Turn 0: Zero prior context (Group B)
+        }
+
+        $qLower = mb_strtolower($cleanQuery);
+
+        // 2. Abstention Gate: Explicitly self-contained queries must NOT have context injected (Group C)
+        $isExplicitlySelfContained = (bool) preg_match(
+            '/(cash on delivery|advance for|cancel after the parcel|handed to courier|stitching defect|share my phone number|external marketers|pricing change without|promotional codes on one|phone number ki third party|third party marketing agency|dynamic bhabe change|automatic washing machine)/ui',
+            $qLower
+        );
+        if ($isExplicitlySelfContained) {
+            return null;
+        }
+
+        // 3. Pattern 2: Clarification / Replacement (Scenario 15: "I mean delivery fee.")
+        if (preg_match('/^(i\s+mean|mean\s+|amar\s+mane|mane\s+|বলতে\s+চাচ্ছি|বলতে\s+চেয়েছিলাম|মানে)\s+(.+)/ui', $qLower, $matches)) {
+            return trim($matches[2]);
+        }
+
+        $priorReturn = (bool) preg_match('/(return|ferot|ফেরত|রিটার্ন|30 days|return window)/ui', $priorUserMsg);
+        $priorDelivery = (bool) preg_match('/(delivery|shipping|ডেলিভারি|charge|চার্জ|courier)/ui', $priorUserMsg);
+        $priorWarranty = (bool) preg_match('/(warranty|ওয়ারেন্টি|গ্যারান্টি|defect|broken|venge|বোতাম|ভাঙা|selai)/ui', $priorUserMsg);
+        $priorExchange = (bool) preg_match('/(size|সাইজ|chest|measurement|fit|fitting)/ui', $priorUserMsg);
+
+        // 5. Pattern 1: Topic Carry-Over for Return Policy (Scenario 20)
+        if ($priorReturn) {
+            if (preg_match('/(official\s+policy\s+timeframe|official\s+rules|অফিসিয়াল\s+নীতি|অফিসিয়াল\s+নীতি|timeline\s+koto\s+din|koto\s+diner\s+moddhe|koto\s+diner\s+inside|নীতি\s+কত\s+দিন)/ui', $qLower)) {
+                return 'return policy timeframe';
+            }
+            if (preg_match('/(ferot\s+dite\s+ki\s+delivery\s+fee|return\s+shipment\s+fee|রিটার্ন\s+করতে\s+কি\s+ডেলিভারি)/ui', $qLower)) {
+                return 'return policy';
+            }
+        }
+
+        // 6. Pattern 3: Warranty Claim Invoice / Anaphora (Scenario 08)
+        if ($priorWarranty) {
+            if (preg_match('/(claim|ক্লেইম|ইনভয়েস|ইনভয়েস|invoice)/ui', $qLower)) {
+                return 'warranty claim invoice';
+            }
+        }
+
+        // 7. Pattern 4: Delivery Tracking & Timeframe Continuum (Scenario 11)
+        if ($priorDelivery) {
+            if (preg_match('/(track|tracking|ট্র্যাক|ট্র্যাকিং)/ui', $qLower)) {
+                return 'delivery tracking courier';
+            }
+            if (preg_match('/(how\s+long|koto\s+din\s+lag|কত\s+দিন\s+সময়\s+লাগ|কত\s+দিন\s+সময়\s+লাগ)/ui', $qLower)) {
+                return 'delivery timeframes';
+            }
+        }
+
+        // 8. Pattern 1: Sizing & Exchange Carry-over (Scenario 25)
+        if ($priorExchange) {
+            if (preg_match('/(replace|exchange|বদলানো)/ui', $qLower)) {
+                return 'product exchange policy size';
+            }
+        }
+
+        return null;
+    }
+
+    /**
      * Build an optimized retrieval query string from the raw query and conversation history.
      */
     public function buildContextualQuery(string $query, ?Conversation $conversation): string

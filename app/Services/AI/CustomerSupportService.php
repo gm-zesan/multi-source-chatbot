@@ -207,11 +207,13 @@ class CustomerSupportService
         $answered = false;
 
         if ($routingResult->isKnowledge() || $routingResult->isUncertain()) {
-            $searchQuery = $this->contextualQueryBuilder->buildContextualQuery($query, $conversation);
+            $contextualSignal = $this->contextualQueryBuilder->resolveContextualSignal($query, $conversation);
             $retrievalHits = $this->faqSearch->search(
-                query: $searchQuery,
+                query: $query,
                 perPage: 5,
                 workspaceId: $workspaceId,
+                conversation: $conversation,
+                contextualSignal: $contextualSignal,
             );
             $topHit = $retrievalHits->first();
             $answered = $topHit !== null && $topHit->finalScore >= 0.45;

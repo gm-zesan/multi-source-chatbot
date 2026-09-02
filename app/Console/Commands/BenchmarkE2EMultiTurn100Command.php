@@ -153,7 +153,7 @@ class BenchmarkE2EMultiTurn100Command extends Command
                 if (!empty($expectedDocs)) {
                     $knowledgeTurns++;
                     $langStats[$lang]['knowledge_turns']++;
-                    $hits = $faqSearch->search($query, 3, $workspace->id);
+                    $hits = $faqSearch->search($query, 3, $workspace->id, conversation: $conversation);
                     $topDoc = $hits->first()?->faq?->document_type;
                     $top3Docs = $hits->map(fn($h) => $h->faq->document_type)->toArray();
 
@@ -180,6 +180,14 @@ class BenchmarkE2EMultiTurn100Command extends Command
                 $reply = $supportService->generateReply($conversation, $query, $workspace->id);
                 $latencyMs = round((microtime(true) - $t0) * 1000, 2);
                 $latencies[] = $latencyMs;
+
+                // Track conversation turns for multi-turn context
+                $conversation->messages()->create([
+                    'body'        => $query,
+                    'direction'   => 'inbound',
+                    'type'        => 'text',
+                    'sender_type' => 'user',
+                ]);
 
                 // Grounded check
                 if (!empty($reply) && mb_strlen($reply) >= 10) {
