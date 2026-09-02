@@ -34,6 +34,8 @@ class FAQ extends Model
         'answer',
         'searchable_text',
         'embedding_version',
+        'lifecycle_status',
+        'sync_error',
         'is_active',
         'priority',
         'hit_count',
@@ -86,10 +88,11 @@ class FAQ extends Model
     protected function casts(): array
     {
         return [
-            'is_active'    => 'boolean',
-            'priority'     => 'integer',
-            'hit_count'    => 'integer',
-            'last_used_at' => 'datetime',
+            'is_active'        => 'boolean',
+            'lifecycle_status' => \App\Enums\FaqLifecycleStatus::class,
+            'priority'         => 'integer',
+            'hit_count'        => 'integer',
+            'last_used_at'     => 'datetime',
         ];
     }
 
@@ -127,13 +130,36 @@ class FAQ extends Model
         $this->update(['last_used_at' => now()]);
     }
 
-    // ─── Search Indexing ──────────────────────────────────────────
+    // ─── Lifecycle & Search Indexing ──────────────────────────────
 
     /**
      * Determine if the model should be searchable.
+     * Core Invariant: Only FAQs with ACTIVE lifecycle status are eligible for customer retrieval.
      */
     public function shouldBeSearchable(): bool
     {
-        return $this->is_active && ! $this->trashed();
+        return $this->is_active
+            && ! $this->trashed()
+            && ($this->lifecycle_status === \App\Enums\FaqLifecycleStatus::ACTIVE || $this->lifecycle_status === null);
+    }
+
+    public function isReadyForRetrieval(): bool
+    {
+        return $this->shouldBeSearchable();
+    }
+
+    public function isValidating(): bool
+    {
+        return $this->lifecycle_status === \App\Enums\FaqLifecycleStatus::VALIDATING;
+    }
+
+    public function isSyncing(): bool
+    {
+        return $this->lifecycle_status === \App\Enums\FaqLifecycleStatus::SYNCING;
+    }
+
+    public function hasFailed(): bool
+    {
+        return $this->lifecycle_status?->hasFailed() ?? false;
     }
 }

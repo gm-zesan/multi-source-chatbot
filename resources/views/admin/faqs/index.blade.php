@@ -201,7 +201,11 @@
                             var btns = '';
                             btns += '<div class="action-btn d-flex align-items-center gap-1">';
 
-                            btns += '<button type="button" class="btn btn-sm btn-outline-primary" style="padding: 3px 7px;" title="Re-sync & Regenerate Lexicon" onclick="triggerResync(\'' + data.id + '\')"><i class="ri-refresh-line"></i></button>';
+                            if (data.has_failed) {
+                                btns += '<button type="button" class="btn btn-sm btn-outline-danger" style="padding: 3px 7px;" title="Retry Validation & Sync (' + (data.error ? data.error.replace(/"/g, '&quot;') : 'Failed') + ')" onclick="triggerResync(\'' + data.id + '\')"><i class="ri-error-warning-line me-1"></i>Retry</button>';
+                            } else {
+                                btns += '<button type="button" class="btn btn-sm btn-outline-primary" style="padding: 3px 7px;" title="Re-sync & Regenerate Lexicon" onclick="triggerResync(\'' + data.id + '\')"><i class="ri-refresh-line"></i></button>';
+                            }
 
                             btns += '<a href="' + SITEURL + '/dashboard/faqs/' + data.id +
                                 '/edit" title="Edit" class="btn btn-edit"><i class="ri-edit-line"></i></a>';

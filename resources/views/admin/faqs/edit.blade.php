@@ -54,15 +54,48 @@
                                 <i class="ri-sparkling-fill text-primary me-2 fs-5"></i>
                                 AI Retrieval & Commerce Ontology
                             </div>
-                            @if ($faq->lexicon)
-                                <span class="badge" style="background-color: #dcfce7; color: #15803d; border: 1px solid #bbf7d0; font-size: 11px;">
-                                    <i class="ri-checkbox-circle-line me-1"></i>Validated & Synced
-                                </span>
-                            @else
-                                <span class="badge bg-secondary-subtle text-secondary" style="font-size: 11px;">Pending Ingestion</span>
-                            @endif
+                            <div>
+                                @php
+                                    $status = $faq->lifecycle_status ?? ($faq->is_active ? \App\Enums\FaqLifecycleStatus::ACTIVE : \App\Enums\FaqLifecycleStatus::DRAFT);
+                                @endphp
+
+                                @if ($status === \App\Enums\FaqLifecycleStatus::ACTIVE)
+                                    <span class="badge bg-success" style="font-size: 11px;">
+                                        <i class="ri-checkbox-circle-line me-1"></i>Active & Searchable
+                                    </span>
+                                @elseif ($status === \App\Enums\FaqLifecycleStatus::VALIDATING)
+                                    <span class="badge bg-info text-white" style="font-size: 11px;">
+                                        <i class="ri-loader-4-line ri-spin me-1"></i>Validating Lexicon...
+                                    </span>
+                                @elseif ($status === \App\Enums\FaqLifecycleStatus::SYNCING)
+                                    <span class="badge" style="background-color: #8b5cf6; color: white; font-size: 11px;">
+                                        <i class="ri-refresh-line ri-spin me-1"></i>Syncing to Typesense...
+                                    </span>
+                                @elseif ($status === \App\Enums\FaqLifecycleStatus::VALIDATION_FAILED)
+                                    <span class="badge bg-danger" style="font-size: 11px;">
+                                        <i class="ri-error-warning-line me-1"></i>Validation Failed
+                                    </span>
+                                @elseif ($status === \App\Enums\FaqLifecycleStatus::SYNC_FAILED)
+                                    <span class="badge bg-danger" style="font-size: 11px;">
+                                        <i class="ri-close-circle-line me-1"></i>Sync Failed
+                                    </span>
+                                @else
+                                    <span class="badge bg-secondary" style="font-size: 11px;">Draft</span>
+                                @endif
+                            </div>
                         </div>
                         <div class="card-body p-3">
+                            @if ($faq->hasFailed())
+                                <div class="alert alert-danger d-flex align-items-center justify-content-between p-2 mb-3" style="font-size: 13px;">
+                                    <div>
+                                        <i class="ri-error-warning-fill me-1"></i>
+                                        <strong>Lifecycle Processing Error:</strong> {{ $faq->sync_error ?? 'Validation or synchronization encountered an issue.' }}
+                                    </div>
+                                    <button type="button" class="btn btn-sm btn-danger ms-3" onclick="triggerResync()">
+                                        <i class="ri-refresh-line me-1"></i>Retry Now
+                                    </button>
+                                </div>
+                            @endif
                             <div class="row g-3">
                                 <div class="col-md-6 col-12">
                                     <label class="form-label text-muted small mb-1 fw-bold text-uppercase" style="font-size: 11px;">Commerce Domain Category</label>

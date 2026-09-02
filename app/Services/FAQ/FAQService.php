@@ -118,15 +118,28 @@ class FAQService
                 if ($faq->trashed()) {
                     return '<span class="badge bg-secondary">Deleted</span>';
                 }
-                return $faq->is_active
-                    ? '<span class="badge bg-success">Active</span>'
-                    : '<span class="badge bg-warning text-dark">Inactive</span>';
+
+                $status = $faq->lifecycle_status ?? ($faq->is_active ? \App\Enums\FaqLifecycleStatus::ACTIVE : \App\Enums\FaqLifecycleStatus::DRAFT);
+
+                return match ($status) {
+                    \App\Enums\FaqLifecycleStatus::ACTIVE => '<span class="badge bg-success" style="font-size: 11px;"><i class="ri-checkbox-circle-line me-1"></i>Active</span>',
+                    \App\Enums\FaqLifecycleStatus::VALIDATING => '<span class="badge bg-info text-white" style="font-size: 11px;"><i class="ri-loader-4-line ri-spin me-1"></i>Validating</span>',
+                    \App\Enums\FaqLifecycleStatus::SYNCING => '<span class="badge" style="background-color: #8b5cf6; color: white; font-size: 11px;"><i class="ri-refresh-line ri-spin me-1"></i>Syncing</span>',
+                    \App\Enums\FaqLifecycleStatus::VALIDATION_FAILED => '<span class="badge bg-danger" style="font-size: 11px;" title="' . e($faq->sync_error ?? 'Validation failed') . '"><i class="ri-error-warning-line me-1"></i>Validation Failed</span>',
+                    \App\Enums\FaqLifecycleStatus::SYNC_FAILED => '<span class="badge bg-danger" style="font-size: 11px;" title="' . e($faq->sync_error ?? 'Sync failed') . '"><i class="ri-close-circle-line me-1"></i>Sync Failed</span>',
+                    default => '<span class="badge bg-secondary" style="font-size: 11px;">Draft</span>',
+                };
             })
             ->addColumn('is_active', function (FAQ $faq) {
                 return ['id' => $faq->id, 'is_active' => $faq->is_active];
             })
             ->addColumn('action-btn', function (FAQ $faq) {
-                return ['id' => $faq->id, 'trashed' => $faq->trashed()];
+                return [
+                    'id'         => $faq->id,
+                    'trashed'    => $faq->trashed(),
+                    'has_failed' => $faq->hasFailed(),
+                    'error'      => $faq->sync_error,
+                ];
             })
             ->rawColumns(['category', 'document_type', 'commerce_domain', 'lexicon_badge', 'hit_count', 'status_badge'])
             ->make(true);
@@ -160,10 +173,22 @@ class FAQService
             $data['searchable_text'] = strip_tags(($data['question'] ?? '') . ' ' . ($data['answer'] ?? ''));
             $data['created_by'] = Auth::id();
 
+            $wantsActive = (bool) ($data['is_active'] ?? true);
+            if ($wantsActive) {
+                // Invariant: starts as VALIDATING and is unsearchable until validation & Typesense sync succeed
+                $data['lifecycle_status'] = \App\Enums\FaqLifecycleStatus::VALIDATING->value;
+                $data['is_active'] = false;
+            } else {
+                $data['lifecycle_status'] = \App\Enums\FaqLifecycleStatus::DRAFT->value;
+                $data['is_active'] = false;
+            }
+
             return FAQ::create($data);
         });
 
-        $this->indexer->dispatchIndex($faq, 'index');
+        if ($faq->lifecycle_status === \App\Enums\FaqLifecycleStatus::VALIDATING) {
+            $this->indexer->dispatchIndex($faq, 'index');
+        }
 
         return $faq;
     }
@@ -181,12 +206,26 @@ class FAQService
             }
             $data['updated_by'] = Auth::id();
 
+            $wantsActive = array_key_exists('is_active', $data) ? (bool) $data['is_active'] : $faq->is_active;
+            if ($wantsActive) {
+                $data['lifecycle_status'] = \App\Enums\FaqLifecycleStatus::VALIDATING->value;
+                $data['is_active'] = false;
+                $data['sync_error'] = null;
+            } else {
+                $data['lifecycle_status'] = \App\Enums\FaqLifecycleStatus::DRAFT->value;
+                $data['is_active'] = false;
+            }
+
             $faq->update($data);
 
             return $faq->fresh();
         });
 
-        $this->indexer->dispatchIndex($faq, 'update');
+        if ($faq->lifecycle_status === \App\Enums\FaqLifecycleStatus::VALIDATING) {
+            $this->indexer->dispatchIndex($faq, 'update');
+        } else {
+            $this->indexer->dispatchIndex($faq, 'delete');
+        }
 
         return $faq;
     }
@@ -230,21 +269,26 @@ class FAQService
      */
     public function toggleActive(FAQ $faq): bool
     {
-        $faq->update([
-            'is_active' => !$faq->is_active,
-            'updated_by' => Auth::id(),
-        ]);
+        $newActive = ! $faq->is_active;
 
-        $fresh = $faq->fresh();
-
-        // Re-index or remove based on new active state
-        if ($fresh->is_active) {
-            $this->indexer->dispatchIndex($fresh, 'index');
-        } else {
-            $this->indexer->dispatchIndex($fresh, 'delete');
+        if ($newActive) {
+            $faq->update([
+                'is_active'        => false,
+                'lifecycle_status' => \App\Enums\FaqLifecycleStatus::VALIDATING,
+                'sync_error'       => null,
+                'updated_by'       => Auth::id(),
+            ]);
+            $this->indexer->dispatchIndex($faq, 'index');
+            return true;
         }
 
-        return $fresh->is_active;
+        $faq->update([
+            'is_active'        => false,
+            'lifecycle_status' => \App\Enums\FaqLifecycleStatus::DRAFT,
+            'updated_by'       => Auth::id(),
+        ]);
+        $this->indexer->dispatchIndex($faq, 'delete');
+        return false;
     }
 
     /**
@@ -252,6 +296,12 @@ class FAQService
      */
     public function resync(FAQ $faq): void
     {
+        $faq->update([
+            'lifecycle_status' => \App\Enums\FaqLifecycleStatus::VALIDATING,
+            'is_active'        => false,
+            'sync_error'       => null,
+        ]);
+
         $this->indexer->dispatchIndex($faq, 'index');
     }
 }
