@@ -5,88 +5,97 @@
 @endsection
 
 @push('custom-style')
-<style>
-    .kpi-card {
-        background: #ffffff;
-        border: 1px solid #e2e8f0;
-        border-radius: 12px;
-        padding: 20px;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
-        transition: transform 0.2s ease, box-shadow 0.2s ease;
-    }
-    .kpi-card:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.06);
-    }
-    .kpi-icon {
-        width: 46px;
-        height: 46px;
-        border-radius: 10px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 22px;
-    }
-    .kpi-val {
-        font-size: 26px;
-        font-weight: 700;
-        color: #0f172a;
-        line-height: 1.2;
-    }
-    .kpi-lbl {
-        font-size: 12px;
-        color: #64748b;
-        font-weight: 500;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-    }
-    .dist-card {
-        background: #ffffff;
-        border: 1px solid #e2e8f0;
-        border-radius: 12px;
-        padding: 20px;
-        height: 100%;
-    }
-    .dist-header {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        margin-bottom: 16px;
-        padding-bottom: 10px;
-        border-bottom: 1px solid #f1f5f9;
-    }
-    .trace-pill {
-        display: inline-flex;
-        align-items: center;
-        gap: 4px;
-        padding: 2px 8px;
-        border-radius: 12px;
-        font-size: 11px;
-        font-weight: 600;
-        text-transform: uppercase;
-    }
-    .pill-knowledge { background: #dbeafe; color: #1e40af; border: 1px solid #bfdbfe; }
-    .pill-chat { background: #e0e7ff; color: #3730a3; border: 1px solid #c7d2fe; }
-    .pill-action { background: #ede9fe; color: #5b21b6; border: 1px solid #ddd6fe; }
-    .pill-ood { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
-    .pill-uncertain { background: #fef9c3; color: #854d0e; border: 1px solid #fde047; }
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/jquery.dataTables.min.css">
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.10.25/css/dataTables.semanticui.min.css">
+    <style>
+        .faq-question-cell {
+            max-width: 300px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
 
-    .gate-confident { background: #dcfce7; color: #166534; border: 1px solid #bbf7d0; }
-    .gate-ambiguous { background: #fef9c3; color: #854d0e; border: 1px solid #fde047; }
-    .gate-unanswerable { background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }
-    .gate-bypassed { background: #f1f5f9; color: #475569; border: 1px solid #e2e8f0; }
+        .kpi-card {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .kpi-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.06);
+        }
+        .kpi-icon {
+            width: 46px;
+            height: 46px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+        }
+        .kpi-val {
+            font-size: 26px;
+            font-weight: 700;
+            color: #0f172a;
+            line-height: 1.2;
+        }
+        .kpi-lbl {
+            font-size: 12px;
+            color: #64748b;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .dist-card {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 20px;
+            height: 100%;
+        }
+        .dist-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 16px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #f1f5f9;
+        }
+        .trace-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        .pill-knowledge { background: #dbeafe; color: #1e40af; border: 1px solid #bfdbfe; }
+        .pill-chat { background: #e0e7ff; color: #3730a3; border: 1px solid #c7d2fe; }
+        .pill-action { background: #ede9fe; color: #5b21b6; border: 1px solid #ddd6fe; }
+        .pill-ood { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
+        .pill-uncertain { background: #fef9c3; color: #854d0e; border: 1px solid #fde047; }
 
-    .trace-json-box {
-        background: #0f172a;
-        color: #38bdf8;
-        padding: 14px;
-        border-radius: 8px;
-        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-        font-size: 12px;
-        max-height: 380px;
-        overflow-y: auto;
-    }
-</style>
+        .gate-confident { background: #dcfce7; color: #166534; border: 1px solid #bbf7d0; }
+        .gate-ambiguous { background: #fef9c3; color: #854d0e; border: 1px solid #fde047; }
+        .gate-unanswerable { background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }
+        .gate-bypassed { background: #f1f5f9; color: #475569; border: 1px solid #e2e8f0; }
+
+        .trace-json-box {
+            background: #0f172a;
+            color: #38bdf8;
+            padding: 14px;
+            border-radius: 8px;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+            font-size: 12px;
+            max-height: 380px;
+            overflow-y: auto;
+        }
+    </style>
 @endpush
 
 @section('content')
@@ -284,99 +293,99 @@
         </div>
     </div>
 
-    {{-- Live Traces Table --}}
-    <div class="card table-card mb-4">
-        <div class="card-header table-header d-flex align-items-center justify-content-between">
-            <div class="table-title">
-                <i class="ri-history-line me-1 text-primary"></i> Live Conversation Interaction Logs & Traces
-            </div>
-            <span class="text-muted small">Showing last {{ $recentMessages->count() }} messages</span>
-        </div>
-        <div class="card-body p-0">
-            <div class="table-responsive">
-                <table class="table table-hover align-middle mb-0" style="font-size: 13px;">
-                    <thead class="table-light">
-                        <tr>
-                            <th>Time</th>
-                            <th>Conversation</th>
-                            <th>AI Outbound Response</th>
-                            <th>Route</th>
-                            <th>Answerability</th>
-                            <th>Latency</th>
-                            <th>Action</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @forelse ($recentMessages as $msg)
-                            @php
-                                $meta = $msg->metadata ?? [];
-                                $route = strtolower($meta['route'] ?? $meta['router_type'] ?? 'knowledge');
-                                $gate = strtolower($meta['answerability_decision']['status'] ?? $meta['answerability'] ?? 'none');
-                                $latency = $meta['total_time_ms'] ?? $meta['routing_telemetry']['total_e2e_ms'] ?? null;
-                            @endphp
-                            <tr>
-                                <td class="text-muted" style="white-space: nowrap; font-size: 12px;">
-                                    {{ $msg->created_at->format('H:i:s') }}<br>
-                                    <small class="text-muted">{{ $msg->created_at->format('M d') }}</small>
-                                </td>
-                                <td>
-                                    <a href="{{ route('conversations.show', $msg->conversation_id) }}" class="fw-bold text-decoration-none">
-                                        {{ $msg->conversation?->customer_name ?? '#' . substr($msg->conversation_id, 0, 8) }}
-                                    </a>
-                                    <div class="text-muted small">
-                                        {{ $msg->conversation?->channelAccount?->channel?->name ?? 'Direct Chat' }}
-                                    </div>
-                                </td>
-                                <td>
-                                    <div class="text-truncate" style="max-width: 320px;" title="{{ $msg->body }}">
-                                        {{ $msg->body }}
-                                    </div>
-                                </td>
-                                <td>
-                                    <span class="trace-pill pill-{{ $route }}">{{ $route }}</span>
-                                </td>
-                                <td>
-                                    @if ($gate === 'confident')
-                                        <span class="trace-pill gate-confident"><i class="ri-checkbox-circle-line me-1"></i>Confident</span>
-                                    @elseif ($gate === 'ambiguous')
-                                        <span class="trace-pill gate-ambiguous"><i class="ri-question-line me-1"></i>Ambiguous</span>
-                                    @elseif ($gate === 'unanswerable')
-                                        <span class="trace-pill gate-unanswerable"><i class="ri-forbid-line me-1"></i>Unanswerable</span>
-                                    @else
-                                        <span class="trace-pill gate-bypassed">N/A</span>
-                                    @endif
-                                </td>
-                                <td>
-                                    @if ($latency)
-                                        <span class="badge" style="background: #f1f5f9; color: #334155; font-weight: 500;">
-                                            {{ round((float) $latency) }} ms
-                                        </span>
-                                    @else
-                                        <span class="text-muted small">—</span>
-                                    @endif
-                                </td>
-                                <td>
-                                    <button class="btn btn-sm btn-outline-primary py-1 px-2" onclick="inspectTrace({{ json_encode($msg->id) }}, {{ json_encode($meta) }}, {{ json_encode($msg->body) }})">
-                                        <i class="ri-scan-line me-1"></i> Inspect
-                                    </button>
-                                </td>
-                            </tr>
-                        @empty
-                            <tr>
-                                <td colspan="7" class="text-center py-4 text-muted">
-                                    No AI conversation messages recorded yet.
-                                </td>
-                            </tr>
-                        @endforelse
-                    </tbody>
-                </table>
-            </div>
-
-            @if ($recentMessages->hasPages())
-                <div class="p-3 border-top">
-                    {{ $recentMessages->links() }}
+    {{-- EXACT FAQ TABLE DESIGN --}}
+    <div class="row">
+        <div class="col-12">
+            <div class="card table-card">
+                <div class="card-header table-header">
+                    <div class="title-with-breadcrumb">
+                        <div class="table-title">Observability & Telemetry Traces</div>
+                        <nav aria-label="breadcrumb">
+                            <ol class="breadcrumb mb-0">
+                                <li class="breadcrumb-item">
+                                    <a href="{{ route('dashboard') }}">Dashboard</a>
+                                </li>
+                                <li class="breadcrumb-item active" aria-current="page">Observability & Telemetry</li>
+                            </ol>
+                        </nav>
+                    </div>
+                    <span class="text-muted small">Real-time Turn Traces</span>
                 </div>
-            @endif
+                <div class="card-body" style="overflow-x: auto">
+                    <table class="table dataTable w-100" id="data-table" style="min-width: 950px;">
+                        <thead>
+                            <tr>
+                                <th scope="col">SL NO</th>
+                                <th scope="col">Time</th>
+                                <th scope="col">Customer / Channel</th>
+                                <th scope="col">AI Outbound Response</th>
+                                <th scope="col">Route</th>
+                                <th scope="col">Answerability Gate</th>
+                                <th scope="col">Latency</th>
+                                <th scope="col">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach ($messages as $index => $msg)
+                                @php
+                                    $meta = $msg->metadata ?? [];
+                                    $route = strtolower($meta['route'] ?? $meta['router_type'] ?? 'knowledge');
+                                    $gate = strtolower($meta['answerability_decision']['status'] ?? $meta['answerability'] ?? 'none');
+                                    $latency = $meta['total_time_ms'] ?? $meta['routing_telemetry']['total_e2e_ms'] ?? null;
+                                @endphp
+                                <tr>
+                                    <td>{{ $index + 1 }}</td>
+                                    <td>
+                                        <span class="text-dark fw-bold">{{ $msg->created_at->format('H:i:s') }}</span>
+                                        <small class="text-muted d-block">{{ $msg->created_at->format('M d, Y') }}</small>
+                                    </td>
+                                    <td>
+                                        <a href="{{ route('conversations.show', $msg->conversation_id) }}" class="fw-bold text-decoration-none">
+                                            {{ $msg->conversation?->customer_name ?? '#' . substr($msg->conversation_id, 0, 8) }}
+                                        </a>
+                                        <small class="text-muted d-block">{{ $msg->conversation?->channelAccount?->channel?->name ?? 'Direct Chat' }}</small>
+                                    </td>
+                                    <td>
+                                        <div class="faq-question-cell" title="{{ $msg->body }}">
+                                            {{ $msg->body }}
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span class="trace-pill pill-{{ $route }}">{{ $route }}</span>
+                                    </td>
+                                    <td>
+                                        @if ($gate === 'confident')
+                                            <span class="trace-pill gate-confident"><i class="ri-checkbox-circle-line me-1"></i>Confident</span>
+                                        @elseif ($gate === 'ambiguous')
+                                            <span class="trace-pill gate-ambiguous"><i class="ri-question-line me-1"></i>Ambiguous</span>
+                                        @elseif ($gate === 'unanswerable')
+                                            <span class="trace-pill gate-unanswerable"><i class="ri-forbid-line me-1"></i>Unanswerable</span>
+                                        @else
+                                            <span class="trace-pill gate-bypassed">N/A</span>
+                                        @endif
+                                    </td>
+                                    <td>
+                                        @if ($latency)
+                                            <span class="badge" style="background: #f1f5f9; color: #334155; font-weight: 500;">
+                                                {{ round((float) $latency) }} ms
+                                            </span>
+                                        @else
+                                            <span class="text-muted small">—</span>
+                                        @endif
+                                    </td>
+                                    <td>
+                                        <div class="action-btn d-flex align-items-center gap-1">
+                                            <button type="button" class="btn btn-sm btn-outline-primary" style="padding: 3px 7px;" title="Inspect Trace" onclick="inspectTrace({{ json_encode($msg->id) }}, {{ json_encode($meta) }}, {{ json_encode($msg->body) }})">
+                                                <i class="ri-scan-line"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
     </div>
 </div>
@@ -433,23 +442,38 @@
 @endsection
 
 @push('custom-scripts')
-<script>
-    function inspectTrace(msgId, meta, replyText) {
-        document.getElementById('modalMsgId').textContent = '#' + msgId;
-        document.getElementById('modalReplyText').textContent = replyText || 'No reply text';
+    <script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/2.3.1/semantic.min.js" defer></script>
 
-        document.getElementById('modalRoute').textContent = (meta.route || meta.router_type || 'knowledge').toUpperCase();
-        const gate = (meta.answerability_decision?.status || meta.answerability || 'N/A').toUpperCase();
-        document.getElementById('modalGate').textContent = gate;
+    <script type="text/javascript">
+        $(document).ready(function() {
+            $('#data-table').DataTable({
+                responsive: true,
+                fixedHeader: true,
+                "pageLength": 20,
+                "lengthMenu": [20, 50, 100, 200],
+                order: [
+                    [0, 'asc']
+                ]
+            });
+        });
 
-        const provider = meta.provider || 'deepseek';
-        const model = meta.model || 'deepseek-chat';
-        document.getElementById('modalProvider').textContent = `${provider} (${model})`;
+        function inspectTrace(msgId, meta, replyText) {
+            document.getElementById('modalMsgId').textContent = '#' + msgId;
+            document.getElementById('modalReplyText').textContent = replyText || 'No reply text';
 
-        document.getElementById('modalJsonBox').textContent = JSON.stringify(meta, null, 2);
+            document.getElementById('modalRoute').textContent = (meta.route || meta.router_type || 'knowledge').toUpperCase();
+            const gate = (meta.answerability_decision?.status || meta.answerability || 'N/A').toUpperCase();
+            document.getElementById('modalGate').textContent = gate;
 
-        const modal = new bootstrap.Modal(document.getElementById('traceModal'));
-        modal.show();
-    }
-</script>
+            const provider = meta.provider || 'deepseek';
+            const model = meta.model || 'deepseek-chat';
+            document.getElementById('modalProvider').textContent = `${provider} (${model})`;
+
+            document.getElementById('modalJsonBox').textContent = JSON.stringify(meta, null, 2);
+
+            const modal = new bootstrap.Modal(document.getElementById('traceModal'));
+            modal.show();
+        }
+    </script>
 @endpush

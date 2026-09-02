@@ -23,6 +23,7 @@ class ObservabilityController extends Controller
             ->latest('id');
 
         $totalAiResponses = $query->count();
+        $messages = (clone $query)->limit(200)->get();
         $recentMessages = $query->paginate(25);
 
         // 2. Aggregate telemetry from recent 200 outbound messages for live KPI gauges
@@ -95,6 +96,7 @@ class ObservabilityController extends Controller
 
         return view('admin.observability.index', [
             'totalAiResponses'         => $totalAiResponses,
+            'messages'                 => $messages,
             'recentMessages'           => $recentMessages,
             'routeCounts'              => $routeCounts,
             'gateCounts'               => $gateCounts,
