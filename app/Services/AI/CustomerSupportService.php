@@ -179,7 +179,7 @@ class CustomerSupportService
             return null;
         }
 
-        return $this->saveOutboundReply(
+        $savedMessage = $this->saveOutboundReply(
             conversation: $conversation,
             replyText: $replyText,
             deliveryResponse: array_merge($deliveryResponse, [
@@ -191,6 +191,31 @@ class CustomerSupportService
                 'routing_telemetry' => $result['routing_telemetry'] ?? [],
             ]),
         );
+
+        // Observer Pattern: Telemetry is purely an observer and never decision maker
+        try {
+            event(new \App\Events\AITelemetryRecorded(
+                conversation: $conversation,
+                outboundMessage: $savedMessage,
+                query: $message->body,
+                reply: $replyText,
+                telemetry: [
+                    'route'                  => $result['route'] ?? 'knowledge',
+                    'confidence'             => $result['confidence'] ?? 1.0,
+                    'answered'               => $result['answered'] ?? false,
+                    'total_time_ms'          => $result['routing_telemetry']['total_e2e_ms'] ?? null,
+                    'answerability_decision' => $result['answerability_decision'] ?? null,
+                    'routing_telemetry'      => $result['routing_telemetry'] ?? [],
+                    'provider'               => config('ai.default', 'deepseek'),
+                    'model'                  => config('ai.default_model', 'deepseek-chat'),
+                ],
+                workspaceId: $workspaceId,
+            ));
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning('[CustomerSupportService] Telemetry dispatch failed safely (Observer pattern): ' . $e->getMessage());
+        }
+
+        return $savedMessage;
     }
 
     /**

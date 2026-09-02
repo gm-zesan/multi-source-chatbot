@@ -2,9 +2,11 @@
 
 namespace App\Providers;
 
+use App\Events\AITelemetryRecorded;
 use App\Events\ConversationCreated;
 use App\Events\IncomingMessageReceived;
 use App\Listeners\ExtractCRMEntitiesListener;
+use App\Listeners\RecordAITelemetryListener;
 use App\Listeners\RunFAQEngineListener;
 use Illuminate\Foundation\Support\Providers\EventServiceProvider as ServiceProvider;
 
@@ -22,6 +24,10 @@ class EventServiceProvider extends ServiceProvider
         IncomingMessageReceived::class => [
             ExtractCRMEntitiesListener::class,  // crm queue
             RunFAQEngineListener::class,         // faq queue
+        ],
+
+        AITelemetryRecorded::class => [
+            RecordAITelemetryListener::class,   // telemetry queue
         ],
 
         ConversationCreated::class => [

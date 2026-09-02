@@ -78,13 +78,45 @@ class ChatSimulatorController extends Controller
 
         // Save AI outbound response to conversation history for next turn context
         if (!empty($supportResult['reply'])) {
-            $this->customerSupportService->saveOutboundReply(
+            $totalElapsedSoFar = round((microtime(true) - $startTime) * 1000, 2);
+            $outboundMsg = $this->customerSupportService->saveOutboundReply(
                 conversation: $conversation,
                 replyText: $supportResult['reply'],
+                deliveryResponse: [
+                    'route'                  => $supportResult['route'] ?? 'knowledge',
+                    'confidence'             => $supportResult['confidence'] ?? 1.0,
+                    'answered'               => $supportResult['answered'] ?? false,
+                    'total_time_ms'          => $totalElapsedSoFar,
+                    'answerability_decision' => $supportResult['answerability_decision'] ?? null,
+                    'routing_telemetry'      => $supportResult['routing_telemetry'] ?? [],
+                ],
             );
 
             // Dispatch asynchronous Graph Memory Ingestion (Non-blocking, port 8002)
             \App\Jobs\IngestConversationMemoryJob::dispatch($conversation);
+
+            // Observer Pattern: Telemetry Event
+            try {
+                event(new \App\Events\AITelemetryRecorded(
+                    conversation: $conversation,
+                    outboundMessage: $outboundMsg,
+                    query: $query,
+                    reply: $supportResult['reply'],
+                    telemetry: [
+                        'route'                  => $supportResult['route'],
+                        'confidence'             => $supportResult['confidence'],
+                        'answered'               => $supportResult['answered'],
+                        'total_time_ms'          => $totalElapsedSoFar,
+                        'answerability_decision' => $supportResult['answerability_decision'] ?? null,
+                        'routing_telemetry'      => $supportResult['routing_telemetry'] ?? [],
+                        'provider'               => config('ai.default', 'deepseek'),
+                        'model'                  => config('ai.default_model', 'deepseek-chat'),
+                    ],
+                    workspaceId: $workspaceId,
+                ));
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::warning('[ChatSimulator] Telemetry dispatch absorbed: ' . $e->getMessage());
+            }
         }
 
         // ── 3. Diagnostics & Structured Decision Trace ──────────────────
