@@ -540,6 +540,94 @@
                     </div>
 
                     <div class="diag-body" id="diagBody">
+                        <!-- Turn Decision Trace (Real-Time Multi-Turn Inspector) -->
+                        <div class="diag-section mb-3" id="turnDecisionTraceCard" style="background: #ffffff; border: 2px solid #3b82f6; border-radius: 10px; padding: 16px; box-shadow: 0 4px 14px rgba(59, 130, 246, 0.08);">
+                            <div class="d-flex align-items-center justify-content-between mb-2">
+                                <h6 class="fw-bold mb-0 text-primary d-flex align-items-center" style="font-size: 14px;">
+                                    <i class="ri-git-commit-line me-1"></i> Turn Decision Trace
+                                </h6>
+                                <span class="badge bg-primary" id="traceTurnBadge">Ready</span>
+                            </div>
+
+                            {{-- Turn History Navigation Pills --}}
+                            <div id="turnHistoryNav" class="d-flex align-items-center gap-1 mb-2 overflow-auto py-1" style="max-width: 100%;">
+                                <span class="text-muted small" style="font-size: 11px;">Send a message to view live turn trace</span>
+                            </div>
+
+                            {{-- Query Box --}}
+                            <div class="p-2 mb-3 rounded" style="background: #f8fafc; border: 1px solid #e2e8f0; font-size: 13px;">
+                                <span class="text-muted small fw-bold d-block text-uppercase" style="font-size: 10px;">User Query</span>
+                                <strong id="traceUserQuery" class="text-dark">"Waiting for user message..."</strong>
+                            </div>
+
+                            {{-- Decision Key Metrics Matrix --}}
+                            <div class="row g-2 mb-3" style="font-size: 12px;">
+                                <div class="col-6">
+                                    <div class="p-2 border rounded bg-white">
+                                        <span class="text-muted d-block small" style="font-size: 10px;">Route Decision</span>
+                                        <span id="traceRouteBadge" class="route-pill chat mt-1">IDLE</span>
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="p-2 border rounded bg-white">
+                                        <span class="text-muted d-block small" style="font-size: 10px;">Memory Decision</span>
+                                        <span id="traceMemoryBadge" class="badge bg-secondary mt-1">IDLE</span>
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="p-2 border rounded bg-white">
+                                        <span class="text-muted d-block small" style="font-size: 10px;">Contextual Signal</span>
+                                        <strong id="traceContextSignal" class="text-dark mt-1 d-block" style="font-size: 11px;">NONE</strong>
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="p-2 border rounded bg-white">
+                                        <span class="text-muted d-block small" style="font-size: 10px;">Retrieval Summary</span>
+                                        <strong id="traceRetrievalSummary" class="text-dark mt-1 d-block" style="font-size: 11px;">0 hits</strong>
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="p-2 border rounded bg-white">
+                                        <span class="text-muted d-block small" style="font-size: 10px;">Answerability Gate</span>
+                                        <span id="traceGateBadge" class="badge bg-secondary mt-1">IDLE</span>
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="p-2 border rounded bg-white">
+                                        <span class="text-muted d-block small" style="font-size: 10px;">Grounded Hit Count</span>
+                                        <strong id="traceGroundedCount" class="text-success mt-1 d-block" style="font-size: 11px;">0 Docs</strong>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {{-- LLM Generation & Latency Breakdown --}}
+                            <div class="p-2 rounded" style="background: #f1f5f9; border: 1px solid #e2e8f0; font-size: 12px;">
+                                <div class="d-flex justify-content-between mb-1">
+                                    <span class="text-muted small">LLM Generation:</span>
+                                    <strong id="traceLlmStatus" class="text-dark small">Ready</strong>
+                                </div>
+                                <hr class="my-1" style="border-color: #cbd5e1;">
+                                <div class="row g-1 text-center small mt-1">
+                                    <div class="col-3 border-end">
+                                        <span class="text-muted d-block" style="font-size: 10px;">Router</span>
+                                        <strong id="latRouter">0 ms</strong>
+                                    </div>
+                                    <div class="col-3 border-end">
+                                        <span class="text-muted d-block" style="font-size: 10px;">Retrieval</span>
+                                        <strong id="latRetrieval">0 ms</strong>
+                                    </div>
+                                    <div class="col-3 border-end">
+                                        <span class="text-muted d-block" style="font-size: 10px;">LLM</span>
+                                        <strong id="latLlm">0 ms</strong>
+                                    </div>
+                                    <div class="col-3">
+                                        <span class="text-muted d-block" style="font-size: 10px;">Total E2E</span>
+                                        <strong id="latTotal" class="text-primary">0 ms</strong>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
                         <!-- Step 0: Hybrid Router Capability Decision -->
                         <div class="diag-section" style="background: #faf5ff; border-color: #e9d5ff;">
                             <div class="diag-title" style="color: #7e22ce;">
@@ -724,6 +812,8 @@
                 if (data.success) {
                     // Append bot reply with route-aware cards
                     appendMessage(data.reply, 'bot', data);
+                    // Update turn decision trace
+                    recordTurnDecisionTrace(data);
                     // Update diagnostic panel
                     updateDiagnostics(data);
                 } else {
@@ -1034,6 +1124,116 @@
                 gateGroundedCount.textContent = '0';
                 gateGroundedDocs.innerHTML = '<span class="text-muted small">No knowledge documents retrieved for this turn.</span>';
             }
+        }
+
+        let turnHistory = [];
+        let currentTurnIndex = -1;
+
+        function recordTurnDecisionTrace(data) {
+            const trace = data.decision_trace;
+            if (!trace) return;
+
+            turnHistory.push({
+                turnNumber: turnHistory.length + 1,
+                trace: trace,
+                diagnostics: data.pipeline_diagnostics,
+                raw: data,
+            });
+
+            currentTurnIndex = turnHistory.length - 1;
+            renderTurnHistoryPills();
+            renderDecisionTrace(trace, turnHistory.length, true);
+        }
+
+        function renderTurnHistoryPills() {
+            const nav = document.getElementById('turnHistoryNav');
+            if (!nav || turnHistory.length === 0) return;
+
+            nav.innerHTML = turnHistory.map((t, idx) => {
+                const isActive = (idx === currentTurnIndex);
+                const btnClass = isActive ? 'btn-primary text-white shadow-sm' : 'btn-outline-secondary';
+                return `<button type="button" class="btn btn-xs ${btnClass} py-0 px-2" style="font-size: 11px; border-radius: 12px; white-space: nowrap;" onclick="selectTurn(${idx})">
+                    Turn #${t.turnNumber}
+                </button>`;
+            }).join('');
+        }
+
+        function selectTurn(index) {
+            if (index >= 0 && index < turnHistory.length) {
+                currentTurnIndex = index;
+                renderTurnHistoryPills();
+                const item = turnHistory[index];
+                renderDecisionTrace(item.trace, item.turnNumber, index === turnHistory.length - 1);
+                if (item.raw) {
+                    updateDiagnostics(item.raw);
+                }
+            }
+        }
+
+        function renderDecisionTrace(trace, turnNum, isLatest = false) {
+            const badge = document.getElementById('traceTurnBadge');
+            badge.textContent = `Turn #${turnNum}${isLatest ? ' (Latest)' : ''}`;
+            badge.className = isLatest ? 'badge bg-primary' : 'badge bg-secondary';
+
+            document.getElementById('traceUserQuery').textContent = `"${trace.query || ''}"`;
+
+            // Route badge
+            const routeBadge = document.getElementById('traceRouteBadge');
+            const route = (trace.route || 'KNOWLEDGE').toLowerCase();
+            routeBadge.textContent = `${trace.route} (${trace.route_confidence || 100}%)`;
+            routeBadge.className = `route-pill ${route}`;
+
+            // Memory decision
+            const memBadge = document.getElementById('traceMemoryBadge');
+            const memUsed = (trace.memory_decision === 'USED');
+            memBadge.textContent = trace.memory_decision || 'BYPASSED';
+            memBadge.className = memUsed ? 'badge bg-success' : 'badge bg-secondary';
+            if (trace.memory_preview) {
+                memBadge.title = trace.memory_preview;
+            } else {
+                memBadge.removeAttribute('title');
+            }
+
+            // Contextual signal
+            document.getElementById('traceContextSignal').textContent = trace.contextual_signal || 'NONE';
+
+            // Retrieval summary
+            const ret = trace.retrieval_summary || {};
+            const hits = ret.hits_count || 0;
+            const topScore = ret.top_score || 0;
+            const docType = ret.top_doc_type ? ` [${ret.top_doc_type}]` : '';
+            document.getElementById('traceRetrievalSummary').textContent = `${hits} hits (${topScore}%)${docType}`;
+
+            // Answerability Gate
+            const gateBadge = document.getElementById('traceGateBadge');
+            const gateStatus = (trace.answerability_status || 'BYPASSED').toUpperCase();
+            gateBadge.textContent = gateStatus;
+            if (gateStatus === 'CONFIDENT') {
+                gateBadge.className = 'badge bg-success';
+            } else if (gateStatus === 'AMBIGUOUS') {
+                gateBadge.className = 'badge bg-warning text-dark';
+            } else if (gateStatus === 'UNANSWERABLE') {
+                gateBadge.className = 'badge bg-danger';
+            } else {
+                gateBadge.className = 'badge bg-secondary';
+            }
+
+            // Grounded hit count
+            document.getElementById('traceGroundedCount').textContent = `${trace.grounded_hit_count || 0} Docs`;
+
+            // LLM generation
+            const llm = trace.llm_generation || {};
+            const provider = llm.provider || 'DeepSeek';
+            const model = llm.model || 'deepseek-chat';
+            const status = llm.status || 'GENERATED';
+            document.getElementById('traceLlmStatus').textContent = `${provider} (${model}) — ${status}`;
+
+            // Latencies
+            const lat = trace.latency_breakdown || {};
+            document.getElementById('latRouter').textContent = `${lat.router_ms || 0} ms`;
+            document.getElementById('latRetrieval').textContent = `${lat.retrieval_ms || 0} ms`;
+            document.getElementById('latLlm').textContent = `${lat.llm_ms || 0} ms`;
+            document.getElementById('latTotal').textContent = `${lat.total_ms || 0} ms`;
         }
 
         async function clearSimulatorChat() {

@@ -87,25 +87,61 @@ class ChatSimulatorController extends Controller
             \App\Jobs\IngestConversationMemoryJob::dispatch($conversation);
         }
 
-        // ── 3. Diagnostics & Structured Response ────────────────────────
+        // ── 3. Diagnostics & Structured Decision Trace ──────────────────
         $totalElapsed = round((microtime(true) - $startTime) * 1000, 2);
         $topHit = $supportResult['top_hit'];
         $retrievalHits = $supportResult['retrieval_hits'];
+        $answerabilityDecision = $supportResult['answerability_decision'] ?? null;
+        $routerLatency = (float) ($supportResult['routing_telemetry']['router_latency_ms'] ?? 0.0);
+        $llmLatency = max(0.0, round($totalElapsed - $routerLatency - $tsLatency, 1));
+        $contextualSignal = $supportResult['routing_telemetry']['signals']['contextual_signal']
+            ?? $supportResult['routing_telemetry']['intent']
+            ?? 'COMMERCE_GENERAL';
+
+        $decisionTrace = [
+            'query'                => $query,
+            'route'                => strtoupper((string) $supportResult['route']),
+            'route_confidence'     => round($supportResult['confidence'] * 100, 1),
+            'memory_decision'      => !empty($supportResult['memory_context']) ? 'USED' : 'BYPASSED',
+            'memory_preview'       => !empty($supportResult['memory_context']) ? substr($supportResult['memory_context'], 0, 150) . '...' : null,
+            'contextual_signal'    => strtoupper((string) $contextualSignal),
+            'retrieval_summary'    => [
+                'hits_count'       => $retrievalHits->count(),
+                'top_score'        => $topHit ? round($topHit->finalScore * 100, 1) : 0.0,
+                'top_doc_type'     => $topHit?->faq?->documentTypeLabel() ?? null,
+                'top_question'     => $topHit?->faq?->question ?? null,
+            ],
+            'answerability_status' => strtoupper($answerabilityDecision['status'] ?? 'BYPASSED'),
+            'answerability_score'  => round(($answerabilityDecision['confidence_score'] ?? 0.0) * 100, 1),
+            'grounded_hit_count'   => (int) ($answerabilityDecision['grounded_count'] ?? count($supportResult['sources'] ?? [])),
+            'llm_generation'       => [
+                'provider'         => config('ai.default', 'deepseek'),
+                'model'            => config('ai.default_model', 'deepseek-chat'),
+                'status'           => !empty($supportResult['reply']) ? 'GENERATED' : 'FALLBACK',
+            ],
+            'latency_breakdown'    => [
+                'router_ms'        => $routerLatency,
+                'retrieval_ms'     => $tsLatency,
+                'llm_ms'           => $llmLatency,
+                'total_ms'         => $totalElapsed,
+            ],
+        ];
 
         return response()->json([
-            'success'     => true,
-            'query'       => $query,
-            'reply'       => $supportResult['reply'],
-            'route'       => $supportResult['route'],
-            'suggestions' => $supportResult['suggestions'] ?? [],
+            'success'          => true,
+            'query'            => $query,
+            'reply'            => $supportResult['reply'],
+            'route'            => $supportResult['route'],
+            'suggestions'      => $supportResult['suggestions'] ?? [],
             'sources'          => $supportResult['sources'] ?? [],
             'is_handoff'       => $supportResult['is_handoff'] ?? false,
             'answered'         => $supportResult['answered'],
+            'decision_trace'   => $decisionTrace,
             'answerability_decision' => $supportResult['answerability_decision'] ?? null,
             'raw_llm_response' => $supportResult['raw_llm_response'] ?? null,
             'confidence'       => $topHit ? round($topHit->finalScore * 100, 1) : 0.0,
-            'match_type'  => $topHit?->matchType ?? 'none',
-            'matched_faq' => $topHit?->faq ? [
+            'match_type'       => $topHit?->matchType ?? 'none',
+            'matched_faq'      => $topHit?->faq ? [
                 'id'            => (string) $topHit->faq->id,
                 'question'      => $topHit->faq->question,
                 'answer'        => $topHit->faq->answer,

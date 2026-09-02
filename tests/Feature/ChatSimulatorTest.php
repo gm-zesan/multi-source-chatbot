@@ -97,4 +97,56 @@ class ChatSimulatorTest extends TestCase
         $response->assertStatus(422)
             ->assertJsonValidationErrors(['message']);
     }
+
+    public function test_simulator_returns_complete_turn_decision_trace_without_secrets(): void
+    {
+        CustomerSupportAgent::fake([
+            'রিটার্ন পলিসি অনুযায়ী ৭ দিনের মধ্যে পণ্য ফেরত দেওয়া যাবে।',
+        ]);
+
+        $response = $this->actingAs($this->admin)->postJson('/dashboard/simulator/send', [
+            'message' => 'রিটার্ন কত দিনে করতে হবে?',
+        ]);
+
+        $response->assertOk()
+            ->assertJsonStructure([
+                'success',
+                'query',
+                'reply',
+                'decision_trace' => [
+                    'query',
+                    'route',
+                    'route_confidence',
+                    'memory_decision',
+                    'contextual_signal',
+                    'retrieval_summary' => [
+                        'hits_count',
+                        'top_score',
+                        'top_doc_type',
+                        'top_question',
+                    ],
+                    'answerability_status',
+                    'answerability_score',
+                    'grounded_hit_count',
+                    'llm_generation' => [
+                        'provider',
+                        'model',
+                        'status',
+                    ],
+                    'latency_breakdown' => [
+                        'router_ms',
+                        'retrieval_ms',
+                        'llm_ms',
+                        'total_ms',
+                    ],
+                ],
+            ]);
+
+        // Security check: Verify no raw system prompt or API keys leaked
+        $json = $response->json();
+        $rawJson = json_encode($json);
+        $this->assertStringNotContainsString('api_key', $rawJson);
+        $this->assertStringNotContainsString('sk-', $rawJson);
+        $this->assertStringNotContainsString('You are an expert E-Commerce', $rawJson);
+    }
 }
