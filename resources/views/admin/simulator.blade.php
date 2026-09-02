@@ -7,15 +7,13 @@
 @push('custom-style')
     <style>
         .simulator-container {
-            height: calc(100vh - 140px);
-            min-height: 600px;
+            height: calc(100vh - 100px);
         }
 
         .chat-card {
             display: flex;
             flex-direction: column;
-            height: calc(100% - 60px);
-            border-radius: 12px;
+            height: 100%;
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
             background: #ffffff;
             border: 1px solid #e5e7eb;
@@ -245,8 +243,7 @@
         }
 
         .diag-card {
-            height: calc(100% - 60px);
-            border-radius: 12px;
+            height: 100%;
             border: 1px solid #e2e8f0;
             background: #ffffff;
             display: flex;
@@ -259,8 +256,6 @@
             border-bottom: 1px solid #f1f5f9;
             background: #0f172a;
             color: #ffffff;
-            border-top-left-radius: 12px;
-            border-top-right-radius: 12px;
         }
 
         .diag-body {
@@ -473,27 +468,27 @@
 @endpush
 
 @section('content')
-    <div class="container-fluid py-3">
+    <div class="container-fluid">
         <!-- Breadcrumb & Header -->
-        <div class="d-flex justify-content-between align-items-center mb-3">
-            <div>
-                <h4 class="mb-1 text-dark font-weight-bold">
-                    <i class="ri-robot-2-line text-primary me-2"></i>Live Pipeline & Chat Simulator
-                </h4>
-                <p class="text-muted small mb-0">
-                    Test CRM Entity Extraction, Python Embeddings, and Typesense Hybrid Search locally without Facebook
-                    tokens.
-                </p>
-            </div>
-            <div>
-                <a href="{{ route('health') }}" target="_blank" class="btn btn-outline-info btn-sm me-2">
-                    <i class="ri-heart-pulse-line me-1"></i> Health Status
-                </a>
-                <a href="#" class="btn btn-outline-secondary btn-sm" onclick="clearSimulatorChat(); return false;">
-                    <i class="ri-refresh-line me-1"></i> Clear Chat
-                </a>
-            </div>
-        </div>
+        <!-- <div class="d-flex justify-content-between align-items-center mb-3">
+                            <div>
+                                <h4 class="mb-1 text-dark font-weight-bold">
+                                    <i class="ri-robot-2-line text-primary me-2"></i>Live Pipeline & Chat Simulator
+                                </h4>
+                                <p class="text-muted small mb-0">
+                                    Test CRM Entity Extraction, Python Embeddings, and Typesense Hybrid Search locally without Facebook
+                                    tokens.
+                                </p>
+                            </div>
+                            <div>
+                                <a href="{{ route('health') }}" target="_blank" class="btn btn-outline-info btn-sm me-2">
+                                    <i class="ri-heart-pulse-line me-1"></i> Health Status
+                                </a>
+                                <a href="#" class="btn btn-outline-secondary btn-sm" onclick="clearSimulatorChat(); return false;">
+                                    <i class="ri-refresh-line me-1"></i> Clear Chat
+                                </a>
+                            </div>
+                        </div> -->
 
         <!-- Simulator Main Layout -->
         <div class="row simulator-container">
@@ -505,12 +500,6 @@
                     <div class="chat-messages" id="chatMessages">
                         <div class="message-bubble message-bot">
                             👋 Hi! I am your AI Chatbot simulator. Type any question or message below.
-                            <br><br>
-                            <em>Tip: Try providing your email or phone number in your question to test the CRM contact
-                                extractor in real-time!</em>
-                            <div class="message-meta text-muted">
-                                <span>System Bot</span>
-                            </div>
                         </div>
                     </div>
 
@@ -541,7 +530,8 @@
 
                     <div class="diag-body" id="diagBody">
                         <!-- Turn Decision Trace (Real-Time Multi-Turn Inspector) -->
-                        <div class="diag-section mb-3" id="turnDecisionTraceCard" style="background: #ffffff; border: 2px solid #3b82f6; border-radius: 10px; padding: 16px; box-shadow: 0 4px 14px rgba(59, 130, 246, 0.08);">
+                        <div class="diag-section mb-3" id="turnDecisionTraceCard"
+                            style="background: #ffffff; border: 2px solid #3b82f6; border-radius: 10px; padding: 16px; box-shadow: 0 4px 14px rgba(59, 130, 246, 0.08);">
                             <div class="d-flex align-items-center justify-content-between mb-2">
                                 <h6 class="fw-bold mb-0 text-primary d-flex align-items-center" style="font-size: 14px;">
                                     <i class="ri-git-commit-line me-1"></i> Turn Decision Trace
@@ -550,13 +540,17 @@
                             </div>
 
                             {{-- Turn History Navigation Pills --}}
-                            <div id="turnHistoryNav" class="d-flex align-items-center gap-1 mb-2 overflow-auto py-1" style="max-width: 100%;">
-                                <span class="text-muted small" style="font-size: 11px;">Send a message to view live turn trace</span>
+                            <div id="turnHistoryNav" class="d-flex align-items-center gap-1 mb-2 overflow-auto py-1"
+                                style="max-width: 100%;">
+                                <span class="text-muted small" style="font-size: 11px;">Send a message to view live turn
+                                    trace</span>
                             </div>
 
                             {{-- Query Box --}}
-                            <div class="p-2 mb-3 rounded" style="background: #f8fafc; border: 1px solid #e2e8f0; font-size: 13px;">
-                                <span class="text-muted small fw-bold d-block text-uppercase" style="font-size: 10px;">User Query</span>
+                            <div class="p-2 mb-3 rounded"
+                                style="background: #f8fafc; border: 1px solid #e2e8f0; font-size: 13px;">
+                                <span class="text-muted small fw-bold d-block text-uppercase" style="font-size: 10px;">User
+                                    Query</span>
                                 <strong id="traceUserQuery" class="text-dark">"Waiting for user message..."</strong>
                             </div>
 
@@ -564,44 +558,74 @@
                             <div class="row g-2 mb-3" style="font-size: 12px;">
                                 <div class="col-6">
                                     <div class="p-2 border rounded bg-white">
-                                        <span class="text-muted d-block small" style="font-size: 10px;">Route Decision</span>
+                                        <span class="text-muted d-block small" style="font-size: 10px;">Route
+                                            Decision</span>
                                         <span id="traceRouteBadge" class="route-pill chat mt-1">IDLE</span>
                                     </div>
                                 </div>
                                 <div class="col-6">
                                     <div class="p-2 border rounded bg-white">
-                                        <span class="text-muted d-block small" style="font-size: 10px;">Memory Decision</span>
+                                        <span class="text-muted d-block small" style="font-size: 10px;">Memory
+                                            Decision</span>
                                         <span id="traceMemoryBadge" class="badge bg-secondary mt-1">IDLE</span>
                                     </div>
                                 </div>
                                 <div class="col-6">
                                     <div class="p-2 border rounded bg-white">
-                                        <span class="text-muted d-block small" style="font-size: 10px;">Contextual Signal</span>
-                                        <strong id="traceContextSignal" class="text-dark mt-1 d-block" style="font-size: 11px;">NONE</strong>
+                                        <span class="text-muted d-block small" style="font-size: 10px;">Contextual
+                                            Signal</span>
+                                        <strong id="traceContextSignal" class="text-dark mt-1 d-block"
+                                            style="font-size: 11px;">NONE</strong>
                                     </div>
                                 </div>
                                 <div class="col-6">
                                     <div class="p-2 border rounded bg-white">
-                                        <span class="text-muted d-block small" style="font-size: 10px;">Retrieval Summary</span>
-                                        <strong id="traceRetrievalSummary" class="text-dark mt-1 d-block" style="font-size: 11px;">0 hits</strong>
+                                        <span class="text-muted d-block small" style="font-size: 10px;">Retrieval
+                                            Summary</span>
+                                        <strong id="traceRetrievalSummary" class="text-dark mt-1 d-block"
+                                            style="font-size: 11px;">0 hits</strong>
                                     </div>
                                 </div>
                                 <div class="col-6">
                                     <div class="p-2 border rounded bg-white">
-                                        <span class="text-muted d-block small" style="font-size: 10px;">Answerability Gate</span>
+                                        <span class="text-muted d-block small" style="font-size: 10px;">Answerability
+                                            Gate</span>
                                         <span id="traceGateBadge" class="badge bg-secondary mt-1">IDLE</span>
                                     </div>
                                 </div>
                                 <div class="col-6">
                                     <div class="p-2 border rounded bg-white">
-                                        <span class="text-muted d-block small" style="font-size: 10px;">Grounded Hit Count</span>
-                                        <strong id="traceGroundedCount" class="text-success mt-1 d-block" style="font-size: 11px;">0 Docs</strong>
+                                        <span class="text-muted d-block small" style="font-size: 10px;">Grounded Hit
+                                            Count</span>
+                                        <strong id="traceGroundedCount" class="text-success mt-1 d-block"
+                                            style="font-size: 11px;">0 Docs</strong>
                                     </div>
                                 </div>
                             </div>
 
+                            {{-- Dynamic Lexicon & Linguistic Engine Trace --}}
+                            <div class="p-2 mb-3 rounded" style="background: #f8fafc; border: 1px dashed #3b82f6; font-size: 11px;" id="traceLexiconCard">
+                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                    <span class="text-primary fw-bold"><i class="ri-book-read-line me-1"></i> Linguistic & Lexicon Trace</span>
+                                    <span id="traceLexiconTierBadge" class="badge bg-light text-dark border">Fast-Path</span>
+                                </div>
+                                <div class="mb-1">
+                                    <span class="text-muted">Concepts:</span>
+                                    <span id="traceLexiconConcepts"><span class="badge bg-secondary">None</span></span>
+                                </div>
+                                <div class="mb-1" id="traceLexiconExpansionRow" style="display: none;">
+                                    <span class="text-muted">Expansion:</span>
+                                    <code id="traceLexiconExpansion" class="text-dark bg-white px-1 border rounded"></code>
+                                </div>
+                                <div id="traceLexiconRerankRow" style="display: none;">
+                                    <span class="text-muted">Reranker:</span>
+                                    <span id="traceLexiconRerank" class="badge bg-info text-dark"></span>
+                                </div>
+                            </div>
+
                             {{-- LLM Generation & Latency Breakdown --}}
-                            <div class="p-2 rounded" style="background: #f1f5f9; border: 1px solid #e2e8f0; font-size: 12px;">
+                            <div class="p-2 rounded"
+                                style="background: #f1f5f9; border: 1px solid #e2e8f0; font-size: 12px;">
                                 <div class="d-flex justify-content-between mb-1">
                                     <span class="text-muted small">LLM Generation:</span>
                                     <strong id="traceLlmStatus" class="text-dark small">Ready</strong>
@@ -741,7 +765,8 @@
                                     <span>Score Margin: <strong id="gateMarginText">0.00</strong></span>
                                 </div>
                                 <div class="small text-muted mt-2">
-                                    <span>Grounded Hits Authorized: <strong id="gateGroundedCount" class="text-success">0</strong></span>
+                                    <span>Grounded Hits Authorized: <strong id="gateGroundedCount"
+                                            class="text-success">0</strong></span>
                                     <div id="gateGroundedDocs" class="mt-1"></div>
                                 </div>
                             </div>
@@ -855,55 +880,55 @@
                 // 2. UNCERTAIN Interactive Clickable Suggestions
                 if (route === 'uncertain' && Array.isArray(data.suggestions) && data.suggestions.length > 0) {
                     const chipsHtml = data.suggestions.map(s => `
-                                        <button type="button" class="suggestion-chip" onclick="setQueryAndSend('${escapeJs(s)}')">
-                                            <i class="ri-arrow-right-s-line text-warning"></i> ${escapeHtml(s)}
-                                        </button>
-                                    `).join('');
+                                                                            <button type="button" class="suggestion-chip" onclick="setQueryAndSend('${escapeJs(s)}')">
+                                                                                <i class="ri-arrow-right-s-line text-warning"></i> ${escapeHtml(s)}
+                                                                            </button>
+                                                                        `).join('');
 
                     extraCardsHtml += `
-                                        <div class="suggestions-container">
-                                            <span class="suggestion-label"><i class="ri-lightbulb-line text-warning me-1"></i> Did you mean (Click to select):</span>
-                                            ${chipsHtml}
-                                        </div>
-                                    `;
+                                                                            <div class="suggestions-container">
+                                                                                <span class="suggestion-label"><i class="ri-lightbulb-line text-warning me-1"></i> Did you mean (Click to select):</span>
+                                                                                ${chipsHtml}
+                                                                            </div>
+                                                                        `;
                 }
 
                 // 3. KNOWLEDGE Grounded Citations & Sources
                 if (route === 'knowledge' && Array.isArray(data.sources) && data.sources.length > 0) {
                     const sourceChips = data.sources.map(src => `
-                                        <span class="source-chip" title="Score: ${src.score}%">
-                                            <i class="ri-checkbox-circle-fill text-success"></i> ${escapeHtml(src.question)}
-                                        </span>
-                                    `).join('');
+                                                                            <span class="source-chip" title="Score: ${src.score}%">
+                                                                                <i class="ri-checkbox-circle-fill text-success"></i> ${escapeHtml(src.question)}
+                                                                            </span>
+                                                                        `).join('');
 
                     extraCardsHtml += `
-                                        <div class="sources-container">
-                                            <span class="text-muted small fw-bold"><i class="ri-shield-check-line text-success me-1"></i> Grounded from FAQ:</span>
-                                            ${sourceChips}
-                                        </div>
-                                    `;
+                                                                            <div class="sources-container">
+                                                                                <span class="text-muted small fw-bold"><i class="ri-shield-check-line text-success me-1"></i> Grounded from FAQ:</span>
+                                                                                ${sourceChips}
+                                                                            </div>
+                                                                        `;
                 }
 
                 // 4. ACTION / 3x UNCERTAIN Safe Human Handoff Notice Card
                 if (data.is_handoff || route === 'action') {
                     extraCardsHtml += `
-                                        <div class="handoff-alert-card">
-                                            <div class="handoff-icon"><i class="ri-customer-service-2-line"></i></div>
-                                            <div>
-                                                <strong class="d-block text-dark small" style="font-size:12px;">Human Support Request Registered</strong>
-                                                <small class="text-muted">A customer support specialist will review your request shortly.</small>
-                                            </div>
-                                        </div>
-                                    `;
+                                                                            <div class="handoff-alert-card">
+                                                                                <div class="handoff-icon"><i class="ri-customer-service-2-line"></i></div>
+                                                                                <div>
+                                                                                    <strong class="d-block text-dark small" style="font-size:12px;">Human Support Request Registered</strong>
+                                                                                    <small class="text-muted">A customer support specialist will review your request shortly.</small>
+                                                                                </div>
+                                                                            </div>
+                                                                        `;
                 }
 
                 // Footer metadata
                 metaHtml = `
-                    <div class="message-meta">
-                        <span>${data.pipeline_diagnostics?.total_time_ms || 0} ms</span>
-                        <span>Route: <strong>${route.toUpperCase()}</strong></span>
-                    </div>
-                `;
+                                                        <div class="message-meta">
+                                                            <span>${data.pipeline_diagnostics?.total_time_ms || 0} ms</span>
+                                                            <span>Route: <strong>${route.toUpperCase()}</strong></span>
+                                                        </div>
+                                                    `;
             }
 
             const formattedBodyHtml = renderFormattedMessage(content);
@@ -1106,9 +1131,9 @@
                 if (sources.length > 0) {
                     sources.forEach(s => {
                         docHtml += `<div class="d-flex justify-content-between align-items-center p-1 px-2 mb-1" style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 4px; font-size: 11px;">
-                            <span class="text-truncate" style="max-width: 220px;"><strong>[${escapeHtml(s.category)}]</strong> ${escapeHtml(s.question)}</span>
-                            <span class="badge bg-success-subtle text-success">${s.score}%</span>
-                        </div>`;
+                                                                <span class="text-truncate" style="max-width: 220px;"><strong>[${escapeHtml(s.category)}]</strong> ${escapeHtml(s.question)}</span>
+                                                                <span class="badge bg-success-subtle text-success">${s.score}%</span>
+                                                            </div>`;
                     });
                 } else {
                     docHtml = '<span class="text-muted small">Zero ungrounded documents passed to LLM (Safe fallback).</span>';
@@ -1153,8 +1178,8 @@
                 const isActive = (idx === currentTurnIndex);
                 const btnClass = isActive ? 'btn-primary text-white shadow-sm' : 'btn-outline-secondary';
                 return `<button type="button" class="btn btn-xs ${btnClass} py-0 px-2" style="font-size: 11px; border-radius: 12px; white-space: nowrap;" onclick="selectTurn(${idx})">
-                    Turn #${t.turnNumber}
-                </button>`;
+                                                        Turn #${t.turnNumber}
+                                                    </button>`;
             }).join('');
         }
 
@@ -1234,6 +1259,35 @@
             document.getElementById('latRetrieval').textContent = `${lat.retrieval_ms || 0} ms`;
             document.getElementById('latLlm').textContent = `${lat.llm_ms || 0} ms`;
             document.getElementById('latTotal').textContent = `${lat.total_ms || 0} ms`;
+
+            // Lexicon & Linguistic Telemetry
+            const lex = trace.lexicon_telemetry || {};
+            const concepts = lex.canonical_concepts || [];
+            const conceptsContainer = document.getElementById('traceLexiconConcepts');
+            if (concepts.length > 0) {
+                conceptsContainer.innerHTML = concepts.map(c => `<span class="badge bg-primary me-1">${escapeHtml(c)}</span>`).join('');
+            } else {
+                conceptsContainer.innerHTML = '<span class="badge bg-secondary">None</span>';
+            }
+
+            const tierBadge = document.getElementById('traceLexiconTierBadge');
+            tierBadge.textContent = (lex.tier_executed || 'Fast-Path').replace(/_/g, ' ');
+
+            const expRow = document.getElementById('traceLexiconExpansionRow');
+            if (lex.expansion_triggered && lex.expanded_query) {
+                expRow.style.display = 'block';
+                document.getElementById('traceLexiconExpansion').textContent = lex.expanded_query;
+            } else {
+                expRow.style.display = 'none';
+            }
+
+            const rerankRow = document.getElementById('traceLexiconRerankRow');
+            if (lex.reranker_applied && lex.reranker_reason) {
+                rerankRow.style.display = 'block';
+                document.getElementById('traceLexiconRerank').textContent = lex.reranker_reason;
+            } else {
+                rerankRow.style.display = 'none';
+            }
         }
 
         async function clearSimulatorChat() {

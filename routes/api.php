@@ -12,3 +12,9 @@ use Illuminate\Support\Facades\Route;
 | is assigned the "api" middleware group.
 |
 */
+
+use App\Http\Controllers\Api\InternalLexiconController;
+
+Route::prefix('v1/internal')->group(function () {
+    Route::get('/lexicon/snapshot', [InternalLexiconController::class, 'getSnapshot']);
+});

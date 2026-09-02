@@ -149,8 +149,37 @@
         top: 8px!important;
         right: 8px!important;
     }
-    .gj-editor [role=body] {
-        height: 150px;
+    .modal {
+        z-index: 1065 !important;
+    }
+    .modal-backdrop {
+        z-index: 1055 !important;
+    }
+
+    /* Universal Modal Fade-In & Fade-Out Transitions */
+    .modal.fade {
+        opacity: 0;
+        transition: opacity 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
+    }
+    .modal.fade .modal-dialog {
+        transform: scale(0.96) translateY(-14px);
+        transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
+    }
+    .modal.fade.show {
+        opacity: 1 !important;
+    }
+    .modal.fade.show .modal-dialog {
+        transform: scale(1) translateY(0) !important;
+    }
+    .modal-backdrop.fade {
+        opacity: 0;
+        transition: opacity 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
+        background-color: rgba(15, 23, 42, 0.5) !important;
+        backdrop-filter: blur(4px);
+        -webkit-backdrop-filter: blur(4px);
+    }
+    .modal-backdrop.fade.show {
+        opacity: 1 !important;
     }
 </style>
 

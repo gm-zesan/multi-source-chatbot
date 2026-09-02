@@ -12,12 +12,24 @@ use Illuminate\Support\Facades\Log;
 
 class RetrievalClient
 {
+    private array $lastTelemetry = [];
+
     public function __construct(
         private readonly ?string $baseUrl = null,
         private readonly ?string $apiKey = null,
         private readonly int $timeout = 15,
         private readonly int $defaultTopK = 5,
     ) {}
+
+    /**
+     * Get the last received telemetry data from the Python retrieval service.
+     *
+     * @return array<string, mixed>
+     */
+    public function getLastTelemetry(): array
+    {
+        return $this->lastTelemetry;
+    }
 
     /**
      * Get the base URL for the Python retrieval service.
@@ -66,6 +78,7 @@ class RetrievalClient
                 $data = $response->json();
                 $results = $data['results'] ?? [];
                 $telemetry = $data['telemetry'] ?? [];
+                $this->lastTelemetry = $telemetry;
 
                 if (! empty($telemetry)) {
                     Log::info('[Retrieval Observability]', [
@@ -83,11 +96,13 @@ class RetrievalClient
                 return $this->mapResults($results, $topK);
             }
 
+            $this->lastTelemetry = [];
             Log::warning('[RetrievalClient] Search returned non-200 status', [
                 'status' => $response->status(),
                 'query'  => mb_substr($trimmed, 0, 80),
             ]);
         } catch (\Throwable $e) {
+            $this->lastTelemetry = [];
             Log::warning('[RetrievalClient] Python retrieval service unreachable, falling back to DB', [
                 'query' => mb_substr($trimmed, 0, 80),
                 'error' => $e->getMessage(),
@@ -199,6 +214,65 @@ class RetrievalClient
                 'ok'         => false,
                 'latency_ms' => $latency,
                 'error'      => $e->getMessage(),
+            ];
+        }
+    }
+
+    /**
+     * Trigger an atomic reload of the DB-driven lexicon snapshot on the Python service.
+     *
+     * @return array{ok: bool, workspace_id: int, snapshot_version?: int, global_version?: int, workspace_version?: int, error?: string}
+     */
+    public function reloadLexicon(int $workspaceId = 0): array
+    {
+        $url = "{$this->baseUrl()}/api/v1/lexicon/reload?workspace_id={$workspaceId}";
+
+        try {
+            $req = Http::timeout($this->timeout);
+            $key = $this->apiKey ?? config('retrieval.api_key');
+            if (! empty($key)) {
+                $req = $req->withToken($key);
+            }
+
+            $response = $req->post($url);
+
+            if ($response->successful()) {
+                $data = $response->json();
+                Log::info('[RetrievalClient] Lexicon reloaded successfully', [
+                    'workspace_id'     => $workspaceId,
+                    'snapshot_version' => $data['snapshot_version'] ?? null,
+                ]);
+
+                return [
+                    'ok'                => true,
+                    'workspace_id'      => $workspaceId,
+                    'snapshot_version'  => (int) ($data['snapshot_version'] ?? 0),
+                    'global_version'    => (int) ($data['global_version'] ?? 0),
+                    'workspace_version' => (int) ($data['workspace_version'] ?? 0),
+                ];
+            }
+
+            Log::warning('[RetrievalClient] Lexicon reload returned non-200 status', [
+                'status'       => $response->status(),
+                'workspace_id' => $workspaceId,
+                'body'         => $response->body(),
+            ]);
+
+            return [
+                'ok'           => false,
+                'workspace_id' => $workspaceId,
+                'error'        => "HTTP {$response->status()}",
+            ];
+        } catch (\Throwable $e) {
+            Log::warning('[RetrievalClient] Lexicon reload request failed', [
+                'workspace_id' => $workspaceId,
+                'error'        => $e->getMessage(),
+            ]);
+
+            return [
+                'ok'           => false,
+                'workspace_id' => $workspaceId,
+                'error'        => $e->getMessage(),
             ];
         }
     }

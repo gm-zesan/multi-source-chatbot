@@ -358,6 +358,7 @@ class CustomerSupportService
             'routing_telemetry' => array_merge($routingResult->toArray(), [
                 'total_e2e_ms' => $totalE2eMs,
             ]),
+            'lexicon_telemetry' => $this->faqSearch->getLastTelemetry(),
         ];
     }
 

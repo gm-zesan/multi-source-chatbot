@@ -181,3 +181,23 @@
         }
     }
 </script>
+
+{{-- Global Bootstrap Modal Stacking Context & Backdrop Trap Fix --}}
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        function moveModalsToBody() {
+            document.querySelectorAll('.modal').forEach(function(modalEl) {
+                if (modalEl.parentElement !== document.body) {
+                    document.body.appendChild(modalEl);
+                }
+            });
+        }
+        moveModalsToBody();
+
+        document.addEventListener('show.bs.modal', function (e) {
+            if (e.target && e.target.parentElement !== document.body) {
+                document.body.appendChild(e.target);
+            }
+        });
+    });
+</script>

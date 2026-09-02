@@ -11,6 +11,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\FAQCategoryController;
 use App\Http\Controllers\FAQController;
 use App\Http\Controllers\HealthController;
+use App\Http\Controllers\LexiconManagementController;
 use App\Http\Controllers\ObservabilityController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ConversationController;
@@ -126,6 +127,55 @@ Route::middleware('auth')->prefix('dashboard')->group(function () {
     Route::post('/faqs/bulk-delete', [FAQController::class, 'bulkDelete'])
         ->name('faqs.bulk-delete')
         ->middleware('permission:' . \App\Enums\Permissions\FAQPermission::DELETE->value);
+
+    // ── Lexicon & Dynamic Vocabulary ──────────────────────────────────
+    Route::get('/lexicons', [LexiconManagementController::class, 'index'])
+        ->name('lexicons.index')
+        ->middleware('permission:' . \App\Enums\Permissions\FAQPermission::VIEW->value);
+
+    Route::post('/lexicons/domain-entries', [LexiconManagementController::class, 'storeDomainEntry'])
+        ->name('lexicons.domain-entries.store')
+        ->middleware('permission:' . \App\Enums\Permissions\FAQPermission::CREATE->value);
+    Route::put('/lexicons/domain-entries/{entry}', [LexiconManagementController::class, 'updateDomainEntry'])
+        ->name('lexicons.domain-entries.update')
+        ->middleware('permission:' . \App\Enums\Permissions\FAQPermission::UPDATE->value);
+    Route::delete('/lexicons/domain-entries/{entry}', [LexiconManagementController::class, 'deleteDomainEntry'])
+        ->name('lexicons.domain-entries.destroy')
+        ->middleware('permission:' . \App\Enums\Permissions\FAQPermission::DELETE->value);
+
+    Route::post('/lexicons/concept-patterns', [LexiconManagementController::class, 'storeConceptPattern'])
+        ->name('lexicons.concept-patterns.store')
+        ->middleware('permission:' . \App\Enums\Permissions\FAQPermission::CREATE->value);
+    Route::put('/lexicons/concept-patterns/{pattern}', [LexiconManagementController::class, 'updateConceptPattern'])
+        ->name('lexicons.concept-patterns.update')
+        ->middleware('permission:' . \App\Enums\Permissions\FAQPermission::UPDATE->value);
+    Route::delete('/lexicons/concept-patterns/{pattern}', [LexiconManagementController::class, 'deleteConceptPattern'])
+        ->name('lexicons.concept-patterns.destroy')
+        ->middleware('permission:' . \App\Enums\Permissions\FAQPermission::DELETE->value);
+
+    Route::post('/lexicons/action-mappings', [LexiconManagementController::class, 'storeActionMapping'])
+        ->name('lexicons.action-mappings.store')
+        ->middleware('permission:' . \App\Enums\Permissions\FAQPermission::CREATE->value);
+    Route::put('/lexicons/action-mappings/{mapping}', [LexiconManagementController::class, 'updateActionMapping'])
+        ->name('lexicons.action-mappings.update')
+        ->middleware('permission:' . \App\Enums\Permissions\FAQPermission::UPDATE->value);
+    Route::delete('/lexicons/action-mappings/{mapping}', [LexiconManagementController::class, 'deleteActionMapping'])
+        ->name('lexicons.action-mappings.destroy')
+        ->middleware('permission:' . \App\Enums\Permissions\FAQPermission::DELETE->value);
+
+    Route::post('/lexicons/policy-mappings', [LexiconManagementController::class, 'storePolicyMapping'])
+        ->name('lexicons.policy-mappings.store')
+        ->middleware('permission:' . \App\Enums\Permissions\FAQPermission::CREATE->value);
+    Route::put('/lexicons/policy-mappings/{mapping}', [LexiconManagementController::class, 'updatePolicyMapping'])
+        ->name('lexicons.policy-mappings.update')
+        ->middleware('permission:' . \App\Enums\Permissions\FAQPermission::UPDATE->value);
+    Route::delete('/lexicons/policy-mappings/{mapping}', [LexiconManagementController::class, 'deletePolicyMapping'])
+        ->name('lexicons.policy-mappings.destroy')
+        ->middleware('permission:' . \App\Enums\Permissions\FAQPermission::DELETE->value);
+
+    Route::post('/lexicons/sync', [LexiconManagementController::class, 'syncToEngine'])
+        ->name('lexicons.sync')
+        ->middleware('permission:' . \App\Enums\Permissions\FAQPermission::UPDATE->value);
 });
 
 require __DIR__.'/auth.php';

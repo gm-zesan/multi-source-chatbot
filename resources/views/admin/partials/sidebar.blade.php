@@ -59,6 +59,12 @@
                     <span class="nav-label">FAQs</span>
                 </a>
             </li>
+            <li class="nav-item">
+                <a href="{{ route('lexicons.index') }}" class="nav-link {{ Route::is('lexicons.*') ? 'active' : '' }}">
+                    <i class="ri-book-read-line nav-icon"></i>
+                    <span class="nav-label">Lexicon & Vocabulary</span>
+                </a>
+            </li>
 
             <!-- Users & Roles Section -->
             <li class="nav-section">

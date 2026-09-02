@@ -50,5 +50,15 @@ class FAQSearch
             contextualSignal: $contextualSignal,
         );
     }
+
+    /**
+     * Expose linguistic & retrieval telemetry from the latest search.
+     *
+     * @return array<string, mixed>
+     */
+    public function getLastTelemetry(): array
+    {
+        return $this->retrievalClient->getLastTelemetry();
+    }
 }
 

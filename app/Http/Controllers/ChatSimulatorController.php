@@ -157,6 +157,15 @@ class ChatSimulatorController extends Controller
                 'llm_ms'           => $llmLatency,
                 'total_ms'         => $totalElapsed,
             ],
+            'lexicon_telemetry'    => [
+                'canonical_concepts'  => $supportResult['lexicon_telemetry']['canonical_concepts'] ?? [],
+                'expansion_triggered' => (bool) ($supportResult['lexicon_telemetry']['expansion_triggered'] ?? false),
+                'expanded_query'      => $supportResult['lexicon_telemetry']['expanded_query'] ?? null,
+                'reranker_applied'    => (bool) ($supportResult['lexicon_telemetry']['reranker_applied'] ?? false),
+                'reranker_reason'     => $supportResult['lexicon_telemetry']['reranker_reason'] ?? null,
+                'first_pass_score'    => $supportResult['lexicon_telemetry']['first_pass_score'] ?? null,
+                'tier_executed'       => $supportResult['lexicon_telemetry']['tier_executed'] ?? null,
+            ],
         ];
 
         return response()->json([

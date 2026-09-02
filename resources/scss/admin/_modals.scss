@@ -8,20 +8,13 @@
 /* ==================== MODAL BACKDROP ==================== */
 .modal-backdrop {
     @include modal-overlay;
-    background-color: rgba(0, 0, 0, 0.5);
-    animation: fadeIn 0.3s ease-out;
+    background-color: rgba(15, 23, 42, 0.5);
+    opacity: 0;
+    transition: opacity 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
 
     &.show {
-        opacity: 1;
-    }
-}
-
-@keyframes fadeIn {
-    from {
-        opacity: 0;
-    }
-
-    to {
         opacity: 1;
     }
 }
@@ -29,9 +22,10 @@
 /* ==================== MODAL DIALOG ==================== */
 .modal-dialog {
     @include modal-dialog;
-    animation: slideUp 0.3s ease-out;
     width: 90%;
     max-width: 500px;
+    transform: scale(0.96) translateY(-14px);
+    transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 
     &.modal-lg {
         max-width: 800px;
@@ -204,27 +198,21 @@
 }
 
 /* ==================== MODAL ANIMATIONS ==================== */
-.modal.show {
+.modal.fade {
+    opacity: 0;
+    transition: opacity 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
+
     .modal-dialog {
-        animation: slideUp 0.3s ease-out;
-    }
-}
-
-.modal.hide {
-    .modal-dialog {
-        animation: slideDown 0.3s ease-out forwards;
-    }
-}
-
-@keyframes slideDown {
-    from {
-        transform: translateY(0);
-        opacity: 1;
+        transform: scale(0.96) translateY(-14px);
+        transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
     }
 
-    to {
-        transform: translateY(50px);
-        opacity: 0;
+    &.show {
+        opacity: 1 !important;
+
+        .modal-dialog {
+            transform: scale(1) translateY(0) !important;
+        }
     }
 }
 
