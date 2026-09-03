@@ -842,29 +842,36 @@ class CustomerSupportService
         try {
             $response = $agent->prompt($query, provider: $primaryProvider, model: $primaryModel);
             $this->lastLlmUsage = $response->usage ?? null;
-            return (string) $response;
+            $text = trim((string) $response);
+            if ($text !== '') {
+                return $text;
+            }
         } catch (\Throwable $ePrimary) {
             Log::warning('[CustomerSupportService] Primary conversational agent failed, attempting fallback', [
                 'primary_provider'  => $primaryProvider,
                 'fallback_provider' => $fallbackProvider,
                 'error'             => $ePrimary->getMessage(),
             ]);
-
-            // Tier 2: Try Fallback Provider
-            if (!empty($fallbackProvider) && $fallbackProvider !== $primaryProvider) {
-                try {
-                    return (string) $agent->prompt($query, provider: $fallbackProvider, model: $fallbackModel);
-                } catch (\Throwable $eFallback) {
-                    Log::warning('[CustomerSupportService] Fallback conversational provider also failed', [
-                        'fallback_provider' => $fallbackProvider,
-                        'error'             => $eFallback->getMessage(),
-                    ]);
-                }
-            }
-
-            // Tier 3: Deterministic Polite Greeting Fallback
-            return "হ্যালো! আপনাকে কীভাবে সাহায্য করতে পারি?";
         }
+
+        // Tier 2: Try Fallback Provider
+        if (!empty($fallbackProvider) && $fallbackProvider !== $primaryProvider) {
+            try {
+                $fallbackResp = $agent->prompt($query, provider: $fallbackProvider, model: $fallbackModel);
+                $fallbackText = trim((string) $fallbackResp);
+                if ($fallbackText !== '') {
+                    return $fallbackText;
+                }
+            } catch (\Throwable $eFallback) {
+                Log::warning('[CustomerSupportService] Fallback conversational provider also failed', [
+                    'fallback_provider' => $fallbackProvider,
+                    'error'             => $eFallback->getMessage(),
+                ]);
+            }
+        }
+
+        // Tier 3: Deterministic Polite Greeting Fallback
+        return "হ্যালো! আপনাকে কীভাবে সাহায্য করতে পারি?";
     }
 
     /**

@@ -104,6 +104,12 @@ PROMPT;
             ->get()
             ->reverse();
 
+        // If the last message is inbound (the query currently being prompted), omit it from history
+        // because Laravel Ai Promptable automatically appends the current query as a UserMessage.
+        if ($rawMessages->isNotEmpty() && $rawMessages->last()->direction === 'inbound') {
+            $rawMessages->pop();
+        }
+
         $aiMessages = [];
         foreach ($rawMessages as $msg) {
             $body = trim((string) $msg->body);

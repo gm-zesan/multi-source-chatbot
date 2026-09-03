@@ -165,7 +165,7 @@ class ClarificationManager
 
         // Generic safe clarification for unresolved anaphora
         $topic = $contextResult->activeTopic;
-        if ($topic === 'Order_Tracking') {
+        if ($topic === 'Order_Tracking' || preg_match('/(পার্সেল|অর্ডার|parcel|order|package|কুরিয়ার|courier)/ui', $contextResult->rawQuery)) {
             return "আপনি কোন অর্ডারটি সম্পর্কে জানতে চাচ্ছেন অনুগ্রহ করে অর্ডার নম্বরটি জানাবেন কি?";
         }
 

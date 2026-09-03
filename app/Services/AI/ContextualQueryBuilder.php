@@ -601,6 +601,9 @@ class ContextualQueryBuilder
             '/^(ট্র্যাক\s*করব\s*কীভাবে\??|ট্র্যাকিং\s*কীভাবে\??|track\s*kivabe\??|tracking\s*kivabe\??)$/ui',
             '/^(দাম\s*কত\??|কত\s*দাম\??|dam\s*koto\??|price\s*koto\??|how\s+much\??)$/ui',
             '/^(সাইজ\s*(কি\s*)?আছে\??|size\s*ache\??|available\s*size\??)$/ui',
+            '/^((আমার\s+)?(পার্সেল|অর্ডার|প্যাকেজ|ডেলিভারি)\s*(কই|কোথায়|কোথাই|কখন\s*আসবে|কবে\s*পাব|কোন\s*পর্যায়ে)\??)$/ui',
+            '/^((amar\s+)?(parcel|order|package|delivery)\s*(kothay|koi|kotay|kokhon\s*ashbe|kobe\s*pabo|status)\??)$/ui',
+            '/^((where\s+is\s+(my\s+)?(parcel|order|package|delivery))\??)$/ui',
         ];
 
         foreach ($patterns as $pattern) {

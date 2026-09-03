@@ -19,7 +19,7 @@ return [
     'fallback_model' => env('AI_FALLBACK_MODEL', 'openrouter/free'),
 
     'max_tokens' => (int) env('AI_MAX_TOKENS', 320),
-    'chat_max_tokens' => (int) env('AI_CHAT_MAX_TOKENS', 128),
+    'chat_max_tokens' => (int) env('AI_CHAT_MAX_TOKENS', 256),
 
     /*
     |--------------------------------------------------------------------------

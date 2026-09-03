@@ -43,7 +43,7 @@ PROMPT;
 
     public function maxTokens(): int
     {
-        return (int) config('ai.chat_max_tokens', 128);
+        return (int) config('ai.chat_max_tokens', 256);
     }
 
     public function providerOptions(Lab|string $provider): array
@@ -72,6 +72,12 @@ PROMPT;
             ->limit($limit)
             ->get()
             ->reverse();
+
+        // If the last message is inbound (the query currently being prompted), omit it from history
+        // because Laravel Ai Promptable automatically appends the current query as a UserMessage.
+        if ($rawMessages->isNotEmpty() && $rawMessages->last()->direction === 'inbound') {
+            $rawMessages->pop();
+        }
 
         $aiMessages = [];
         foreach ($rawMessages as $msg) {
