@@ -38,7 +38,7 @@ Route::middleware('auth')->prefix('dashboard')->group(function () {
 
     // Chat Simulator & Pipeline Tester
     Route::get('/simulator', [ChatSimulatorController::class, 'index'])->name('simulator.index');
-    Route::post('/simulator/send', [ChatSimulatorController::class, 'send'])->name('simulator.send');
+    Route::post('/simulator/send', [ChatSimulatorController::class, 'send'])->middleware('throttle:60,1')->name('simulator.send');
     Route::post('/simulator/clear', [ChatSimulatorController::class, 'clear'])->name('simulator.clear');
 
     // Observability & Telemetry Dashboard

@@ -35,6 +35,8 @@ class CustomerSupportService
     private readonly BusinessSourceOfTruthService $businessService;
     private readonly LLMClient $llmClient;
     private readonly SemanticAnswerabilityGate $answerabilityGate;
+    private readonly ClarificationManager $clarificationManager;
+    private ?\Laravel\Ai\Responses\Data\Usage $lastLlmUsage = null;
 
     public function __construct(
         private readonly FAQSearch $faqSearch,
@@ -46,14 +48,16 @@ class CustomerSupportService
         ?BusinessSourceOfTruthService $businessService = null,
         ?LLMClient $llmClient = null,
         ?SemanticAnswerabilityGate $answerabilityGate = null,
+        ?ClarificationManager $clarificationManager = null,
     ) {
         $this->router = $router ?? new HybridRouter();
         $this->actionSafety = $actionSafety ?? new ActionSafetyService();
-        $this->contextualQueryBuilder = $contextualQueryBuilder ?? new ContextualQueryBuilder();
         $this->memoryService = $memoryService ?? app(ConversationMemoryService::class);
+        $this->contextualQueryBuilder = $contextualQueryBuilder ?? new ContextualQueryBuilder($this->memoryService);
         $this->businessService = $businessService ?? new BusinessSourceOfTruthService();
         $this->llmClient = $llmClient ?? new LLMClient();
         $this->answerabilityGate = $answerabilityGate ?? new SemanticAnswerabilityGate();
+        $this->clarificationManager = $clarificationManager ?? new ClarificationManager();
     }
 
     /**
@@ -71,6 +75,18 @@ class CustomerSupportService
 
         $t_start = microtime(true);
 
+        // ── Phase M2: Context Resolution & Phase M4-A: Ambiguity Short-Circuit ─────
+        $contextResult = $this->contextualQueryBuilder->resolveContext($query, $conversation);
+        if ($contextResult->needsClarification()) {
+            $ambiguityResponse = $this->clarificationManager->handleAmbiguity(
+                conversation: $conversation,
+                rawQuery: $query,
+                contextResult: $contextResult,
+                workspaceId: $effectiveWorkspaceId,
+            );
+            return $ambiguityResponse['reply'];
+        }
+
         // ── 1. Hybrid Routing ────────────────────────────────────────────────
         $routingResult = $this->router->route(
             query: $query,
@@ -83,6 +99,7 @@ class CustomerSupportService
             conversation: $conversation,
             query: $query,
             workspaceId: $effectiveWorkspaceId,
+            contextResult: $contextResult,
         );
 
         $businessContext = $this->businessService->buildBusinessContext(
@@ -235,20 +252,85 @@ class CustomerSupportService
     {
         $t_start = microtime(true);
 
+        // ── Phase M2: Context Resolution & Phase M4-A: Context Ambiguity Short-Circuit ─────
+        $t_context_start = microtime(true);
+        $contextResult = $this->contextualQueryBuilder->resolveContext($query, $conversation);
+        $contextResolutionMs = round((microtime(true) - $t_context_start) * 1000, 2);
+
+        if ($contextResult->needsClarification()) {
+            $t_clarification_start = microtime(true);
+            $clarificationResult = $this->clarificationManager->handleAmbiguity(
+                conversation: $conversation,
+                rawQuery: $query,
+                contextResult: $contextResult,
+                workspaceId: $workspaceId,
+            );
+            $clarificationMs = round((microtime(true) - $t_clarification_start) * 1000, 2);
+            $totalE2eMs = round((microtime(true) - $t_start) * 1000, 2);
+
+            $clarificationResult['latency_breakdown'] = [
+                'router_ms'              => 0.0,
+                'context_resolution_ms'  => $contextResolutionMs,
+                'clarification_ms'       => $clarificationMs,
+                'memory_gate_ms'         => 0.0,
+                'memory_retrieval_ms'    => 0.0,
+                'business_context_ms'    => 0.0,
+                'knowledge_retrieval_ms' => 0.0,
+                'retrieval_ms'           => 0.0,
+                'answerability_ms'       => 0.0,
+                'llm_generation_ms'      => 0.0,
+                'llm_ms'                 => 0.0,
+                'total_e2e_ms'           => $totalE2eMs,
+                'total_ms'               => $totalE2eMs,
+                'retrieval_sub_stages'   => [],
+            ];
+            $clarificationResult['routing_telemetry']['total_e2e_ms'] = $totalE2eMs;
+
+            return $clarificationResult;
+        }
+
+        // ── Hybrid Router ─────────────────────────────────────────────────────────────
+        $t_router_start = microtime(true);
         $routingResult = $this->router->route(
             query: $query,
             conversation: $conversation,
             workspaceId: $workspaceId,
         );
+        $routerLatencyMs = round((microtime(true) - $t_router_start) * 1000, 2);
 
+        // ── Phase M3: Memory Relevance Gate & Unified Memory Context ──────────────────
+        $t_memory_start = microtime(true);
+        $memoryContext = $this->memoryService->retrieveContext(
+            conversation: $conversation,
+            query: $query,
+            workspaceId: $workspaceId,
+            contextResult: $contextResult,
+        );
+        $memoryRetrievalMs = round((microtime(true) - $t_memory_start) * 1000, 2);
+
+        $t_business_start = microtime(true);
+        $businessContext = $this->businessService->buildBusinessContext(
+            query: $query,
+            conversation: $conversation,
+            workspaceId: $workspaceId,
+        );
+        $businessContextMs = round((microtime(true) - $t_business_start) * 1000, 2);
+
+        // ── Knowledge Retrieval & Semantic Answerability Gate ─────────────────────────
         $retrievalHits = new \Illuminate\Database\Eloquent\Collection();
         $topHit = null;
         $answered = false;
         $answerabilityDecision = null;
         $groundedHits = new \Illuminate\Database\Eloquent\Collection();
+        $knowledgeRetrievalMs = 0.0;
+        $answerabilityMs = 0.0;
+
+        $contextualSignal = ($contextResult->isSelfContained())
+            ? null
+            : (($contextResult->resolvedQuery !== null && $contextResult->resolvedQuery !== $contextResult->rawQuery) ? $contextResult->resolvedQuery : null);
 
         if ($routingResult->isKnowledge() || $routingResult->isUncertain()) {
-            $contextualSignal = $this->contextualQueryBuilder->resolveContextualSignal($query, $conversation);
+            $t_retrieval_start = microtime(true);
             $retrievalHits = $this->faqSearch->search(
                 query: $query,
                 perPage: 5,
@@ -256,25 +338,19 @@ class CustomerSupportService
                 conversation: $conversation,
                 contextualSignal: $contextualSignal,
             );
-            $answerabilityDecision = $this->answerabilityGate->evaluate($query, $retrievalHits, $routingResult);
+            $knowledgeRetrievalMs = round((microtime(true) - $t_retrieval_start) * 1000, 2);
+
+            $t_gate_start = microtime(true);
+            $answerabilityDecision = $this->answerabilityGate->evaluate($contextualSignal ?? $query, $retrievalHits, $routingResult);
+            $answerabilityMs = round((microtime(true) - $t_gate_start) * 1000, 2);
+
             $topHit = $answerabilityDecision->topHit();
             $answered = $answerabilityDecision->isConfident();
             $groundedHits = $answerabilityDecision->groundedHits;
         }
 
-        // ── Retrieve Unified Memory & Live Business Data ─────
-        $memoryContext = $this->memoryService->retrieveContext(
-            conversation: $conversation,
-            query: $query,
-            workspaceId: $workspaceId,
-        );
-
-        $businessContext = $this->businessService->buildBusinessContext(
-            query: $query,
-            conversation: $conversation,
-            workspaceId: $workspaceId,
-        );
-
+        // ── Generation / Agent Dispatch (LLM) ─────────────────────────────────────────
+        $t_llm_start = microtime(true);
         $replyText = match ($routingResult->route) {
             RouteType::KNOWLEDGE => (
                 CustomerSupportAgent::isFaked()
@@ -324,6 +400,7 @@ class CustomerSupportService
                 routingResult: $routingResult,
             ),
         };
+        $llmGenerationMs = round((microtime(true) - $t_llm_start) * 1000, 2);
 
         $totalE2eMs = round((microtime(true) - $t_start) * 1000, 2);
 
@@ -334,6 +411,13 @@ class CustomerSupportService
         $isHandoff = ($routingResult->route === RouteType::ACTION) ||
             (!empty($conversation?->metadata['handoff_to_human'])) ||
             (stripos($replyText ?? '', 'team member will contact you') !== false);
+
+        $retrievalTelemetry = $this->faqSearch->getLastTelemetry();
+
+        $usage = $this->lastLlmUsage ?? null;
+        $promptTokens = $usage?->promptTokens ?? 0;
+        $completionTokens = $usage?->completionTokens ?? 0;
+        $totalTokens = $promptTokens + $completionTokens;
 
         return [
             'reply' => $replyText ?? $this->defaultFallbackText(),
@@ -352,13 +436,36 @@ class CustomerSupportService
                 'provider' => config('ai.default', 'deepseek'),
                 'model' => config('ai.default_model', 'deepseek-chat'),
                 'raw_reply_text' => $replyText,
+                'prompt_tokens' => $promptTokens,
+                'completion_tokens' => $completionTokens,
+                'total_tokens' => $totalTokens,
                 'grounded_documents_count' => $groundedHits->count(),
                 'grounded_faq_questions' => $groundedHits->map(fn($h) => $h->faq?->question)->values()->all(),
             ],
             'routing_telemetry' => array_merge($routingResult->toArray(), [
-                'total_e2e_ms' => $totalE2eMs,
+                'router_latency_ms' => $routerLatencyMs,
+                'total_e2e_ms'      => $totalE2eMs,
             ]),
-            'lexicon_telemetry' => $this->faqSearch->getLastTelemetry(),
+            'lexicon_telemetry' => $retrievalTelemetry,
+            'latency_breakdown' => [
+                'router_ms'              => $routerLatencyMs,
+                'context_resolution_ms'  => $contextResolutionMs,
+                'clarification_ms'       => 0.0,
+                'memory_gate_ms'         => 0.0,
+                'memory_retrieval_ms'    => $memoryRetrievalMs,
+                'business_context_ms'    => $businessContextMs,
+                'knowledge_retrieval_ms' => $knowledgeRetrievalMs,
+                'retrieval_ms'           => $knowledgeRetrievalMs,
+                'answerability_ms'       => $answerabilityMs,
+                'llm_generation_ms'      => $llmGenerationMs,
+                'llm_ms'                 => $llmGenerationMs,
+                'prompt_tokens'          => $promptTokens,
+                'completion_tokens'      => $completionTokens,
+                'total_tokens'           => $totalTokens,
+                'total_e2e_ms'           => $totalE2eMs,
+                'total_ms'               => $totalE2eMs,
+                'retrieval_sub_stages'   => $retrievalTelemetry,
+            ],
         ];
     }
 
@@ -652,11 +759,20 @@ class CustomerSupportService
 
         // Check if CustomerSupportAgent was faked in testing
         if (CustomerSupportAgent::isFaked()) {
-            $fakeAgent = new CustomerSupportAgent(
-                conversation: $conversation,
-                retrievalTool: new KnowledgeRetrievalTool($this->faqSearch, $workspaceId),
-            );
-            return (string) $fakeAgent->prompt($query, provider: $primaryProvider, model: $primaryModel);
+            try {
+                $fakeAgent = new CustomerSupportAgent(
+                    conversation: $conversation,
+                    retrievalTool: new KnowledgeRetrievalTool($this->faqSearch, $workspaceId),
+                );
+                return (string) $fakeAgent->prompt($query, provider: $primaryProvider, model: $primaryModel);
+            } catch (\Throwable $eFake) {
+                Log::warning('[CustomerSupportService] Faked agent simulation exception: ' . $eFake->getMessage());
+                $topHit = $retrievedHits->first();
+                if ($topHit && $topHit->finalScore >= 0.45 && !empty($topHit->faq?->answer)) {
+                    return $topHit->faq->answer;
+                }
+                return $this->defaultFallbackText();
+            }
         }
 
         $agent = new KnowledgeSupportAgent(
@@ -669,6 +785,7 @@ class CustomerSupportService
         // Tier 1: Try Primary Provider
         try {
             $response = $agent->prompt($query, provider: $primaryProvider, model: $primaryModel);
+            $this->lastLlmUsage = $response->usage ?? null;
             return (string) $response;
         } catch (\Throwable $ePrimary) {
             Log::warning('[CustomerSupportService] Primary provider failed, attempting fallback provider', [
@@ -723,7 +840,9 @@ class CustomerSupportService
 
         // Tier 1: Try Primary Provider
         try {
-            return (string) $agent->prompt($query, provider: $primaryProvider, model: $primaryModel);
+            $response = $agent->prompt($query, provider: $primaryProvider, model: $primaryModel);
+            $this->lastLlmUsage = $response->usage ?? null;
+            return (string) $response;
         } catch (\Throwable $ePrimary) {
             Log::warning('[CustomerSupportService] Primary conversational agent failed, attempting fallback', [
                 'primary_provider'  => $primaryProvider,

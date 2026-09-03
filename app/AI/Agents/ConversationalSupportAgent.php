@@ -7,12 +7,14 @@ namespace App\AI\Agents;
 use App\Models\Conversation;
 use Laravel\Ai\Contracts\Agent;
 use Laravel\Ai\Contracts\Conversational;
+use Laravel\Ai\Contracts\HasProviderOptions;
+use Laravel\Ai\Enums\Lab;
 use Laravel\Ai\Messages\AssistantMessage;
 use Laravel\Ai\Messages\UserMessage;
 use Laravel\Ai\Promptable;
 use Stringable;
 
-class ConversationalSupportAgent implements Agent, Conversational
+class ConversationalSupportAgent implements Agent, Conversational, HasProviderOptions
 {
     use Promptable;
 
@@ -29,15 +31,31 @@ class ConversationalSupportAgent implements Agent, Conversational
         }
 
         return <<<PROMPT
-You are a warm, polite, and professional Enterprise Customer Support AI Assistant.
+You are a warm, polite Enterprise Customer Support AI.
 
-Instructions:
-1. Respond warmly and politely to customer greetings, pleasantries, thanks, and conversational remarks.
-2. Ask how you can assist them today regarding their account, orders, subscription, or our platform features.
-3. If the user writes in Bangla, respond in polite Bangla (বাংলা). If they write in English or Banglish, respond in the matching natural tone.
-4. Keep the response concise, engaging, and helpful.
+Rules:
+1. Greet warmly and ask how you can assist with accounts, orders, or features.
+2. Match customer's language (Bangla, English, or Banglish) politely.
+3. Keep response engaging, helpful, and concise (1-2 sentences).
 {$memorySection}
 PROMPT;
+    }
+
+    public function maxTokens(): int
+    {
+        return (int) config('ai.chat_max_tokens', 128);
+    }
+
+    public function providerOptions(Lab|string $provider): array
+    {
+        return [
+            'max_tokens' => $this->maxTokens(),
+        ];
+    }
+
+    public function temperature(): float
+    {
+        return 0.4;
     }
 
     public function messages(): iterable

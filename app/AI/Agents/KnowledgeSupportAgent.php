@@ -8,12 +8,14 @@ use App\Models\Conversation;
 use Illuminate\Database\Eloquent\Collection;
 use Laravel\Ai\Contracts\Agent;
 use Laravel\Ai\Contracts\Conversational;
+use Laravel\Ai\Contracts\HasProviderOptions;
+use Laravel\Ai\Enums\Lab;
 use Laravel\Ai\Messages\AssistantMessage;
 use Laravel\Ai\Messages\UserMessage;
 use Laravel\Ai\Promptable;
 use Stringable;
 
-class KnowledgeSupportAgent implements Agent, Conversational
+class KnowledgeSupportAgent implements Agent, Conversational, HasProviderOptions
 {
     use Promptable;
 
@@ -31,15 +33,15 @@ class KnowledgeSupportAgent implements Agent, Conversational
             $businessSection = "\n\n[Layer 3: Live Business Data / Authoritative Source of Truth]\n" . $this->businessContext . "\n";
         }
 
-        $contextSection = "[Layer 1: Knowledge Base]\nNo knowledge base documents were retrieved for this query.";
+        $contextSection = "[Knowledge Base]\nNo documents retrieved.";
         if ($this->retrievedKnowledge && $this->retrievedKnowledge->isNotEmpty()) {
             $docs = [];
-            foreach ($this->retrievedKnowledge as $idx => $hit) {
+            $topHits = $this->retrievedKnowledge->take(3);
+            foreach ($topHits as $idx => $hit) {
                 $n = $idx + 1;
-                $type = method_exists($hit->faq ?? null, 'documentTypeLabel') ? $hit->faq->documentTypeLabel() : 'FAQ';
-                $q = $hit->faq?->question ?? 'N/A';
-                $a = $hit->faq?->answer ?? 'N/A';
-                $docs[] = "[Document #{$n} ({$type})]\nQuestion: {$q}\nAnswer: {$a}";
+                $q = trim((string) ($hit->faq?->question ?? 'N/A'));
+                $a = trim((string) ($hit->faq?->answer ?? 'N/A'));
+                $docs[] = "[Doc {$n}]\nQ: {$q}\nA: {$a}";
             }
             $contextSection = "[Layer 1: Official Knowledge Base Documents]\nRetrieved Knowledge Base Documents:\n" . implode("\n\n", $docs);
         }
@@ -50,26 +52,41 @@ class KnowledgeSupportAgent implements Agent, Conversational
         }
 
         return <<<PROMPT
-You are a professional, helpful, and polite Enterprise Customer Support AI Assistant.
-Your goal is to assist customers accurately, politely, and concisely.
+You are a professional Enterprise Customer Support AI Assistant. Assist accurately, politely, and concisely.
 
 Context Hierarchy & Conflict Resolution:
 1. Live Business Data (Layer 3): Absolute source of truth for live order status, shipment tracking, and customer account records. Overrides past conversational memory.
 2. Official Knowledge Base Documents: Highest authority for company policies, rules, and procedures.
-3. Customer Conversation Graph Memory (Layer 2): Grounding for customer's personal preferences (preferred size, color, payment method, discussed items). Respect and maintain these preferences to personalize tone without fabricating policies or overriding live data.
+3. Customer Conversation Graph Memory (Layer 2): Grounding for customer preferences without overriding live data.
 
-Instructions:
-1. Source Verification & Zero Irrelevant Grounding: Before citing or using any retrieved document, strictly verify that it is semantically relevant to the customer's question.
-2. Grounded Company-Specific Knowledge: For company-specific information (such as pricing, plans, return policies), strictly ground your response on the relevant retrieved documents.
-3. Live Order Inquiries: When live order information is present in Layer 3, provide accurate, reassuring, and precise status and tracking details to the customer.
-4. Missing Proprietary Policies: If the customer asks about unsupported operations or unlisted policies, politely offer to connect them with a human specialist.
-5. Multi-language: Respond naturally in the customer's language (English, Bengali, or mixed Bengali-English).
-6. Conciseness: Keep answers direct and well-structured (under 150-200 words for status inquiries).
+Rules:
+1. Grounding & Verification: Ground company-specific information strictly on relevant Knowledge Base docs. Disregard irrelevant docs.
+2. Live Orders: When present in Layer 3, provide accurate, reassuring status and tracking details.
+3. Missing Policies: For unlisted policies or unsupported operations, politely offer connection to a human specialist.
+4. Language: Match customer's language naturally (English, Bengali, or mixed Banglish).
+5. Conciseness & Completeness: Provide complete answers in 2-3 friendly sentences or bullet points (under 80-120 words). Never repeat questions or recite unrequested background.
 
 {$businessSection}
 {$contextSection}
 {$memorySection}
 PROMPT;
+    }
+
+    public function maxTokens(): int
+    {
+        return (int) config('ai.max_tokens', 320);
+    }
+
+    public function providerOptions(Lab|string $provider): array
+    {
+        return [
+            'max_tokens' => $this->maxTokens(),
+        ];
+    }
+
+    public function temperature(): float
+    {
+        return 0.2;
     }
 
     public function messages(): iterable

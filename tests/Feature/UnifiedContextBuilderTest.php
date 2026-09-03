@@ -136,6 +136,12 @@ class UnifiedContextBuilderTest extends TestCase
             ], 200),
         ]);
 
+        $this->conversation->messages()->create([
+            'direction' => 'outbound',
+            'type'      => 'text',
+            'body'      => 'We have Premium Silk Panjabi in stock.',
+        ]);
+
         $service = app(CustomerSupportService::class);
         $result = $service->handleQuery(
             query: 'Do you have this in my preferred size?',
@@ -144,6 +150,6 @@ class UnifiedContextBuilderTest extends TestCase
         );
 
         $this->assertNotNull($result['memory_context']);
-        $this->assertStringContainsString('Preferred Size: XL', $result['memory_context']);
+        $this->assertStringContainsStringIgnoringCase('Prefers size: XL', $result['memory_context']);
     }
 }

@@ -18,6 +18,9 @@ return [
     'fallback_provider' => env('AI_FALLBACK_PROVIDER', 'openrouter'),
     'fallback_model' => env('AI_FALLBACK_MODEL', 'openrouter/free'),
 
+    'max_tokens' => (int) env('AI_MAX_TOKENS', 320),
+    'chat_max_tokens' => (int) env('AI_CHAT_MAX_TOKENS', 128),
+
     /*
     |--------------------------------------------------------------------------
     | Memory / Conversation Context Limits

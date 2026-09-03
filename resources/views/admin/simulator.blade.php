@@ -469,27 +469,6 @@
 
 @section('content')
     <div class="container-fluid">
-        <!-- Breadcrumb & Header -->
-        <!-- <div class="d-flex justify-content-between align-items-center mb-3">
-                            <div>
-                                <h4 class="mb-1 text-dark font-weight-bold">
-                                    <i class="ri-robot-2-line text-primary me-2"></i>Live Pipeline & Chat Simulator
-                                </h4>
-                                <p class="text-muted small mb-0">
-                                    Test CRM Entity Extraction, Python Embeddings, and Typesense Hybrid Search locally without Facebook
-                                    tokens.
-                                </p>
-                            </div>
-                            <div>
-                                <a href="{{ route('health') }}" target="_blank" class="btn btn-outline-info btn-sm me-2">
-                                    <i class="ri-heart-pulse-line me-1"></i> Health Status
-                                </a>
-                                <a href="#" class="btn btn-outline-secondary btn-sm" onclick="clearSimulatorChat(); return false;">
-                                    <i class="ri-refresh-line me-1"></i> Clear Chat
-                                </a>
-                            </div>
-                        </div> -->
-
         <!-- Simulator Main Layout -->
         <div class="row simulator-container">
             <!-- Left: Interactive Chat Window -->
@@ -647,6 +626,68 @@
                                     <div class="col-3">
                                         <span class="text-muted d-block" style="font-size: 10px;">Total E2E</span>
                                         <strong id="latTotal" class="text-primary">0 ms</strong>
+                                    </div>
+                                </div>
+
+                                {{-- Granular Stage-Level Latency Tree --}}
+                                <div class="mt-2 pt-2 border-top" style="border-color: #cbd5e1 !important; font-family: monospace; font-size: 11px;">
+                                    <div class="d-flex justify-content-between py-0.5">
+                                        <span>🧭 Router</span>
+                                        <strong id="latDetailedRouter">0 ms</strong>
+                                    </div>
+                                    <div class="d-flex justify-content-between py-0.5">
+                                        <span>🧠 Context Resolution</span>
+                                        <strong id="latDetailedContext">0 ms</strong>
+                                    </div>
+                                    <div class="d-flex justify-content-between py-0.5">
+                                        <span>💾 Memory Gate & Context</span>
+                                        <strong id="latDetailedMemory">0 ms</strong>
+                                    </div>
+                                    <div class="d-flex justify-content-between py-0.5">
+                                        <span>🔍 Knowledge Retrieval</span>
+                                        <strong id="latDetailedRetrieval" class="text-primary">0 ms</strong>
+                                    </div>
+                                    <div id="latRetrievalSubTree" style="padding-left: 14px; color: #64748b; font-size: 10.5px;">
+                                        <div class="d-flex justify-content-between">
+                                            <span>├─ Tier Executed</span>
+                                            <span id="latTierExecuted" class="badge bg-secondary-subtle text-secondary py-0 px-1">N/A</span>
+                                        </div>
+                                        <div class="d-flex justify-content-between">
+                                            <span>├─ Tier 1 (Dense Hybrid)</span>
+                                            <span id="latTier1">0 ms</span>
+                                        </div>
+                                        <div class="d-flex justify-content-between">
+                                            <span>├─ Tier 2 (Synonym Exp)</span>
+                                            <span id="latTier2">0 ms</span>
+                                        </div>
+                                        <div class="d-flex justify-content-between">
+                                            <span>├─ Tier 3 (LLM Exp)</span>
+                                            <span id="latTier3">0 ms</span>
+                                        </div>
+                                        <div class="d-flex justify-content-between">
+                                            <span>├─ Embedding</span>
+                                            <span id="latEmbedding">0 ms</span>
+                                        </div>
+                                        <div class="d-flex justify-content-between">
+                                            <span>├─ Typesense Search</span>
+                                            <span id="latTypesense">0 ms</span>
+                                        </div>
+                                        <div class="d-flex justify-content-between">
+                                            <span>└─ Reranker</span>
+                                            <span id="latReranker">0 ms</span>
+                                        </div>
+                                    </div>
+                                    <div class="d-flex justify-content-between py-0.5">
+                                        <span>⚖️ Answerability Gate</span>
+                                        <strong id="latDetailedGate">0 ms</strong>
+                                    </div>
+                                    <div class="d-flex justify-content-between py-0.5">
+                                        <span>⚡ Live LLM Generation</span>
+                                        <strong id="latDetailedLlm" class="text-danger">0 ms</strong>
+                                    </div>
+                                    <div class="d-flex justify-content-between py-0.5 border-top mt-1 pt-1" style="border-color: #cbd5e1 !important;">
+                                        <span class="fw-bold text-dark">⏱️ Total Pipeline (E2E)</span>
+                                        <strong id="latDetailedTotal" class="text-success fw-bold">0 ms</strong>
                                     </div>
                                 </div>
                             </div>
@@ -1255,10 +1296,32 @@
 
             // Latencies
             const lat = trace.latency_breakdown || {};
+            const sub = lat.retrieval_sub_stages || trace.lexicon_telemetry || {};
+
+            // High-level summary tiles
             document.getElementById('latRouter').textContent = `${lat.router_ms || 0} ms`;
-            document.getElementById('latRetrieval').textContent = `${lat.retrieval_ms || 0} ms`;
-            document.getElementById('latLlm').textContent = `${lat.llm_ms || 0} ms`;
-            document.getElementById('latTotal').textContent = `${lat.total_ms || 0} ms`;
+            document.getElementById('latRetrieval').textContent = `${lat.knowledge_retrieval_ms ?? lat.retrieval_ms ?? 0} ms`;
+            document.getElementById('latLlm').textContent = `${lat.llm_generation_ms ?? lat.llm_ms ?? 0} ms${lat.ttft_ms ? ` [TTFT: ${lat.ttft_ms} ms]` : ''}`;
+            document.getElementById('latTotal').textContent = `${lat.total_ms ?? lat.total_e2e_ms ?? 0} ms`;
+
+            // Granular Stage-Level Latency Tree
+            document.getElementById('latDetailedRouter').textContent = `${lat.router_ms || 0} ms`;
+            document.getElementById('latDetailedContext').textContent = `${lat.context_resolution_ms || 0} ms`;
+            document.getElementById('latDetailedMemory').textContent = `${lat.memory_retrieval_ms || 0} ms`;
+            document.getElementById('latDetailedRetrieval').textContent = `${lat.knowledge_retrieval_ms ?? lat.retrieval_ms ?? 0} ms`;
+
+            const tierStr = (sub.tier_executed || trace.lexicon_telemetry?.tier_executed || 'Fast-Path').replace(/_/g, ' ');
+            document.getElementById('latTierExecuted').textContent = tierStr;
+            document.getElementById('latTier1').textContent = `${sub.tier1_ms || 0} ms`;
+            document.getElementById('latTier2').textContent = `${sub.tier2_ms || 0} ms`;
+            document.getElementById('latTier3').textContent = `${sub.tier3_ms || 0} ms`;
+            document.getElementById('latEmbedding').textContent = `${sub.embedding_ms || 0} ms`;
+            document.getElementById('latTypesense').textContent = `${sub.typesense_ms || 0} ms`;
+            document.getElementById('latReranker').textContent = `${sub.rerank_ms || 0} ms`;
+
+            document.getElementById('latDetailedGate').textContent = `${lat.answerability_ms || 0} ms`;
+            document.getElementById('latDetailedLlm').textContent = `${lat.llm_generation_ms ?? lat.llm_ms ?? 0} ms${lat.ttft_ms ? ` (TTFT: ${lat.ttft_ms} ms)` : ''}`;
+            document.getElementById('latDetailedTotal').textContent = `${lat.total_e2e_ms ?? lat.total_ms ?? 0} ms`;
 
             // Lexicon & Linguistic Telemetry
             const lex = trace.lexicon_telemetry || {};

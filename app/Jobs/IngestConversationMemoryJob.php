@@ -66,11 +66,22 @@ class IngestConversationMemoryJob implements ShouldQueue
                 ->take(6)
                 ->get()
                 ->reverse()
-                ->map(fn ($msg) => [
-                    'direction' => $msg->direction,
-                    'body'      => (string) $msg->body,
-                    'timestamp' => $msg->created_at?->toIso8601String(),
-                ])
+                ->map(function ($msg) {
+                    $body = (string) $msg->body;
+                    $metadata = (array) ($msg->metadata ?? []);
+
+                    // Clarification Ingestion Safety: If this turn was a clarification selection,
+                    // use the contextualized full query to avoid extracting broken/isolated facts into Neo4j!
+                    if (!empty($metadata['contextual_intent'])) {
+                        $body = (string) $metadata['contextual_intent'];
+                    }
+
+                    return [
+                        'direction' => $msg->direction,
+                        'body'      => $body,
+                        'timestamp' => $msg->created_at?->toIso8601String(),
+                    ];
+                })
                 ->values()
                 ->toArray();
 
