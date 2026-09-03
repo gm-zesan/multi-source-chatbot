@@ -207,6 +207,37 @@
         .modal-dialog {
             z-index: 1070 !important;
         }
+
+        /* Remove outline and box-shadow on focus for all buttons, selects, and inputs */
+        button:focus,
+        button:focus-visible,
+        button:active,
+        select:focus,
+        select:focus-visible,
+        select:active,
+        input:focus,
+        input:focus-visible,
+        input:active,
+        textarea:focus,
+        textarea:focus-visible,
+        textarea:active,
+        .btn:focus,
+        .btn:focus-visible,
+        .btn:active,
+        .btn-check:focus + .btn,
+        .form-select:focus,
+        .form-select:focus-visible,
+        .form-select:active,
+        .form-control:focus,
+        .form-control:focus-visible,
+        .form-control:active,
+        .dataTables_wrapper select:focus,
+        .dataTables_wrapper input:focus,
+        .nav-link:focus,
+        .nav-link:focus-visible {
+            outline: none !important;
+            box-shadow: none !important;
+        }
     </style>
 @endpush
 

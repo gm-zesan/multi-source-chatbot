@@ -193,14 +193,30 @@ class RetrievalClient
         $url = "{$this->baseUrl()}/health";
 
         try {
-            $req = Http::timeout(3);
+            $req = Http::timeout(5);
             $key = $this->apiKey ?? config('retrieval.api_key');
             if (! empty($key)) {
                 $req = $req->withToken($key);
             }
 
             $response = $req->get($url);
+
+            if (! $response->successful()) {
+                $altResponse = $req->get("{$this->baseUrl()}/api/v1/health");
+                if ($altResponse->successful()) {
+                    $response = $altResponse;
+                }
+            }
+
             $latency = round((microtime(true) - $start) * 1000, 2);
+
+            if (! $response->successful()) {
+                Log::warning('[RetrievalClient] Health check non-200', [
+                    'url'    => $url,
+                    'status' => $response->status(),
+                    'body'   => $response->body(),
+                ]);
+            }
 
             return [
                 'ok'         => $response->successful(),
@@ -209,6 +225,10 @@ class RetrievalClient
             ];
         } catch (\Throwable $e) {
             $latency = round((microtime(true) - $start) * 1000, 2);
+            Log::warning('[RetrievalClient] Health check exception', [
+                'url'   => $url,
+                'error' => $e->getMessage(),
+            ]);
 
             return [
                 'ok'         => false,
@@ -227,6 +247,20 @@ class RetrievalClient
     {
         $url = "{$this->baseUrl()}/api/v1/lexicon/reload?workspace_id={$workspaceId}";
 
+        $snapshot = null;
+        try {
+            if (class_exists(\App\Services\Lexicon\LexiconSnapshotService::class)) {
+                $snapshot = app(\App\Services\Lexicon\LexiconSnapshotService::class)->buildSnapshot($workspaceId);
+            }
+        } catch (\Throwable $e) {
+            Log::warning('[RetrievalClient] Could not pre-build lexicon snapshot: ' . $e->getMessage());
+        }
+
+        $payload = [
+            'workspace_id' => $workspaceId,
+            'snapshot'     => $snapshot,
+        ];
+
         try {
             $req = Http::timeout($this->timeout);
             $key = $this->apiKey ?? config('retrieval.api_key');
@@ -234,12 +268,12 @@ class RetrievalClient
                 $req = $req->withToken($key);
             }
 
-            $response = $req->post($url);
+            $response = $req->post($url, $payload);
 
             // If 404 on /api/v1/lexicon/reload, try fallback /lexicon/reload
             if ($response->status() === 404) {
                 $altUrl = "{$this->baseUrl()}/lexicon/reload?workspace_id={$workspaceId}";
-                $response = $req->post($altUrl);
+                $response = $req->post($altUrl, $payload);
             }
 
             if ($response->successful()) {
@@ -264,9 +298,12 @@ class RetrievalClient
                 'body'         => $response->body(),
             ]);
 
+            $jsonDetail = $response->json('detail');
+            $detailMsg = is_string($jsonDetail) && ! empty($jsonDetail) ? $jsonDetail : $response->body();
+
             $errorDetail = $response->status() === 404
                 ? 'Python service returned 404. Please restart the embedding service (uvicorn app.main:app --port 8001 --reload) to load the /api/v1/lexicon/reload route.'
-                : "HTTP {$response->status()}";
+                : "HTTP {$response->status()}: {$detailMsg}";
 
             return [
                 'ok'           => false,

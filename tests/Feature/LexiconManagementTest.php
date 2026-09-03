@@ -203,4 +203,22 @@ class LexiconManagementTest extends TestCase
             'snapshot_version' => 42,
         ]);
     }
+
+    public function test_lexicon_seeders_populate_all_static_data(): void
+    {
+        $this->seed(\Database\Seeders\LexiconDomainEntrySeeder::class);
+        $this->seed(\Database\Seeders\ConceptPhrasePatternSeeder::class);
+        $this->seed(\Database\Seeders\ActionIntentMappingSeeder::class);
+        $this->seed(\Database\Seeders\PolicyIntentMappingSeeder::class);
+
+        $this->assertGreaterThan(100, LexiconDomainEntry::count());
+        $this->assertGreaterThan(50, ConceptPhrasePattern::count());
+        $this->assertGreaterThan(15, ActionIntentMapping::count());
+        $this->assertGreaterThan(30, PolicyIntentMapping::count());
+
+        $response = $this->actingAs($this->admin)->get(route('lexicons.index'));
+        $response->assertStatus(200);
+        $response->assertSee('ACCOUNT_ONBOARDING');
+        $response->assertSee('DELIVERY_TIMELINE');
+    }
 }
