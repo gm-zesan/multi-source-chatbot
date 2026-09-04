@@ -11,19 +11,29 @@ use Illuminate\Validation\Rules\Password;
 class PasswordController extends Controller
 {
     /**
-     * Update the user's password.
+     * Update or set the user's password.
      */
     public function update(Request $request): RedirectResponse
     {
-        $validated = $request->validateWithBag('updatePassword', [
-            'current_password' => ['required', 'current_password'],
+        $user = $request->user();
+        $isPasswordSet = $user->password_set ?? true;
+
+        $rules = [
             'password' => ['required', Password::defaults(), 'confirmed'],
+        ];
+
+        // Only require current password if user has already set one
+        if ($isPasswordSet) {
+            $rules['current_password'] = ['required', 'current_password'];
+        }
+
+        $validated = $request->validateWithBag('updatePassword', $rules);
+
+        $user->update([
+            'password'     => Hash::make($validated['password']),
+            'password_set' => true,
         ]);
 
-        $request->user()->update([
-            'password' => Hash::make($validated['password']),
-        ]);
-
-        return back()->with('status', 'password-updated');
+        return back()->with('status', $isPasswordSet ? 'password-updated' : 'password-set');
     }
 }

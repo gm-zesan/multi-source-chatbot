@@ -147,22 +147,23 @@
 
 /// Focus state with outline
 @mixin focus-outline {
-    outline: 2px solid transparent;
-    outline-offset: 2px;
+    outline: none !important;
+    box-shadow: none !important;
 
     &:focus-visible {
-        outline: 2px solid $primary;
-        outline-offset: 2px;
+        outline: none !important;
+        box-shadow: none !important;
     }
 }
 
 /// Focus state with ring
 @mixin focus-ring($color: $primary, $width: 2px) {
-    outline: transparent;
-    box-shadow: 0 0 0 $width rgba($color, 0.5);
+    outline: none !important;
+    box-shadow: none !important;
     
     &:focus-visible {
-        box-shadow: 0 0 0 $width $color;
+        outline: none !important;
+        box-shadow: none !important;
     }
 }
 
@@ -273,10 +274,11 @@
         cursor: not-allowed;
     }
 
-    &:focus-visible {
-        outline: 2px solid transparent;
-        outline-offset: 2px;
-        box-shadow: 0 0 0 2px white, 0 0 0 4px $primary;
+    &:focus,
+    &:focus-visible,
+    &:active {
+        outline: none !important;
+        box-shadow: none !important;
     }
 }
 
@@ -318,10 +320,11 @@
         color: $input-placeholder;
     }
 
-    &:focus {
-        outline: none;
+    &:focus,
+    &:focus-visible {
+        outline: none !important;
         border-color: $input-border-focus;
-        box-shadow: 0 0 0 3px rgba($primary, 0.1);
+        box-shadow: none !important;
     }
 
     &:disabled {
@@ -334,8 +337,10 @@
     &.is-error {
         border-color: $input-border-error;
 
-        &:focus {
-            box-shadow: 0 0 0 3px rgba($danger, 0.1);
+        &:focus,
+        &:focus-visible {
+            outline: none !important;
+            box-shadow: none !important;
         }
     }
 }

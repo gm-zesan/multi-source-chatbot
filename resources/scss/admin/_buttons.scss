@@ -12,6 +12,13 @@ button,
 [type='submit'],
 [type='reset'] {
     @include button-base;
+
+    &:focus,
+    &:focus-visible,
+    &:active {
+        outline: none !important;
+        box-shadow: none !important;
+    }
 }
 
 /* ==================== PRIMARY BUTTON ==================== */
@@ -23,8 +30,10 @@ button,
         $white
     );
 
+    &:focus,
     &:focus-visible {
-        box-shadow: 0 0 0 3px rgba($primary, 0.3);
+        outline: none !important;
+        box-shadow: none !important;
     }
 }
 
@@ -38,8 +47,10 @@ button,
     );
     border: 1px solid $border-color;
 
+    &:focus,
     &:focus-visible {
-        box-shadow: 0 0 0 3px rgba($primary, 0.2);
+        outline: none !important;
+        box-shadow: none !important;
     }
 }
 
@@ -52,8 +63,10 @@ button,
         $white
     );
 
+    &:focus,
     &:focus-visible {
-        box-shadow: 0 0 0 3px rgba($success, 0.3);
+        outline: none !important;
+        box-shadow: none !important;
     }
 }
 
@@ -66,8 +79,10 @@ button,
         $white
     );
 
+    &:focus,
     &:focus-visible {
-        box-shadow: 0 0 0 3px rgba($danger, 0.3);
+        outline: none !important;
+        box-shadow: none !important;
     }
 }
 
@@ -80,8 +95,10 @@ button,
         $white
     );
 
+    &:focus,
     &:focus-visible {
-        box-shadow: 0 0 0 3px rgba($warning, 0.3);
+        outline: none !important;
+        box-shadow: none !important;
     }
 }
 
@@ -94,8 +111,10 @@ button,
         $white
     );
 
+    &:focus,
     &:focus-visible {
-        box-shadow: 0 0 0 3px rgba($info, 0.3);
+        outline: none !important;
+        box-shadow: none !important;
     }
 }
 
@@ -109,6 +128,12 @@ button,
         background-color: $primary;
         color: $white;
     }
+
+    &:focus,
+    &:focus-visible {
+        outline: none !important;
+        box-shadow: none !important;
+    }
 }
 
 .btn-outline-secondary {
@@ -119,6 +144,12 @@ button,
     &:hover {
         background-color: $bg-tertiary;
         border-color: $gray-400;
+    }
+
+    &:focus,
+    &:focus-visible {
+        outline: none !important;
+        box-shadow: none !important;
     }
 }
 
@@ -131,6 +162,12 @@ button,
         background-color: $danger;
         color: $white;
     }
+
+    &:focus,
+    &:focus-visible {
+        outline: none !important;
+        box-shadow: none !important;
+    }
 }
 
 .btn-outline-success {
@@ -141,6 +178,12 @@ button,
     &:hover {
         background-color: $success;
         color: $white;
+    }
+
+    &:focus,
+    &:focus-visible {
+        outline: none !important;
+        box-shadow: none !important;
     }
 }
 
@@ -154,8 +197,10 @@ button,
         background-color: $bg-tertiary;
     }
 
+    &:focus,
     &:focus-visible {
-        box-shadow: 0 0 0 3px rgba($primary, 0.2);
+        outline: none !important;
+        box-shadow: none !important;
     }
 }
 
@@ -346,10 +391,10 @@ button,
         background-color: transparent;
     }
 
+    &:focus,
     &:focus-visible {
-        box-shadow: none;
-        outline: 2px solid $primary;
-        outline-offset: 2px;
+        box-shadow: none !important;
+        outline: none !important;
     }
 }
 

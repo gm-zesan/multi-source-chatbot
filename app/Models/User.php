@@ -28,6 +28,9 @@ class User extends Authenticatable
         'avatar',
         'password',
         'is_active',
+        'google_id',
+        'facebook_id',
+        'password_set',
         'last_login_at',
         'last_login_ip',
     ];
@@ -54,11 +57,36 @@ class User extends Authenticatable
             'last_login_at'     => 'datetime',
             'password'          => 'hashed',
             'is_active'         => 'boolean',
+            'password_set'      => 'boolean',
         ];
     }
 
     public function workspace()
     {
         return $this->belongsTo(Workspace::class);
+    }
+
+    /**
+     * Get the formatted avatar URL.
+     */
+    public function getAvatarUrlAttribute(): ?string
+    {
+        if (!$this->avatar) {
+            return null;
+        }
+
+        if (filter_var($this->avatar, FILTER_VALIDATE_URL)) {
+            return $this->avatar;
+        }
+
+        if (str_starts_with($this->avatar, 'uploads/') || str_starts_with($this->avatar, 'upload/')) {
+            return asset($this->avatar);
+        }
+
+        if (file_exists(public_path('storage/' . $this->avatar))) {
+            return asset('storage/' . $this->avatar);
+        }
+
+        return asset($this->avatar);
     }
 }

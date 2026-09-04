@@ -13,15 +13,17 @@
         <div class="header-profile-wrapper">
             <button class="profile-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Profile menu">
                 <div class="profile-avatar">
-                    @if(Auth::user()->image)
-                        <img src="{{ asset('storage/' . Auth::user()->image) }}" alt="{{ Auth::user()->name }}" class="avatar-img">
+                    @if(Auth::user()->avatar_url)
+                        <img src="{{ Auth::user()->avatar_url }}" alt="{{ Auth::user()->name }}" class="avatar-img" referrerpolicy="no-referrer" style="width: 36px; height: 36px; border-radius: 50%; object-fit: cover;">
+                    @elseif(Auth::user()->image)
+                        <img src="{{ asset('storage/' . Auth::user()->image) }}" alt="{{ Auth::user()->name }}" class="avatar-img" referrerpolicy="no-referrer" style="width: 36px; height: 36px; border-radius: 50%; object-fit: cover;">
                     @else
                         <i class="ri-user-3-line"></i>
                     @endif
                 </div>
                 <div class="profile-info">
                     <span class="profile-name">{{ Auth::user()->name }}</span>
-                    <span class="profile-role">{{ Auth::user()->designation }}</span>
+                    <span class="profile-role">{{ Auth::user()->roles->first()?->name ?? 'User' }}</span>
                 </div>
             </button>
 
@@ -29,8 +31,10 @@
                 <div class="dropdown-header-content">
                     <div class="dropdown-user-card">
                         <div class="dropdown-user-avatar">
-                            @if(Auth::user()->image)
-                                <img src="{{ asset('storage/' . Auth::user()->image) }}" alt="{{ Auth::user()->name }}">
+                            @if(Auth::user()->avatar_url)
+                                <img src="{{ Auth::user()->avatar_url }}" alt="{{ Auth::user()->name }}" referrerpolicy="no-referrer" style="width: 48px; height: 48px; border-radius: 50%; object-fit: cover;">
+                            @elseif(Auth::user()->image)
+                                <img src="{{ asset('storage/' . Auth::user()->image) }}" alt="{{ Auth::user()->name }}" referrerpolicy="no-referrer" style="width: 48px; height: 48px; border-radius: 50%; object-fit: cover;">
                             @else
                                 <i class="ri-user-3-line"></i>
                             @endif

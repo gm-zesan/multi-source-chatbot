@@ -99,4 +99,55 @@
  */
 @use 'dropdowns';
 
+/**
+ * Auth & Login Styles
+ * - Login, registration, password reset
+ * - Aligned with admin theme and design tokens
+ */
+@use 'auth';
+
+/* ==================== GLOBAL FOCUS OVERRIDES ==================== */
+
+/**
+ * Universal Focus Reset:
+ * Completely disables box-shadow and outline on focus / focus-visible / active
+ * across all inputs, controls, buttons, toggles, and dropdown triggers in the admin panel.
+ */
+input,
+textarea,
+select,
+button,
+.form-control,
+.form-select,
+.form-check-input,
+.custom-input,
+.custom-checkbox,
+.btn,
+.submit-button,
+.cancel-button,
+.add-new,
+.page-link,
+[type='button'],
+[type='submit'],
+[type='reset'],
+[type='text'],
+[type='password'],
+[type='email'],
+[type='number'],
+[type='tel'],
+[type='url'],
+[type='search'],
+[type='checkbox'],
+[type='radio'],
+.select2-container .select2-selection,
+.select2-container .select2-search__field {
+    &:focus,
+    &:focus-visible,
+    &:focus-within,
+    &:active {
+        outline: none !important;
+        box-shadow: none !important;
+    }
+}
+
 /* ==================== END OF DESIGN SYSTEM ==================== */

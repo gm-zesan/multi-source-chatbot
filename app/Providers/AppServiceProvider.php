@@ -38,6 +38,15 @@ class AppServiceProvider extends ServiceProvider
             return $user->hasRole(RoleEnum::SUPERADMIN->value) ? true : null;
         });
 
+        // Automatically track login time and IP address
+        \Illuminate\Support\Facades\Event::listen(\Illuminate\Auth\Events\Login::class, function (\Illuminate\Auth\Events\Login $event) {
+            if ($event->user instanceof User) {
+                $event->user->last_login_at = now();
+                $event->user->last_login_ip = request()->ip();
+                $event->user->saveQuietly();
+            }
+        });
+
         $this->validateConfiguration();
     }
 

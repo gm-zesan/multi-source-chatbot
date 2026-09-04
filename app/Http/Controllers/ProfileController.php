@@ -16,8 +16,17 @@ class ProfileController extends Controller
      */
     public function edit(Request $request): View
     {
+        $user = $request->user();
+
+        // If last_login_at or last_login_ip is not recorded for this session, initialize with current request
+        if (!$user->last_login_at || !$user->last_login_ip) {
+            $user->last_login_at = $user->last_login_at ?: now();
+            $user->last_login_ip = $user->last_login_ip ?: $request->ip();
+            $user->saveQuietly();
+        }
+
         return view('profile.edit', [
-            'user' => $request->user(),
+            'user' => $user,
         ]);
     }
 
@@ -26,13 +35,49 @@ class ProfileController extends Controller
      */
     public function update(ProfileUpdateRequest $request): RedirectResponse
     {
-        $request->user()->fill($request->validated());
+        $user = $request->user();
+        $validated = $request->validated();
 
-        if ($request->user()->isDirty('email')) {
-            $request->user()->email_verified_at = null;
+        // Handle Avatar Removal
+        if ($request->boolean('remove_avatar')) {
+            if ($user->avatar && !filter_var($user->avatar, FILTER_VALIDATE_URL)) {
+                $oldPath = public_path($user->avatar);
+                if (file_exists($oldPath)) {
+                    @unlink($oldPath);
+                }
+            }
+            $user->avatar = null;
         }
 
-        $request->user()->save();
+        // Handle Avatar File Upload
+        if ($request->hasFile('avatar')) {
+            // Remove old uploaded file if present
+            if ($user->avatar && !filter_var($user->avatar, FILTER_VALIDATE_URL)) {
+                $oldPath = public_path($user->avatar);
+                if (file_exists($oldPath)) {
+                    @unlink($oldPath);
+                }
+            }
+
+            $file = $request->file('avatar');
+            $filename = 'avatar_' . $user->id . '_' . time() . '.' . $file->getClientOriginalExtension();
+            $destination = public_path('uploads/avatars');
+            if (!file_exists($destination)) {
+                mkdir($destination, 0755, true);
+            }
+            $file->move($destination, $filename);
+            $user->avatar = 'uploads/avatars/' . $filename;
+        }
+
+        $user->name = $validated['name'];
+        $user->email = $validated['email'];
+        $user->phone = $validated['phone'] ?? null;
+
+        if ($user->isDirty('email')) {
+            $user->email_verified_at = null;
+        }
+
+        $user->save();
 
         return Redirect::route('profile.edit')->with('status', 'profile-updated');
     }

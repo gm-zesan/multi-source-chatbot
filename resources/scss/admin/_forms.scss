@@ -71,7 +71,8 @@ select {
 
     &:focus-within {
         border-color: $primary;
-        box-shadow: 0 0 0 3px rgba($primary, 0.1);
+        box-shadow: none !important;
+        outline: none !important;
     }
 
     .input-group-icon {
@@ -184,9 +185,10 @@ select {
             background-size: 14px;
         }
 
+        &:focus,
         &:focus-visible {
-            outline: 2px solid transparent;
-            box-shadow: 0 0 0 3px rgba($primary, 0.2);
+            outline: none !important;
+            box-shadow: none !important;
         }
 
         &:disabled {
@@ -234,9 +236,10 @@ select {
             box-shadow: inset 0 0 0 4px $primary;
         }
 
+        &:focus,
         &:focus-visible {
-            outline: 2px solid transparent;
-            box-shadow: 0 0 0 3px rgba($primary, 0.2);
+            outline: none !important;
+            box-shadow: none !important;
         }
 
         &:disabled {
@@ -284,7 +287,7 @@ select {
             top: 2px;
             left: 2px;
             transition: left $transition-base;
-            box-shadow: $shadow-sm;
+            box-shadow: none !important;
         }
 
         &:hover:not(:disabled) {
@@ -299,9 +302,10 @@ select {
             }
         }
 
+        &:focus,
         &:focus-visible {
-            outline: 2px solid transparent;
-            box-shadow: 0 0 0 3px rgba($success, 0.2);
+            outline: none !important;
+            box-shadow: none !important;
         }
 
         &:disabled {
@@ -383,9 +387,11 @@ select {
     background-position: right $space-lg center;
     background-size: 20px;
 
-    &:focus {
+    &:focus,
+    &:focus-visible {
         border-color: $danger;
-        box-shadow: 0 0 0 3px rgba($danger, 0.1);
+        box-shadow: none !important;
+        outline: none !important;
     }
 }
 
@@ -530,9 +536,11 @@ select {
             background-size: 14px;
         }
 
-        &:focus {
+        &:focus,
+        &:focus-visible {
             border-color: $primary;
-            box-shadow: 0 0 0 3px rgba($primary, 0.1);
+            box-shadow: none !important;
+            outline: none !important;
         }
     }
 
@@ -548,6 +556,13 @@ select {
         @include button-base;
         @include button-variant($primary, $white, $primary-dark, $white);
         width: 100%;
+
+        &:focus,
+        &:focus-visible,
+        &:active {
+            box-shadow: none !important;
+            outline: none !important;
+        }
     }
 
     .cancel-button {
@@ -559,6 +574,13 @@ select {
         display: inline-flex;
         align-items: center;
         justify-content: center;
+
+        &:focus,
+        &:focus-visible,
+        &:active {
+            box-shadow: none !important;
+            outline: none !important;
+        }
     }
 }
 

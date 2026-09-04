@@ -1,31 +1,47 @@
+@section('title', 'Verify Email')
+
 <x-guest-layout>
-    <div class="mb-4 text-sm text-gray-600">
-        {{ __('Thanks for signing up! Before getting started, could you verify your email address by clicking on the link we just emailed to you? If you didn\'t receive the email, we will gladly send you another.') }}
+    <div class="card auth-card">
+        <div class="auth-header">
+            <div class="auth-logo-wrapper">
+                @if(file_exists(public_path('images/logo.png')))
+                    <img src="{{ asset('images/logo.png') }}" alt="Entrepreneurs Automation" class="auth-logo">
+                @else
+                    <div class="auth-logo-fallback">
+                        <i class="ri-mail-check-line"></i>
+                    </div>
+                @endif
+            </div>
+            <h1 class="auth-title">Verify Your Email</h1>
+            <p class="auth-subtitle">Please verify your email address by clicking on the link we sent you.</p>
+        </div>
+
+        @if (session('status') == 'verification-link-sent')
+            <div class="alert alert-success d-flex align-items-center py-2 px-3 mb-3 border-0" role="alert" style="background-color: #ecfdf5; color: #065f46; border-radius: 6px; font-size: 13px;">
+                <i class="ri-checkbox-circle-fill me-2 text-success"></i>
+                <div>A new verification link has been sent to your email address.</div>
+            </div>
+        @endif
+
+        <div class="d-flex flex-column gap-2 mt-3">
+            <form method="POST" action="{{ route('verification.send') }}">
+                @csrf
+                <button type="submit" class="btn submit-button auth-submit-btn w-100">
+                    <span>Resend Verification Email</span>
+                    <i class="ri-mail-send-line ms-1"></i>
+                </button>
+            </form>
+
+            <form method="POST" action="{{ route('logout') }}" class="text-center mt-2">
+                @csrf
+                <button type="submit" class="btn btn-link auth-link small">
+                    Log Out
+                </button>
+            </form>
+        </div>
     </div>
 
-    @if (session('status') == 'verification-link-sent')
-        <div class="mb-4 font-medium text-sm text-green-600">
-            {{ __('A new verification link has been sent to the email address you provided during registration.') }}
-        </div>
-    @endif
-
-    <div class="mt-4 flex items-center justify-between">
-        <form method="POST" action="{{ route('verification.send') }}">
-            @csrf
-
-            <div>
-                <x-primary-button>
-                    {{ __('Resend Verification Email') }}
-                </x-primary-button>
-            </div>
-        </form>
-
-        <form method="POST" action="{{ route('logout') }}">
-            @csrf
-
-            <button type="submit" class="underline text-sm text-gray-600 hover:text-gray-900 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-                {{ __('Log Out') }}
-            </button>
-        </form>
+    <div class="auth-page-footer">
+        <p>&copy; {{ date('Y') }} Entrepreneurs Automation. All rights reserved.</p>
     </div>
 </x-guest-layout>
