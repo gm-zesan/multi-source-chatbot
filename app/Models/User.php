@@ -5,13 +5,15 @@ namespace App\Models;
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Spatie\Permission\Traits\HasRoles;
 
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
-    use HasFactory, Notifiable;
+    use HasFactory, Notifiable, SoftDeletes, HasRoles;
 
     /**
      * The attributes that are mass assignable.
@@ -19,9 +21,18 @@ class User extends Authenticatable
      * @var list<string>
      */
     protected $fillable = [
+        'workspace_id',
         'name',
         'email',
+        'phone',
+        'avatar',
         'password',
+        'is_active',
+        'google_id',
+        'facebook_id',
+        'password_set',
+        'last_login_at',
+        'last_login_ip',
     ];
 
     /**
@@ -43,7 +54,39 @@ class User extends Authenticatable
     {
         return [
             'email_verified_at' => 'datetime',
-            'password' => 'hashed',
+            'last_login_at'     => 'datetime',
+            'password'          => 'hashed',
+            'is_active'         => 'boolean',
+            'password_set'      => 'boolean',
         ];
+    }
+
+    public function workspace()
+    {
+        return $this->belongsTo(Workspace::class);
+    }
+
+    /**
+     * Get the formatted avatar URL.
+     */
+    public function getAvatarUrlAttribute(): ?string
+    {
+        if (!$this->avatar) {
+            return null;
+        }
+
+        if (filter_var($this->avatar, FILTER_VALIDATE_URL)) {
+            return $this->avatar;
+        }
+
+        if (str_starts_with($this->avatar, 'uploads/') || str_starts_with($this->avatar, 'upload/')) {
+            return asset($this->avatar);
+        }
+
+        if (file_exists(public_path('storage/' . $this->avatar))) {
+            return asset('storage/' . $this->avatar);
+        }
+
+        return asset($this->avatar);
     }
 }

@@ -2,7 +2,6 @@
 
 namespace Database\Seeders;
 
-use App\Models\User;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
@@ -13,19 +12,27 @@ class DatabaseSeeder extends Seeder
     /**
      * Seed the application's database.
      *
-     * Order matters:
-     *   1. User factory (default Laravel)
-     *   2. EmbeddingSeeder (context routing vectors)
-     *
      * Run with: php artisan db:seed
      */
     public function run(): void
     {
         $this->call([
-            EmbeddingSeeder::class,
+            PermissionSeeder::class,
+            RoleSeeder::class,
             WorkspaceSeeder::class,
+            UserSeeder::class,
             ChannelSeeder::class,
             ChannelAccountSeeder::class,
+            ConversationSeeder::class,
+            MessageSeeder::class,
+            FAQCategorySeeder::class,
+            FAQSeeder::class,
+            KnowledgeSearchLogSeeder::class,
+            UnansweredQuestionSeeder::class,
+            LexiconDomainEntrySeeder::class,
+            ConceptPhrasePatternSeeder::class,
+            ActionIntentMappingSeeder::class,
+            PolicyIntentMappingSeeder::class,
         ]);
     }
 }

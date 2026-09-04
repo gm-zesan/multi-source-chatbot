@@ -1,0 +1,3637 @@
+{
+  "benchmark_suite": "e2e_multiturn_100_scenarios_v1",
+  "total_scenarios": 100,
+  "total_turns": 244,
+  "breakdown": {
+    "bn_scenarios": 25,
+    "en_scenarios": 25,
+    "banglish_scenarios": 25,
+    "code_mixed_scenarios": 25
+  },
+  "scenarios": [
+    {
+      "id": "BN_SC_01",
+      "language": "bn",
+      "category": "multi_turn_policy_return_refund",
+      "title": "BN - Multi Turn Policy Return Refund",
+      "external_user_id": "e2e_user_bn_01",
+      "turn_count": 3,
+      "turns": [
+        {
+          "turn_id": "BN_SC_01_T1",
+          "user_message": "আমি কি পণ্য ফেরত দিতে পারব?",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "return_policy"
+          ],
+          "has_personal_memory": false
+        },
+        {
+          "turn_id": "BN_SC_01_T2",
+          "user_message": "কত দিনের মধ্যে ফেরত দিতে হবে?",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "return_policy"
+          ],
+          "has_personal_memory": false
+        },
+        {
+          "turn_id": "BN_SC_01_T3",
+          "user_message": "আর টাকা ফেরত পেতে কত দিন সময় লাগে?",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "refund_policy",
+            "faq"
+          ],
+          "has_personal_memory": false
+        }
+      ]
+    },
+    {
+      "id": "BN_SC_02",
+      "language": "bn",
+      "category": "personal_memory_lifecycle",
+      "title": "BN - Personal Memory Lifecycle",
+      "external_user_id": "e2e_user_bn_02",
+      "turn_count": 3,
+      "turns": [
+        {
+          "turn_id": "BN_SC_02_T1",
+          "user_message": "আমি সবসময় পাঞ্জাবির জন্য XL সাইজ পছন্দ করি।",
+          "intent_type": "chat",
+          "expected_memory_action": "USE",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [],
+          "has_personal_memory": true
+        },
+        {
+          "turn_id": "BN_SC_02_T2",
+          "user_message": "আমার সাইজ প্রেফারেন্স কি মনে রাখতে পারবেন?",
+          "intent_type": "chat",
+          "expected_memory_action": "USE",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [],
+          "has_personal_memory": true
+        },
+        {
+          "turn_id": "BN_SC_02_T3",
+          "user_message": "আমার পাঞ্জাবির পছন্দের সাইজ কোনটি?",
+          "intent_type": "chat",
+          "expected_memory_action": "USE",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [],
+          "has_personal_memory": true
+        }
+      ]
+    },
+    {
+      "id": "BN_SC_03",
+      "language": "bn",
+      "category": "context_switching_isolation",
+      "title": "BN - Context Switching Isolation",
+      "external_user_id": "e2e_user_bn_03",
+      "turn_count": 3,
+      "turns": [
+        {
+          "turn_id": "BN_SC_03_T1",
+          "user_message": "আমার পছন্দের পেমেন্ট মাধ্যম বিকাশ।",
+          "intent_type": "chat",
+          "expected_memory_action": "USE",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [],
+          "has_personal_memory": true
+        },
+        {
+          "turn_id": "BN_SC_03_T2",
+          "user_message": "ঢাকার বাইরে ডেলিভারি চার্জ কত?",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "delivery_policy"
+          ],
+          "has_personal_memory": false
+        },
+        {
+          "turn_id": "BN_SC_03_T3",
+          "user_message": "আমার পেমেন্ট প্রেফারেন্স কী ছিল?",
+          "intent_type": "chat",
+          "expected_memory_action": "USE",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [],
+          "has_personal_memory": true
+        }
+      ]
+    },
+    {
+      "id": "BN_SC_04",
+      "language": "bn",
+      "category": "multi_turn_exchange_sizing",
+      "title": "BN - Multi Turn Exchange Sizing",
+      "external_user_id": "e2e_user_bn_04",
+      "turn_count": 3,
+      "turns": [
+        {
+          "turn_id": "BN_SC_04_T1",
+          "user_message": "পোশাকের সাইজ না মিললে কি বদলানো যাবে?",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "exchange_policy",
+            "faq"
+          ],
+          "has_personal_memory": false
+        },
+        {
+          "turn_id": "BN_SC_04_T2",
+          "user_message": "এক্সচেঞ্জ করার জন্য কত দিন সময় পাব?",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "exchange_policy"
+          ],
+          "has_personal_memory": false
+        },
+        {
+          "turn_id": "BN_SC_04_T3",
+          "user_message": "আমি কি সরাসরি শোরুমে এসে এক্সচেঞ্জ করতে পারি?",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "exchange_policy",
+            "contact"
+          ],
+          "has_personal_memory": false
+        }
+      ]
+    },
+    {
+      "id": "BN_SC_05",
+      "language": "bn",
+      "category": "cod_and_payment_policy",
+      "title": "BN - Cod And Payment Policy",
+      "external_user_id": "e2e_user_bn_05",
+      "turn_count": 3,
+      "turns": [
+        {
+          "turn_id": "BN_SC_05_T1",
+          "user_message": "আপনারা কি কি পেমেন্ট গ্রহণ করেন?",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "payment_policy"
+          ],
+          "has_personal_memory": false
+        },
+        {
+          "turn_id": "BN_SC_05_T2",
+          "user_message": "ক্যাশ অন ডেলিভারিতে কি অগ্রিম দিতে হয়?",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "payment_policy"
+          ],
+          "has_personal_memory": false
+        },
+        {
+          "turn_id": "BN_SC_05_T3",
+          "user_message": "ডেলিভারি ম্যানের সামনে কি পার্সেল চেক করা যাবে?",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "faq",
+            "payment_policy"
+          ],
+          "has_personal_memory": false
+        }
+      ]
+    },
+    {
+      "id": "BN_SC_06",
+      "language": "bn",
+      "category": "showroom_contact_hours",
+      "title": "BN - Showroom Contact Hours",
+      "external_user_id": "e2e_user_bn_06",
+      "turn_count": 3,
+      "turns": [
+        {
+          "turn_id": "BN_SC_06_T1",
+          "user_message": "আপনাদের বনানী শোরুমের ঠিকানা কোথায়?",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "contact",
+            "about_us"
+          ],
+          "has_personal_memory": false
+        },
+        {
+          "turn_id": "BN_SC_06_T2",
+          "user_message": "কাস্টমার কেয়ার হেল্পলাইন কয়টা পর্যন্ত খোলা থাকে?",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "customer_support",
+            "contact"
+          ],
+          "has_personal_memory": false
+        },
+        {
+          "turn_id": "BN_SC_06_T3",
+          "user_message": "অফিসিয়াল হোয়াটসঅ্যাপ নম্বরটি দিন।",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "contact"
+          ],
+          "has_personal_memory": false
+        }
+      ]
+    },
+    {
+      "id": "BN_SC_07",
+      "language": "bn",
+      "category": "cancellation_pre_dispatch",
+      "title": "BN - Cancellation Pre Dispatch",
+      "external_user_id": "e2e_user_bn_07",
+      "turn_count": 3,
+      "turns": [
+        {
+          "turn_id": "BN_SC_07_T1",
+          "user_message": "অর্ডার বাতিল করার নিয়ম কী?",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "cancellation_policy"
+          ],
+          "has_personal_memory": false
+        },
+        {
+          "turn_id": "BN_SC_07_T2",
+          "user_message": "পার্সেল কুরিয়ারে যাওয়ার পর কি বাতিল করা যায়?",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "cancellation_policy"
+          ],
+          "has_personal_memory": false
+        },
+        {
+          "turn_id": "BN_SC_07_T3",
+          "user_message": "অগ্রিম টাকা দেওয়া থাকলে রিফান্ড পাব কীভাবে?",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "refund_policy",
+            "cancellation_policy"
+          ],
+          "has_personal_memory": false
+        }
+      ]
+    },
+    {
+      "id": "BN_SC_08",
+      "language": "bn",
+      "category": "warranty_guarantee_defect",
+      "title": "BN - Warranty Guarantee Defect",
+      "external_user_id": "e2e_user_bn_08",
+      "turn_count": 3,
+      "turns": [
+        {
+          "turn_id": "BN_SC_08_T1",
+          "user_message": "আপনাদের পণ্যে কি ওয়ারেন্টি থাকে?",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "warranty_policy"
+          ],
+          "has_personal_memory": false
+        },
+        {
+          "turn_id": "BN_SC_08_T2",
+          "user_message": "পোশাকের সেলাই ছুটে গেলে কত দিনের মধ্যে ক্লেইম করা যাবে?",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "warranty_policy"
+          ],
+          "has_personal_memory": false
+        },
+        {
+          "turn_id": "BN_SC_08_T3",
+          "user_message": "ক্লেইম করার জন্য কি ইনভয়েস লাগবে?",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "warranty_policy"
+          ],
+          "has_personal_memory": false
+        }
+      ]
+    },
+    {
+      "id": "BN_SC_09",
+      "language": "bn",
+      "category": "privacy_data_protection",
+      "title": "BN - Privacy Data Protection",
+      "external_user_id": "e2e_user_bn_09",
+      "turn_count": 2,
+      "turns": [
+        {
+          "turn_id": "BN_SC_09_T1",
+          "user_message": "আমার ব্যক্তিগত তথ্য কি আপনারা সুরক্ষিত রাখেন?",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "privacy_policy"
+          ],
+          "has_personal_memory": false
+        },
+        {
+          "turn_id": "BN_SC_09_T2",
+          "user_message": "ফোন নম্বর কি কোনো থার্ড পার্টিকে দেওয়া হয়?",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "privacy_policy"
+          ],
+          "has_personal_memory": false
+        }
+      ]
+    },
+    {
+      "id": "BN_SC_10",
+      "language": "bn",
+      "category": "social_media_anti_fraud",
+      "title": "BN - Social Media Anti Fraud",
+      "external_user_id": "e2e_user_bn_10",
+      "turn_count": 2,
+      "turns": [
+        {
+          "turn_id": "BN_SC_10_T1",
+          "user_message": "ফেসবুকে আপনাদের ভেরিফাইড পেজের লিংক কত?",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "social_media_policy"
+          ],
+          "has_personal_memory": false
+        },
+        {
+          "turn_id": "BN_SC_10_T2",
+          "user_message": "মেসেঞ্জারে কি পিন বা পাসওয়ার্ড চাওয়া হয়?",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "social_media_policy"
+          ],
+          "has_personal_memory": false
+        }
+      ]
+    },
+    {
+      "id": "BN_SC_11",
+      "language": "bn",
+      "category": "delivery_rates_timeframes",
+      "title": "BN - Delivery Rates Timeframes",
+      "external_user_id": "e2e_user_bn_11",
+      "turn_count": 3,
+      "turns": [
+        {
+          "turn_id": "BN_SC_11_T1",
+          "user_message": "ঢাকার মধ্যে ডেলিভারি চার্জ কত?",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "delivery_policy"
+          ],
+          "has_personal_memory": false
+        },
+        {
+          "turn_id": "BN_SC_11_T2",
+          "user_message": "ডেলিভারি পেতে কত দিন সময় লাগবে?",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "delivery_policy"
+          ],
+          "has_personal_memory": false
+        },
+        {
+          "turn_id": "BN_SC_11_T3",
+          "user_message": "পার্সেল ট্র্যাক করব কীভাবে?",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "delivery_policy"
+          ],
+          "has_personal_memory": false
+        }
+      ]
+    },
+    {
+      "id": "BN_SC_12",
+      "language": "bn",
+      "category": "terms_and_conditions",
+      "title": "BN - Terms And Conditions",
+      "external_user_id": "e2e_user_bn_12",
+      "turn_count": 2,
+      "turns": [
+        {
+          "turn_id": "BN_SC_12_T1",
+          "user_message": "আপনাদের ক্রয়ের শর্তাবলী কী কী?",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "terms"
+          ],
+          "has_personal_memory": false
+        },
+        {
+          "turn_id": "BN_SC_12_T2",
+          "user_message": "মূল্য কি যেকোনো সময় পরিবর্তিত হতে পারে?",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "terms"
+          ],
+          "has_personal_memory": false
+        }
+      ]
+    },
+    {
+      "id": "BN_SC_13",
+      "language": "bn",
+      "category": "company_story_about_us",
+      "title": "BN - Company Story About Us",
+      "external_user_id": "e2e_user_bn_13",
+      "turn_count": 2,
+      "turns": [
+        {
+          "turn_id": "BN_SC_13_T1",
+          "user_message": "আপনাদের ব্র্যান্ডের ইতিহাস কী?",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "about_us"
+          ],
+          "has_personal_memory": false
+        },
+        {
+          "turn_id": "BN_SC_13_T2",
+          "user_message": "আপনাদের প্রধান মিশন কী?",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "about_us"
+          ],
+          "has_personal_memory": false
+        }
+      ]
+    },
+    {
+      "id": "BN_SC_14",
+      "language": "bn",
+      "category": "out_of_domain_handling",
+      "title": "BN - Out Of Domain Handling",
+      "external_user_id": "e2e_user_bn_14",
+      "turn_count": 3,
+      "turns": [
+        {
+          "turn_id": "BN_SC_14_T1",
+          "user_message": "আজকে ঢাকার আবহাওয়া কেমন?",
+          "intent_type": "ood",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "INSUFFICIENT",
+          "expected_document_types": [],
+          "has_personal_memory": false
+        },
+        {
+          "turn_id": "BN_SC_14_T2",
+          "user_message": "আমাকে একটি বিরিয়ানি রান্নার রেসিপি দিন।",
+          "intent_type": "ood",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "INSUFFICIENT",
+          "expected_document_types": [],
+          "has_personal_memory": false
+        },
+        {
+          "turn_id": "BN_SC_14_T3",
+          "user_message": "আপনাদের রিটার্ন পলিসি বলুন।",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "return_policy"
+          ],
+          "has_personal_memory": false
+        }
+      ]
+    },
+    {
+      "id": "BN_SC_15",
+      "language": "bn",
+      "category": "ambiguous_clarification",
+      "title": "BN - Ambiguous Clarification",
+      "external_user_id": "e2e_user_bn_15",
+      "turn_count": 2,
+      "turns": [
+        {
+          "turn_id": "BN_SC_15_T1",
+          "user_message": "চার্জ কত?",
+          "intent_type": "uncertain",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "PARTIAL",
+          "expected_document_types": [
+            "delivery_policy"
+          ],
+          "has_personal_memory": false
+        },
+        {
+          "turn_id": "BN_SC_15_T2",
+          "user_message": "ডেলিভারি চার্জের কথা বলছিলাম।",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "delivery_policy"
+          ],
+          "has_personal_memory": false
+        }
+      ]
+    },
+    {
+      "id": "BN_SC_16",
+      "language": "bn",
+      "category": "fabric_care_guide",
+      "title": "BN - Fabric Care Guide",
+      "external_user_id": "e2e_user_bn_16",
+      "turn_count": 2,
+      "turns": [
+        {
+          "turn_id": "BN_SC_16_T1",
+          "user_message": "সিল্ক পাঞ্জাবি কীভাবে ওয়াশ করব?",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "faq"
+          ],
+          "has_personal_memory": false
+        },
+        {
+          "turn_id": "BN_SC_16_T2",
+          "user_message": "ওয়াশিং মেশিনে ধোয়া যাবে কি?",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "faq"
+          ],
+          "has_personal_memory": false
+        }
+      ]
+    },
+    {
+      "id": "BN_SC_17",
+      "language": "bn",
+      "category": "voucher_coupon_codes",
+      "title": "BN - Voucher Coupon Codes",
+      "external_user_id": "e2e_user_bn_17",
+      "turn_count": 2,
+      "turns": [
+        {
+          "turn_id": "BN_SC_17_T1",
+          "user_message": "ডিসকাউন্ট ভাউচার কীভাবে ব্যবহার করব?",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "faq"
+          ],
+          "has_personal_memory": false
+        },
+        {
+          "turn_id": "BN_SC_17_T2",
+          "user_message": "একটি অর্ডারে কি দুইটা কুপন দেওয়া যাবে?",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "faq"
+          ],
+          "has_personal_memory": false
+        }
+      ]
+    },
+    {
+      "id": "BN_SC_18",
+      "language": "bn",
+      "category": "delayed_parcel_resolution",
+      "title": "BN - Delayed Parcel Resolution",
+      "external_user_id": "e2e_user_bn_18",
+      "turn_count": 2,
+      "turns": [
+        {
+          "turn_id": "BN_SC_18_T1",
+          "user_message": "পার্সেল পেতে দেরি হলে কার সাথে যোগাযোগ করব?",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "faq",
+            "delivery_policy"
+          ],
+          "has_personal_memory": false
+        },
+        {
+          "turn_id": "BN_SC_18_T2",
+          "user_message": "কাস্টমার কেয়ার হটলাইন নম্বরটি দিন।",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "contact"
+          ],
+          "has_personal_memory": false
+        }
+      ]
+    },
+    {
+      "id": "BN_SC_19",
+      "language": "bn",
+      "category": "cross_session_continuity",
+      "title": "BN - Cross Session Continuity",
+      "external_user_id": "e2e_user_bn_19",
+      "turn_count": 3,
+      "turns": [
+        {
+          "turn_id": "BN_SC_19_T1",
+          "user_message": "আমার প্রিয় কালার নেভি ব্লু।",
+          "intent_type": "chat",
+          "expected_memory_action": "USE",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [],
+          "has_personal_memory": true
+        },
+        {
+          "turn_id": "BN_SC_19_T2",
+          "user_message": "আমার কালার চয়েস সবসময় মনে রাখবেন।",
+          "intent_type": "chat",
+          "expected_memory_action": "USE",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [],
+          "has_personal_memory": true
+        },
+        {
+          "turn_id": "BN_SC_19_T3",
+          "user_message": "আমার পছন্দের কালার কী মনে আছে?",
+          "intent_type": "chat",
+          "expected_memory_action": "USE",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [],
+          "has_personal_memory": true
+        }
+      ]
+    },
+    {
+      "id": "BN_SC_20",
+      "language": "bn",
+      "category": "conflict_precedence_rules",
+      "title": "BN - Conflict Precedence Rules",
+      "external_user_id": "e2e_user_bn_20",
+      "turn_count": 2,
+      "turns": [
+        {
+          "turn_id": "BN_SC_20_T1",
+          "user_message": "আমি জানি আপনাদের রিটার্ন ৩০ দিন।",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "return_policy"
+          ],
+          "has_personal_memory": false
+        },
+        {
+          "turn_id": "BN_SC_20_T2",
+          "user_message": "তাহলে অফিসিয়াল নীতি কত দিন?",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "return_policy"
+          ],
+          "has_personal_memory": false
+        }
+      ]
+    },
+    {
+      "id": "BN_SC_21",
+      "language": "bn",
+      "category": "damaged_item_complaint",
+      "title": "BN - Damaged Item Complaint",
+      "external_user_id": "e2e_user_bn_21",
+      "turn_count": 2,
+      "turns": [
+        {
+          "turn_id": "BN_SC_21_T1",
+          "user_message": "আমার পাওয়া পার্সেলের বোতাম ভাঙা।",
+          "intent_type": "chat",
+          "expected_memory_action": "USE",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "return_policy",
+            "warranty_policy"
+          ],
+          "has_personal_memory": true
+        },
+        {
+          "turn_id": "BN_SC_21_T2",
+          "user_message": "এটা রিটার্ন করতে কি ডেলিভারি চার্জ দেওয়া লাগবে?",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "return_policy"
+          ],
+          "has_personal_memory": false
+        }
+      ]
+    },
+    {
+      "id": "BN_SC_22",
+      "language": "bn",
+      "category": "urgent_same_day_delivery",
+      "title": "BN - Urgent Same Day Delivery",
+      "external_user_id": "e2e_user_bn_22",
+      "turn_count": 2,
+      "turns": [
+        {
+          "turn_id": "BN_SC_22_T1",
+          "user_message": "আজকের মধ্যেই কি ঢাকায় ডেলিভারি দেওয়া সম্ভব?",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "delivery_policy"
+          ],
+          "has_personal_memory": false
+        },
+        {
+          "turn_id": "BN_SC_22_T2",
+          "user_message": "সেইম ডে ডেলিভারির ফি কত?",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "delivery_policy"
+          ],
+          "has_personal_memory": false
+        }
+      ]
+    },
+    {
+      "id": "BN_SC_23",
+      "language": "bn",
+      "category": "non_returnable_items",
+      "title": "BN - Non Returnable Items",
+      "external_user_id": "e2e_user_bn_23",
+      "turn_count": 2,
+      "turns": [
+        {
+          "turn_id": "BN_SC_23_T1",
+          "user_message": "সব ধরনের পোশাক কি রিটার্ন করা যায়?",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "return_policy"
+          ],
+          "has_personal_memory": false
+        },
+        {
+          "turn_id": "BN_SC_23_T2",
+          "user_message": "কোন আইটেমগুলো নন-রিটার্নেবল?",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "return_policy"
+          ],
+          "has_personal_memory": false
+        }
+      ]
+    },
+    {
+      "id": "BN_SC_24",
+      "language": "bn",
+      "category": "order_status_tracking",
+      "title": "BN - Order Status Tracking",
+      "external_user_id": "e2e_user_bn_24",
+      "turn_count": 2,
+      "turns": [
+        {
+          "turn_id": "BN_SC_24_T1",
+          "user_message": "আমার অর্ডার #1042 এর অবস্থা কী?",
+          "intent_type": "action",
+          "expected_memory_action": "USE",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [],
+          "has_personal_memory": true
+        },
+        {
+          "turn_id": "BN_SC_24_T2",
+          "user_message": "এটি কোন কুরিয়ারে আছে?",
+          "intent_type": "action",
+          "expected_memory_action": "USE",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [],
+          "has_personal_memory": true
+        }
+      ]
+    },
+    {
+      "id": "BN_SC_25",
+      "language": "bn",
+      "category": "sizing_recommendation",
+      "title": "BN - Sizing Recommendation",
+      "external_user_id": "e2e_user_bn_25",
+      "turn_count": 2,
+      "turns": [
+        {
+          "turn_id": "BN_SC_25_T1",
+          "user_message": "আমার চেস্ট সাইজ ৪২ ইঞ্চি, কোন সাইজ নিব?",
+          "intent_type": "knowledge",
+          "expected_memory_action": "USE",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "faq"
+          ],
+          "has_personal_memory": true
+        },
+        {
+          "turn_id": "BN_SC_25_T2",
+          "user_message": "সাইজ বড় হলে কি এক্সচেঞ্জ করা যাবে?",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "exchange_policy"
+          ],
+          "has_personal_memory": false
+        }
+      ]
+    },
+    {
+      "id": "EN_SC_01",
+      "language": "en",
+      "category": "multi_turn_policy_return_refund",
+      "title": "EN - Multi Turn Policy Return Refund",
+      "external_user_id": "e2e_user_en_01",
+      "turn_count": 3,
+      "turns": [
+        {
+          "turn_id": "EN_SC_01_T1",
+          "user_message": "Can I return a purchased product?",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "return_policy"
+          ],
+          "has_personal_memory": false
+        },
+        {
+          "turn_id": "EN_SC_01_T2",
+          "user_message": "Within how many days should I return it?",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "return_policy"
+          ],
+          "has_personal_memory": false
+        },
+        {
+          "turn_id": "EN_SC_01_T3",
+          "user_message": "How long does it take to get a refund?",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "refund_policy",
+            "faq"
+          ],
+          "has_personal_memory": false
+        }
+      ]
+    },
+    {
+      "id": "EN_SC_02",
+      "language": "en",
+      "category": "personal_memory_lifecycle",
+      "title": "EN - Personal Memory Lifecycle",
+      "external_user_id": "e2e_user_en_02",
+      "turn_count": 3,
+      "turns": [
+        {
+          "turn_id": "EN_SC_02_T1",
+          "user_message": "I always prefer size XL for panjabis.",
+          "intent_type": "chat",
+          "expected_memory_action": "USE",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [],
+          "has_personal_memory": true
+        },
+        {
+          "turn_id": "EN_SC_02_T2",
+          "user_message": "Can you remember my preferred size?",
+          "intent_type": "chat",
+          "expected_memory_action": "USE",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [],
+          "has_personal_memory": true
+        },
+        {
+          "turn_id": "EN_SC_02_T3",
+          "user_message": "What is my favorite panjabi size?",
+          "intent_type": "chat",
+          "expected_memory_action": "USE",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [],
+          "has_personal_memory": true
+        }
+      ]
+    },
+    {
+      "id": "EN_SC_03",
+      "language": "en",
+      "category": "context_switching_isolation",
+      "title": "EN - Context Switching Isolation",
+      "external_user_id": "e2e_user_en_03",
+      "turn_count": 3,
+      "turns": [
+        {
+          "turn_id": "EN_SC_03_T1",
+          "user_message": "My preferred payment method is bKash.",
+          "intent_type": "chat",
+          "expected_memory_action": "USE",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [],
+          "has_personal_memory": true
+        },
+        {
+          "turn_id": "EN_SC_03_T2",
+          "user_message": "What are the shipping charges outside Dhaka?",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "delivery_policy"
+          ],
+          "has_personal_memory": false
+        },
+        {
+          "turn_id": "EN_SC_03_T3",
+          "user_message": "What was my payment preference?",
+          "intent_type": "chat",
+          "expected_memory_action": "USE",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [],
+          "has_personal_memory": true
+        }
+      ]
+    },
+    {
+      "id": "EN_SC_04",
+      "language": "en",
+      "category": "multi_turn_exchange_sizing",
+      "title": "EN - Multi Turn Exchange Sizing",
+      "external_user_id": "e2e_user_en_04",
+      "turn_count": 3,
+      "turns": [
+        {
+          "turn_id": "EN_SC_04_T1",
+          "user_message": "Can I exchange an item if the size does not fit?",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "exchange_policy",
+            "faq"
+          ],
+          "has_personal_memory": false
+        },
+        {
+          "turn_id": "EN_SC_04_T2",
+          "user_message": "How many days do I have to request an exchange?",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "exchange_policy"
+          ],
+          "has_personal_memory": false
+        },
+        {
+          "turn_id": "EN_SC_04_T3",
+          "user_message": "Can I exchange directly at your flagship store?",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "exchange_policy",
+            "contact"
+          ],
+          "has_personal_memory": false
+        }
+      ]
+    },
+    {
+      "id": "EN_SC_05",
+      "language": "en",
+      "category": "cod_and_payment_policy",
+      "title": "EN - Cod And Payment Policy",
+      "external_user_id": "e2e_user_en_05",
+      "turn_count": 3,
+      "turns": [
+        {
+          "turn_id": "EN_SC_05_T1",
+          "user_message": "What payment methods do you accept?",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "payment_policy"
+          ],
+          "has_personal_memory": false
+        },
+        {
+          "turn_id": "EN_SC_05_T2",
+          "user_message": "Do I need to pay an advance for Cash on Delivery?",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "payment_policy"
+          ],
+          "has_personal_memory": false
+        },
+        {
+          "turn_id": "EN_SC_05_T3",
+          "user_message": "Can I open and inspect the parcel before paying?",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "faq",
+            "payment_policy"
+          ],
+          "has_personal_memory": false
+        }
+      ]
+    },
+    {
+      "id": "EN_SC_06",
+      "language": "en",
+      "category": "showroom_contact_hours",
+      "title": "EN - Showroom Contact Hours",
+      "external_user_id": "e2e_user_en_06",
+      "turn_count": 3,
+      "turns": [
+        {
+          "turn_id": "EN_SC_06_T1",
+          "user_message": "Where is your flagship retail store located?",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "contact",
+            "about_us"
+          ],
+          "has_personal_memory": false
+        },
+        {
+          "turn_id": "EN_SC_06_T2",
+          "user_message": "What are your customer support working hours?",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "customer_support",
+            "contact"
+          ],
+          "has_personal_memory": false
+        },
+        {
+          "turn_id": "EN_SC_06_T3",
+          "user_message": "What is your official WhatsApp number?",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "contact"
+          ],
+          "has_personal_memory": false
+        }
+      ]
+    },
+    {
+      "id": "EN_SC_07",
+      "language": "en",
+      "category": "cancellation_pre_dispatch",
+      "title": "EN - Cancellation Pre Dispatch",
+      "external_user_id": "e2e_user_en_07",
+      "turn_count": 3,
+      "turns": [
+        {
+          "turn_id": "EN_SC_07_T1",
+          "user_message": "How can I cancel an order placed by mistake?",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "cancellation_policy"
+          ],
+          "has_personal_memory": false
+        },
+        {
+          "turn_id": "EN_SC_07_T2",
+          "user_message": "Can I cancel after the parcel is handed to courier?",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "cancellation_policy"
+          ],
+          "has_personal_memory": false
+        },
+        {
+          "turn_id": "EN_SC_07_T3",
+          "user_message": "How will prepaid funds be refunded?",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "refund_policy",
+            "cancellation_policy"
+          ],
+          "has_personal_memory": false
+        }
+      ]
+    },
+    {
+      "id": "EN_SC_08",
+      "language": "en",
+      "category": "warranty_guarantee_defect",
+      "title": "EN - Warranty Guarantee Defect",
+      "external_user_id": "e2e_user_en_08",
+      "turn_count": 3,
+      "turns": [
+        {
+          "turn_id": "EN_SC_08_T1",
+          "user_message": "Do your products come with a warranty?",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "warranty_policy"
+          ],
+          "has_personal_memory": false
+        },
+        {
+          "turn_id": "EN_SC_08_T2",
+          "user_message": "How many days do I have to report apparel stitching defect?",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "warranty_policy"
+          ],
+          "has_personal_memory": false
+        },
+        {
+          "turn_id": "EN_SC_08_T3",
+          "user_message": "Is the original purchase invoice mandatory for warranty?",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "warranty_policy"
+          ],
+          "has_personal_memory": false
+        }
+      ]
+    },
+    {
+      "id": "EN_SC_09",
+      "language": "en",
+      "category": "privacy_data_protection",
+      "title": "EN - Privacy Data Protection",
+      "external_user_id": "e2e_user_en_09",
+      "turn_count": 2,
+      "turns": [
+        {
+          "turn_id": "EN_SC_09_T1",
+          "user_message": "How do you safeguard my personal customer data?",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "privacy_policy"
+          ],
+          "has_personal_memory": false
+        },
+        {
+          "turn_id": "EN_SC_09_T2",
+          "user_message": "Do you share my phone number with external marketers?",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "privacy_policy"
+          ],
+          "has_personal_memory": false
+        }
+      ]
+    },
+    {
+      "id": "EN_SC_10",
+      "language": "en",
+      "category": "social_media_anti_fraud",
+      "title": "EN - Social Media Anti Fraud",
+      "external_user_id": "e2e_user_en_10",
+      "turn_count": 2,
+      "turns": [
+        {
+          "turn_id": "EN_SC_10_T1",
+          "user_message": "What is your verified Facebook page link?",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "social_media_policy"
+          ],
+          "has_personal_memory": false
+        },
+        {
+          "turn_id": "EN_SC_10_T2",
+          "user_message": "Will your support team ever request my bKash PIN?",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "social_media_policy"
+          ],
+          "has_personal_memory": false
+        }
+      ]
+    },
+    {
+      "id": "EN_SC_11",
+      "language": "en",
+      "category": "delivery_rates_timeframes",
+      "title": "EN - Delivery Rates Timeframes",
+      "external_user_id": "e2e_user_en_11",
+      "turn_count": 3,
+      "turns": [
+        {
+          "turn_id": "EN_SC_11_T1",
+          "user_message": "What is the delivery fee inside Dhaka?",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "delivery_policy"
+          ],
+          "has_personal_memory": false
+        },
+        {
+          "turn_id": "EN_SC_11_T2",
+          "user_message": "How long does standard delivery take?",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "delivery_policy"
+          ],
+          "has_personal_memory": false
+        },
+        {
+          "turn_id": "EN_SC_11_T3",
+          "user_message": "How can I track my shipment online?",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "delivery_policy"
+          ],
+          "has_personal_memory": false
+        }
+      ]
+    },
+    {
+      "id": "EN_SC_12",
+      "language": "en",
+      "category": "terms_and_conditions",
+      "title": "EN - Terms And Conditions",
+      "external_user_id": "e2e_user_en_12",
+      "turn_count": 2,
+      "turns": [
+        {
+          "turn_id": "EN_SC_12_T1",
+          "user_message": "What are your standard terms of service?",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "terms"
+          ],
+          "has_personal_memory": false
+        },
+        {
+          "turn_id": "EN_SC_12_T2",
+          "user_message": "Can product pricing change without prior notice?",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "terms"
+          ],
+          "has_personal_memory": false
+        }
+      ]
+    },
+    {
+      "id": "EN_SC_13",
+      "language": "en",
+      "category": "company_story_about_us",
+      "title": "EN - Company Story About Us",
+      "external_user_id": "e2e_user_en_13",
+      "turn_count": 2,
+      "turns": [
+        {
+          "turn_id": "EN_SC_13_T1",
+          "user_message": "Tell me about Entrepreneurs Automation company background.",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "about_us"
+          ],
+          "has_personal_memory": false
+        },
+        {
+          "turn_id": "EN_SC_13_T2",
+          "user_message": "What is your core corporate mission?",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "about_us"
+          ],
+          "has_personal_memory": false
+        }
+      ]
+    },
+    {
+      "id": "EN_SC_14",
+      "language": "en",
+      "category": "out_of_domain_handling",
+      "title": "EN - Out Of Domain Handling",
+      "external_user_id": "e2e_user_en_14",
+      "turn_count": 3,
+      "turns": [
+        {
+          "turn_id": "EN_SC_14_T1",
+          "user_message": "Can you recommend a recipe for biryani?",
+          "intent_type": "ood",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "INSUFFICIENT",
+          "expected_document_types": [],
+          "has_personal_memory": false
+        },
+        {
+          "turn_id": "EN_SC_14_T2",
+          "user_message": "What is the current flight schedule from Dhaka to Coxs Bazar?",
+          "intent_type": "ood",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "INSUFFICIENT",
+          "expected_document_types": [],
+          "has_personal_memory": false
+        },
+        {
+          "turn_id": "EN_SC_14_T3",
+          "user_message": "Tell me your official return policy.",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "return_policy"
+          ],
+          "has_personal_memory": false
+        }
+      ]
+    },
+    {
+      "id": "EN_SC_15",
+      "language": "en",
+      "category": "ambiguous_clarification",
+      "title": "EN - Ambiguous Clarification",
+      "external_user_id": "e2e_user_en_15",
+      "turn_count": 2,
+      "turns": [
+        {
+          "turn_id": "EN_SC_15_T1",
+          "user_message": "How much is the fee?",
+          "intent_type": "uncertain",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "PARTIAL",
+          "expected_document_types": [
+            "delivery_policy"
+          ],
+          "has_personal_memory": false
+        },
+        {
+          "turn_id": "EN_SC_15_T2",
+          "user_message": "I mean delivery fee.",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "delivery_policy"
+          ],
+          "has_personal_memory": false
+        }
+      ]
+    },
+    {
+      "id": "EN_SC_16",
+      "language": "en",
+      "category": "fabric_care_guide",
+      "title": "EN - Fabric Care Guide",
+      "external_user_id": "e2e_user_en_16",
+      "turn_count": 2,
+      "turns": [
+        {
+          "turn_id": "EN_SC_16_T1",
+          "user_message": "How should I wash silk and linen apparel?",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "faq"
+          ],
+          "has_personal_memory": false
+        },
+        {
+          "turn_id": "EN_SC_16_T2",
+          "user_message": "Can I wash it in a washing machine?",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "faq"
+          ],
+          "has_personal_memory": false
+        }
+      ]
+    },
+    {
+      "id": "EN_SC_17",
+      "language": "en",
+      "category": "voucher_coupon_codes",
+      "title": "EN - Voucher Coupon Codes",
+      "external_user_id": "e2e_user_en_17",
+      "turn_count": 2,
+      "turns": [
+        {
+          "turn_id": "EN_SC_17_T1",
+          "user_message": "How do I apply a discount voucher during checkout?",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "faq"
+          ],
+          "has_personal_memory": false
+        },
+        {
+          "turn_id": "EN_SC_17_T2",
+          "user_message": "Can I combine multiple promotional codes on one order?",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "faq"
+          ],
+          "has_personal_memory": false
+        }
+      ]
+    },
+    {
+      "id": "EN_SC_18",
+      "language": "en",
+      "category": "delayed_parcel_resolution",
+      "title": "EN - Delayed Parcel Resolution",
+      "external_user_id": "e2e_user_en_18",
+      "turn_count": 2,
+      "turns": [
+        {
+          "turn_id": "EN_SC_18_T1",
+          "user_message": "What should I do if my parcel delivery is delayed?",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "faq",
+            "delivery_policy"
+          ],
+          "has_personal_memory": false
+        },
+        {
+          "turn_id": "EN_SC_18_T2",
+          "user_message": "Give me your hotline contact number.",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "contact"
+          ],
+          "has_personal_memory": false
+        }
+      ]
+    },
+    {
+      "id": "EN_SC_19",
+      "language": "en",
+      "category": "cross_session_continuity",
+      "title": "EN - Cross Session Continuity",
+      "external_user_id": "e2e_user_en_19",
+      "turn_count": 3,
+      "turns": [
+        {
+          "turn_id": "EN_SC_19_T1",
+          "user_message": "My favorite color for panjabis is Navy Blue.",
+          "intent_type": "chat",
+          "expected_memory_action": "USE",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [],
+          "has_personal_memory": true
+        },
+        {
+          "turn_id": "EN_SC_19_T2",
+          "user_message": "Keep my color preference in mind for recommendations.",
+          "intent_type": "chat",
+          "expected_memory_action": "USE",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [],
+          "has_personal_memory": true
+        },
+        {
+          "turn_id": "EN_SC_19_T3",
+          "user_message": "Do you remember my favorite color?",
+          "intent_type": "chat",
+          "expected_memory_action": "USE",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [],
+          "has_personal_memory": true
+        }
+      ]
+    },
+    {
+      "id": "EN_SC_20",
+      "language": "en",
+      "category": "conflict_precedence_rules",
+      "title": "EN - Conflict Precedence Rules",
+      "external_user_id": "e2e_user_en_20",
+      "turn_count": 2,
+      "turns": [
+        {
+          "turn_id": "EN_SC_20_T1",
+          "user_message": "I think your return window is 30 days.",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "return_policy"
+          ],
+          "has_personal_memory": false
+        },
+        {
+          "turn_id": "EN_SC_20_T2",
+          "user_message": "What is your official policy timeframe?",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "return_policy"
+          ],
+          "has_personal_memory": false
+        }
+      ]
+    },
+    {
+      "id": "EN_SC_21",
+      "language": "en",
+      "category": "damaged_item_complaint",
+      "title": "EN - Damaged Item Complaint",
+      "external_user_id": "e2e_user_en_21",
+      "turn_count": 2,
+      "turns": [
+        {
+          "turn_id": "EN_SC_21_T1",
+          "user_message": "I opened my parcel and found a broken button.",
+          "intent_type": "chat",
+          "expected_memory_action": "USE",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "return_policy",
+            "warranty_policy"
+          ],
+          "has_personal_memory": true
+        },
+        {
+          "turn_id": "EN_SC_21_T2",
+          "user_message": "Do I need to pay shipping charges to return it?",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "return_policy"
+          ],
+          "has_personal_memory": false
+        }
+      ]
+    },
+    {
+      "id": "EN_SC_22",
+      "language": "en",
+      "category": "urgent_same_day_delivery",
+      "title": "EN - Urgent Same Day Delivery",
+      "external_user_id": "e2e_user_en_22",
+      "turn_count": 2,
+      "turns": [
+        {
+          "turn_id": "EN_SC_22_T1",
+          "user_message": "Is same-day delivery available inside Dhaka?",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "delivery_policy"
+          ],
+          "has_personal_memory": false
+        },
+        {
+          "turn_id": "EN_SC_22_T2",
+          "user_message": "What is the charge for same-day delivery?",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "delivery_policy"
+          ],
+          "has_personal_memory": false
+        }
+      ]
+    },
+    {
+      "id": "EN_SC_23",
+      "language": "en",
+      "category": "non_returnable_items",
+      "title": "EN - Non Returnable Items",
+      "external_user_id": "e2e_user_en_23",
+      "turn_count": 2,
+      "turns": [
+        {
+          "turn_id": "EN_SC_23_T1",
+          "user_message": "Are all items eligible for return?",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "return_policy"
+          ],
+          "has_personal_memory": false
+        },
+        {
+          "turn_id": "EN_SC_23_T2",
+          "user_message": "Which specific categories are non-returnable?",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "return_policy"
+          ],
+          "has_personal_memory": false
+        }
+      ]
+    },
+    {
+      "id": "EN_SC_24",
+      "language": "en",
+      "category": "order_status_tracking",
+      "title": "EN - Order Status Tracking",
+      "external_user_id": "e2e_user_en_24",
+      "turn_count": 2,
+      "turns": [
+        {
+          "turn_id": "EN_SC_24_T1",
+          "user_message": "Where is my order #1042?",
+          "intent_type": "action",
+          "expected_memory_action": "USE",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [],
+          "has_personal_memory": true
+        },
+        {
+          "turn_id": "EN_SC_24_T2",
+          "user_message": "Which courier is delivering it?",
+          "intent_type": "action",
+          "expected_memory_action": "USE",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [],
+          "has_personal_memory": true
+        }
+      ]
+    },
+    {
+      "id": "EN_SC_25",
+      "language": "en",
+      "category": "sizing_recommendation",
+      "title": "EN - Sizing Recommendation",
+      "external_user_id": "e2e_user_en_25",
+      "turn_count": 2,
+      "turns": [
+        {
+          "turn_id": "EN_SC_25_T1",
+          "user_message": "My chest is 42 inches, which size should I pick?",
+          "intent_type": "knowledge",
+          "expected_memory_action": "USE",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "faq"
+          ],
+          "has_personal_memory": true
+        },
+        {
+          "turn_id": "EN_SC_25_T2",
+          "user_message": "Can I exchange it if it is too loose?",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "exchange_policy"
+          ],
+          "has_personal_memory": false
+        }
+      ]
+    },
+    {
+      "id": "BANGLISH_SC_01",
+      "language": "banglish",
+      "category": "multi_turn_policy_return_refund",
+      "title": "BANGLISH - Multi Turn Policy Return Refund",
+      "external_user_id": "e2e_user_banglish_01",
+      "turn_count": 3,
+      "turns": [
+        {
+          "turn_id": "BANGLISH_SC_01_T1",
+          "user_message": "apnader product return korar rules ki?",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "return_policy"
+          ],
+          "has_personal_memory": false
+        },
+        {
+          "turn_id": "BANGLISH_SC_01_T2",
+          "user_message": "koto diner moddhe ferot dite hobe?",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "return_policy"
+          ],
+          "has_personal_memory": false
+        },
+        {
+          "turn_id": "BANGLISH_SC_01_T3",
+          "user_message": "refund pete koto din shomoy lage?",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "refund_policy",
+            "faq"
+          ],
+          "has_personal_memory": false
+        }
+      ]
+    },
+    {
+      "id": "BANGLISH_SC_02",
+      "language": "banglish",
+      "category": "personal_memory_lifecycle",
+      "title": "BANGLISH - Personal Memory Lifecycle",
+      "external_user_id": "e2e_user_banglish_02",
+      "turn_count": 3,
+      "turns": [
+        {
+          "turn_id": "BANGLISH_SC_02_T1",
+          "user_message": "ami shobshomoy panjabi r jonno XL size prefer kori.",
+          "intent_type": "chat",
+          "expected_memory_action": "USE",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [],
+          "has_personal_memory": true
+        },
+        {
+          "turn_id": "BANGLISH_SC_02_T2",
+          "user_message": "amar size preference ki mone rakhte parben?",
+          "intent_type": "chat",
+          "expected_memory_action": "USE",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [],
+          "has_personal_memory": true
+        },
+        {
+          "turn_id": "BANGLISH_SC_02_T3",
+          "user_message": "amar panjabi r pochonder size konta?",
+          "intent_type": "chat",
+          "expected_memory_action": "USE",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [],
+          "has_personal_memory": true
+        }
+      ]
+    },
+    {
+      "id": "BANGLISH_SC_03",
+      "language": "banglish",
+      "category": "context_switching_isolation",
+      "title": "BANGLISH - Context Switching Isolation",
+      "external_user_id": "e2e_user_banglish_03",
+      "turn_count": 3,
+      "turns": [
+        {
+          "turn_id": "BANGLISH_SC_03_T1",
+          "user_message": "amar payment preference bkash.",
+          "intent_type": "chat",
+          "expected_memory_action": "USE",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [],
+          "has_personal_memory": true
+        },
+        {
+          "turn_id": "BANGLISH_SC_03_T2",
+          "user_message": "dhakar baire delivery charge koto?",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "delivery_policy"
+          ],
+          "has_personal_memory": false
+        },
+        {
+          "turn_id": "BANGLISH_SC_03_T3",
+          "user_message": "amar payment preference ki mone ache?",
+          "intent_type": "chat",
+          "expected_memory_action": "USE",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [],
+          "has_personal_memory": true
+        }
+      ]
+    },
+    {
+      "id": "BANGLISH_SC_04",
+      "language": "banglish",
+      "category": "multi_turn_exchange_sizing",
+      "title": "BANGLISH - Multi Turn Exchange Sizing",
+      "external_user_id": "e2e_user_banglish_04",
+      "turn_count": 3,
+      "turns": [
+        {
+          "turn_id": "BANGLISH_SC_04_T1",
+          "user_message": "size na mille ki exchange kora jabe?",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "exchange_policy",
+            "faq"
+          ],
+          "has_personal_memory": false
+        },
+        {
+          "turn_id": "BANGLISH_SC_04_T2",
+          "user_message": "exchange korar jonno koto din shomoy thakbe?",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "exchange_policy"
+          ],
+          "has_personal_memory": false
+        },
+        {
+          "turn_id": "BANGLISH_SC_04_T3",
+          "user_message": "direct banani showroom e giye exchange kora jabe?",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "exchange_policy",
+            "contact"
+          ],
+          "has_personal_memory": false
+        }
+      ]
+    },
+    {
+      "id": "BANGLISH_SC_05",
+      "language": "banglish",
+      "category": "cod_and_payment_policy",
+      "title": "BANGLISH - Cod And Payment Policy",
+      "external_user_id": "e2e_user_banglish_05",
+      "turn_count": 3,
+      "turns": [
+        {
+          "turn_id": "BANGLISH_SC_05_T1",
+          "user_message": "apnara ki ki payment method accept koren?",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "payment_policy"
+          ],
+          "has_personal_memory": false
+        },
+        {
+          "turn_id": "BANGLISH_SC_05_T2",
+          "user_message": "cash on delivery te kono advance dite hoy?",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "payment_policy"
+          ],
+          "has_personal_memory": false
+        },
+        {
+          "turn_id": "BANGLISH_SC_05_T3",
+          "user_message": "deliveryman er shamne parcel check kora jabe?",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "faq",
+            "payment_policy"
+          ],
+          "has_personal_memory": false
+        }
+      ]
+    },
+    {
+      "id": "BANGLISH_SC_06",
+      "language": "banglish",
+      "category": "showroom_contact_hours",
+      "title": "BANGLISH - Showroom Contact Hours",
+      "external_user_id": "e2e_user_banglish_06",
+      "turn_count": 3,
+      "turns": [
+        {
+          "turn_id": "BANGLISH_SC_06_T1",
+          "user_message": "apnader banani showroom er address ta bolben?",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "contact",
+            "about_us"
+          ],
+          "has_personal_memory": false
+        },
+        {
+          "turn_id": "BANGLISH_SC_06_T2",
+          "user_message": "customer support koyta porjonto khola thake?",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "customer_support",
+            "contact"
+          ],
+          "has_personal_memory": false
+        },
+        {
+          "turn_id": "BANGLISH_SC_06_T3",
+          "user_message": "official whatsapp number ta den.",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "contact"
+          ],
+          "has_personal_memory": false
+        }
+      ]
+    },
+    {
+      "id": "BANGLISH_SC_07",
+      "language": "banglish",
+      "category": "cancellation_pre_dispatch",
+      "title": "BANGLISH - Cancellation Pre Dispatch",
+      "external_user_id": "e2e_user_banglish_07",
+      "turn_count": 3,
+      "turns": [
+        {
+          "turn_id": "BANGLISH_SC_07_T1",
+          "user_message": "bhul kore order felsi cancel korbo kivabe?",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "cancellation_policy"
+          ],
+          "has_personal_memory": false
+        },
+        {
+          "turn_id": "BANGLISH_SC_07_T2",
+          "user_message": "courier e dispatch hole ki cancel kora jay?",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "cancellation_policy"
+          ],
+          "has_personal_memory": false
+        },
+        {
+          "turn_id": "BANGLISH_SC_07_T3",
+          "user_message": "advance pay kora thakle refund kivabe pabo?",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "refund_policy",
+            "cancellation_policy"
+          ],
+          "has_personal_memory": false
+        }
+      ]
+    },
+    {
+      "id": "BANGLISH_SC_08",
+      "language": "banglish",
+      "category": "warranty_guarantee_defect",
+      "title": "BANGLISH - Warranty Guarantee Defect",
+      "external_user_id": "e2e_user_banglish_08",
+      "turn_count": 3,
+      "turns": [
+        {
+          "turn_id": "BANGLISH_SC_08_T1",
+          "user_message": "apnader product e ki kono warranty ache?",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "warranty_policy"
+          ],
+          "has_personal_memory": false
+        },
+        {
+          "turn_id": "BANGLISH_SC_08_T2",
+          "user_message": "selai khule gele koto diner moddhe claim korte parbo?",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "warranty_policy"
+          ],
+          "has_personal_memory": false
+        },
+        {
+          "turn_id": "BANGLISH_SC_08_T3",
+          "user_message": "claim korte ki invoice lagbe?",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "warranty_policy"
+          ],
+          "has_personal_memory": false
+        }
+      ]
+    },
+    {
+      "id": "BANGLISH_SC_09",
+      "language": "banglish",
+      "category": "privacy_data_protection",
+      "title": "BANGLISH - Privacy Data Protection",
+      "external_user_id": "e2e_user_banglish_09",
+      "turn_count": 2,
+      "turns": [
+        {
+          "turn_id": "BANGLISH_SC_09_T1",
+          "user_message": "amar data ki secured thakbe apnader kache?",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "privacy_policy"
+          ],
+          "has_personal_memory": false
+        },
+        {
+          "turn_id": "BANGLISH_SC_09_T2",
+          "user_message": "phone number ki third party k deya hoy?",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "privacy_policy"
+          ],
+          "has_personal_memory": false
+        }
+      ]
+    },
+    {
+      "id": "BANGLISH_SC_10",
+      "language": "banglish",
+      "category": "social_media_anti_fraud",
+      "title": "BANGLISH - Social Media Anti Fraud",
+      "external_user_id": "e2e_user_banglish_10",
+      "turn_count": 2,
+      "turns": [
+        {
+          "turn_id": "BANGLISH_SC_10_T1",
+          "user_message": "apnader verified facebook page er link ki?",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "social_media_policy"
+          ],
+          "has_personal_memory": false
+        },
+        {
+          "turn_id": "BANGLISH_SC_10_T2",
+          "user_message": "messenger e ki bkash pin ba otp chaowa hoy?",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "social_media_policy"
+          ],
+          "has_personal_memory": false
+        }
+      ]
+    },
+    {
+      "id": "BANGLISH_SC_11",
+      "language": "banglish",
+      "category": "delivery_rates_timeframes",
+      "title": "BANGLISH - Delivery Rates Timeframes",
+      "external_user_id": "e2e_user_banglish_11",
+      "turn_count": 3,
+      "turns": [
+        {
+          "turn_id": "BANGLISH_SC_11_T1",
+          "user_message": "dhakar moddhe delivery fee koto?",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "delivery_policy"
+          ],
+          "has_personal_memory": false
+        },
+        {
+          "turn_id": "BANGLISH_SC_11_T2",
+          "user_message": "delivery pete shadharonoto koto din lage?",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "delivery_policy"
+          ],
+          "has_personal_memory": false
+        },
+        {
+          "turn_id": "BANGLISH_SC_11_T3",
+          "user_message": "online e tracking korbo kivabe?",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "delivery_policy"
+          ],
+          "has_personal_memory": false
+        }
+      ]
+    },
+    {
+      "id": "BANGLISH_SC_12",
+      "language": "banglish",
+      "category": "terms_and_conditions",
+      "title": "BANGLISH - Terms And Conditions",
+      "external_user_id": "e2e_user_banglish_12",
+      "turn_count": 2,
+      "turns": [
+        {
+          "turn_id": "BANGLISH_SC_12_T1",
+          "user_message": "apnader terms of service ki ki?",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "terms"
+          ],
+          "has_personal_memory": false
+        },
+        {
+          "turn_id": "BANGLISH_SC_12_T2",
+          "user_message": "price ki notice chara change hote pare?",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "terms"
+          ],
+          "has_personal_memory": false
+        }
+      ]
+    },
+    {
+      "id": "BANGLISH_SC_13",
+      "language": "banglish",
+      "category": "company_story_about_us",
+      "title": "BANGLISH - Company Story About Us",
+      "external_user_id": "e2e_user_banglish_13",
+      "turn_count": 2,
+      "turns": [
+        {
+          "turn_id": "BANGLISH_SC_13_T1",
+          "user_message": "apnader company history ki?",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "about_us"
+          ],
+          "has_personal_memory": false
+        },
+        {
+          "turn_id": "BANGLISH_SC_13_T2",
+          "user_message": "apnader company mission ki?",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "about_us"
+          ],
+          "has_personal_memory": false
+        }
+      ]
+    },
+    {
+      "id": "BANGLISH_SC_14",
+      "language": "banglish",
+      "category": "out_of_domain_handling",
+      "title": "BANGLISH - Out Of Domain Handling",
+      "external_user_id": "e2e_user_banglish_14",
+      "turn_count": 3,
+      "turns": [
+        {
+          "turn_id": "BANGLISH_SC_14_T1",
+          "user_message": "ajke dhakar weather kemon thakbe?",
+          "intent_type": "ood",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "INSUFFICIENT",
+          "expected_document_types": [],
+          "has_personal_memory": false
+        },
+        {
+          "turn_id": "BANGLISH_SC_14_T2",
+          "user_message": "amar jonno ekta biriyani r recipe den.",
+          "intent_type": "ood",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "INSUFFICIENT",
+          "expected_document_types": [],
+          "has_personal_memory": false
+        },
+        {
+          "turn_id": "BANGLISH_SC_14_T3",
+          "user_message": "apnader return policy ta bolun.",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "return_policy"
+          ],
+          "has_personal_memory": false
+        }
+      ]
+    },
+    {
+      "id": "BANGLISH_SC_15",
+      "language": "banglish",
+      "category": "ambiguous_clarification",
+      "title": "BANGLISH - Ambiguous Clarification",
+      "external_user_id": "e2e_user_banglish_15",
+      "turn_count": 2,
+      "turns": [
+        {
+          "turn_id": "BANGLISH_SC_15_T1",
+          "user_message": "charge koto?",
+          "intent_type": "uncertain",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "PARTIAL",
+          "expected_document_types": [
+            "delivery_policy"
+          ],
+          "has_personal_memory": false
+        },
+        {
+          "turn_id": "BANGLISH_SC_15_T2",
+          "user_message": "delivery charge er kotha bolsi.",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "delivery_policy"
+          ],
+          "has_personal_memory": false
+        }
+      ]
+    },
+    {
+      "id": "BANGLISH_SC_16",
+      "language": "banglish",
+      "category": "fabric_care_guide",
+      "title": "BANGLISH - Fabric Care Guide",
+      "external_user_id": "e2e_user_banglish_16",
+      "turn_count": 2,
+      "turns": [
+        {
+          "turn_id": "BANGLISH_SC_16_T1",
+          "user_message": "silk panjabi kivabe wash korbo?",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "faq"
+          ],
+          "has_personal_memory": false
+        },
+        {
+          "turn_id": "BANGLISH_SC_16_T2",
+          "user_message": "washing machine e wash kora jabe?",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "faq"
+          ],
+          "has_personal_memory": false
+        }
+      ]
+    },
+    {
+      "id": "BANGLISH_SC_17",
+      "language": "banglish",
+      "category": "voucher_coupon_codes",
+      "title": "BANGLISH - Voucher Coupon Codes",
+      "external_user_id": "e2e_user_banglish_17",
+      "turn_count": 2,
+      "turns": [
+        {
+          "turn_id": "BANGLISH_SC_17_T1",
+          "user_message": "coupon code kivabe apply korbo checkout e?",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "faq"
+          ],
+          "has_personal_memory": false
+        },
+        {
+          "turn_id": "BANGLISH_SC_17_T2",
+          "user_message": "ek shathe multiple coupon use kora jabe?",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "faq"
+          ],
+          "has_personal_memory": false
+        }
+      ]
+    },
+    {
+      "id": "BANGLISH_SC_18",
+      "language": "banglish",
+      "category": "delayed_parcel_resolution",
+      "title": "BANGLISH - Delayed Parcel Resolution",
+      "external_user_id": "e2e_user_banglish_18",
+      "turn_count": 2,
+      "turns": [
+        {
+          "turn_id": "BANGLISH_SC_18_T1",
+          "user_message": "parcel delivery te deri hole ki korbo?",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "faq",
+            "delivery_policy"
+          ],
+          "has_personal_memory": false
+        },
+        {
+          "turn_id": "BANGLISH_SC_18_T2",
+          "user_message": "apnader helpline hotline number ta den.",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "contact"
+          ],
+          "has_personal_memory": false
+        }
+      ]
+    },
+    {
+      "id": "BANGLISH_SC_19",
+      "language": "banglish",
+      "category": "cross_session_continuity",
+      "title": "BANGLISH - Cross Session Continuity",
+      "external_user_id": "e2e_user_banglish_19",
+      "turn_count": 3,
+      "turns": [
+        {
+          "turn_id": "BANGLISH_SC_19_T1",
+          "user_message": "amar favorite color navy blue.",
+          "intent_type": "chat",
+          "expected_memory_action": "USE",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [],
+          "has_personal_memory": true
+        },
+        {
+          "turn_id": "BANGLISH_SC_19_T2",
+          "user_message": "recommendation e navy blue color mathay rakhben.",
+          "intent_type": "chat",
+          "expected_memory_action": "USE",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [],
+          "has_personal_memory": true
+        },
+        {
+          "turn_id": "BANGLISH_SC_19_T3",
+          "user_message": "amar favorite color ki mone ache?",
+          "intent_type": "chat",
+          "expected_memory_action": "USE",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [],
+          "has_personal_memory": true
+        }
+      ]
+    },
+    {
+      "id": "BANGLISH_SC_20",
+      "language": "banglish",
+      "category": "conflict_precedence_rules",
+      "title": "BANGLISH - Conflict Precedence Rules",
+      "external_user_id": "e2e_user_banglish_20",
+      "turn_count": 2,
+      "turns": [
+        {
+          "turn_id": "BANGLISH_SC_20_T1",
+          "user_message": "ami jani apnader return policy 30 days.",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "return_policy"
+          ],
+          "has_personal_memory": false
+        },
+        {
+          "turn_id": "BANGLISH_SC_20_T2",
+          "user_message": "apnader official rules e koto din?",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "return_policy"
+          ],
+          "has_personal_memory": false
+        }
+      ]
+    },
+    {
+      "id": "BANGLISH_SC_21",
+      "language": "banglish",
+      "category": "damaged_item_complaint",
+      "title": "BANGLISH - Damaged Item Complaint",
+      "external_user_id": "e2e_user_banglish_21",
+      "turn_count": 2,
+      "turns": [
+        {
+          "turn_id": "BANGLISH_SC_21_T1",
+          "user_message": "parcel khule dekhi button venge gese.",
+          "intent_type": "chat",
+          "expected_memory_action": "USE",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "return_policy",
+            "warranty_policy"
+          ],
+          "has_personal_memory": true
+        },
+        {
+          "turn_id": "BANGLISH_SC_21_T2",
+          "user_message": "ferot dite ki delivery fee amar deya lagbe?",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "return_policy"
+          ],
+          "has_personal_memory": false
+        }
+      ]
+    },
+    {
+      "id": "BANGLISH_SC_22",
+      "language": "banglish",
+      "category": "urgent_same_day_delivery",
+      "title": "BANGLISH - Urgent Same Day Delivery",
+      "external_user_id": "e2e_user_banglish_22",
+      "turn_count": 2,
+      "turns": [
+        {
+          "turn_id": "BANGLISH_SC_22_T1",
+          "user_message": "ajker moddhe ki dhakay delivery pawa jabe?",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "delivery_policy"
+          ],
+          "has_personal_memory": false
+        },
+        {
+          "turn_id": "BANGLISH_SC_22_T2",
+          "user_message": "same day delivery r fee koto?",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "delivery_policy"
+          ],
+          "has_personal_memory": false
+        }
+      ]
+    },
+    {
+      "id": "BANGLISH_SC_23",
+      "language": "banglish",
+      "category": "non_returnable_items",
+      "title": "BANGLISH - Non Returnable Items",
+      "external_user_id": "e2e_user_banglish_23",
+      "turn_count": 2,
+      "turns": [
+        {
+          "turn_id": "BANGLISH_SC_23_T1",
+          "user_message": "shob item ki return kora jay?",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "return_policy"
+          ],
+          "has_personal_memory": false
+        },
+        {
+          "turn_id": "BANGLISH_SC_23_T2",
+          "user_message": "kon kon item non-returnable?",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "return_policy"
+          ],
+          "has_personal_memory": false
+        }
+      ]
+    },
+    {
+      "id": "BANGLISH_SC_24",
+      "language": "banglish",
+      "category": "order_status_tracking",
+      "title": "BANGLISH - Order Status Tracking",
+      "external_user_id": "e2e_user_banglish_24",
+      "turn_count": 2,
+      "turns": [
+        {
+          "turn_id": "BANGLISH_SC_24_T1",
+          "user_message": "amar order #1042 er update ki?",
+          "intent_type": "action",
+          "expected_memory_action": "USE",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [],
+          "has_personal_memory": true
+        },
+        {
+          "turn_id": "BANGLISH_SC_24_T2",
+          "user_message": "eita kon courier e ase?",
+          "intent_type": "action",
+          "expected_memory_action": "USE",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [],
+          "has_personal_memory": true
+        }
+      ]
+    },
+    {
+      "id": "BANGLISH_SC_25",
+      "language": "banglish",
+      "category": "sizing_recommendation",
+      "title": "BANGLISH - Sizing Recommendation",
+      "external_user_id": "e2e_user_banglish_25",
+      "turn_count": 2,
+      "turns": [
+        {
+          "turn_id": "BANGLISH_SC_25_T1",
+          "user_message": "amar chest 42 inch, kon size nibo?",
+          "intent_type": "knowledge",
+          "expected_memory_action": "USE",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "faq"
+          ],
+          "has_personal_memory": true
+        },
+        {
+          "turn_id": "BANGLISH_SC_25_T2",
+          "user_message": "size boro hole ki change kora jabe?",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "exchange_policy"
+          ],
+          "has_personal_memory": false
+        }
+      ]
+    },
+    {
+      "id": "CODE_MIXED_SC_01",
+      "language": "code_mixed",
+      "category": "multi_turn_policy_return_refund",
+      "title": "CODE_MIXED - Multi Turn Policy Return Refund",
+      "external_user_id": "e2e_user_code_mixed_01",
+      "turn_count": 3,
+      "turns": [
+        {
+          "turn_id": "CODE_MIXED_SC_01_T1",
+          "user_message": "Product purchase korar por return kora jabe ki?",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "return_policy"
+          ],
+          "has_personal_memory": false
+        },
+        {
+          "turn_id": "CODE_MIXED_SC_01_T2",
+          "user_message": "Koto diner inside return request submit korte hobe?",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "return_policy"
+          ],
+          "has_personal_memory": false
+        },
+        {
+          "turn_id": "CODE_MIXED_SC_01_T3",
+          "user_message": "Refund amount account e credit hote koto din lage?",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "refund_policy",
+            "faq"
+          ],
+          "has_personal_memory": false
+        }
+      ]
+    },
+    {
+      "id": "CODE_MIXED_SC_02",
+      "language": "code_mixed",
+      "category": "personal_memory_lifecycle",
+      "title": "CODE_MIXED - Personal Memory Lifecycle",
+      "external_user_id": "e2e_user_code_mixed_02",
+      "turn_count": 3,
+      "turns": [
+        {
+          "turn_id": "CODE_MIXED_SC_02_T1",
+          "user_message": "Ami standard Panjabi te XL size prefer kori.",
+          "intent_type": "chat",
+          "expected_memory_action": "USE",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [],
+          "has_personal_memory": true
+        },
+        {
+          "turn_id": "CODE_MIXED_SC_02_T2",
+          "user_message": "Amar ei size preference system e save thakbe?",
+          "intent_type": "chat",
+          "expected_memory_action": "USE",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [],
+          "has_personal_memory": true
+        },
+        {
+          "turn_id": "CODE_MIXED_SC_02_T3",
+          "user_message": "Amar preferred panjabi size ta bolun toh?",
+          "intent_type": "chat",
+          "expected_memory_action": "USE",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [],
+          "has_personal_memory": true
+        }
+      ]
+    },
+    {
+      "id": "CODE_MIXED_SC_03",
+      "language": "code_mixed",
+      "category": "context_switching_isolation",
+      "title": "CODE_MIXED - Context Switching Isolation",
+      "external_user_id": "e2e_user_code_mixed_03",
+      "turn_count": 3,
+      "turns": [
+        {
+          "turn_id": "CODE_MIXED_SC_03_T1",
+          "user_message": "Amar default payment method holo bKash wallet.",
+          "intent_type": "chat",
+          "expected_memory_action": "USE",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [],
+          "has_personal_memory": true
+        },
+        {
+          "turn_id": "CODE_MIXED_SC_03_T2",
+          "user_message": "Outside Dhaka shipping charge koto?",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "delivery_policy"
+          ],
+          "has_personal_memory": false
+        },
+        {
+          "turn_id": "CODE_MIXED_SC_03_T3",
+          "user_message": "Amar preferred payment method ki mone ache?",
+          "intent_type": "chat",
+          "expected_memory_action": "USE",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [],
+          "has_personal_memory": true
+        }
+      ]
+    },
+    {
+      "id": "CODE_MIXED_SC_04",
+      "language": "code_mixed",
+      "category": "multi_turn_exchange_sizing",
+      "title": "CODE_MIXED - Multi Turn Exchange Sizing",
+      "external_user_id": "e2e_user_code_mixed_04",
+      "turn_count": 3,
+      "turns": [
+        {
+          "turn_id": "CODE_MIXED_SC_04_T1",
+          "user_message": "Size fitting issue hole ki item exchange kora jabe?",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "exchange_policy",
+            "faq"
+          ],
+          "has_personal_memory": false
+        },
+        {
+          "turn_id": "CODE_MIXED_SC_04_T2",
+          "user_message": "Size swap er replacement window koto din?",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "exchange_policy"
+          ],
+          "has_personal_memory": false
+        },
+        {
+          "turn_id": "CODE_MIXED_SC_04_T3",
+          "user_message": "Direct Banani experience center e exchange possible?",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "exchange_policy",
+            "contact"
+          ],
+          "has_personal_memory": false
+        }
+      ]
+    },
+    {
+      "id": "CODE_MIXED_SC_05",
+      "language": "code_mixed",
+      "category": "cod_and_payment_policy",
+      "title": "CODE_MIXED - Cod And Payment Policy",
+      "external_user_id": "e2e_user_code_mixed_05",
+      "turn_count": 3,
+      "turns": [
+        {
+          "turn_id": "CODE_MIXED_SC_05_T1",
+          "user_message": "Online payment gateway te kon kon option available?",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "payment_policy"
+          ],
+          "has_personal_memory": false
+        },
+        {
+          "turn_id": "CODE_MIXED_SC_05_T2",
+          "user_message": "Cash on Delivery (COD) te kono advance deposit lage?",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "payment_policy"
+          ],
+          "has_personal_memory": false
+        },
+        {
+          "turn_id": "CODE_MIXED_SC_05_T3",
+          "user_message": "Courier rider er shamne parcel open kore inspect kora jabe?",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "faq",
+            "payment_policy"
+          ],
+          "has_personal_memory": false
+        }
+      ]
+    },
+    {
+      "id": "CODE_MIXED_SC_06",
+      "language": "code_mixed",
+      "category": "showroom_contact_hours",
+      "title": "CODE_MIXED - Showroom Contact Hours",
+      "external_user_id": "e2e_user_code_mixed_06",
+      "turn_count": 3,
+      "turns": [
+        {
+          "turn_id": "CODE_MIXED_SC_06_T1",
+          "user_message": "Company r Banani corporate showroom address kothay?",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "contact",
+            "about_us"
+          ],
+          "has_personal_memory": false
+        },
+        {
+          "turn_id": "CODE_MIXED_SC_06_T2",
+          "user_message": "Customer support helpdesk koyta porjonto operational?",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "customer_support",
+            "contact"
+          ],
+          "has_personal_memory": false
+        },
+        {
+          "turn_id": "CODE_MIXED_SC_06_T3",
+          "user_message": "Official WhatsApp customer helpline ta din.",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "contact"
+          ],
+          "has_personal_memory": false
+        }
+      ]
+    },
+    {
+      "id": "CODE_MIXED_SC_07",
+      "language": "code_mixed",
+      "category": "cancellation_pre_dispatch",
+      "title": "CODE_MIXED - Cancellation Pre Dispatch",
+      "external_user_id": "e2e_user_code_mixed_07",
+      "turn_count": 3,
+      "turns": [
+        {
+          "turn_id": "CODE_MIXED_SC_07_T1",
+          "user_message": "Accidental order cancel korar procedure ki?",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "cancellation_policy"
+          ],
+          "has_personal_memory": false
+        },
+        {
+          "turn_id": "CODE_MIXED_SC_07_T2",
+          "user_message": "Central warehouse theke courier e ship hole cancel kora jay?",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "cancellation_policy"
+          ],
+          "has_personal_memory": false
+        },
+        {
+          "turn_id": "CODE_MIXED_SC_07_T3",
+          "user_message": "Prepaid order cancellation er refund process kemon?",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "refund_policy",
+            "cancellation_policy"
+          ],
+          "has_personal_memory": false
+        }
+      ]
+    },
+    {
+      "id": "CODE_MIXED_SC_08",
+      "language": "code_mixed",
+      "category": "warranty_guarantee_defect",
+      "title": "CODE_MIXED - Warranty Guarantee Defect",
+      "external_user_id": "e2e_user_code_mixed_08",
+      "turn_count": 3,
+      "turns": [
+        {
+          "turn_id": "CODE_MIXED_SC_08_T1",
+          "user_message": "Apparel ba accessories e ki manufacturing warranty ache?",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "warranty_policy"
+          ],
+          "has_personal_memory": false
+        },
+        {
+          "turn_id": "CODE_MIXED_SC_08_T2",
+          "user_message": "Stitching defect er claim koto diner moddhe korte hobe?",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "warranty_policy"
+          ],
+          "has_personal_memory": false
+        },
+        {
+          "turn_id": "CODE_MIXED_SC_08_T3",
+          "user_message": "Warranty claim e original purchase receipt lagbe ki?",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "warranty_policy"
+          ],
+          "has_personal_memory": false
+        }
+      ]
+    },
+    {
+      "id": "CODE_MIXED_SC_09",
+      "language": "code_mixed",
+      "category": "privacy_data_protection",
+      "title": "CODE_MIXED - Privacy Data Protection",
+      "external_user_id": "e2e_user_code_mixed_09",
+      "turn_count": 2,
+      "turns": [
+        {
+          "turn_id": "CODE_MIXED_SC_09_T1",
+          "user_message": "Personal customer data kivabe protect kora hoy?",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "privacy_policy"
+          ],
+          "has_personal_memory": false
+        },
+        {
+          "turn_id": "CODE_MIXED_SC_09_T2",
+          "user_message": "User phone number third party marketing agency k provide koren?",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "privacy_policy"
+          ],
+          "has_personal_memory": false
+        }
+      ]
+    },
+    {
+      "id": "CODE_MIXED_SC_10",
+      "language": "code_mixed",
+      "category": "social_media_anti_fraud",
+      "title": "CODE_MIXED - Social Media Anti Fraud",
+      "external_user_id": "e2e_user_code_mixed_10",
+      "turn_count": 2,
+      "turns": [
+        {
+          "turn_id": "CODE_MIXED_SC_10_T1",
+          "user_message": "Official verified Facebook page er link share koren.",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "social_media_policy"
+          ],
+          "has_personal_memory": false
+        },
+        {
+          "turn_id": "CODE_MIXED_SC_10_T2",
+          "user_message": "Support agent ra ki Messenger e bKash PIN chaite pare?",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "social_media_policy"
+          ],
+          "has_personal_memory": false
+        }
+      ]
+    },
+    {
+      "id": "CODE_MIXED_SC_11",
+      "language": "code_mixed",
+      "category": "delivery_rates_timeframes",
+      "title": "CODE_MIXED - Delivery Rates Timeframes",
+      "external_user_id": "e2e_user_code_mixed_11",
+      "turn_count": 3,
+      "turns": [
+        {
+          "turn_id": "CODE_MIXED_SC_11_T1",
+          "user_message": "Inside Dhaka standard courier delivery charge koto?",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "delivery_policy"
+          ],
+          "has_personal_memory": false
+        },
+        {
+          "turn_id": "CODE_MIXED_SC_11_T2",
+          "user_message": "Standard shipping e maximum koto din lagbe?",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "delivery_policy"
+          ],
+          "has_personal_memory": false
+        },
+        {
+          "turn_id": "CODE_MIXED_SC_11_T3",
+          "user_message": "Consignment tracking code diye kivabe track korbo?",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "delivery_policy"
+          ],
+          "has_personal_memory": false
+        }
+      ]
+    },
+    {
+      "id": "CODE_MIXED_SC_12",
+      "language": "code_mixed",
+      "category": "terms_and_conditions",
+      "title": "CODE_MIXED - Terms And Conditions",
+      "external_user_id": "e2e_user_code_mixed_12",
+      "turn_count": 2,
+      "turns": [
+        {
+          "turn_id": "CODE_MIXED_SC_12_T1",
+          "user_message": "Website er official Terms of Service ki ki?",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "terms"
+          ],
+          "has_personal_memory": false
+        },
+        {
+          "turn_id": "CODE_MIXED_SC_12_T2",
+          "user_message": "Product price dynamic bhabe change hote pare?",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "terms"
+          ],
+          "has_personal_memory": false
+        }
+      ]
+    },
+    {
+      "id": "CODE_MIXED_SC_13",
+      "language": "code_mixed",
+      "category": "company_story_about_us",
+      "title": "CODE_MIXED - Company Story About Us",
+      "external_user_id": "e2e_user_code_mixed_13",
+      "turn_count": 2,
+      "turns": [
+        {
+          "turn_id": "CODE_MIXED_SC_13_T1",
+          "user_message": "Entrepreneurs Automation er corporate history ki?",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "about_us"
+          ],
+          "has_personal_memory": false
+        },
+        {
+          "turn_id": "CODE_MIXED_SC_13_T2",
+          "user_message": "Apnader core business vision and mission ki?",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "about_us"
+          ],
+          "has_personal_memory": false
+        }
+      ]
+    },
+    {
+      "id": "CODE_MIXED_SC_14",
+      "language": "code_mixed",
+      "category": "out_of_domain_handling",
+      "title": "CODE_MIXED - Out Of Domain Handling",
+      "external_user_id": "e2e_user_code_mixed_14",
+      "turn_count": 3,
+      "turns": [
+        {
+          "turn_id": "CODE_MIXED_SC_14_T1",
+          "user_message": "Dhaka city r today weather forecast ki?",
+          "intent_type": "ood",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "INSUFFICIENT",
+          "expected_document_types": [],
+          "has_personal_memory": false
+        },
+        {
+          "turn_id": "CODE_MIXED_SC_14_T2",
+          "user_message": "Mutton biryani cook korar recipe din.",
+          "intent_type": "ood",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "INSUFFICIENT",
+          "expected_document_types": [],
+          "has_personal_memory": false
+        },
+        {
+          "turn_id": "CODE_MIXED_SC_14_T3",
+          "user_message": "Official return policy details ta bolun.",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "return_policy"
+          ],
+          "has_personal_memory": false
+        }
+      ]
+    },
+    {
+      "id": "CODE_MIXED_SC_15",
+      "language": "code_mixed",
+      "category": "ambiguous_clarification",
+      "title": "CODE_MIXED - Ambiguous Clarification",
+      "external_user_id": "e2e_user_code_mixed_15",
+      "turn_count": 2,
+      "turns": [
+        {
+          "turn_id": "CODE_MIXED_SC_15_T1",
+          "user_message": "Service fee koto?",
+          "intent_type": "uncertain",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "PARTIAL",
+          "expected_document_types": [
+            "delivery_policy"
+          ],
+          "has_personal_memory": false
+        },
+        {
+          "turn_id": "CODE_MIXED_SC_15_T2",
+          "user_message": "Delivery fee r kotha jante chaisilam.",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "delivery_policy"
+          ],
+          "has_personal_memory": false
+        }
+      ]
+    },
+    {
+      "id": "CODE_MIXED_SC_16",
+      "language": "code_mixed",
+      "category": "fabric_care_guide",
+      "title": "CODE_MIXED - Fabric Care Guide",
+      "external_user_id": "e2e_user_code_mixed_16",
+      "turn_count": 2,
+      "turns": [
+        {
+          "turn_id": "CODE_MIXED_SC_16_T1",
+          "user_message": "Silk and linen cloth kivabe wash korle bhalo thake?",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "faq"
+          ],
+          "has_personal_memory": false
+        },
+        {
+          "turn_id": "CODE_MIXED_SC_16_T2",
+          "user_message": "Automatic washing machine e wash kora safe hobe?",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "faq"
+          ],
+          "has_personal_memory": false
+        }
+      ]
+    },
+    {
+      "id": "CODE_MIXED_SC_17",
+      "language": "code_mixed",
+      "category": "voucher_coupon_codes",
+      "title": "CODE_MIXED - Voucher Coupon Codes",
+      "external_user_id": "e2e_user_code_mixed_17",
+      "turn_count": 2,
+      "turns": [
+        {
+          "turn_id": "CODE_MIXED_SC_17_T1",
+          "user_message": "Cart e promo coupon voucher apply korbo kivabe?",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "faq"
+          ],
+          "has_personal_memory": false
+        },
+        {
+          "turn_id": "CODE_MIXED_SC_17_T2",
+          "user_message": "Single order e double discount voucher use kora jay?",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "faq"
+          ],
+          "has_personal_memory": false
+        }
+      ]
+    },
+    {
+      "id": "CODE_MIXED_SC_18",
+      "language": "code_mixed",
+      "category": "delayed_parcel_resolution",
+      "title": "CODE_MIXED - Delayed Parcel Resolution",
+      "external_user_id": "e2e_user_code_mixed_18",
+      "turn_count": 2,
+      "turns": [
+        {
+          "turn_id": "CODE_MIXED_SC_18_T1",
+          "user_message": "Delivery schedule delayed hole support team k notify korbo kivabe?",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "faq",
+            "delivery_policy"
+          ],
+          "has_personal_memory": false
+        },
+        {
+          "turn_id": "CODE_MIXED_SC_18_T2",
+          "user_message": "Customer support hotline contact number ta share koren.",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "contact"
+          ],
+          "has_personal_memory": false
+        }
+      ]
+    },
+    {
+      "id": "CODE_MIXED_SC_19",
+      "language": "code_mixed",
+      "category": "cross_session_continuity",
+      "title": "CODE_MIXED - Cross Session Continuity",
+      "external_user_id": "e2e_user_code_mixed_19",
+      "turn_count": 3,
+      "turns": [
+        {
+          "turn_id": "CODE_MIXED_SC_19_T1",
+          "user_message": "Amar favorite wardrobe color navy blue.",
+          "intent_type": "chat",
+          "expected_memory_action": "USE",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [],
+          "has_personal_memory": true
+        },
+        {
+          "turn_id": "CODE_MIXED_SC_19_T2",
+          "user_message": "Future purchase suggestion e navy blue highlight korben.",
+          "intent_type": "chat",
+          "expected_memory_action": "USE",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [],
+          "has_personal_memory": true
+        },
+        {
+          "turn_id": "CODE_MIXED_SC_19_T3",
+          "user_message": "Amar preferred color profile ki mone ache?",
+          "intent_type": "chat",
+          "expected_memory_action": "USE",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [],
+          "has_personal_memory": true
+        }
+      ]
+    },
+    {
+      "id": "CODE_MIXED_SC_20",
+      "language": "code_mixed",
+      "category": "conflict_precedence_rules",
+      "title": "CODE_MIXED - Conflict Precedence Rules",
+      "external_user_id": "e2e_user_code_mixed_20",
+      "turn_count": 2,
+      "turns": [
+        {
+          "turn_id": "CODE_MIXED_SC_20_T1",
+          "user_message": "Amar mone hoy product return window 30 days.",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "return_policy"
+          ],
+          "has_personal_memory": false
+        },
+        {
+          "turn_id": "CODE_MIXED_SC_20_T2",
+          "user_message": "Company official policy te timeline koto din mention kora?",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "return_policy"
+          ],
+          "has_personal_memory": false
+        }
+      ]
+    },
+    {
+      "id": "CODE_MIXED_SC_21",
+      "language": "code_mixed",
+      "category": "damaged_item_complaint",
+      "title": "CODE_MIXED - Damaged Item Complaint",
+      "external_user_id": "e2e_user_code_mixed_21",
+      "turn_count": 2,
+      "turns": [
+        {
+          "turn_id": "CODE_MIXED_SC_21_T1",
+          "user_message": "Delivered parcel unbox kore dekhi button damaged.",
+          "intent_type": "chat",
+          "expected_memory_action": "USE",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "return_policy",
+            "warranty_policy"
+          ],
+          "has_personal_memory": true
+        },
+        {
+          "turn_id": "CODE_MIXED_SC_21_T2",
+          "user_message": "Return shipment fee ki customer k pay korte hobe?",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "return_policy"
+          ],
+          "has_personal_memory": false
+        }
+      ]
+    },
+    {
+      "id": "CODE_MIXED_SC_22",
+      "language": "code_mixed",
+      "category": "urgent_same_day_delivery",
+      "title": "CODE_MIXED - Urgent Same Day Delivery",
+      "external_user_id": "e2e_user_code_mixed_22",
+      "turn_count": 2,
+      "turns": [
+        {
+          "turn_id": "CODE_MIXED_SC_22_T1",
+          "user_message": "Inside Dhaka urgent same-day delivery service available?",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "delivery_policy"
+          ],
+          "has_personal_memory": false
+        },
+        {
+          "turn_id": "CODE_MIXED_SC_22_T2",
+          "user_message": "Express same-day shipping charge koto?",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "delivery_policy"
+          ],
+          "has_personal_memory": false
+        }
+      ]
+    },
+    {
+      "id": "CODE_MIXED_SC_23",
+      "language": "code_mixed",
+      "category": "non_returnable_items",
+      "title": "CODE_MIXED - Non Returnable Items",
+      "external_user_id": "e2e_user_code_mixed_23",
+      "turn_count": 2,
+      "turns": [
+        {
+          "turn_id": "CODE_MIXED_SC_23_T1",
+          "user_message": "Store er all products ki return eligible?",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "return_policy"
+          ],
+          "has_personal_memory": false
+        },
+        {
+          "turn_id": "CODE_MIXED_SC_23_T2",
+          "user_message": "Non-returnable item list e ki ki ache?",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "return_policy"
+          ],
+          "has_personal_memory": false
+        }
+      ]
+    },
+    {
+      "id": "CODE_MIXED_SC_24",
+      "language": "code_mixed",
+      "category": "order_status_tracking",
+      "title": "CODE_MIXED - Order Status Tracking",
+      "external_user_id": "e2e_user_code_mixed_24",
+      "turn_count": 2,
+      "turns": [
+        {
+          "turn_id": "CODE_MIXED_SC_24_T1",
+          "user_message": "Amar order #1042 er live shipment status ki?",
+          "intent_type": "action",
+          "expected_memory_action": "USE",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [],
+          "has_personal_memory": true
+        },
+        {
+          "turn_id": "CODE_MIXED_SC_24_T2",
+          "user_message": "Pathao consignment tracking details ta din.",
+          "intent_type": "action",
+          "expected_memory_action": "USE",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [],
+          "has_personal_memory": true
+        }
+      ]
+    },
+    {
+      "id": "CODE_MIXED_SC_25",
+      "language": "code_mixed",
+      "category": "sizing_recommendation",
+      "title": "CODE_MIXED - Sizing Recommendation",
+      "external_user_id": "e2e_user_code_mixed_25",
+      "turn_count": 2,
+      "turns": [
+        {
+          "turn_id": "CODE_MIXED_SC_25_T1",
+          "user_message": "Amar chest measurement 42 inch, kon size accurate hobe?",
+          "intent_type": "knowledge",
+          "expected_memory_action": "USE",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "faq"
+          ],
+          "has_personal_memory": true
+        },
+        {
+          "turn_id": "CODE_MIXED_SC_25_T2",
+          "user_message": "Size fitting uncomfortable hole replace kora jabe?",
+          "intent_type": "knowledge",
+          "expected_memory_action": "SKIP",
+          "expected_answerability": "SUFFICIENT",
+          "expected_document_types": [
+            "exchange_policy"
+          ],
+          "has_personal_memory": false
+        }
+      ]
+    }
+  ]
+}

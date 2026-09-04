@@ -1,0 +1,55 @@
+{
+  "benchmark_version": "phase_c_baseline_v1",
+  "created_at": "2026-09-01T16:08:26+06:00",
+  "dataset_path": "tests/Datasets/static_kb_200_evaluation_dataset.json",
+  "dataset_size": 200,
+  "metrics": {
+    "top_1_accuracy": 0.730,
+    "top_3_accuracy": 0.880,
+    "mrr": 0.7975,
+    "answerability_accuracy": 0.795,
+    "ood_false_positive_count": 3,
+    "ood_total_count": 8,
+    "memory_relevance_gate_precision": 0.820,
+    "memory_token_reduction_pct": 95.33,
+    "unnecessary_memory_injections_eliminated_count": 152,
+    "unnecessary_memory_injections_eliminated_pct": 76.0,
+    "pure_static_policy_noise_leakage_pct": 0.0,
+    "retrieval_latency_p50_ms": 60.29,
+    "retrieval_latency_p95_ms": 920.19
+  },
+  "language_breakdown": {
+    "banglish": {
+      "sample_size": 50,
+      "top_1_accuracy": 0.760,
+      "top_3_accuracy": 0.920,
+      "mrr": 0.837
+    },
+    "native_bangla": {
+      "sample_size": 50,
+      "top_1_accuracy": 0.760,
+      "top_3_accuracy": 0.840,
+      "mrr": 0.790
+    },
+    "code_mixed": {
+      "sample_size": 50,
+      "top_1_accuracy": 0.700,
+      "top_3_accuracy": 0.900,
+      "mrr": 0.793
+    },
+    "english": {
+      "sample_size": 50,
+      "top_1_accuracy": 0.700,
+      "top_3_accuracy": 0.860,
+      "mrr": 0.770
+    }
+  },
+  "architectural_invariants": {
+    "separation_of_concerns": {
+      "typesense": "Official corporate policies, FAQs and search index ('What company says')",
+      "neo4j_graphiti": "Selective conversational memory, preferences, entities ('What we know about user')",
+      "relational_db": "Live authoritative truth for orders, inventory, CRM ('What is true right now')",
+      "deepseek_llm": "Language understanding and response generation only ('Never the source of truth')"
+    }
+  }
+}

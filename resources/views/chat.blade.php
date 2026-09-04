@@ -316,6 +316,30 @@
         /** Escape HTML entities */
         function esc(s){const d=document.createElement('div');d.appendChild(document.createTextNode(s));return d.innerHTML}
 
+        /** Safely parse Markdown, Bold, Lists, and Paragraphs */
+        function renderMarkdownText(raw){
+            if(!raw) return '';
+            let text = esc(String(raw));
+            text = text.replace(/^###\s+(.*?)$/gm, '<div style="font-weight:700;font-size:14.5px;margin:8px 0 4px;color:var(--text-primary);">$1</div>');
+            text = text.replace(/^##\s+(.*?)$/gm, '<div style="font-weight:700;font-size:14.5px;margin:8px 0 4px;color:var(--text-primary);">$1</div>');
+            text = text.replace(/^#\s+(.*?)$/gm, '<div style="font-weight:700;font-size:15px;margin:8px 0 4px;color:var(--text-primary);">$1</div>');
+            text = text.replace(/^---+$|^\*\*\*+$/gm, '<hr style="border:0;height:1px;background:var(--border);margin:10px 0;">');
+            text = text.replace(/\*\*(.*?)\*\*/g, '<strong style="font-weight:650;color:var(--text-primary);">$1</strong>');
+            text = text.replace(/__(.*?)__/g, '<strong style="font-weight:650;color:var(--text-primary);">$1</strong>');
+            text = text.replace(/`([^`]+)`/g, '<code style="background:var(--surface-hover);padding:2px 5px;border-radius:4px;font-size:12px;border:1px solid var(--border);">$1</code>');
+            text = text.replace(/^(\d+)[\.\)]\s+(.*?)$/gm, '<div style="display:flex;align-items:flex-start;margin-bottom:4px;"><span style="color:var(--accent);font-weight:650;margin-right:6px;min-width:18px;">$1.</span><span>$2</span></div>');
+            text = text.replace(/^[\-\*•]\s+(.*?)$/gm, '<div style="display:flex;align-items:flex-start;margin-bottom:4px;"><span style="color:var(--accent);font-weight:bold;margin-right:8px;">•</span><span>$1</span></div>');
+
+            const paragraphs = text.split(/\n\n+/);
+            const formatted = paragraphs.map(p => {
+                const tr = p.trim();
+                if(!tr) return '';
+                if(tr.startsWith('<div') || tr.startsWith('<hr')) return tr.replace(/\n/g, '<br>');
+                return `<div style="margin-bottom:8px;">${tr.replace(/\n/g, '<br>')}</div>`;
+            });
+            return `<div style="line-height:1.65;">${formatted.join('')}</div>`;
+        }
+
         /** Build a message bubble element */
         function bubble(content, role, extra=''){
             const row=document.createElement('div');
@@ -437,7 +461,7 @@
                         if(response.type==='table'){
                             html+=renderTable(response.data||[]);
                         } else {
-                            html+='<div>'+esc(response.message??'No data')+'</div>';
+                            html+=renderMarkdownText(response.message??'No data');
                         }
                         addBotMsg(html);
                     } else {

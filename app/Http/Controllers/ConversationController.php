@@ -1,44 +1,54 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers;
 
 use App\Http\Requests\SendMessageRequest;
 use App\Models\Conversation;
-use App\Services\ConversationService;
+use App\Services\AI\CustomerSupportService;
+use App\Services\Chat\ConversationService;
+use App\Services\FAQ\FAQSearch;
 use App\Support\ChannelManager;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Log;
+use Illuminate\View\View;
 
 class ConversationController extends Controller
 {
-    public function __construct(protected ConversationService $conversationService) {
-    }
+    public function __construct(
+        protected ConversationService $conversationService,
+        protected FAQSearch $faqSearch,
+        protected CustomerSupportService $customerSupportService,
+    ) {}
 
     /**
      * Conversation List
      */
-    public function index()
+    public function index(): View
     {
         $conversations = Conversation::with(['channelAccount.channel'])->latest('last_message_at')->paginate(20);
 
-        return view('conversations.index',compact('conversations'));
+        return view('admin.conversations.index', compact('conversations'));
     }
 
     /**
      * Conversation Details
      */
-    public function show(Conversation $conversation)
+    public function show(Conversation $conversation): View
     {
         $conversations = Conversation::with(['channelAccount.channel'])->latest('last_message_at')->paginate(20);
-        
-        $conversation->load(['messages','channelAccount.channel']);
 
-        return view('conversations.show',compact('conversations','conversation'));
+        $conversation->load(['messages', 'channelAccount.channel']);
+
+        return view('admin.conversations.show', compact('conversations', 'conversation'));
     }
 
     /**
-     * Send Reply
+     * Send Manual Staff Reply
      */
-    public function reply(SendMessageRequest $request,Conversation $conversation) {
+    public function reply(SendMessageRequest $request, Conversation $conversation): RedirectResponse
+    {
         // Load relationships (if not already loaded)
         $conversation->load('channelAccount.channel');
 
@@ -48,18 +58,66 @@ class ConversationController extends Controller
         $driver = ChannelManager::driver($conversation->channelAccount->channel->slug);
 
         // Send message to external platform
-        $response = $driver->send($conversation->channelAccount,$conversation,$message);
-        
-        Log::info('Message sent', [
-            'conversation_id' => $conversation->id,
-            'channel_account_id' => $conversation->channel_account_id,
-            'message' => $message,
-            'response' => $response,
-        ]);
+        $response = $driver->send($conversation->channelAccount, $conversation, $message);
 
-        // Save outgoing message
-        $this->conversationService->saveOutgoing($conversation,$message,$response);
+        // Save staff outgoing message
+        $this->conversationService->saveOutgoing(
+            conversation: $conversation,
+            message: $message,
+            response: $response,
+        );
 
-        return redirect()->back()->with('success', 'Message sent successfully.');
+        return redirect()->route('admin.conversations.show', $conversation)
+            ->with('status', 'Reply sent successfully!');
+    }
+
+    /**
+     * Trigger AI Agent Reply for a Conversation Thread.
+     */
+    public function aiReply(Conversation $conversation): RedirectResponse
+    {
+        $conversation->load('channelAccount.channel');
+
+        $lastInbound = $conversation->messages()->where('direction', 'inbound')->latest('id')->first();
+        $prompt = $lastInbound?->body ?? 'Hello, how can I help you today?';
+        $workspaceId = (int) ($conversation->channelAccount?->workspace_id ?? 1);
+
+        $supportResult = $this->customerSupportService->handleQuery(
+            query: $prompt,
+            workspaceId: $workspaceId,
+            conversation: $conversation,
+        );
+
+        $replyText = $supportResult['reply'] ?? '';
+
+        if (trim($replyText) !== '') {
+            $deliveryResponse = [];
+            if ($conversation->channelAccount?->channel) {
+                try {
+                    $driver = ChannelManager::driver($conversation->channelAccount->channel->slug);
+                    $deliveryResponse = $driver->send($conversation->channelAccount, $conversation, $replyText) ?? [];
+                } catch (\Throwable $sendError) {
+                    Log::warning('[ConversationController] Failed to deliver AI message to channel', [
+                        'conversation_id' => $conversation->id,
+                        'error'           => $sendError->getMessage(),
+                    ]);
+                }
+            }
+
+            $this->customerSupportService->saveOutboundReply(
+                conversation: $conversation,
+                replyText: $replyText,
+                deliveryResponse: array_merge($deliveryResponse, [
+                    'route' => $supportResult['route'] ?? 'knowledge',
+                    'confidence' => $supportResult['confidence'] ?? 1.0,
+                    'answered' => $supportResult['answered'] ?? false,
+                    'total_time_ms' => $supportResult['routing_telemetry']['total_e2e_ms'] ?? null,
+                    'answerability_decision' => $supportResult['answerability_decision'] ?? null,
+                    'routing_telemetry' => $supportResult['routing_telemetry'] ?? [],
+                ]),
+            );
+        }
+
+        return redirect()->back()->with('success', 'AI response generated successfully.');
     }
 }

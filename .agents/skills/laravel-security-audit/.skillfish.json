@@ -1,0 +1,10 @@
+{
+  "version": 2,
+  "name": "laravel-security-audit",
+  "owner": "sickn33",
+  "repo": "antigravity-awesome-skills",
+  "path": "plugins/agentic-awesome-skills-claude/skills/laravel-security-audit",
+  "branch": "main",
+  "sha": "bdb50ddefdec7bff260755c3630dd785de684c5c",
+  "source": "manual"
+}

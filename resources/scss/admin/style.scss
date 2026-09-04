@@ -1,0 +1,153 @@
+/* =====================================================
+   ===== ADMIN PANEL DESIGN SYSTEM ENTRY POINT =====
+===================================================== */
+
+/**
+ * Modern Premium Admin Panel Design System
+ * 
+ * This file serves as the main entry point for the admin panel's design system.
+ * All component styles are modularized and imported below for better maintainability.
+ * 
+ * Design Philosophy:
+ * - Consistency over creativity
+ * - Reusable components across all modules
+ * - Premium SaaS-style interface inspired by Nova, Filament, Linear, etc.
+ * - Minimal, clean, and professional
+ */
+
+@use 'variables' as *;
+@use 'mixins' as *;
+
+/* ==================== DESIGN SYSTEM IMPORTS ==================== */
+
+/**
+ * Layout & Container Styles
+ * - Sidebar, header, content wrapper
+ * - Grid system, spacing utilities
+ * - Responsive design foundations
+ */
+@use 'layout';
+
+/**
+ * Button Styles & Variants
+ * - Primary, secondary, success, danger, warning, info
+ * - Outline and ghost buttons
+ * - Various sizes (sm, md, lg)
+ * - Icon buttons, button groups
+ */
+@use 'buttons';
+
+/**
+ * Card Styles & Components
+ * - Base card styles with elevation
+ * - Card variants (primary, success, danger, etc.)
+ * - Dashboard cards, table cards
+ * - Empty states, loading states
+ */
+@use 'cards';
+
+/**
+ * Form Styles & Components
+ * - Text inputs, textarea, select
+ * - Checkboxes, radio buttons, switches
+ * - File uploads, validation states
+ * - Form layouts (row, horizontal, inline)
+ */
+@use 'forms';
+
+/**
+ * Table Styles & Responsive Tables
+ * - Table headers and cells
+ * - Action buttons, pagination
+ * - DataTables integration
+ * - Responsive table transformations
+ */
+@use 'tables';
+
+/**
+ * Badge & Status Badges
+ * - Color variants (primary, success, danger, etc.)
+ * - Status badges (active, inactive, pending, etc.)
+ * - Badge sizes and styles
+ */
+@use 'badges';
+
+/**
+ * Alert, Toast & Message Styles
+ * - Alert colors and variants
+ * - Toast notifications
+ * - Callout and message styles
+ * - Animations and transitions
+ */
+@use 'alerts';
+
+/**
+ * Modal & Dialog Styles
+ * - Modal backdrop and dialog
+ * - Modal header, body, footer
+ * - Confirmation dialogs
+ * - Modal animations
+ */
+@use 'modals';
+
+/**
+ * Dropdown & Menu Styles
+ * - Dropdown menus and items
+ * - Dropdown variants and directions
+ * - Custom dropdown content
+ * - Menu animations
+ */
+@use 'dropdowns';
+
+/**
+ * Auth & Login Styles
+ * - Login, registration, password reset
+ * - Aligned with admin theme and design tokens
+ */
+@use 'auth';
+
+/* ==================== GLOBAL FOCUS OVERRIDES ==================== */
+
+/**
+ * Universal Focus Reset:
+ * Completely disables box-shadow and outline on focus / focus-visible / active
+ * across all inputs, controls, buttons, toggles, and dropdown triggers in the admin panel.
+ */
+input,
+textarea,
+select,
+button,
+.form-control,
+.form-select,
+.form-check-input,
+.custom-input,
+.custom-checkbox,
+.btn,
+.submit-button,
+.cancel-button,
+.add-new,
+.page-link,
+[type='button'],
+[type='submit'],
+[type='reset'],
+[type='text'],
+[type='password'],
+[type='email'],
+[type='number'],
+[type='tel'],
+[type='url'],
+[type='search'],
+[type='checkbox'],
+[type='radio'],
+.select2-container .select2-selection,
+.select2-container .select2-search__field {
+    &:focus,
+    &:focus-visible,
+    &:focus-within,
+    &:active {
+        outline: none !important;
+        box-shadow: none !important;
+    }
+}
+
+/* ==================== END OF DESIGN SYSTEM ==================== */

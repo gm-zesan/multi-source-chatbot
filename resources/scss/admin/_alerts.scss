@@ -1,0 +1,456 @@
+@use 'variables' as *;
+@use 'mixins' as *;
+
+/* =====================================================
+   ========== ALERT & MESSAGE STYLES ==============
+===================================================== */
+
+/* ==================== ALERT BASE ==================== */
+.alert {
+    @include alert-base;
+    border-radius: $radius-lg;
+
+    p {
+        margin: 0;
+    }
+
+    a {
+        color: inherit;
+        text-decoration: underline;
+        font-weight: $font-semibold;
+
+        &:hover {
+            opacity: 0.8;
+        }
+    }
+}
+
+/* ==================== ALERT COLORS ==================== */
+.alert-primary {
+    @include alert-variant($primary, $primary-50);
+}
+
+.alert-success {
+    @include alert-variant($success, $success-light);
+}
+
+.alert-danger {
+    @include alert-variant($danger, $danger-light);
+}
+
+.alert-warning {
+    @include alert-variant($warning, $warning-light);
+}
+
+.alert-info {
+    @include alert-variant($info, $info-light);
+}
+
+/* ==================== ALERT SIZES ==================== */
+.alert-sm {
+    padding: $space-sm $space-md;
+
+    [class*='alert-'] {
+        padding: $space-sm $space-md;
+    }
+}
+
+.alert-lg {
+    padding: $space-lg;
+
+    [class*='alert-'] {
+        padding: $space-lg;
+    }
+}
+
+/* ==================== ALERT WITH ICON ==================== */
+.alert-icon {
+    .alert-icon-content {
+        display: flex;
+        align-items: flex-start;
+        gap: $space-sm;
+
+        .icon {
+            font-size: $text-2xl;
+            flex-shrink: 0;
+            margin-top: 2px;
+        }
+
+        .content {
+            flex: 1;
+
+            .alert-title {
+                font-weight: $font-semibold;
+                margin-bottom: $space-1;
+            }
+
+            .alert-message {
+                font-size: $text-sm;
+            }
+        }
+    }
+}
+
+/* ==================== ALERT WITH CLOSE BUTTON ==================== */
+.alert-closeable {
+    position: relative;
+    padding-right: $space-3xl;
+
+    .alert-close {
+        position: absolute;
+        top: $space-lg;
+        right: $space-lg;
+        background: none;
+        border: none;
+        font-size: $text-lg;
+        cursor: pointer;
+        padding: 0;
+        opacity: 0.7;
+        transition: opacity $transition-fast;
+
+        &:hover {
+            opacity: 1;
+        }
+    }
+}
+
+/* ==================== ALERT VARIANTS ==================== */
+
+/* Outlined Alert */
+.alert-outline {
+    background-color: transparent;
+    border: 2px solid;
+    border-left-width: 4px;
+    padding: $space-lg;
+
+    &.alert-outline-primary {
+        border-color: $primary;
+        color: $primary;
+    }
+
+    &.alert-outline-success {
+        border-color: $success;
+        color: $success;
+    }
+
+    &.alert-outline-danger {
+        border-color: $danger;
+        color: $danger;
+    }
+
+    &.alert-outline-warning {
+        border-color: $warning;
+        color: $warning;
+    }
+
+    &.alert-outline-info {
+        border-color: $info;
+        color: $info;
+    }
+}
+
+/* Soft Alert */
+.alert-soft {
+    border: none;
+    border-left: 4px solid;
+
+    &.alert-soft-primary {
+        background-color: $primary-50;
+        border-left-color: $primary;
+        color: $primary;
+    }
+
+    &.alert-soft-success {
+        background-color: $success-light;
+        border-left-color: $success;
+        color: $success;
+    }
+
+    &.alert-soft-danger {
+        background-color: $danger-light;
+        border-left-color: $danger;
+        color: $danger;
+    }
+
+    &.alert-soft-warning {
+        background-color: $warning-light;
+        border-left-color: $warning;
+        color: $warning;
+    }
+
+    &.alert-soft-info {
+        background-color: $info-light;
+        border-left-color: $info;
+        color: $info;
+    }
+}
+
+/* ==================== TOAST NOTIFICATIONS ==================== */
+.toast-container {
+    position: fixed;
+    top: $space-2xl;
+    right: $space-2xl;
+    z-index: $z-notification;
+    pointer-events: none;
+
+    @include mobile-only {
+        top: $space-lg;
+        right: $space-lg;
+        left: $space-lg;
+    }
+}
+
+.toast {
+    @include flex-box(flex, center, space-between);
+    background-color: $surface-primary;
+    border: 1px solid $border-color;
+    border-radius: $radius-lg;
+    padding: $space-lg $space-2xl;
+    margin-bottom: $space-lg;
+    box-shadow: $shadow-lg;
+    animation: slideInRight 0.3s ease-out;
+    pointer-events: auto;
+    min-width: 320px;
+    max-width: 400px;
+
+    &.toast-success {
+        border-left: 4px solid $success;
+
+        .toast-icon {
+            color: $success;
+        }
+    }
+
+    &.toast-error {
+        border-left: 4px solid $danger;
+
+        .toast-icon {
+            color: $danger;
+        }
+    }
+
+    &.toast-warning {
+        border-left: 4px solid $warning;
+
+        .toast-icon {
+            color: $warning;
+        }
+    }
+
+    &.toast-info {
+        border-left: 4px solid $info;
+
+        .toast-icon {
+            color: $info;
+        }
+    }
+
+    .toast-content {
+        display: flex;
+        align-items: center;
+        gap: $space-md;
+        flex: 1;
+
+        .toast-icon {
+            font-size: $text-2xl;
+            flex-shrink: 0;
+        }
+
+        .toast-message {
+            font-size: $text-sm;
+            color: $text-primary;
+        }
+    }
+
+    .toast-close {
+        background: none;
+        border: none;
+        font-size: $text-lg;
+        cursor: pointer;
+        color: $text-secondary;
+        padding: 0;
+        margin-left: $space-lg;
+        transition: color $transition-fast;
+
+        &:hover {
+            color: $text-primary;
+        }
+    }
+
+    @include mobile-only {
+        min-width: auto;
+        max-width: none;
+        width: calc(100% - #{$space-lg * 2});
+    }
+}
+
+@keyframes slideInRight {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+/* Toast exit animation */
+.toast.toast-exit {
+    animation: slideOutRight 0.3s ease-out forwards;
+}
+
+@keyframes slideOutRight {
+    from {
+        transform: translateX(0);
+        opacity: 1;
+    }
+
+    to {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+}
+
+/* ==================== CALLOUT ==================== */
+.callout {
+    @include card-base;
+    border-left: 4px solid $primary;
+    background-color: $primary-50;
+    padding: $space-lg;
+
+    .callout-title {
+        font-weight: $font-semibold;
+        font-size: $text-sm;
+        margin-bottom: $space-sm;
+    }
+
+    .callout-content {
+        font-size: $text-sm;
+        color: $text-primary;
+    }
+
+    &.callout-success {
+        border-left-color: $success;
+        background-color: $success-light;
+        color: $success;
+    }
+
+    &.callout-danger {
+        border-left-color: $danger;
+        background-color: $danger-light;
+        color: $danger;
+    }
+
+    &.callout-warning {
+        border-left-color: $warning;
+        background-color: $warning-light;
+        color: $warning;
+    }
+
+    &.callout-info {
+        border-left-color: $info;
+        background-color: $info-light;
+        color: $info;
+    }
+}
+
+/* ==================== MESSAGE ==================== */
+.message {
+    @include flex-box(flex, center, flex-start);
+    gap: $space-lg;
+    padding: $space-lg;
+    border-radius: $radius-lg;
+    background-color: $bg-secondary;
+    color: $text-primary;
+
+    .message-icon {
+        font-size: $text-2xl;
+        flex-shrink: 0;
+    }
+
+    .message-content {
+        flex: 1;
+
+        .message-title {
+            font-weight: $font-semibold;
+            margin-bottom: $space-sm;
+        }
+
+        .message-text {
+            font-size: $text-sm;
+            color: $text-secondary;
+            margin: 0;
+        }
+
+        a {
+            color: $primary;
+            text-decoration: none;
+            font-weight: $font-semibold;
+
+            &:hover {
+                text-decoration: underline;
+            }
+        }
+    }
+
+    .message-close {
+        background: none;
+        border: none;
+        font-size: $text-lg;
+        cursor: pointer;
+        color: $text-secondary;
+        padding: 0;
+        transition: color $transition-fast;
+
+        &:hover {
+            color: $text-primary;
+        }
+    }
+}
+
+/* ==================== ALERT ANIMATIONS ==================== */
+.alert {
+    animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+    from {
+        transform: translateY(-20px);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+/* ==================== RESPONSIVE ALERTS ==================== */
+@include mobile-only {
+    .alert {
+        padding: $space-md;
+        flex-direction: column;
+        gap: $space-md;
+
+        .alert-icon {
+            align-items: center;
+            text-align: center;
+        }
+    }
+
+    .toast {
+        min-width: 100%;
+        max-width: none;
+
+        .toast-content {
+            flex-direction: column;
+            text-align: center;
+
+            .toast-icon {
+                margin-bottom: 0;
+            }
+        }
+    }
+}

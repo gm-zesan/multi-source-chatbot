@@ -1,0 +1,530 @@
+@use 'variables' as *;
+@use 'mixins' as *;
+
+/* =====================================================
+   ========== TABLE STYLES & COMPONENTS ==============
+===================================================== */
+
+/* ==================== TABLE BASE ==================== */
+.table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 0;
+
+    thead {
+        th {
+            @include table-header;
+        }
+    }
+
+    tbody {
+        tr {
+            &:hover {
+                background-color: $bg-tertiary;
+            }
+
+            &:last-child td {
+                border-bottom: none;
+            }
+
+            td {
+                @include table-cell;
+            }
+        }
+    }
+
+    // Bootstrap border-bottom color override
+    > :not(:last-child) > :last-child > * {
+        border-bottom-color: $border-color;
+    }
+
+    &.table-striped tbody tr:nth-child(odd) {
+        background-color: $bg-tertiary;
+    }
+
+    &.table-hover tbody tr:hover {
+        background-color: $bg-hover;
+        transition: background-color $transition-fast;
+    }
+
+    &.table-bordered {
+        border: 1px solid $border-color;
+
+        th, td {
+            border: 1px solid $border-color;
+        }
+    }
+
+    &.table-sm {
+        th, td {
+            padding: $space-3 $space-sm;
+            font-size: $text-xs;
+        }
+    }
+
+    &.table-lg {
+        th, td {
+            padding: $space-md $space-lg;
+            font-size: $text-sm;
+        }
+    }
+}
+
+/* ==================== TABLE VARIANTS ==================== */
+.table-primary {
+    thead th {
+        background-color: $primary;
+        color: $white;
+    }
+}
+
+.table-success {
+    thead th {
+        background-color: $success;
+        color: $white;
+    }
+}
+
+.table-danger {
+    thead th {
+        background-color: $danger;
+        color: $white;
+    }
+}
+
+/* ==================== TABLE ACTIONS ==================== */
+.table-actions {
+    @include flex-box(flex, center, flex-start);
+    gap: $space-1;
+
+    .action-btn {
+        @include flex-box(flex, center);
+        gap: $space-1;
+        width: 28px;
+        height: 28px;
+        border-radius: $radius-xs;
+        text-decoration: none;
+        transition: $transition-fast;
+        @include no-select;
+
+        &.btn-edit {
+            background-color: $primary-light;
+            color: $primary;
+
+            &:hover {
+                background-color: $primary;
+                color: $white;
+            }
+        }
+
+        &.btn-view {
+            background-color: $success-light;
+            color: $success;
+
+            &:hover {
+                background-color: $success;
+                color: $white;
+            }
+        }
+
+        &.btn-delete {
+            background-color: $danger-light;
+            color: $danger;
+
+            &:hover {
+                background-color: $danger;
+                color: $white;
+            }
+        }
+
+        &.btn-show {
+            background-color: $info-light;
+            color: $info;
+
+            &:hover {
+                background-color: $info;
+                color: $white;
+            }
+        }
+
+        i {
+            font-size: $text-sm;
+        }
+    }
+}
+
+/* ==================== TABLE PAGINATION (Bootstrap) ==================== */
+.pagination {
+    @include flex-box(flex, center);
+    gap: $space-sm;
+    margin: $space-2xl 0 0 0;
+    padding: 0;
+    list-style: none;
+
+    .page-item {
+        &.active .page-link {
+            background-color: $primary;
+            border-color: $primary;
+            color: $white;
+        }
+
+        &.disabled .page-link {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .page-link {
+            @include flex-box(flex, center, center);
+            width: 36px;
+            height: 36px;
+            border: 1px solid $border-color;
+            border-radius: $radius-lg;
+            color: $text-primary;
+            text-decoration: none;
+            transition: $transition-fast;
+            font-size: $text-sm;
+            font-weight: $font-medium;
+
+            &:hover:not(.disabled) {
+                background-color: $bg-tertiary;
+                border-color: $primary;
+                color: $primary;
+            }
+        }
+    }
+}
+
+/* ==================== DATA TABLE STYLES ==================== */
+.dataTables_wrapper {
+    .dataTables_length {
+        select {
+            min-height: 28px !important;
+            border: 1px solid $border-color !important;
+            border-radius: $radius-xs !important;
+            height: 28px !important;
+            font-size: $text-xs !important;
+            font-weight: $font-normal !important;
+            line-height: 1 !important;
+            background-position: right 6px center !important;
+            background-size: 12px !important;
+            padding: $space-xs $space-2xl $space-xs $space-sm !important;
+            transition: $transition-base !important;
+        }
+
+        label {
+            font-size: $text-base;
+            font-weight: $font-normal;
+            @include flex-box(flex, center, null, $space-sm);
+        }
+    }
+
+    .dataTables_filter {
+        margin-right: 2px;
+
+        label {
+            font-size: $text-base;
+            font-weight: $font-normal;
+            @include flex-box(flex, center, null, $space-sm);
+        }
+
+        input {
+            border: 1px solid $border-color !important;
+            border-radius: $radius-xs !important;
+            margin-left: $space-sm !important;
+            height: 28px !important;
+            transition: $transition-base !important;
+            padding: $space-sm $space-lg !important;
+            font-size: $text-xs !important;
+
+            &:focus {
+                border-color: $primary !important;
+                box-shadow: none;
+                outline: 0;
+            }
+
+            &:focus-visible {
+                outline: none;
+            }
+        }
+    }
+
+    .dataTables_info {
+        padding-top: $space-lg;
+        white-space: nowrap;
+        font-size: $text-base;
+        font-weight: $font-normal;
+    }
+
+    .dataTables_processing {
+        > div:last-child > div {
+            background: $bg-primary !important;
+        }
+    }
+}
+
+table.dataTable {
+    border-collapse: collapse;
+
+    &.no-footer {
+        border-bottom: 1px solid $border-color;
+    }
+
+    thead {
+        th {
+            height: auto;
+            vertical-align: middle;
+            font-weight: $font-semibold;
+            color: $text-primary;
+            border-bottom: 1px solid $border-color;
+            padding: $space-md $space-lg;
+
+            // Hide DataTables default sorting arrows
+            &.sorting:after,
+            &.sorting_asc:after,
+            &.sorting_desc:after {
+                display: none;
+            }
+        }
+
+        td.sorting:after {
+            display: none;
+        }
+    }
+
+    tbody {
+        th,
+        td {
+            height: auto;
+            vertical-align: middle;
+            font-size: $text-sm;
+            color: $text-primary;
+            font-weight: $font-normal;
+            border-bottom: 1px solid $border-light;
+            // Compact padding override for dense tables
+            // (kept !important to override DataTables inline styles)
+            padding: 4px 6px !important;
+        }
+
+        td {
+            > a {
+                margin-right: $space-sm;
+                text-decoration: none;
+                height: 28px;
+                width: 28px;
+                border-radius: $radius-xs;
+                @include flex-box(flex, center, center);
+                transition: $transition-base;
+                font-size: $text-base;
+
+                &:focus,
+                &:hover {
+                    color: $text-primary;
+                    box-shadow: none !important;
+                    outline: 0 !important;
+                }
+            }
+        }
+
+        tr {
+            &:hover {
+                background-color: $bg-tertiary;
+            }
+
+            &:last-child td {
+                border-bottom: none;
+            }
+
+            td .action-btn {
+                display: flex;
+            }
+        }
+    }
+
+    // Action buttons (edit / show / delete / receipt)
+    .action-btn,
+    tbody tr td {
+        .btn-edit,
+        .btn-show,
+        .btn-delete,
+        .btn-receipt {
+            @include flex-box(flex, center, center);
+            text-decoration: none;
+            height: 28px;
+            width: 28px;
+            border-radius: $radius-xs;
+            transition: $transition-base;
+            font-size: $text-base;
+            font-weight: $font-medium;
+
+            &:hover {
+                transition: $transition-base;
+            }
+        }
+
+        .btn-edit {
+            color: $primary-dark;
+            background-color: $primary-light;
+
+            &:hover {
+                color: $white;
+                background-color: $primary-dark;
+            }
+
+            &.btn-checked {
+                color: $success;
+                background-color: $success-light;
+
+                &:hover {
+                    color: $white;
+                    background-color: $success;
+                }
+            }
+        }
+
+        .btn-show {
+            margin-left: $space-sm;
+            color: $success;
+            background-color: $success-light;
+
+            &:hover {
+                color: $white;
+                background-color: $success;
+            }
+
+            &.btn-checked {
+                color: $success;
+                background-color: $success-light;
+
+                &:hover {
+                    color: $white;
+                    background-color: $success;
+                }
+            }
+        }
+
+        .btn-delete {
+            color: $danger;
+            background-color: $danger-light;
+            margin-left: $space-sm;
+
+            &:hover {
+                color: $white;
+                background-color: $danger;
+            }
+        }
+
+        .btn-receipt {
+            color: $info;
+            background-color: $info-light;
+            margin-left: $space-sm;
+
+            &:hover {
+                color: $white;
+                background-color: $info;
+            }
+        }
+    }
+
+    &.table-striped > tbody > tr:nth-child(odd) {
+        background-color: $bg-secondary;
+    }
+}
+
+/* ==================== DATA TABLES PAGINATION ==================== */
+.dataTables_paginate.paging_simple_numbers {
+    padding-top: $space-lg !important;
+
+    > a {
+        font-size: $text-base;
+        font-weight: $font-normal;
+        color: $text-secondary;
+        margin: 0 $space-sm;
+        cursor: pointer !important;
+        transition: $transition-base;
+    }
+
+    span .paginate_button {
+        font-size: $text-xs !important;
+        font-weight: $font-medium !important;
+        margin: 0 $space-xs !important;
+        color: $text-primary !important;
+        background: $white !important;
+        padding: 6px $space-md !important;
+        border-radius: $radius-xs !important;
+        border: 1px solid $border-color !important;
+        transition: $transition-base;
+
+        &:hover {
+            background: $bg-secondary !important;
+            color: $primary !important;
+        }
+
+        &.current {
+            background: $bg-secondary !important;
+            color: $primary !important;
+            font-weight: $font-semibold !important;
+        }
+
+        &:focus {
+            box-shadow: none !important;
+            outline: 0 !important;
+            transition: $transition-base;
+        }
+    }
+}
+
+/* ==================== TABLE RESPONSIVE ==================== */
+@include mobile-only {
+    .table {
+        font-size: $text-xs;
+
+        thead {
+            display: none;
+        }
+
+        tbody, tr, td {
+            display: block;
+            width: 100%;
+        }
+
+        tbody tr {
+            border: 1px solid $border-color;
+            border-radius: $radius-lg;
+            margin-bottom: $space-lg;
+            padding: $space-md;
+
+            td {
+                padding: $space-sm 0;
+                border: none;
+                text-align: right;
+
+                &::before {
+                    content: attr(data-label);
+                    float: left;
+                    font-weight: $font-semibold;
+                    color: $text-primary;
+                }
+            }
+        }
+    }
+
+    .table-responsive {
+        display: block;
+        width: 100%;
+        overflow-x: auto;
+
+        > .table {
+            margin-bottom: 0;
+        }
+    }
+}
+
+/* ==================== RESPONSIVE TABLE WRAPPER ==================== */
+.table-responsive {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+
+    > .table {
+        margin-bottom: 0;
+    }
+}
