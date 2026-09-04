@@ -197,8 +197,8 @@ class FAQSeeder extends Seeder
                 ? $categories[$categorySlug]->id
                 : null;
             $data['is_active'] = true;
-            $data['hit_count'] = fake()->numberBetween(0, 5000);
-            $data['last_used_at'] = fake()->optional(0.8)->dateTimeBetween('-6 months', 'now');
+            $data['hit_count'] = rand(0, 5000);
+            $data['last_used_at'] = (rand(1, 10) <= 8) ? now()->subDays(rand(1, 180)) : null;
             $data['searchable_text'] = strip_tags($data['question'].' '.$data['answer']);
 
             FAQ::create($data);
