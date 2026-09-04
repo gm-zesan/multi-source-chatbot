@@ -13,13 +13,12 @@ jobs:
     steps:
       - name: Deploy to Server
         uses: appleboy/ssh-action@v1.2.0
-
         with:
           host: ${{ secrets.HOST }}
           username: ${{ secrets.USERNAME }}
           key: ${{ secrets.PRIVATE_KEY }}
-          port: 22
-
+          port: ${{ secrets.PORT || 22 }}
           script: |
             cd /home/entrepre/chat.entrepreneursautomation.com
-            ./deploy.sh
+            chmod +x deploy.sh 2>/dev/null || true
+            bash deploy.sh
