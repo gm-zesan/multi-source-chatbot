@@ -30,12 +30,19 @@ fi
 $COMPOSER_BIN install --no-dev --optimize-autoloader --no-interaction
 
 # 3. Build Front-end Assets (if Node/NPM available)
-echo "🎨 3/6 Building front-end assets..."
+echo "🎨 3/6 Checking front-end assets..."
+for node_dir in /opt/cpanel/ea-nodejs22/bin /opt/cpanel/ea-nodejs20/bin /opt/cpanel/ea-nodejs18/bin /usr/local/bin; do
+    if [ -d "$node_dir" ] && [ -x "$node_dir/npm" ]; then
+        export PATH="$node_dir:$PATH"
+        break
+    fi
+done
+
 if command -v npm &> /dev/null; then
     npm ci --prefer-offline 2>/dev/null || npm install --no-audit --prefer-offline
     npm run build
 else
-    echo "⚠️ npm not found on PATH, skipping asset compilation."
+    echo "ℹ️ npm not installed on server, using pre-built assets from public/build."
 fi
 
 # 4. Database Migrations
