@@ -24,7 +24,7 @@ class ChannelAccountSeeder extends Seeder
                 'workspace_id'  => 1,
                 'name'          => 'facebook_page',
                 'display_name'  => 'Entrepreneurs Automation',
-                'access_token'  => env('FB_PAGE_ACCESS_TOKEN'),
+                'access_token'  => env('FB_PAGE_ACCESS_TOKEN') ?: 'EAAB_PLACEHOLDER_FB_PAGE_ACCESS_TOKEN',
                 'refresh_token' => null,
                 'settings'      => [
                     'page_id' => '1229035226952947',
