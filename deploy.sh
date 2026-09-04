@@ -40,7 +40,7 @@ fi
 
 # 4. Database Migrations
 echo "🗄️ 4/6 Running database migrations..."
-php artisan migrate:fresh --seed --force
+php artisan migrate --force --no-interaction
 
 # 5. Clear and Cache Laravel Configurations
 echo "⚡ 5/6 Caching configuration & views..."

@@ -60,7 +60,14 @@ class KnowledgeSearchLogSeeder extends Seeder
             }
 
             $matchedFaq = $faqs->random();
-            $hasMatch = fake()->boolean(70);
+            $hasMatch = (rand(1, 100) <= 70);
+            $keywordScore = $hasMatch ? (rand(5000, 10000) / 10000) : (rand(0, 3000) / 10000);
+            $semanticScore = $hasMatch ? (rand(4000, 10000) / 10000) : (rand(0, 2500) / 10000);
+            $finalScore = $hasMatch ? (rand(5000, 10000) / 10000) : (rand(0, 2500) / 10000);
+            $responseTime = rand(50, 5000);
+            $answerSources = $hasMatch ? ['faq_match', 'keyword', 'semantic'] : ['fallback', 'none'];
+            $answerSource = $answerSources[array_rand($answerSources)];
+            $createdAt = now()->subDays(rand(0, 30))->subMinutes(rand(0, 1440));
 
             KnowledgeSearchLog::create([
                 'workspace_id' => $workspace->id,
@@ -68,14 +75,12 @@ class KnowledgeSearchLogSeeder extends Seeder
                 'message_id' => $message->id,
                 'customer_query' => $query,
                 'matched_faq_id' => $hasMatch ? $matchedFaq->id : null,
-                'keyword_score' => $hasMatch ? fake()->randomFloat(4, 0.5, 1) : fake()->randomFloat(4, 0, 0.3),
-                'semantic_score' => $hasMatch ? fake()->randomFloat(4, 0.4, 1) : fake()->randomFloat(4, 0, 0.25),
-                'final_score' => $hasMatch ? fake()->randomFloat(4, 0.5, 1) : fake()->randomFloat(4, 0, 0.25),
-                'response_time_ms' => fake()->numberBetween(50, 5000),
-                'answer_source' => $hasMatch
-                    ? fake()->randomElement(['faq_match', 'keyword', 'semantic'])
-                    : fake()->randomElement(['fallback', 'none']),
-                'created_at' => fake()->dateTimeBetween('-30 days', 'now'),
+                'keyword_score' => $keywordScore,
+                'semantic_score' => $semanticScore,
+                'final_score' => $finalScore,
+                'response_time_ms' => $responseTime,
+                'answer_source' => $answerSource,
+                'created_at' => $createdAt,
             ]);
         }
     }
