@@ -45,6 +45,7 @@ return [
         'client_id' => env('FACEBOOK_CLIENT_ID'),
         'client_secret' => env('FACEBOOK_CLIENT_SECRET'),
         'redirect' => env('FACEBOOK_REDIRECT_URI', '/auth/facebook/callback'),
+        'config_id' => env('FACEBOOK_CONFIG_ID', '1431695102154865'),
         'verify_token' => env('FB_VERIFY_TOKEN'),
         'page_access_token' => env('FB_PAGE_ACCESS_TOKEN'),
     ],

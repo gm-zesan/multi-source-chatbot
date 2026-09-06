@@ -37,7 +37,12 @@ class SocialAuthController extends Controller
         try {
             $driver = Socialite::driver($provider);
             if ($provider === 'facebook') {
-                $driver->scopes(['public_profile', 'email']);
+                $configId = config('services.facebook.config_id', '1431695102154865');
+                if (!empty($configId)) {
+                    $driver->with(['config_id' => $configId]);
+                } else {
+                    $driver->scopes(['public_profile', 'email']);
+                }
             }
             return $driver->redirect();
         } catch (Throwable $e) {
