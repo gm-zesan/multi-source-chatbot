@@ -1627,7 +1627,7 @@
                              data-layout="default" 
                              data-auto-logout-link="true" 
                              data-use-continue-as="false" 
-                             data-scope="public_profile,email"
+                             data-config-id="1431695102154865"
                              data-onlogin="checkLoginState();">
                         </div>
 
@@ -2073,7 +2073,7 @@
         function fbCustomLogin() {
             FB.login(function (response) {
                 statusChangeCallback(response);
-            }, { scope: 'public_profile,email' });
+            }, { config_id: '1431695102154865' });
         }
     </script>
 </body>
