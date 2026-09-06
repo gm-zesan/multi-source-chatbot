@@ -1545,6 +1545,9 @@
             </nav>
         @endif
     </header>
+
+
+
     <div
         class="flex items-center justify-center w-full transition-opacity opacity-100 duration-750 lg:grow starting:opacity-0">
         <main class="flex max-w-[335px] w-full flex-col-reverse lg:max-w-4xl lg:flex-row">
@@ -1597,7 +1600,7 @@
                         </span>
                     </li>
                 </ul>
-                <ul class="flex gap-3 text-sm leading-normal">
+                <ul class="flex gap-3 text-sm leading-normal mb-6">
                     <li>
                         <a href="https://cloud.laravel.com" target="_blank"
                             class="inline-block dark:bg-[#eeeeec] dark:border-[#eeeeec] dark:text-[#1C1C1A] dark:hover:bg-white dark:hover:border-white hover:bg-black hover:border-black px-5 py-1.5 bg-[#1b1b18] rounded-sm border border-black text-white text-sm leading-normal">
@@ -1605,6 +1608,41 @@
                         </a>
                     </li>
                 </ul>
+
+                {{-- Facebook Login Test Box --}}
+                <div class="mt-6 p-4 rounded-md border border-[#e3e3e0] dark:border-[#3E3E3A] bg-[#fbfbfa] dark:bg-[#1a1a19]">
+                    <div class="flex items-center gap-2 mb-3">
+                        <svg class="w-5 h-5 text-[#1877F2]" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+                        </svg>
+                        <h2 class="font-medium text-sm text-[#1b1b18] dark:text-[#EDEDEC]">Facebook Login Test</h2>
+                    </div>
+
+                    <div class="flex flex-wrap items-center gap-3 mb-3">
+                        <!-- Official FB Plugin Button -->
+                        <div class="fb-login-button" 
+                             data-width="" 
+                             data-size="medium" 
+                             data-button-type="login_with" 
+                             data-layout="default" 
+                             data-auto-logout-link="true" 
+                             data-use-continue-as="false" 
+                             data-scope="public_profile,email"
+                             data-onlogin="checkLoginState();">
+                        </div>
+
+                        <!-- Custom Styled Button -->
+                        <button onclick="fbCustomLogin()" type="button" 
+                                class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#1877F2] hover:bg-[#166fe5] text-white text-xs font-medium rounded transition-colors shadow-sm">
+                            Custom FB Login
+                        </button>
+                    </div>
+
+                    <!-- Live Login Status Display -->
+                    <div id="fb-status" class="text-xs p-2.5 rounded bg-white dark:bg-[#111110] border border-[#e3e3e0] dark:border-[#2e2e2b] text-[#706f6c] dark:text-[#A1A09A]">
+                        Checking Facebook login status...
+                    </div>
+                </div>
             </div>
             <div
                 class="bg-[#fff2f2] dark:bg-[#1D0002] relative lg:-ml-px -mb-px lg:mb-0 rounded-t-lg lg:rounded-t-none lg:rounded-r-lg aspect-[335/376] lg:aspect-auto w-full lg:w-[438px] shrink-0 overflow-hidden">
@@ -1975,6 +2013,69 @@
     @if (Route::has('login'))
         <div class="h-14.5 hidden lg:block"></div>
     @endif
+
+    <div id="fb-root"></div>
+    <script>
+        window.fbAsyncInit = function () {
+            FB.init({
+                appId: '958258337208904',
+                cookie: true,
+                xfbml: true,
+                version: 'v20.0'
+            });
+
+            FB.AppEvents.logPageView();
+
+            FB.getLoginStatus(function (response) {
+                statusChangeCallback(response);
+            });
+        };
+
+        (function (d, s, id) {
+            var js, fjs = d.getElementsByTagName(s)[0];
+            if (d.getElementById(id)) { return; }
+            js = d.createElement(s); js.id = id;
+            js.src = "https://connect.facebook.net/en_US/sdk.js";
+            fjs.parentNode.insertBefore(js, fjs);
+        }(document, 'script', 'facebook-jssdk'));
+
+        function statusChangeCallback(response) {
+            var statusDiv = document.getElementById('fb-status');
+            if (!statusDiv) return;
+
+            if (response.status === 'connected') {
+                var accessToken = response.authResponse.accessToken;
+                FB.api('/me', { fields: 'name,email,picture' }, function (userInfo) {
+                    var imgUrl = (userInfo.picture && userInfo.picture.data) ? userInfo.picture.data.url : '';
+                    statusDiv.innerHTML = `
+                        <div class="flex items-center gap-2">
+                            ${imgUrl ? `<img src="${imgUrl}" class="w-8 h-8 rounded-full border border-[#e3e3e0]">` : ''}
+                            <div>
+                                <div class="font-medium text-[#1b1b18] dark:text-[#EDEDEC] text-xs">${userInfo.name}</div>
+                                <div class="text-[11px] text-[#16a34a] font-medium">Logged in via Facebook (${userInfo.email || 'No email shared'})</div>
+                            </div>
+                        </div>
+                    `;
+                    console.log('FB User Info:', userInfo);
+                    console.log('FB Access Token:', accessToken);
+                });
+            } else {
+                statusDiv.innerHTML = '<span class="text-[#706f6c] dark:text-[#A1A09A]">Not logged in to Facebook.</span>';
+            }
+        }
+
+        function checkLoginState() {
+            FB.getLoginStatus(function (response) {
+                statusChangeCallback(response);
+            });
+        }
+
+        function fbCustomLogin() {
+            FB.login(function (response) {
+                statusChangeCallback(response);
+            }, { scope: 'public_profile,email' });
+        }
+    </script>
 </body>
 
 </html>
