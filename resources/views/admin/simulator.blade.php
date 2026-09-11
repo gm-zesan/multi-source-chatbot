@@ -380,6 +380,12 @@
             border: 1px solid #bae6fd;
         }
 
+        .route-pill.analytics {
+            background: #ede9fe;
+            color: #7c3aed;
+            border: 1px solid #c4b5fd;
+        }
+
         .suggestions-container {
             margin-top: 10px;
             display: flex;
@@ -914,6 +920,8 @@
                     headerBadgeHtml = `<div class="mb-2"><span class="route-pill ood"><i class="ri-shield-cross-line"></i> Out-of-Domain Scope</span></div>`;
                 } else if (route === 'uncertain') {
                     headerBadgeHtml = `<div class="mb-2"><span class="route-pill uncertain"><i class="ri-question-line"></i> Clarification Needed</span></div>`;
+                } else if (route === 'analytics') {
+                    headerBadgeHtml = `<div class="mb-2"><span class="route-pill analytics"><i class="ri-bar-chart-box-line"></i> Business Analytics</span></div>`;
                 } else if (route === 'action' || data.is_handoff) {
                     headerBadgeHtml = `<div class="mb-2"><span class="route-pill action"><i class="ri-user-shared-line"></i> Support Specialist Transfer</span></div>`;
                 }
@@ -1014,6 +1022,45 @@
             // 8. Bullet list items (e.g. - item, * item, • item)
             text = text.replace(/^[\-\*•]\s+(.*?)$/gm, '<div class="msg-list-item"><span class="bullet">•</span><span class="list-text">$1</span></div>');
 
+            // 8.5 Blockquotes (> Quote)
+            text = text.replace(/^&gt;\s+(.*?)$/gm, '<blockquote class="border-start border-3 border-primary ps-2 text-muted small my-1" style="margin-left: 0;">$1</blockquote>');
+
+            // 8.6. Markdown Tables (| Col 1 | Col 2 |)
+            text = text.replace(/(?:^\|[^\n]+\|\r?\n(?:\|[^\n]+\|\r?\n?)+)/gm, (tableMatch) => {
+                const lines = tableMatch.trim().split(/\r?\n/).map(l => l.trim()).filter(l => l.length > 0);
+                if (lines.length < 2) return tableMatch;
+
+                let tableHtml = '<div class="table-responsive my-2"><table class="table table-sm table-bordered table-striped mb-0" style="font-size: 12.5px; background: #ffffff;">';
+                let isHeader = true;
+
+                for (let i = 0; i < lines.length; i++) {
+                    const line = lines[i];
+                    if (/^\|[\s\-:|]+\|$/.test(line)) {
+                        continue;
+                    }
+
+                    const cells = line.split('|').slice(1, -1).map(c => c.trim());
+
+                    if (isHeader) {
+                        tableHtml += '<thead class="table-light"><tr>';
+                        cells.forEach(c => {
+                            tableHtml += `<th class="py-1 px-2 text-nowrap fw-bold">${c}</th>`;
+                        });
+                        tableHtml += '</tr></thead><tbody>';
+                        isHeader = false;
+                    } else {
+                        tableHtml += '<tr>';
+                        cells.forEach(c => {
+                            tableHtml += `<td class="py-1 px-2">${c}</td>`;
+                        });
+                        tableHtml += '</tr>';
+                    }
+                }
+
+                tableHtml += '</tbody></table></div>';
+                return tableHtml;
+            });
+
             // 9. Paragraphs & Line Breaks (Preserve all content and text)
             const paragraphs = text.split(/\n\n+/);
             const formattedParagraphs = paragraphs.map(p => {
@@ -1022,8 +1069,10 @@
                 if (trimmed.includes('<div class="msg-list-item"') ||
                     trimmed.includes('<div class="msg-heading"') ||
                     trimmed.includes('<hr class="msg-divider"') ||
+                    trimmed.includes('<blockquote') ||
+                    trimmed.includes('<div class="table-responsive') ||
                     trimmed.includes('<pre class="msg-code-block"')) {
-                    return trimmed.replace(/\n(?=<\/?(div|hr|pre|strong|span|code))/g, '').replace(/\n/g, '<br>');
+                    return trimmed.replace(/\n(?=<\/?(div|hr|pre|strong|span|code|blockquote|table|thead|tbody|tr|th|td))/g, '').replace(/\n/g, '<br>');
                 }
                 return `<div class="msg-paragraph">${trimmed.replace(/\n/g, '<br>')}</div>`;
             });

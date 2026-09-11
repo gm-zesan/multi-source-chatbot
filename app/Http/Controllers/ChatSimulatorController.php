@@ -49,6 +49,7 @@ class ChatSimulatorController extends Controller
         $query = (string) $request->input('message');
         $workspaceId = $this->resolveWorkspaceId();
         $startTime = microtime(true);
+        @set_time_limit(120);
 
         // ── 0. Resolve Multi-Turn Simulator Conversation ───────────────
         $conversation = $this->resolveSimulatorConversation($request, $workspaceId);
@@ -197,7 +198,7 @@ class ChatSimulatorController extends Controller
             'decision_trace' => $decisionTrace,
             'answerability_decision' => $supportResult['answerability_decision'] ?? null,
             'raw_llm_response' => $supportResult['raw_llm_response'] ?? null,
-            'confidence' => $topHit ? round($topHit->finalScore * 100, 1) : 0.0,
+            'confidence' => $topHit ? round($topHit->finalScore * 100, 1) : round(($supportResult['confidence'] ?? 1.0) * 100, 1),
             'match_type' => $topHit?->matchType ?? 'none',
             'matched_faq' => $topHit?->faq ? [
                 'id' => (string) $topHit->faq->id,

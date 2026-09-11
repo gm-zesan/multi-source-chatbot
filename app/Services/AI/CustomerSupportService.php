@@ -22,6 +22,7 @@ use App\Models\Workspace;
 use App\Services\Business\BusinessSourceOfTruthService;
 use App\Services\Chat\ConversationService;
 use App\Services\FAQ\FAQSearch;
+use App\Services\Analytics\AnalyticsClient;
 use App\Services\Memory\ConversationMemoryService;
 use Illuminate\Support\Collection as SupportCollection;
 use Illuminate\Support\Facades\Log;
@@ -36,6 +37,7 @@ class CustomerSupportService
     private readonly LLMClient $llmClient;
     private readonly SemanticAnswerabilityGate $answerabilityGate;
     private readonly ClarificationManager $clarificationManager;
+    private readonly AnalyticsClient $analyticsClient;
     private ?\Laravel\Ai\Responses\Data\Usage $lastLlmUsage = null;
 
     public function __construct(
@@ -49,6 +51,7 @@ class CustomerSupportService
         ?LLMClient $llmClient = null,
         ?SemanticAnswerabilityGate $answerabilityGate = null,
         ?ClarificationManager $clarificationManager = null,
+        ?AnalyticsClient $analyticsClient = null,
     ) {
         $this->router = $router ?? new HybridRouter();
         $this->actionSafety = $actionSafety ?? new ActionSafetyService();
@@ -58,6 +61,7 @@ class CustomerSupportService
         $this->llmClient = $llmClient ?? new LLMClient();
         $this->answerabilityGate = $answerabilityGate ?? new SemanticAnswerabilityGate();
         $this->clarificationManager = $clarificationManager ?? new ClarificationManager();
+        $this->analyticsClient = $analyticsClient ?? new AnalyticsClient();
     }
 
     /**
@@ -94,19 +98,23 @@ class CustomerSupportService
             workspaceId: $effectiveWorkspaceId,
         );
 
-        // ── 1.5 Retrieve Memory & Live Business Source of Truth ─────────────
-        $memoryContext = $this->memoryService->retrieveContext(
-            conversation: $conversation,
-            query: $query,
-            workspaceId: $effectiveWorkspaceId,
-            contextResult: $contextResult,
-        );
+        // ── 1.5 Retrieve Memory & Live Business Source of Truth (Skipped for Analytics) ─────
+        $memoryContext = null;
+        $businessContext = null;
+        if (!$routingResult->isAnalytics()) {
+            $memoryContext = $this->memoryService->retrieveContext(
+                conversation: $conversation,
+                query: $query,
+                workspaceId: $effectiveWorkspaceId,
+                contextResult: $contextResult,
+            );
 
-        $businessContext = $this->businessService->buildBusinessContext(
-            query: $query,
-            conversation: $conversation,
-            workspaceId: $effectiveWorkspaceId,
-        );
+            $businessContext = $this->businessService->buildBusinessContext(
+                query: $query,
+                conversation: $conversation,
+                workspaceId: $effectiveWorkspaceId,
+            );
+        }
 
         // ── 2. Route Execution ───────────────────────────────────────────────
         $replyText = match ($routingResult->route) {
@@ -124,6 +132,12 @@ class CustomerSupportService
                 memoryContext: $memoryContext,
             ),
             RouteType::ACTION => $this->executeActionRoute(
+                conversation: $conversation,
+                query: $query,
+                workspaceId: $effectiveWorkspaceId,
+                routingResult: $routingResult,
+            ),
+            RouteType::ANALYTICS => $this->executeAnalyticsRoute(
                 conversation: $conversation,
                 query: $query,
                 workspaceId: $effectiveWorkspaceId,
@@ -298,23 +312,30 @@ class CustomerSupportService
         );
         $routerLatencyMs = round((microtime(true) - $t_router_start) * 1000, 2);
 
-        // ── Phase M3: Memory Relevance Gate & Unified Memory Context ──────────────────
-        $t_memory_start = microtime(true);
-        $memoryContext = $this->memoryService->retrieveContext(
-            conversation: $conversation,
-            query: $query,
-            workspaceId: $workspaceId,
-            contextResult: $contextResult,
-        );
-        $memoryRetrievalMs = round((microtime(true) - $t_memory_start) * 1000, 2);
+        // ── Phase M3: Memory Relevance Gate & Unified Memory Context (Skipped for Analytics) ──
+        $memoryContext = null;
+        $memoryRetrievalMs = 0.0;
+        $businessContext = null;
+        $businessContextMs = 0.0;
 
-        $t_business_start = microtime(true);
-        $businessContext = $this->businessService->buildBusinessContext(
-            query: $query,
-            conversation: $conversation,
-            workspaceId: $workspaceId,
-        );
-        $businessContextMs = round((microtime(true) - $t_business_start) * 1000, 2);
+        if (!$routingResult->isAnalytics()) {
+            $t_memory_start = microtime(true);
+            $memoryContext = $this->memoryService->retrieveContext(
+                conversation: $conversation,
+                query: $query,
+                workspaceId: $workspaceId,
+                contextResult: $contextResult,
+            );
+            $memoryRetrievalMs = round((microtime(true) - $t_memory_start) * 1000, 2);
+
+            $t_business_start = microtime(true);
+            $businessContext = $this->businessService->buildBusinessContext(
+                query: $query,
+                conversation: $conversation,
+                workspaceId: $workspaceId,
+            );
+            $businessContextMs = round((microtime(true) - $t_business_start) * 1000, 2);
+        }
 
         // ── Knowledge Retrieval & Semantic Answerability Gate ─────────────────────────
         $retrievalHits = new \Illuminate\Database\Eloquent\Collection();
@@ -385,6 +406,12 @@ class CustomerSupportService
                 memoryContext: $memoryContext,
             ),
             RouteType::ACTION => $this->executeActionRoute(
+                conversation: $conversation ?? new Conversation(),
+                query: $query,
+                workspaceId: $workspaceId,
+                routingResult: $routingResult,
+            ),
+            RouteType::ANALYTICS => $this->executeAnalyticsRoute(
                 conversation: $conversation ?? new Conversation(),
                 query: $query,
                 workspaceId: $workspaceId,
@@ -651,6 +678,27 @@ class CustomerSupportService
         $this->actionSafety->clearPendingAction($conversation);
 
         return "This is an action request. Our team member will contact you soon.";
+    }
+
+    /**
+     * Dispatch ANALYTICS route to the Python Baseline Analytics Service.
+     * Invariant: $workspaceId is strictly injected from trusted Laravel runtime.
+     */
+    private function executeAnalyticsRoute(
+        Conversation $conversation,
+        string $query,
+        int $workspaceId,
+        RoutingResult $routingResult,
+    ): string {
+        @set_time_limit(120);
+        $this->resetUncertainCount($conversation);
+
+        $analyticsResult = $this->analyticsClient->query(
+            query: $query,
+            workspaceId: $workspaceId,
+        );
+
+        return $analyticsResult['report'] ?? $this->defaultFallbackText();
     }
 
     private function resetUncertainCount(Conversation $conversation): void

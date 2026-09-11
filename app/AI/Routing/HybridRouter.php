@@ -570,6 +570,22 @@ class HybridRouter
             }
         }
 
+        // ── Rule 3.7: Genuine Business Analytics Query (Metrics, Cash-in, Dues, Sales, Rankings) ───────────
+        $analyticsScore = $this->calculateAnalyticsScore($normalized);
+        if ($analyticsScore >= 0.75) {
+            $analyticsIntent = $this->determineAnalyticsIntent($normalized);
+            return [
+                'route'      => RouteType::ANALYTICS,
+                'confidence' => round($analyticsScore, 2),
+                'intent'     => $analyticsIntent,
+                'signals'    => array_merge($signals, [
+                    'reason'          => 'business_analytics_query',
+                    'analytics_score' => $analyticsScore,
+                ]),
+                'entities'   => $entities,
+            ];
+        }
+
         // ── Rule 4: Substantive Knowledge Inquiry (Question / Policy / How-To / "Can I cancel?") ─────────────
         // Critical: Inquiry framing wins over embedded mutation verbs (e.g. "Can you tell me if I can cancel?")
         if ($inquiryScore >= 0.50 && ($inquiryScore >= $actionScore || !$hasImperative)) {
@@ -980,5 +996,132 @@ class HybridRouter
         }
 
         return 'generic_action';
+    }
+
+    /**
+     * Calculate confidence score for genuine business analytics queries.
+     * Evaluates metrics, aggregations, due lists, cash collections, sales rankings.
+     * STRICT INVARIANT: Never hardcodes benchmark names or benchmark questions.
+     */
+    private function calculateAnalyticsScore(string $normalized): float
+    {
+        // Guard: If it's a SaaS platform configuration, settings, or policy question -> 0.0 (KNOWLEDGE)
+        if ($this->isSaaSPolicyOrSettingsInquiry($normalized)) {
+            return 0.0;
+        }
+
+        $score = 0.0;
+
+        // 1. Core Financial & Business Metric Markers
+        $hasSalesMetric = (bool) preg_match('/\b(sales?|revenue|net\s+sales|order\s+volume)\b|বিক্রি|বিক্রির|সেলস|রেভিনিউ/ui', $normalized);
+        $hasCashMetric = (bool) preg_match('/\b(cashin|cash\s*in|cash\s+collection|payment\s+collection|collected\s+cash|collection|collect(ed|ing|s)?)\b|কালেকশন|কালেক্ট|ক্যাশইন|ক্যাশ\s*ইন|ক্যাশ\s*কালেকশন|জমা/ui', $normalized);
+        $hasDueMetric = (bool) preg_match('/\b(dues?|outstanding(\s+balance|\s+due)?|receivables?)\b|বকেয়া|বকেয়া|বাকি|ডিউ/ui', $normalized);
+        $hasRankMetric = (bool) preg_match('/\b(top\s*\d*\s*sell(ing|er|ers)?|best\s*\d*\s*sell(ing|er|ers)?|highest\s+(sell(ing|er)|collection|due)|most\s+sold|product\s+sales)\b|শীর্ষ\s+বিক্রি|সেরা\s+বিক্রেতা|বেশি\s+বিক্রি|সবচেয়ে\s+বেশি\s+বিক্রি|সবচেয়ে\s+বেশি\s+বিক্রি/ui', $normalized);
+        $hasAssignmentMetric = (bool) preg_match('/\b(due\s+assignment|assigned\s+(to\s+collect|salesperson|for\s+due)|recovery\s+assignment)\b|আদায়ের\s+দায়িত্ব|আদায়ের\s+দায়িত্ব|বকেয়া\s+আদায়|বকেয়া\s+আদায়|দায়িত্বে\s+কে|দায়িত্ব\s+কার/ui', $normalized);
+
+        // Generic Salesperson/Customer possessive & verb relation patterns (zero hardcoded names)
+        $hasPossessiveBI = (bool) preg_match('/\b\p{L}{3,}\s*(er|এর|\'s)\s*(sales|collection|due|কালেকশন|বিক্রি|বকেয়া|বকেয়া)\b/ui', $normalized);
+        $hasVerbBI = (bool) preg_match('/\b(did\s+\p{L}{3,}\s+(collect|sell)|how\s+much\s+(did|payment\s+did)\s+\p{L}{3,})\b/ui', $normalized);
+
+        $hasAnyMetric = $hasSalesMetric || $hasCashMetric || $hasDueMetric || $hasRankMetric || $hasAssignmentMetric || $hasPossessiveBI || $hasVerbBI;
+        if (!$hasAnyMetric) {
+            return 0.0;
+        }
+
+        // 2. Analytical Question / Aggregation / List Framing
+        $hasAggOrQuestion = (bool) preg_match('/\b(what\s+(is|are|was)|total|sum|count|amount|koto|how\s+much|how\s+many|list|show(\s+me)?|report|summary|highest|lowest|which\s+(customers?|products?)|who\s+(has|collected|sold|is\s+assigned)|kar|ke|kon\s+kon)\b|মোট|সর্বমোট|কত|পরিমাণ|তালিকা|লিস্ট|হিসাব|হিসেব|সবচেয়ে|সবচেয়ে|কার|কে|কোন\s+কোন/ui', $normalized);
+
+        // 3. Temporal Scope Markers
+        $hasTimeScope = (bool) preg_match('/\b(today|yesterday|this\s+month|last\s+month|last\s+7\s+days|daily|monthly|lifetime)\b|আজকে|আজ|গতকাল|এই\s+মাসে|গত\s+মাসে|গত\s+৭\s+দিনে|দৈনিক|মাসিক/ui', $normalized);
+
+        // 4. Generic Salesperson/Customer possessive relation pattern (e.g. "[name] er sales", "[name] er due", "[name] did collect")
+        $hasPossessiveBI = (bool) preg_match('/\b\p{L}{3,}\s*(er|এর|\'s|\s+s)\s*([a-z\s]+)?\s*(sales|collection|due|কালেকশন|বিক্রি|বকেয়া|বকেয়া)\b/ui', $normalized);
+        $hasVerbBI = (bool) preg_match('/\b(did\s+\p{L}{3,}\s+(collect|sell)|how\s+much\s+(did|payment\s+did)\s+\p{L}{3,})\b/ui', $normalized);
+
+        // Scoring rules:
+        if ($hasCashMetric && ($hasAggOrQuestion || $hasTimeScope || str_contains($normalized, 'cashin') || str_contains($normalized, 'cash in'))) {
+            $score = max($score, 0.95);
+        }
+        if ($hasSalesMetric && ($hasAggOrQuestion || $hasTimeScope || $hasPossessiveBI)) {
+            $score = max($score, 0.92);
+        }
+        if ($hasDueMetric && ($hasAggOrQuestion || str_contains($normalized, 'due list') || $hasPossessiveBI)) {
+            $score = max($score, 0.92);
+        }
+        if ($hasRankMetric) {
+            $score = max($score, 0.90);
+        }
+        if ($hasAssignmentMetric) {
+            $score = max($score, 0.90);
+        }
+        if ($hasPossessiveBI || $hasVerbBI) {
+            $score = max($score, 0.90);
+        }
+
+        return $score;
+    }
+
+    /**
+     * Determine specific business analytics intent name.
+     */
+    private function determineAnalyticsIntent(string $normalized): string
+    {
+        if (preg_match('/\b(cashin|cash\s*in|cash\s+collection|payment\s+collection)\b|কালেকশন|ক্যাশইন|ক্যাশ\s*কালেকশন/ui', $normalized)) {
+            return 'cash_collection';
+        }
+        if (preg_match('/\b(dues?|outstanding|receivables?)\b|বকেয়া|বকেয়া|বাকি|ডিউ/ui', $normalized)) {
+            if (preg_match('/\b(assignment|assigned|recovery)\b|দায়িত্ব|দায়িত্ব|আদায়|আদায়/ui', $normalized)) {
+                return 'due_assignment';
+            }
+            return 'customer_due';
+        }
+        if (preg_match('/\b(top\s+sell|best\s+sell|product\s+sales|most\s+sold)\b|শীর্ষ\s+বিক্রি|বেশি\s+বিক্রি/ui', $normalized)) {
+            return 'product_sales';
+        }
+        if (preg_match('/\b(sales?|revenue|order\s+volume)\b|বিক্রি|বিক্রির|সেলস/ui', $normalized)) {
+            return 'sales_total';
+        }
+        return 'business_analytics';
+    }
+
+    /**
+     * Protect SaaS platform settings, onboarding, billing configuration, and troubleshooting from analytics.
+     */
+    private function isSaaSPolicyOrSettingsInquiry(string $normalized): bool
+    {
+        $saasPatterns = [
+            // Account & Setup
+            '/\b(create|sign\s*up|register|setup|set\s*up|open)\s+(an?\s+)?(account|workspace|profile)\b/ui',
+            '/\b(notun|notun\s+account|account\s+kivabe)\b/ui',
+            '/অ্যাকাউন্ট\s+(তৈরি|খুল|কীভাবে)/ui',
+            // Settings & Profile
+            '/\b(update|change|reset|edit)\s+(my\s+)?(payment\s+method|password|profile|email|phone|card|settings)\b/ui',
+            '/\b(payment\s+method|password)\s+(update|change|kivabe|kemne)\b/ui',
+            '/পেমেন্ট\s+মেথড\s+(আপডেট|পরিবর্তন|যুক্ত)/ui',
+            '/পাসওয়ার্ড\s+(পরিবর্তন|রিসেট)/ui',
+            // Integrations (WhatsApp, Telegram, etc.)
+            '/\b(connect|integrate|link)\s+(whatsapp|telegram|facebook|messenger|channel)\b/ui',
+            '/\b(whatsapp|telegram|messenger)\s+(connect|kivabe|kemne)\b/ui',
+            '/(হোয়াটসঅ্যাপ|টেলিগ্রাম|মেসেঞ্জার)\s+(কানেক্ট|যুক্ত)/ui',
+            // Billing, Invoices & Plan management
+            '/\b(view|download|get|find)\s+(my\s+)?(subscription\s+invoices?|invoice\s+history|billing\s+receipt)\b/ui',
+            '/\b(upgrade|downgrade|change)\s+(my\s+)?(plan|subscription)\b/ui',
+            '/\b(plan\s+upgrade|subscription\s+plan)\b/ui',
+            '/প্ল্যান\s+(আপগ্রেড|পরিবর্তন)/ui',
+            // Troubleshooting
+            '/\b(why\s+is\s+my\s+chatbot|chatbot\s+not\s+responding|bot\s+not\s+replying|encounter\s+an?\s+error|messages?\s+not\s+being\s+delivered)\b/ui',
+            '/চ্যাটবট\s+(রেসপন্স|উত্তর)\s+(করছে\s+না|না\s+করলে)/ui',
+            // Policies
+            '/\b(return\s+policy|refund\s+policy|privacy\s+policy|terms\s+of\s+service)\b/ui',
+            '/রিফান্ড\s+পলিসি|রিটার্ন\s+পলিসি/ui',
+        ];
+
+        foreach ($saasPatterns as $pattern) {
+            if (preg_match($pattern, $normalized)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

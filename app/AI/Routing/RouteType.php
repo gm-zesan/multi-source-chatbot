@@ -9,6 +9,7 @@ enum RouteType: string
     case KNOWLEDGE = 'knowledge';
     case CHAT      = 'chat';
     case ACTION    = 'action';
+    case ANALYTICS = 'analytics';
     case OOD       = 'ood';
     case UNCERTAIN = 'uncertain';
 }

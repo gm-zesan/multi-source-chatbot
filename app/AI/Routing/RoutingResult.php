@@ -35,6 +35,11 @@ class RoutingResult
         return $this->route === RouteType::ACTION;
     }
 
+    public function isAnalytics(): bool
+    {
+        return $this->route === RouteType::ANALYTICS;
+    }
+
     public function isOod(): bool
     {
         return $this->route === RouteType::OOD;
