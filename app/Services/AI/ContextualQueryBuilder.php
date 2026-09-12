@@ -256,6 +256,21 @@ class ContextualQueryBuilder
             );
         }
 
+        // 4.5. Bare Order ID (User responding to a clarification or directly typing an order number)
+        if (preg_match('/^(?:\s*(?:order|অর্ডার|#)?\s*\d{3,8}\s*)$/ui', $cleanQuery)) {
+            $extracted = $this->extractCandidateEntitiesFromTurn($cleanQuery);
+            $orderId = !empty($extracted) ? $extracted[0] : $cleanQuery;
+            return new ContextualResolutionResult(
+                rawQuery: $cleanQuery,
+                resolvedQuery: "অর্ডার {$orderId} এর বর্তমান স্ট্যাটাস কী? কবে পাবো পার্সেল ডেলিভারি ট্র্যাকিং",
+                activeTopic: 'Order_Tracking',
+                resolvedEntity: ['type' => 'Order', 'name' => $orderId],
+                confidence: 0.98,
+                status: 'resolved',
+                source: 'topic_continuation'
+            );
+        }
+
         // 5. Subject-less Elliptical / Topic Continuation Queries
         // E.g., "কতদিন লাগবে?", "চার্জ কত?", "koto din lagbe?", "how much is the fee?"
         if ($this->isSubjectlessShortQuery($cleanQuery)) {

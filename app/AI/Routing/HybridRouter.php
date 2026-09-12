@@ -510,14 +510,24 @@ class HybridRouter
         $hasStatusIntent = (bool) preg_match('/\b(status|track|tracking|where\s+is|update|shipment|obostha|state|live\s+shipment)\b|অবস্থা|আপডেট|ট্র্যাকিং|কোথায়|কোথায়/ui', $normalized);
         $isActionPolicy = (bool) preg_match('/(policy|পলিসি|কীভাবে|কিভাবে|kivabe|how\s+does|how\s+to|how\s+do\s+i|rules|রুলস|rules\s+for)/ui', $normalized);
 
-        if ($hasOrderId && $hasStatusIntent && !$isActionPolicy) {
-            return [
-                'route'      => RouteType::ACTION,
-                'confidence' => 0.95,
-                'intent'     => 'get_order',
-                'signals'    => array_merge($signals, ['reason' => 'explicit_order_status_tracking']),
-                'entities'   => $entities,
-            ];
+        if ($hasStatusIntent && !$isActionPolicy) {
+            if ($hasOrderId) {
+                return [
+                    'route'      => RouteType::ACTION,
+                    'confidence' => 0.95,
+                    'intent'     => 'get_order',
+                    'signals'    => array_merge($signals, ['reason' => 'explicit_order_status_tracking']),
+                    'entities'   => $entities,
+                ];
+            } else {
+                return [
+                    'route'      => RouteType::UNCERTAIN,
+                    'confidence' => 0.85,
+                    'intent'     => 'missing_order_id_for_status',
+                    'signals'    => array_merge($signals, ['reason' => 'order_status_without_id']),
+                    'entities'   => $entities,
+                ];
+            }
         }
 
         $isSpecificCourierInquiry = (bool) preg_match('/\b(which\s+courier|kon\s+courier|consignment\s+tracking|delivering\s+it)\b|কোন\s+কুরি[য়য়]ারে|কোন\s+কুরি[য়য়]ার|কুরি[য়য়]ারে\s+আছে/ui', $normalized);
@@ -541,7 +551,8 @@ class HybridRouter
             $hasPersonalPref = (bool) preg_match(
                 '/\b(i\s+(always\s+)?(prefer|like|wear))\b|' .
                 '\b(my\s+(favorite|preferred|preference|size|payment\s+method|choice|color))\b|' .
-                '\b(what\s+(is|was)\s+my|remember\s+my|do\s+you\s+remember|keep\s+my)\b|' .
+                '\b(what\s+(is|was)\s+my\s+(size|color|preference|favorite|choice|payment\s+method))\b|' .
+                '\b(remember\s+my|do\s+you\s+remember|keep\s+my)\b|' .
                 '\b(amar\s+(favorite|preferred|preference|size|payment\s+preference|choice|color|default))\b|' .
                 '\b(amar\s+ki\s+mone\s+ache|mone\s+rakhte\s+parben|mone\s+ache|mone\s+rakhben|save\s+thakbe|mathay\s+rakhben)\b|' .
                 '\b(ami.*(prefer|size|choice))\b|' .
@@ -896,7 +907,11 @@ class HybridRouter
             // Compliments & Acknowledgments
             'you are awesome', 'great service', 'great customer service', 'nice talking', 'got it thanks', 'cool thanks',
             'দারুণ লাগলো', 'দারুন লাগলো', 'খুব সুন্দর', 'ভালো লাগলো কথা বলে', 'ঠিক আছে ধন্যবাদ',
-            'darun service', 'darun laglo', 'bhalo laglo', 'thik ache dhonnobad', 'shob clear'
+            'darun service', 'darun laglo', 'bhalo laglo', 'thik ache dhonnobad', 'shob clear',
+            // Complaints & Frustration
+            'frustrated', 'disappointed', 'terrible service', 'bad service', 'worst service', 'not helpful', 'useless', 'i am angry',
+            'হতাশ', 'অসন্তুষ্ট', 'বাজে সার্ভিস', 'খারাপ সার্ভিস', 'ফালতু সার্ভিস', 'কাজে আসলো না', 'কোনো কাজের না', 'বিরক্ত',
+            'hotash', 'osontusto', 'baje service', 'kharap service', 'faltu service', 'birokto'
         ];
 
         foreach ($chatCues as $cue) {

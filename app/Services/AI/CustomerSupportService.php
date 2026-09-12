@@ -303,10 +303,15 @@ class CustomerSupportService
             return $clarificationResult;
         }
 
+        // Pre-compute contextual signal for router & downstream tasks
+        $contextualSignal = ($contextResult->isSelfContained())
+            ? null
+            : (($contextResult->resolvedQuery !== null && $contextResult->resolvedQuery !== $contextResult->rawQuery) ? $contextResult->resolvedQuery : null);
+
         // ── Hybrid Router ─────────────────────────────────────────────────────────────
         $t_router_start = microtime(true);
         $routingResult = $this->router->route(
-            query: $query,
+            query: $contextualSignal ?? $query,
             conversation: $conversation,
             workspaceId: $workspaceId,
         );
@@ -346,9 +351,6 @@ class CustomerSupportService
         $knowledgeRetrievalMs = 0.0;
         $answerabilityMs = 0.0;
 
-        $contextualSignal = ($contextResult->isSelfContained())
-            ? null
-            : (($contextResult->resolvedQuery !== null && $contextResult->resolvedQuery !== $contextResult->rawQuery) ? $contextResult->resolvedQuery : null);
 
         if ($routingResult->isKnowledge() || $routingResult->isUncertain()) {
             $t_retrieval_start = microtime(true);
@@ -780,7 +782,15 @@ class CustomerSupportService
             return "Could you please provide a little more detail so I can better understand what you need?\n\nAre you asking:\n• Where to find your invoices\n• How invoices and billing work\n• Something else";
         }
 
-        // 4. Default Clarification
+        // 4. Order Status / Tracking Ambiguity
+        if ($routingResult->intent === 'missing_order_id_for_status' || str_contains($qLower, 'order status') || str_contains($qLower, 'track') || str_contains($qLower, 'ট্র্যাক')) {
+            if ($isBengali) {
+                return "আপনার অর্ডারের অবস্থা চেক করতে অনুগ্রহ করে আমাকে আপনার অর্ডার আইডি (যেমন: #1024) প্রদান করুন।";
+            }
+            return "To check your order status, could you please provide your Order ID (e.g. #1024)?";
+        }
+
+        // 5. Default Clarification
         if ($isBengali) {
             return "আপনার অনুরোধটি স্পষ্টভাবে বুঝতে পারিনি। অনুগ্রহ করে একটু বিস্তারিত বলুন—যেমন আমাদের বিভিন্ন প্ল্যান, বিলিং, অ্যাকাউন্ট সেটিংস অথবা প্ল্যাটফর্ম ফিচার সম্পর্কে জানতে চাইতে পারেন।";
         }
@@ -891,6 +901,8 @@ class CustomerSupportService
             $response = $agent->prompt($query, provider: $primaryProvider, model: $primaryModel);
             $this->lastLlmUsage = $response->usage ?? null;
             $text = trim((string) $response);
+            $text = preg_replace('/<think>.*?<\/think>\s*/is', '', $text);
+            $text = trim($text);
             if ($text !== '') {
                 return $text;
             }
@@ -907,6 +919,8 @@ class CustomerSupportService
             try {
                 $fallbackResp = $agent->prompt($query, provider: $fallbackProvider, model: $fallbackModel);
                 $fallbackText = trim((string) $fallbackResp);
+                $fallbackText = preg_replace('/<think>.*?<\/think>\s*/is', '', $fallbackText);
+                $fallbackText = trim($fallbackText);
                 if ($fallbackText !== '') {
                     return $fallbackText;
                 }
