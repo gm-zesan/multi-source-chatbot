@@ -50,14 +50,35 @@ class AnalyticsClient
                 ->post($url, [
                     'query' => $query,
                     'workspace_id' => $workspaceId,
+                    'engine' => 'semantic'
                 ]);
 
             $elapsedMs = round((microtime(true) - $t_start) * 1000, 2);
 
             if ($response->successful()) {
                 $data = $response->json();
+                
+                if (!is_array($data) || !isset($data['success'])) {
+                    throw new \RuntimeException('Malformed or unexpected JSON schema returned.');
+                }
+                
+                // Explicitly check for success flag
+                if ($data['success'] !== true) {
+                    throw new \RuntimeException('Analytics service reported an internal failure.');
+                }
+
+                Log::info('[AnalyticsClient] Query processed successfully', [
+                    'workspace_id'      => $workspaceId,
+                    'engine'            => 'semantic',
+                    'intent'            => $data['intent'] ?? 'business_analytics',
+                    'is_ambiguous'      => (bool) ($data['is_ambiguous'] ?? false),
+                    'latency_ms'        => (float) ($data['latency_ms'] ?? $elapsedMs),
+                    'client_latency_ms' => $elapsedMs,
+                ]);
+
                 return [
-                    'success'               => (bool) ($data['success'] ?? true),
+                    'success'               => true,
+                    'engine'                => 'semantic',
                     'intent'                => (string) ($data['intent'] ?? 'business_analytics'),
                     'report'                => (string) ($data['report'] ?? ''),
                     'sql'                   => $data['sql'] ?? null,
@@ -69,19 +90,21 @@ class AnalyticsClient
                 ];
             }
 
+            // HTTP 4xx / 5xx handling
             Log::error('[AnalyticsClient] HTTP error from Python analytics service', [
                 'status'       => $response->status(),
-                'body'         => $response->body(),
                 'workspace_id' => $workspaceId,
-                'query'        => $query,
             ]);
 
             return [
                 'success'           => false,
-                'intent'            => 'service_error',
-                'report'            => "⚠️ **Business Analytics Service Error** (HTTP {$response->status()})\n\nUnable to complete analysis for: `{$query}`.",
-                'sql'               => null,
-                'rows'              => [],
+                'engine'            => 'semantic',
+                'intent'            => 'service_unavailable',
+                'report'            => "⚠️ **Analytics Service Error**\n\nThe analytics engine is currently unavailable (HTTP {$response->status()}). Please try again later.",
+                'error'             => [
+                    'code' => 'service_error',
+                    'message' => 'Analytics service returned an HTTP error'
+                ],
                 'latency_ms'        => $elapsedMs,
                 'client_latency_ms' => $elapsedMs,
             ];
@@ -89,7 +112,7 @@ class AnalyticsClient
         } catch (Throwable $e) {
             $elapsedMs = round((microtime(true) - $t_start) * 1000, 2);
 
-            Log::warning('[AnalyticsClient] Connection failed to Python analytics service', [
+            Log::warning('[AnalyticsClient] Connection or parsing failed', [
                 'url'          => $url,
                 'error'        => $e->getMessage(),
                 'workspace_id' => $workspaceId,
@@ -97,10 +120,13 @@ class AnalyticsClient
 
             return [
                 'success'           => false,
+                'engine'            => 'semantic',
                 'intent'            => 'service_unavailable',
-                'report'            => "⚠️ **Business Analytics Service Unavailable**\n\nCould not connect to the Python Analytics Service (`{$url}`).\n\nPlease ensure the Python analytics service is running on port 8200:\n```bash\nuvicorn app.main:app --port 8200 --reload\n```",
-                'sql'               => null,
-                'rows'              => [],
+                'report'            => "⚠️ **Analytics Service Unavailable**\n\nCould not connect to the analytics engine or process the response. Please ensure the service is running.",
+                'error'             => [
+                    'code' => 'service_unavailable',
+                    'message' => 'Analytics connection failed'
+                ],
                 'latency_ms'        => $elapsedMs,
                 'client_latency_ms' => $elapsedMs,
             ];

@@ -57,7 +57,7 @@ class AnalyticsClientTest extends TestCase
         $result = $client->query('Total sales today', workspaceId: 1);
 
         $this->assertFalse($result['success']);
-        $this->assertSame('service_error', $result['intent']);
-        $this->assertStringContainsString('Business Analytics Service Error', $result['report']);
+        $this->assertSame('service_unavailable', $result['intent']);
+        $this->assertStringContainsString('Analytics Service Error', $result['report']);
     }
 }
