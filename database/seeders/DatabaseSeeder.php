@@ -33,6 +33,7 @@ class DatabaseSeeder extends Seeder
             ConceptPhrasePatternSeeder::class,
             ActionIntentMappingSeeder::class,
             PolicyIntentMappingSeeder::class,
+            AnalyticsDatabaseSeeder::class,
         ]);
     }
 }
