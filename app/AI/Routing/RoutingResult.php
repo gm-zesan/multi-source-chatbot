@@ -18,6 +18,7 @@ class RoutingResult
         public readonly array $entities = [],
         public readonly float $routerLatencyMs = 0.0,
         public readonly bool $isFallback = false,
+        public readonly string $securityStatus = 'allowed',
     ) {}
 
     public function isKnowledge(): bool
@@ -63,6 +64,7 @@ class RoutingResult
             'entities'          => $this->entities,
             'router_latency_ms' => $this->routerLatencyMs,
             'is_fallback'       => $this->isFallback,
+            'security_status'   => $this->securityStatus,
         ];
     }
 }

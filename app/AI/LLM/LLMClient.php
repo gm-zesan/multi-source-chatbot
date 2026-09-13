@@ -4,10 +4,8 @@ declare(strict_types=1);
 
 namespace App\AI\LLM;
 
-use App\AI\LLM\Providers\DeepSeekProvider;
+use App\AI\LLM\Providers\GenericProvider;
 use App\AI\LLM\Providers\LLMProviderInterface;
-use App\AI\LLM\Providers\OpenAIProvider;
-use App\AI\LLM\Providers\OpenRouterProvider;
 use Illuminate\Support\Facades\Log;
 use InvalidArgumentException;
 use RuntimeException;
@@ -144,9 +142,6 @@ class LLMClient
         return $response;
     }
 
-    /**
-     * Resolve provider instance by name.
-     */
     public function resolveProvider(string $name): LLMProviderInterface
     {
         $cleanName = strtolower(trim($name));
@@ -155,12 +150,27 @@ class LLMClient
             return $this->providers[$cleanName];
         }
 
-        $provider = match ($cleanName) {
-            'deepseek'   => new DeepSeekProvider(),
-            'openrouter' => new OpenRouterProvider(),
-            'openai'     => new OpenAIProvider(),
-            default      => throw new InvalidArgumentException("Unsupported LLM provider: '{$name}'. Supported: deepseek, openrouter, openai."),
-        };
+        // Dynamically load the provider configuration from ai.php
+        $config = config("ai.providers.{$cleanName}");
+
+        if (!$config) {
+            throw new InvalidArgumentException("Unsupported or unconfigured LLM provider: '{$name}'. Please check config/ai.php.");
+        }
+
+        $apiKey = $config['key'] ?? '';
+        $baseUrl = $config['url'] ?? '';
+
+        // Determine correct model (Primary vs Fallback)
+        $fallbackName = (string) config('ai.fallback_provider', 'openrouter');
+        $primaryName = (string) config('ai.default', 'deepseek');
+        
+        if ($cleanName === $fallbackName && $cleanName !== $primaryName) {
+            $model = (string) config('ai.fallback_model', 'openrouter/free');
+        } else {
+            $model = (string) config('ai.default_model', 'deepseek-chat');
+        }
+
+        $provider = new GenericProvider($cleanName, $apiKey, $baseUrl, $model);
 
         $this->providers[$cleanName] = $provider;
         return $provider;

@@ -12,7 +12,7 @@ return [
     | By default, this runs on port 8200 (port 8002 is reserved by Windows Hyper-V).
     |
     */
-    'base_url' => env('PYTHON_ANALYTICS_URL', 'http://127.0.0.1:8200'),
+    'base_url' => env('PYTHON_ANALYTICS_URL', env('PYTHON_MEMORY_SERVICE_URL', 'http://127.0.0.1:8002')),
 
     /*
     |--------------------------------------------------------------------------
