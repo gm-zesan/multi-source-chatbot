@@ -60,8 +60,12 @@ class GenericProvider implements LLMProviderInterface
             'X-Title'       => config('app.name', 'Chatbot Orchestrator'),
         ];
 
-        // NO ->withoutVerifying() to strictly enforce TLS security
-        $response = Http::timeout(30)->withHeaders($headers)->post($url, $payload);
+        // NO ->withoutVerifying() to strictly enforce TLS security in production
+        $request = Http::timeout(30)->withHeaders($headers);
+        if (app()->environment('local', 'testing')) {
+            $request = $request->withoutVerifying();
+        }
+        $response = $request->post($url, $payload);
 
         if (!$response->successful()) {
             throw new RuntimeException("{$this->name} API error [HTTP {$response->status()}]: {$response->body()}");

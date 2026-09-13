@@ -19,6 +19,7 @@ class RoutingResult
         public readonly float $routerLatencyMs = 0.0,
         public readonly bool $isFallback = false,
         public readonly string $securityStatus = 'allowed',
+        public readonly ?string $ambiguityType = null,
     ) {}
 
     public function isKnowledge(): bool
@@ -29,11 +30,6 @@ class RoutingResult
     public function isChat(): bool
     {
         return $this->route === RouteType::CHAT;
-    }
-
-    public function isAction(): bool
-    {
-        return $this->route === RouteType::ACTION;
     }
 
     public function isAnalytics(): bool

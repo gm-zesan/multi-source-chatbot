@@ -55,8 +55,7 @@ class AuditStep2MultilingualLinguisticCommand extends Command
                 $r = $router->route($q, $conv, $workspace->id);
                 $ok = ($intent === 'ood' && $r->route === RouteType::OOD) ||
                       ($intent === 'uncertain' && ($r->route === RouteType::UNCERTAIN || $r->route === RouteType::KNOWLEDGE)) ||
-                      ($intent === 'chat' && ($r->route === RouteType::CHAT || $r->route === RouteType::ACTION)) ||
-                      ($intent === 'action' && $r->route === RouteType::ACTION) ||
+                      ($intent === 'chat' && $r->route === RouteType::CHAT) ||
                       ($intent === 'knowledge' && ($r->route === RouteType::KNOWLEDGE || $r->route === RouteType::CHAT));
                 if ($ok) $routingCorrect++;
             }

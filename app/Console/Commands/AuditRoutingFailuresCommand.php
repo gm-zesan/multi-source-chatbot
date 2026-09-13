@@ -41,8 +41,7 @@ class AuditRoutingFailuresCommand extends Command
 
                 $isRouteCorrect = ($intent === 'ood' && $routing->route === RouteType::OOD) ||
                                   ($intent === 'uncertain' && ($routing->route === RouteType::UNCERTAIN || $routing->route === RouteType::KNOWLEDGE)) ||
-                                  ($intent === 'chat' && ($routing->route === RouteType::CHAT || $routing->route === RouteType::ACTION)) ||
-                                  ($intent === 'action' && $routing->route === RouteType::ACTION) ||
+                                  ($intent === 'chat' && $routing->route === RouteType::CHAT) ||
                                   ($intent === 'knowledge' && ($routing->route === RouteType::KNOWLEDGE || $routing->route === RouteType::CHAT));
 
                 if (!$isRouteCorrect) {

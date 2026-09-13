@@ -124,8 +124,7 @@ class BenchmarkE2EMultiTurn100Command extends Command
                 $routing = $router->route($query, $conversation, $workspace->id);
                 $isRouteCorrect = ($intentType === 'ood' && $routing->route === RouteType::OOD) ||
                                   ($intentType === 'uncertain' && ($routing->route === RouteType::UNCERTAIN || $routing->route === RouteType::KNOWLEDGE)) ||
-                                  ($intentType === 'chat' && ($routing->route === RouteType::CHAT || $routing->route === RouteType::ACTION)) ||
-                                  ($intentType === 'action' && $routing->route === RouteType::ACTION) ||
+                                  ($intentType === 'chat' && $routing->route === RouteType::CHAT) ||
                                   ($intentType === 'knowledge' && ($routing->route === RouteType::KNOWLEDGE || $routing->route === RouteType::CHAT));
 
                 if ($isRouteCorrect) {

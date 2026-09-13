@@ -131,12 +131,6 @@ class CustomerSupportService
                 routingResult: $routingResult,
                 memoryContext: $memoryContext,
             ),
-            RouteType::ACTION => $this->executeActionRoute(
-                conversation: $conversation,
-                query: $query,
-                workspaceId: $effectiveWorkspaceId,
-                routingResult: $routingResult,
-            ),
             RouteType::ANALYTICS => $this->executeAnalyticsRoute(
                 conversation: $conversation,
                 query: $query,
@@ -407,12 +401,6 @@ class CustomerSupportService
                 query: $query,
                 memoryContext: $memoryContext,
             ),
-            RouteType::ACTION => $this->executeActionRoute(
-                conversation: $conversation ?? new Conversation(),
-                query: $query,
-                workspaceId: $workspaceId,
-                routingResult: $routingResult,
-            ),
             RouteType::ANALYTICS => $this->executeAnalyticsRoute(
                 conversation: $conversation ?? new Conversation(),
                 query: $query,
@@ -437,8 +425,7 @@ class CustomerSupportService
             ? $this->getClarificationSuggestions($query)
             : [];
         $sources = $routingResult->isKnowledge() ? $this->formatGroundedSources($groundedHits, $query) : [];
-        $isHandoff = ($routingResult->route === RouteType::ACTION) ||
-            (!empty($conversation?->metadata['handoff_to_human'])) ||
+        $isHandoff = (!empty($conversation?->metadata['handoff_to_human'])) ||
             (stripos($replyText ?? '', 'team member will contact you') !== false);
 
         $retrievalTelemetry = $this->faqSearch->getLastTelemetry();
@@ -668,20 +655,6 @@ class CustomerSupportService
      * In the current phase, AI SDK tools, multi-turn confirmation workflows,
      * and automatic database mutations are deferred to ensure zero accidental state changes.
      */
-    private function executeActionRoute(
-        Conversation $conversation,
-        string $query,
-        int $workspaceId,
-        RoutingResult $routingResult,
-    ): string {
-        $this->resetUncertainCount($conversation);
-
-        // Clear any leftover pending action state safely
-        $this->actionSafety->clearPendingAction($conversation);
-
-        return "This is an action request. Our team member will contact you soon.";
-    }
-
     /**
      * Dispatch ANALYTICS route to the Python Baseline Analytics Service.
      * Invariant: $workspaceId is strictly injected from trusted Laravel runtime.
@@ -728,9 +701,8 @@ class CustomerSupportService
         string $query,
         RoutingResult $routingResult,
     ): string {
-        // Ensure no pending action is set
-        if ($conversation->exists) {
-            $this->actionSafety->clearPendingAction($conversation);
+        if ($routingResult->securityStatus === 'blocked_mutation') {
+            return "এই ধরনের পরিবর্তন করার সুবিধা বর্তমানে সক্রিয় নেই।";
         }
 
         $metadata = $conversation->metadata ?? [];
@@ -755,47 +727,11 @@ class CustomerSupportService
             $conversation->save();
         }
 
-        $qLower = mb_strtolower($query);
-        $isBengali = (bool) preg_match('/[\p{Bengali}]/u', $query);
-
-        // 1. Cancellation / Refund related ambiguity
-        if (str_contains($qLower, 'cancel') || str_contains($qLower, 'বাতিল') || str_contains($qLower, 'ক্যানসেল') || str_contains($qLower, 'refund') || str_contains($qLower, 'রিফান্ড')) {
-            if ($isBengali) {
-                return "আপনার প্রশ্নটি আরও ভালোভাবে বুঝতে অনুগ্রহ করে একটু বিস্তারিত বলুন।\n\nআপনি কি জানতে চাচ্ছেন:\n• অর্ডার বাতিলের নিয়ম ও পলিসি কী?\n• রিফান্ড কীভাবে কাজ করে?\n• অন্য কোনো তথ্য?";
-            }
-            return "Could you please provide a little more detail so I can better understand what you need?\n\nDid you mean:\n• Ask about the order cancellation policy\n• Learn how order cancellation works\n• Something else";
-        }
-
-        // 2. Change / Update / Payment related ambiguity
-        if (str_contains($qLower, 'change') || str_contains($qLower, 'update') || str_contains($qLower, 'payment') || str_contains($qLower, 'card') || str_contains($qLower, 'পরিবর্তন') || str_contains($qLower, 'পেমেন্ট')) {
-            if ($isBengali) {
-                return "আপনার অনুরোধটি আরও স্পষ্টভাবে বুঝতে অনুগ্রহ করে বিস্তারিত বলুন।\n\nআপনি কি জানতে চাচ্ছেন:\n• পেমেন্ট মেথড বা কার্ড পরিবর্তনের নিয়ম\n• অ্যাকাউন্ট তথ্য আপডেট করার নিয়ম\n• অন্য কোনো বিষয়?";
-            }
-            return "Could you please provide a little more detail so I can better understand what you need?\n\nDid you mean:\n• How to change your payment method\n• How to update your account information\n• Something else";
-        }
-
-        // 3. Invoice / Billing related ambiguity
-        if (str_contains($qLower, 'invoice') || str_contains($qLower, 'bill') || str_contains($qLower, 'ইনভয়েস') || str_contains($qLower, 'বিল')) {
-            if ($isBengali) {
-                return "আপনার ইনভয়েস সম্পর্কিত প্রশ্নটি বিস্তারিত জানালে সাহায্য করতে সুবিধা হবে।\n\nআপনি কি জানতে চাচ্ছেন:\n• ইনভয়েস বা বিল কোথায় পাওয়া যাবে\n• বিলিং হিস্টোরি দেখার নিয়ম\n• অন্য কোনো তথ্য?";
-            }
-            return "Could you please provide a little more detail so I can better understand what you need?\n\nAre you asking:\n• Where to find your invoices\n• How invoices and billing work\n• Something else";
-        }
-
-        // 4. Order Status / Tracking Ambiguity
-        if ($routingResult->intent === 'missing_order_id_for_status' || str_contains($qLower, 'order status') || str_contains($qLower, 'track') || str_contains($qLower, 'ট্র্যাক')) {
-            if ($isBengali) {
-                return "আপনার অর্ডারের অবস্থা চেক করতে অনুগ্রহ করে আমাকে আপনার অর্ডার আইডি (যেমন: #1024) প্রদান করুন।";
-            }
-            return "To check your order status, could you please provide your Order ID (e.g. #1024)?";
-        }
-
-        // 5. Default Clarification
-        if ($isBengali) {
-            return "আপনার অনুরোধটি স্পষ্টভাবে বুঝতে পারিনি। অনুগ্রহ করে একটু বিস্তারিত বলুন—যেমন আমাদের বিভিন্ন প্ল্যান, বিলিং, অ্যাকাউন্ট সেটিংস অথবা প্ল্যাটফর্ম ফিচার সম্পর্কে জানতে চাইতে পারেন।";
-        }
-
-        return "Could you please provide a little more detail so I can better understand what you need? You can ask about our plans, billing, account settings, or general platform features.";
+        return $this->clarificationManager->handleAnalyticAmbiguity(
+            conversation: $conversation,
+            rawQuery: $query,
+            routingResult: $routingResult,
+        );
     }
 
     // ─────────────────────────────────────────────────────────────────────────

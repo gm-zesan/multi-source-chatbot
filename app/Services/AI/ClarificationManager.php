@@ -227,4 +227,67 @@ class ClarificationManager
             default => 'Entity',
         };
     }
+
+    /**
+     * Handle analytic/intent ambiguity (from HybridRouter UNCERTAIN route).
+     */
+    public function handleAnalyticAmbiguity(?Conversation $conversation, string $rawQuery, \App\AI\Routing\RoutingResult $routingResult): string
+    {
+        $ambiguityType = $routingResult->ambiguityType ?? 'GENERAL_AMBIGUOUS';
+
+        $schemas = [
+            'AMOUNT_AMBIGUOUS' => [
+                'question' => 'আপনি কোন আর্থিক তথ্যটি জানতে চাচ্ছেন?',
+                'options' => [
+                    ['id' => 'total_sales', 'label' => 'মোট কেনাকাটা', 'semantic_value' => 'customer_total_sales'],
+                    ['id' => 'total_payment', 'label' => 'মোট পেমেন্ট', 'semantic_value' => 'customer_total_payments'],
+                    ['id' => 'due', 'label' => 'বাকি টাকা', 'semantic_value' => 'customer_outstanding_due'],
+                ]
+            ],
+            'TIME_AMBIGUOUS' => [
+                'question' => 'কোন সময়ের তথ্য দেখতে চান?',
+                'options' => [
+                    ['id' => 'today', 'label' => 'আজ', 'semantic_value' => 'time_today'],
+                    ['id' => 'yesterday', 'label' => 'গতকাল', 'semantic_value' => 'time_yesterday'],
+                    ['id' => 'last_7_days', 'label' => 'গত ৭ দিন', 'semantic_value' => 'time_last_7_days'],
+                    ['id' => 'this_month', 'label' => 'এই মাস', 'semantic_value' => 'time_this_month'],
+                ]
+            ],
+            'PERFORMANCE_AMBIGUOUS' => [
+                'question' => 'কোন ধরনের performance দেখতে চান?',
+                'options' => [
+                    ['id' => 'sales', 'label' => 'Sales', 'semantic_value' => 'performance_sales'],
+                    ['id' => 'collection', 'label' => 'Collection', 'semantic_value' => 'performance_collection'],
+                    ['id' => 'product', 'label' => 'Product', 'semantic_value' => 'performance_product'],
+                    ['id' => 'customer', 'label' => 'Customer', 'semantic_value' => 'performance_customer'],
+                ]
+            ],
+        ];
+
+        // Default to a generic clarification if not matched or GENERAL_AMBIGUOUS
+        $schema = $schemas[$ambiguityType] ?? null;
+
+        if ($schema === null) {
+            // General ambiguity fallback
+            return "আপনার প্রশ্নটি আরও ভালোভাবে বুঝতে অনুগ্রহ করে একটু বিস্তারিত বলুন।";
+        }
+
+        if ($conversation !== null) {
+            $metadata = $conversation->metadata ?? [];
+            $metadata['pending_clarification'] = [
+                'original_query'    => $rawQuery,
+                'ambiguity_type'    => $ambiguityType,
+                'options'           => $schema['options'],
+                'entities'          => $routingResult->entities,
+                'created_at'        => now()->toIso8601String(),
+                'expires_at'        => now()->addSeconds((int) config('ai.clarification_ttl_seconds', 600))->toIso8601String(),
+            ];
+            $conversation->metadata = $metadata;
+            if ($conversation->exists) {
+                $conversation->save();
+            }
+        }
+
+        return json_encode($schema, JSON_UNESCAPED_UNICODE);
+    }
 }
