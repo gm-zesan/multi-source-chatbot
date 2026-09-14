@@ -20,6 +20,7 @@ class RoutingResult
         public readonly bool $isFallback = false,
         public readonly string $securityStatus = 'allowed',
         public readonly ?string $ambiguityType = null,
+        public readonly ?array $agentExecution = null,
     ) {}
 
     public function isKnowledge(): bool

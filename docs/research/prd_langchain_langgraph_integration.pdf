@@ -1,0 +1,218 @@
+%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [4 0 R] /Count 1 >>
+endobj
+3 0 obj
+<< /Font << /F1 << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> /F2 << /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >> >> >>
+endobj
+4 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources 3 0 R /Contents 5 0 R >>
+endobj
+5 0 obj
+<< /Length 7108 >>
+stream
+0.17 0.42 0.69 rg
+BT /F2 16 Tf 45 790 Td (PRODUCT REQUIREMENT DOCUMENT \(PRD\)) Tj ET
+0.29 0.33 0.41 rg
+BT /F2 11 Tf 45 770 Td (Multi-Source AI Assistant: LangChain & LangGraph Integration) Tj ET
+0.45 0.50 0.59 rg
+BT /F1 8.5 Tf 45 754 Td (Author: AI Engineering Team   |   Status: Complete & Research Frozen   |   Date: Sep 2026) Tj ET
+0.17 0.42 0.69 RG 1.5 w 45 742 m 550 742 l S
+0.17 0.42 0.69 rg
+BT /F2 12 Tf 45 724 Td (1. Executive Overview & Problem Statement) Tj ET
+0.85 0.88 0.92 RG 0.75 w 45 718 m 550 718 l S
+0.12 0.15 0.20 rg
+BT /F1 9 Tf 45 704 Td (Our Multi-Source Chatbot system receives diverse incoming requests across customer care, business analytics,) Tj ET
+BT /F1 9 Tf 45 691 Td (knowledge retrieval, and system actions. Historically, query routing and security boundaries were managed) Tj ET
+BT /F1 9 Tf 45 678 Td (deterministically via Native Router v2.2. We evaluated LangChain and LangGraph to determine their fitness for) Tj ET
+BT /F1 9 Tf 45 665 Td (production routing, safety, and agentic workflows.) Tj ET
+0.17 0.42 0.69 rg
+BT /F2 12 Tf 45 651 Td (2. Architecture & Implementation Summary) Tj ET
+0.85 0.88 0.92 RG 0.75 w 45 645 m 550 645 l S
+0.17 0.42 0.69 rg
+BT /F2 9 Tf 48 631 Td (>) Tj ET
+0.10 0.12 0.18 rg
+0.12 0.15 0.20 rg
+BT /F1 9 Tf 58 631 Td (python-langchain-service \(Port 8003\): LangChain LLM bindings \(ChatOpenAI\) + LangGraph stateful cyclic agent) Tj ET
+BT /F1 9 Tf 58 618 Td (graph \(MAX_LOOP_DEPTH = 5\).) Tj ET
+0.17 0.42 0.69 rg
+BT /F2 9 Tf 48 604 Td (>) Tj ET
+0.10 0.12 0.18 rg
+0.12 0.15 0.20 rg
+BT /F1 9 Tf 58 604 Td (Deterministic Security Gate: Strictly intercepts LLM tool calls. Enforces read-only tools and auto-injects) Tj ET
+BT /F1 9 Tf 58 591 Td (workspace_id/customer_id.) Tj ET
+0.17 0.42 0.69 rg
+BT /F2 9 Tf 48 577 Td (>) Tj ET
+0.10 0.12 0.18 rg
+0.12 0.15 0.20 rg
+BT /F1 9 Tf 58 577 Td (Laravel Orchestration: Integrated via LangChainRouter.php capturing tool_calls, iterations, and final_answer.) Tj ET
+0.17 0.42 0.69 rg
+BT /F2 12 Tf 45 563 Td (3. Empirical Benchmark Results \(38 Evaluation Queries\)) Tj ET
+0.85 0.88 0.92 RG 0.75 w 45 557 m 550 557 l S
+0.92 0.96 1.0 rg
+45 529 505 18 re f
+0.17 0.42 0.69 rg
+BT /F2 8.5 Tf 49 541 Td (Metric) Tj ET
+BT /F2 8.5 Tf 204 541 Td (Native v2.2) Tj ET
+BT /F2 8.5 Tf 289 541 Td (LangGraph L1) Tj ET
+BT /F2 8.5 Tf 374 541 Td (LangGraph L1.1) Tj ET
+BT /F2 8.5 Tf 464 541 Td (LangGraph L2) Tj ET
+0.15 0.18 0.22 rg
+0.15 0.18 0.22 rg
+BT /F2 8 Tf 49 523 Td (Route Accuracy) Tj ET
+0.17 0.42 0.69 rg
+BT /F2 8 Tf 204 523 Td (94.74%) Tj ET
+0.15 0.18 0.22 rg
+BT /F1 8 Tf 289 523 Td (84.21%) Tj ET
+0.15 0.18 0.22 rg
+BT /F1 8 Tf 374 523 Td (73.68%) Tj ET
+0.15 0.18 0.22 rg
+BT /F1 8 Tf 464 523 Td (52.63%) Tj ET
+0.85 0.88 0.92 RG 0.5 w 45 520 m 550 520 l S
+0.97 0.98 0.99 rg
+45 493 505 18 re f
+0.15 0.18 0.22 rg
+0.15 0.18 0.22 rg
+BT /F2 8 Tf 49 505 Td (Security Accuracy) Tj ET
+0.17 0.42 0.69 rg
+BT /F2 8 Tf 204 505 Td (97.37%) Tj ET
+0.15 0.18 0.22 rg
+BT /F1 8 Tf 289 505 Td (94.74%) Tj ET
+0.15 0.18 0.22 rg
+BT /F1 8 Tf 374 505 Td (92.11%) Tj ET
+0.15 0.18 0.22 rg
+BT /F1 8 Tf 464 505 Td (86.84%) Tj ET
+0.85 0.88 0.92 RG 0.5 w 45 502 m 550 502 l S
+0.15 0.18 0.22 rg
+0.15 0.18 0.22 rg
+BT /F2 8 Tf 49 487 Td (Mutation Recall) Tj ET
+0.17 0.42 0.69 rg
+BT /F2 8 Tf 204 487 Td (100.00%) Tj ET
+0.15 0.18 0.22 rg
+BT /F1 8 Tf 289 487 Td (100.00%) Tj ET
+0.15 0.18 0.22 rg
+BT /F1 8 Tf 374 487 Td (100.00%) Tj ET
+0.15 0.18 0.22 rg
+BT /F1 8 Tf 464 487 Td (50.00%) Tj ET
+0.85 0.88 0.92 RG 0.5 w 45 484 m 550 484 l S
+0.97 0.98 0.99 rg
+45 457 505 18 re f
+0.15 0.18 0.22 rg
+0.15 0.18 0.22 rg
+BT /F2 8 Tf 49 469 Td (Analytics Recall) Tj ET
+0.17 0.42 0.69 rg
+BT /F2 8 Tf 204 469 Td (100.00%) Tj ET
+0.15 0.18 0.22 rg
+BT /F1 8 Tf 289 469 Td (100.00%) Tj ET
+0.15 0.18 0.22 rg
+BT /F1 8 Tf 374 469 Td (70.00%) Tj ET
+0.15 0.18 0.22 rg
+BT /F1 8 Tf 464 469 Td (50.00%) Tj ET
+0.85 0.88 0.92 RG 0.5 w 45 466 m 550 466 l S
+0.15 0.18 0.22 rg
+0.15 0.18 0.22 rg
+BT /F2 8 Tf 49 451 Td (Avg Latency) Tj ET
+0.17 0.42 0.69 rg
+BT /F2 8 Tf 204 451 Td (~1.00 s) Tj ET
+0.15 0.18 0.22 rg
+BT /F1 8 Tf 289 451 Td (~0.98 s) Tj ET
+0.15 0.18 0.22 rg
+BT /F1 8 Tf 374 451 Td (~0.99 s) Tj ET
+0.15 0.18 0.22 rg
+BT /F1 8 Tf 464 451 Td (~2.24 s) Tj ET
+0.85 0.88 0.92 RG 0.5 w 45 448 m 550 448 l S
+0.97 0.98 0.99 rg
+45 421 505 18 re f
+0.15 0.18 0.22 rg
+0.15 0.18 0.22 rg
+BT /F2 8 Tf 49 433 Td (P95 Latency) Tj ET
+0.17 0.42 0.69 rg
+BT /F2 8 Tf 204 433 Td (~1.26 s) Tj ET
+0.15 0.18 0.22 rg
+BT /F1 8 Tf 289 433 Td (~1.31 s) Tj ET
+0.15 0.18 0.22 rg
+BT /F1 8 Tf 374 433 Td (~1.33 s) Tj ET
+0.15 0.18 0.22 rg
+BT /F1 8 Tf 464 433 Td (~4.47 s) Tj ET
+0.85 0.88 0.92 RG 0.5 w 45 430 m 550 430 l S
+0.15 0.18 0.22 rg
+0.15 0.18 0.22 rg
+BT /F2 8 Tf 49 415 Td (Tool Calls / Query) Tj ET
+0.17 0.42 0.69 rg
+BT /F2 8 Tf 204 415 Td (-) Tj ET
+0.15 0.18 0.22 rg
+BT /F1 8 Tf 289 415 Td (-) Tj ET
+0.15 0.18 0.22 rg
+BT /F1 8 Tf 374 415 Td (-) Tj ET
+0.15 0.18 0.22 rg
+BT /F1 8 Tf 464 415 Td (0.45 \(17 tot\)) Tj ET
+0.85 0.88 0.92 RG 0.5 w 45 412 m 550 412 l S
+0.97 0.98 0.99 rg
+45 385 505 18 re f
+0.15 0.18 0.22 rg
+0.15 0.18 0.22 rg
+BT /F2 8 Tf 49 397 Td (Agent Loops / Query) Tj ET
+0.17 0.42 0.69 rg
+BT /F2 8 Tf 204 397 Td (1.0) Tj ET
+0.15 0.18 0.22 rg
+BT /F1 8 Tf 289 397 Td (1.0) Tj ET
+0.15 0.18 0.22 rg
+BT /F1 8 Tf 374 397 Td (1.0) Tj ET
+0.15 0.18 0.22 rg
+BT /F1 8 Tf 464 397 Td (1.39) Tj ET
+0.85 0.88 0.92 RG 0.5 w 45 394 m 550 394 l S
+0.17 0.42 0.69 rg
+BT /F2 12 Tf 45 373 Td (4. Key Scientific & Engineering Insights) Tj ET
+0.85 0.88 0.92 RG 0.75 w 45 367 m 550 367 l S
+0.17 0.42 0.69 rg
+BT /F2 9 Tf 48 353 Td (>) Tj ET
+0.10 0.12 0.18 rg
+0.12 0.15 0.20 rg
+BT /F1 9 Tf 58 353 Td (Routing vs Problem Solving: Giving the LLM tool autonomy \(bind_tools\) shifts its behavior from strict) Tj ET
+BT /F1 9 Tf 58 340 Td (classification to open-ended conversation, dropping routing accuracy from 84.21% to 52.63%.) Tj ET
+0.17 0.42 0.69 rg
+BT /F2 9 Tf 48 326 Td (>) Tj ET
+0.10 0.12 0.18 rg
+0.12 0.15 0.20 rg
+BT /F1 9 Tf 58 326 Td (Prompt Fragility \(L1.1\): Adding natural language rules caused over-generalization of ambiguous nouns,) Tj ET
+BT /F1 9 Tf 58 313 Td (reducing accuracy to 73.68%.) Tj ET
+0.17 0.42 0.69 rg
+BT /F2 9 Tf 48 299 Td (>) Tj ET
+0.10 0.12 0.18 rg
+0.12 0.15 0.20 rg
+BT /F1 9 Tf 58 299 Td (Latency Overhead: Agentic reasoning loops incur a 2.2x latency tax \(~2.24s avg, ~4.47s P95\) vs single-pass) Tj ET
+BT /F1 9 Tf 58 286 Td (routing \(~1.0s\).) Tj ET
+0.17 0.42 0.69 rg
+BT /F2 12 Tf 45 272 Td (5. Final Architecture: Two-Tier Production Pattern) Tj ET
+0.85 0.88 0.92 RG 0.75 w 45 266 m 550 266 l S
+0.17 0.42 0.69 rg
+BT /F2 9 Tf 48 252 Td (>) Tj ET
+0.10 0.12 0.18 rg
+0.12 0.15 0.20 rg
+BT /F1 9 Tf 58 252 Td (Tier 1 - First-Hop Control \(Native Router v2.2\): Primary ingress gateway: Fast \(1.0s\), deterministic, 94.7%) Tj ET
+BT /F1 9 Tf 58 239 Td (accuracy, zero prompt drift.) Tj ET
+0.17 0.42 0.69 rg
+BT /F2 9 Tf 48 225 Td (>) Tj ET
+0.10 0.12 0.18 rg
+0.12 0.15 0.20 rg
+BT /F1 9 Tf 58 225 Td (Tier 2 - Downstream Task Worker \(LangGraph Agent\): Downstream execution node for multi-turn workflows) Tj ET
+BT /F1 9 Tf 58 212 Td (requiring autonomous multi-tool data aggregation.) Tj ET
+
+endstream
+endobj
+xref
+0 6
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000115 00000 n 
+0000000271 00000 n 
+0000000375 00000 n 
+trailer
+<< /Size 6 /Root 1 0 R >>
+startxref
+7535
+%%EOF
