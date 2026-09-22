@@ -20,6 +20,7 @@ class FAQService
     public function __construct(
         private readonly FAQIndexer $indexer,
     ) {}
+
     /**
      * Get the authenticated user's workspace ID.
      */
@@ -50,8 +51,6 @@ class FAQService
 
     /**
      * Get all FAQs for DataTables (server-side).
-     *
-     * Follows the same pattern as UserController and ContactFormController.
      */
     public function getDataTables(?Request $request = null): JsonResponse
     {
@@ -93,21 +92,6 @@ class FAQService
                 return '<span class="badge" style="' . $badgeStyle . ' font-weight: 500; font-size: 11px;">'
                     . '<i class="' . $icon . ' me-1"></i>' . e($label) . '</span>';
             })
-            ->addColumn('commerce_domain', function (FAQ $faq) {
-                $domain = $faq->lexicon?->domain ?? 'General Support';
-                return '<span class="badge" style="background-color: #f1f5f9; color: #334155; border: 1px solid #cbd5e1; font-weight: 500; font-size: 11px;">'
-                    . '<i class="ri-store-2-line me-1 text-primary"></i>' . e($domain) . '</span>';
-            })
-            ->addColumn('lexicon_badge', function (FAQ $faq) {
-                if (!$faq->lexicon) {
-                    return '<span class="badge bg-secondary-subtle text-secondary" style="font-size: 11px;">Pending Sync</span>';
-                }
-                $terms = $faq->lexicon->allTerms();
-                $termCount = count($terms);
-                $sample = e(implode(', ', array_slice($terms, 0, 5)));
-                return '<span class="badge" style="background-color: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; font-weight: 500; font-size: 11px;" title="' . $sample . '">'
-                    . '<i class="ri-sparkling-line me-1"></i>' . $termCount . ' Terms</span>';
-            })
             ->addColumn('priority', function (FAQ $faq) {
                 return $faq->priority;
             })
@@ -123,10 +107,8 @@ class FAQService
 
                 return match ($status) {
                     \App\Enums\FaqLifecycleStatus::ACTIVE => '<span class="badge bg-success" style="font-size: 11px;"><i class="ri-checkbox-circle-line me-1"></i>Active</span>',
-                    \App\Enums\FaqLifecycleStatus::VALIDATING => '<span class="badge bg-info text-white" style="font-size: 11px;"><i class="ri-loader-4-line ri-spin me-1"></i>Validating</span>',
-                    \App\Enums\FaqLifecycleStatus::SYNCING => '<span class="badge" style="background-color: #8b5cf6; color: white; font-size: 11px;"><i class="ri-refresh-line ri-spin me-1"></i>Syncing</span>',
-                    \App\Enums\FaqLifecycleStatus::VALIDATION_FAILED => '<span class="badge bg-danger" style="font-size: 11px;" title="' . e($faq->sync_error ?? 'Validation failed') . '"><i class="ri-error-warning-line me-1"></i>Validation Failed</span>',
-                    \App\Enums\FaqLifecycleStatus::SYNC_FAILED => '<span class="badge bg-danger" style="font-size: 11px;" title="' . e($faq->sync_error ?? 'Sync failed') . '"><i class="ri-close-circle-line me-1"></i>Sync Failed</span>',
+                    \App\Enums\FaqLifecycleStatus::SYNCING, \App\Enums\FaqLifecycleStatus::VALIDATING => '<span class="badge" style="background-color: #8b5cf6; color: white; font-size: 11px;"><i class="ri-refresh-line ri-spin me-1"></i>Syncing</span>',
+                    \App\Enums\FaqLifecycleStatus::SYNC_FAILED, \App\Enums\FaqLifecycleStatus::VALIDATION_FAILED => '<span class="badge bg-danger" style="font-size: 11px;" title="' . e($faq->sync_error ?? 'Sync failed') . '"><i class="ri-close-circle-line me-1"></i>Sync Failed</span>',
                     default => '<span class="badge bg-secondary" style="font-size: 11px;">Draft</span>',
                 };
             })
@@ -141,7 +123,7 @@ class FAQService
                     'error'      => $faq->sync_error,
                 ];
             })
-            ->rawColumns(['category', 'document_type', 'commerce_domain', 'lexicon_badge', 'hit_count', 'status_badge'])
+            ->rawColumns(['category', 'document_type', 'hit_count', 'status_badge'])
             ->make(true);
     }
 
@@ -175,8 +157,8 @@ class FAQService
 
             $wantsActive = (bool) ($data['is_active'] ?? true);
             if ($wantsActive) {
-                // Invariant: starts as VALIDATING and is unsearchable until validation & Typesense sync succeed
-                $data['lifecycle_status'] = \App\Enums\FaqLifecycleStatus::VALIDATING->value;
+                // Starts as SYNCING and is unsearchable until vector sync succeeds
+                $data['lifecycle_status'] = \App\Enums\FaqLifecycleStatus::SYNCING->value;
                 $data['is_active'] = false;
             } else {
                 $data['lifecycle_status'] = \App\Enums\FaqLifecycleStatus::DRAFT->value;
@@ -186,7 +168,7 @@ class FAQService
             return FAQ::create($data);
         });
 
-        if ($faq->lifecycle_status === \App\Enums\FaqLifecycleStatus::VALIDATING) {
+        if ($faq->lifecycle_status === \App\Enums\FaqLifecycleStatus::SYNCING) {
             $this->indexer->dispatchIndex($faq, 'index');
         }
 
@@ -208,7 +190,7 @@ class FAQService
 
             $wantsActive = array_key_exists('is_active', $data) ? (bool) $data['is_active'] : $faq->is_active;
             if ($wantsActive) {
-                $data['lifecycle_status'] = \App\Enums\FaqLifecycleStatus::VALIDATING->value;
+                $data['lifecycle_status'] = \App\Enums\FaqLifecycleStatus::SYNCING->value;
                 $data['is_active'] = false;
                 $data['sync_error'] = null;
             } else {
@@ -221,7 +203,7 @@ class FAQService
             return $faq->fresh();
         });
 
-        if ($faq->lifecycle_status === \App\Enums\FaqLifecycleStatus::VALIDATING) {
+        if ($faq->lifecycle_status === \App\Enums\FaqLifecycleStatus::SYNCING) {
             $this->indexer->dispatchIndex($faq, 'update');
         } else {
             $this->indexer->dispatchIndex($faq, 'delete');
@@ -274,7 +256,7 @@ class FAQService
         if ($newActive) {
             $faq->update([
                 'is_active'        => false,
-                'lifecycle_status' => \App\Enums\FaqLifecycleStatus::VALIDATING,
+                'lifecycle_status' => \App\Enums\FaqLifecycleStatus::SYNCING,
                 'sync_error'       => null,
                 'updated_by'       => Auth::id(),
             ]);
@@ -292,12 +274,12 @@ class FAQService
     }
 
     /**
-     * Manually trigger immediate re-sync to Typesense and regenerate AI lexicon.
+     * Manually trigger immediate re-sync to vector search engine.
      */
     public function resync(FAQ $faq): void
     {
         $faq->update([
-            'lifecycle_status' => \App\Enums\FaqLifecycleStatus::VALIDATING,
+            'lifecycle_status' => \App\Enums\FaqLifecycleStatus::SYNCING,
             'is_active'        => false,
             'sync_error'       => null,
         ]);

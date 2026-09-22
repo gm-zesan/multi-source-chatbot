@@ -119,7 +119,6 @@ class RetrievalClient
     public function syncFaq(FAQ $faq): bool
     {
         $url = "{$this->baseUrl()}/api/v1/faqs/sync";
-        $lexiconTerms = $faq->relationLoaded('lexicon') && $faq->lexicon ? $faq->lexicon->allTerms() : [];
 
         $payload = [
             'id'            => $faq->id,
@@ -129,7 +128,6 @@ class RetrievalClient
             'document_type' => $faq->document_type ?? 'faq',
             'priority'      => $faq->priority ?? 100,
             'is_active'     => (bool) $faq->is_active,
-            'lexicon_terms' => $lexiconTerms,
         ];
 
         try {
@@ -236,17 +234,6 @@ class RetrievalClient
                 'error'      => $e->getMessage(),
             ];
         }
-    }
-
-    /**
-     * Trigger an atomic reload of the retrieval service if needed.
-     */
-    public function reloadLexicon(int $workspaceId = 0): array
-    {
-        return [
-            'ok'           => true,
-            'workspace_id' => $workspaceId,
-        ];
     }
 
     /**

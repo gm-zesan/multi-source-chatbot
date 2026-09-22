@@ -18,7 +18,6 @@ return new class extends Migration
             $table->string('question');
             $table->text('answer');
             $table->text('searchable_text')->nullable();
-            $table->string('embedding_version')->nullable();
             $table->boolean('is_active')->default(true);
             $table->unsignedMediumInteger('priority')->default(0);
             $table->unsignedBigInteger('hit_count')->default(0);

@@ -8,7 +8,7 @@
     <link rel="stylesheet" href="https://cdn.datatables.net/1.10.25/css/dataTables.semanticui.min.css">
     <style>
         .faq-question-cell {
-            max-width: 300px;
+            max-width: 320px;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
@@ -38,37 +38,13 @@
                         @endrole
                     </div>
                     <div class="card-body" style="overflow-x: auto">
-
-                        {{-- <div class="row mb-3">
-                            <div class="col-md-4">
-                                <label class="form-label custom-label">Category</label>
-                                <select id="category-filter" class="form-control custom-input single-select2">
-                                    <option value="">All Categories</option>
-                                    @foreach ($categories as $category)
-                                        <option value="{{ $category->id }}">{{ $category->name }}</option>
-                                    @endforeach
-                                </select>
-                            </div>
-                            <div class="col-md-3">
-                                <label class="form-label custom-label">Status</label>
-                                <select id="status-filter" class="form-control custom-input single-select2">
-                                    <option value="">All</option>
-                                    <option value="active">Active</option>
-                                    <option value="inactive">Inactive</option>
-                                    <option value="trashed">Deleted</option>
-                                </select>
-                            </div>
-                        </div> --}}
-
-                        <table class="table dataTable w-100" id="data-table" style="min-width: 950px;">
+                        <table class="table dataTable w-100" id="data-table" style="min-width: 850px;">
                             <thead>
                                 <tr>
                                     <th scope="col">SL NO</th>
                                     <th scope="col">Question</th>
                                     <th scope="col">Category</th>
                                     <th scope="col">Policy Type</th>
-                                    <th scope="col">Commerce Domain</th>
-                                    <th scope="col">AI Lexicon</th>
                                     <th scope="col">Priority</th>
                                     <th scope="col">Hits</th>
                                     <th scope="col">Status</th>
@@ -103,8 +79,8 @@
 
         function triggerResync(faqId) {
             swal({
-                title: "Re-sync to Typesense?",
-                text: "This will regenerate the commerce ontology lexicon and immediately sync vectors to Typesense.",
+                title: "Re-sync to Vector Engine?",
+                text: "This will regenerate embeddings and synchronize this FAQ with Typesense for AI retrieval.",
                 icon: "info",
                 buttons: ["Cancel", "Sync Now"],
             }).then((willSync) => {
@@ -118,7 +94,7 @@
                     })
                     .then(res => res.json())
                     .then(data => {
-                        swal("Synced!", data.message || "FAQ synced successfully.", "success");
+                        swal("Synced!", data.message || "FAQ sync job dispatched.", "success");
                         $('#data-table').DataTable().ajax.reload(null, false);
                     })
                     .catch(err => {
@@ -170,16 +146,6 @@
                         orderable: true
                     },
                     {
-                        data: 'commerce_domain',
-                        name: 'commerce_domain',
-                        orderable: false
-                    },
-                    {
-                        data: 'lexicon_badge',
-                        name: 'lexicon_badge',
-                        orderable: false
-                    },
-                    {
                         data: 'priority',
                         name: 'priority',
                         orderable: true
@@ -202,9 +168,9 @@
                             btns += '<div class="action-btn d-flex align-items-center gap-1">';
 
                             if (data.has_failed) {
-                                btns += '<button type="button" class="btn btn-sm btn-outline-danger" style="padding: 3px 7px;" title="Retry Validation & Sync (' + (data.error ? data.error.replace(/"/g, '&quot;') : 'Failed') + ')" onclick="triggerResync(\'' + data.id + '\')"><i class="ri-error-warning-line me-1"></i>Retry</button>';
+                                btns += '<button type="button" class="btn btn-sm btn-outline-danger" style="padding: 3px 7px;" title="Retry Sync (' + (data.error ? data.error.replace(/"/g, '&quot;') : 'Failed') + ')" onclick="triggerResync(\'' + data.id + '\')"><i class="ri-error-warning-line me-1"></i>Retry</button>';
                             } else {
-                                btns += '<button type="button" class="btn btn-sm btn-outline-primary" style="padding: 3px 7px;" title="Re-sync & Regenerate Lexicon" onclick="triggerResync(\'' + data.id + '\')"><i class="ri-refresh-line"></i></button>';
+                                btns += '<button type="button" class="btn btn-sm btn-outline-primary" style="padding: 3px 7px;" title="Re-sync Vector Index" onclick="triggerResync(\'' + data.id + '\')"><i class="ri-refresh-line"></i></button>';
                             }
 
                             btns += '<a href="' + SITEURL + '/dashboard/faqs/' + data.id +

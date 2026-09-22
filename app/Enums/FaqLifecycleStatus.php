@@ -7,11 +7,12 @@ namespace App\Enums;
 enum FaqLifecycleStatus: string
 {
     case DRAFT = 'draft';
-    case VALIDATING = 'validating';
     case SYNCING = 'syncing';
     case ACTIVE = 'active';
-    case VALIDATION_FAILED = 'validation_failed';
     case SYNC_FAILED = 'sync_failed';
+    // Deprecated legacy statuses kept for backwards-compatibility with existing records
+    case VALIDATING = 'validating';
+    case VALIDATION_FAILED = 'validation_failed';
 
     /**
      * Human-readable label for UI display.
@@ -20,11 +21,11 @@ enum FaqLifecycleStatus: string
     {
         return match ($this) {
             self::DRAFT             => 'Draft',
-            self::VALIDATING        => 'Validating Lexicon',
-            self::SYNCING           => 'Syncing to Typesense',
+            self::SYNCING           => 'Syncing to Vector Engine',
             self::ACTIVE            => 'Active & Searchable',
-            self::VALIDATION_FAILED => 'Validation Failed',
             self::SYNC_FAILED       => 'Sync Failed',
+            self::VALIDATING        => 'Processing',
+            self::VALIDATION_FAILED => 'Validation Failed',
         };
     }
 
@@ -35,11 +36,11 @@ enum FaqLifecycleStatus: string
     {
         return match ($this) {
             self::DRAFT             => 'bg-secondary',
-            self::VALIDATING        => 'bg-info text-white',
             self::SYNCING           => 'text-white', // custom background in blade: #8b5cf6
             self::ACTIVE            => 'bg-success',
-            self::VALIDATION_FAILED => 'bg-danger',
             self::SYNC_FAILED       => 'bg-danger',
+            self::VALIDATING        => 'bg-info text-white',
+            self::VALIDATION_FAILED => 'bg-danger',
         };
     }
 
@@ -50,11 +51,11 @@ enum FaqLifecycleStatus: string
     {
         return match ($this) {
             self::DRAFT             => 'ri-draft-line',
-            self::VALIDATING        => 'ri-loader-4-line ri-spin',
             self::SYNCING           => 'ri-refresh-line ri-spin',
             self::ACTIVE            => 'ri-checkbox-circle-line',
-            self::VALIDATION_FAILED => 'ri-error-warning-line',
             self::SYNC_FAILED       => 'ri-close-circle-line',
+            self::VALIDATING        => 'ri-loader-4-line ri-spin',
+            self::VALIDATION_FAILED => 'ri-error-warning-line',
         };
     }
 
@@ -71,7 +72,7 @@ enum FaqLifecycleStatus: string
      */
     public function hasFailed(): bool
     {
-        return in_array($this, [self::VALIDATION_FAILED, self::SYNC_FAILED], true);
+        return in_array($this, [self::SYNC_FAILED, self::VALIDATION_FAILED], true);
     }
 
     /**
@@ -79,6 +80,6 @@ enum FaqLifecycleStatus: string
      */
     public function isInProgress(): bool
     {
-        return in_array($this, [self::VALIDATING, self::SYNCING], true);
+        return in_array($this, [self::SYNCING, self::VALIDATING], true);
     }
 }

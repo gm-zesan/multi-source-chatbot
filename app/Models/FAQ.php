@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Models;
 
 use Database\Factories\FAQFactory;
@@ -33,7 +35,6 @@ class FAQ extends Model
         'question',
         'answer',
         'searchable_text',
-        'embedding_version',
         'lifecycle_status',
         'sync_error',
         'is_active',
@@ -141,11 +142,6 @@ class FAQ extends Model
     public function isReadyForRetrieval(): bool
     {
         return $this->shouldBeSearchable();
-    }
-
-    public function isValidating(): bool
-    {
-        return $this->lifecycle_status === \App\Enums\FaqLifecycleStatus::VALIDATING;
     }
 
     public function isSyncing(): bool

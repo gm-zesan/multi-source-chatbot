@@ -47,12 +47,12 @@
                         </div>
                     </div>
 
-                    {{-- AI Retrieval & Dynamic Commerce Lexicon Panel --}}
+                    {{-- AI Vector Retrieval & Indexing Status Panel --}}
                     <div class="card table-card mt-3">
                         <div class="card-header table-header d-flex align-items-center justify-content-between">
                             <div class="table-title d-flex align-items-center">
                                 <i class="ri-sparkling-fill text-primary me-2 fs-5"></i>
-                                AI Retrieval & Commerce Ontology
+                                AI Semantic Retrieval & Indexing Status
                             </div>
                             <div>
                                 @php
@@ -63,19 +63,11 @@
                                     <span class="badge bg-success" style="font-size: 11px;">
                                         <i class="ri-checkbox-circle-line me-1"></i>Active & Searchable
                                     </span>
-                                @elseif ($status === \App\Enums\FaqLifecycleStatus::VALIDATING)
-                                    <span class="badge bg-info text-white" style="font-size: 11px;">
-                                        <i class="ri-loader-4-line ri-spin me-1"></i>Validating Lexicon...
-                                    </span>
-                                @elseif ($status === \App\Enums\FaqLifecycleStatus::SYNCING)
+                                @elseif ($status === \App\Enums\FaqLifecycleStatus::SYNCING || $status === \App\Enums\FaqLifecycleStatus::VALIDATING)
                                     <span class="badge" style="background-color: #8b5cf6; color: white; font-size: 11px;">
                                         <i class="ri-refresh-line ri-spin me-1"></i>Syncing to Typesense...
                                     </span>
-                                @elseif ($status === \App\Enums\FaqLifecycleStatus::VALIDATION_FAILED)
-                                    <span class="badge bg-danger" style="font-size: 11px;">
-                                        <i class="ri-error-warning-line me-1"></i>Validation Failed
-                                    </span>
-                                @elseif ($status === \App\Enums\FaqLifecycleStatus::SYNC_FAILED)
+                                @elseif ($status === \App\Enums\FaqLifecycleStatus::SYNC_FAILED || $status === \App\Enums\FaqLifecycleStatus::VALIDATION_FAILED)
                                     <span class="badge bg-danger" style="font-size: 11px;">
                                         <i class="ri-close-circle-line me-1"></i>Sync Failed
                                     </span>
@@ -89,64 +81,43 @@
                                 <div class="alert alert-danger d-flex align-items-center justify-content-between p-2 mb-3" style="font-size: 13px;">
                                     <div>
                                         <i class="ri-error-warning-fill me-1"></i>
-                                        <strong>Lifecycle Processing Error:</strong> {{ $faq->sync_error ?? 'Validation or synchronization encountered an issue.' }}
+                                        <strong>Vector Synchronization Error:</strong> {{ $faq->sync_error ?? 'Embedding generation or Typesense vector sync encountered an issue.' }}
                                     </div>
-                                    <button type="button" class="btn btn-sm btn-danger ms-3" onclick="triggerResync()">
+                                    <button type="button" class="btn btn-sm btn-danger ms-3" onclick="triggerResync('{{ $faq->id }}')">
                                         <i class="ri-refresh-line me-1"></i>Retry Now
                                     </button>
                                 </div>
                             @endif
+
                             <div class="row g-3">
-                                <div class="col-md-6 col-12">
-                                    <label class="form-label text-muted small mb-1 fw-bold text-uppercase" style="font-size: 11px;">Commerce Domain Category</label>
-                                    <div class="p-2" style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px;">
-                                        <span class="badge" style="background-color: #3b82f6; color: #ffffff; font-size: 12px;">
-                                            <i class="ri-store-2-line me-1"></i>{{ $faq->lexicon?->domain ?? 'General Support' }}
+                                <div class="col-md-4 col-12">
+                                    <div class="p-3 bg-light rounded border">
+                                        <small class="text-muted d-block fw-semibold mb-1">EMBEDDING MODEL</small>
+                                        <span class="badge bg-primary-subtle text-primary fw-medium" style="font-size: 11px;">
+                                            <i class="ri-cpu-line me-1"></i>paraphrase-multilingual-mpnet-base-v2
                                         </span>
-                                        <span class="text-muted small ms-2">Intent: <code>{{ $faq->lexicon?->intent ?? 'support_faq_inquiry' }}</code></span>
                                     </div>
                                 </div>
-                                <div class="col-md-6 col-12">
-                                    <label class="form-label text-muted small mb-1 fw-bold text-uppercase" style="font-size: 11px;">Canonical Search Concepts</label>
-                                    <div class="p-2" style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; min-height: 42px;">
-                                        @forelse ($faq->lexicon?->canonical_terms ?? [] as $term)
-                                            <span class="badge" style="background-color: #e2e8f0; color: #334155; margin-right: 4px; margin-bottom: 4px; font-size: 11px;">
-                                                {{ $term }}
-                                            </span>
-                                        @empty
-                                            <span class="text-muted small">None generated yet</span>
-                                        @endforelse
+                                <div class="col-md-4 col-12">
+                                    <div class="p-3 bg-light rounded border">
+                                        <small class="text-muted d-block fw-semibold mb-1">VECTOR DIMENSION</small>
+                                        <span class="fw-bold text-dark">768-D Dense Embeddings</span>
                                     </div>
                                 </div>
-                                <div class="col-md-6 col-12">
-                                    <label class="form-label text-muted small mb-1 fw-bold text-uppercase" style="font-size: 11px;">Bengali (বাংলা) & Banglish Variations</label>
-                                    <div class="p-2" style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; min-height: 42px;">
-                                        @forelse ($faq->lexicon?->bangla_terms ?? [] as $term)
-                                            <span class="badge" style="background-color: #ecfdf5; color: #047857; border: 1px solid #a7f3d0; margin-right: 4px; margin-bottom: 4px; font-size: 11px;">
-                                                {{ $term }}
-                                            </span>
-                                        @empty
-                                            <span class="text-muted small">None generated yet</span>
-                                        @endforelse
-                                    </div>
-                                </div>
-                                <div class="col-md-6 col-12">
-                                    <label class="form-label text-muted small mb-1 fw-bold text-uppercase" style="font-size: 11px;">F-Commerce & Social Aliases</label>
-                                    <div class="p-2" style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; min-height: 42px;">
-                                        @forelse ($faq->lexicon?->commerce_terms ?? [] as $term)
-                                            <span class="badge" style="background-color: #fef3c7; color: #b45309; border: 1px solid #fde68a; margin-right: 4px; margin-bottom: 4px; font-size: 11px;">
-                                                {{ $term }}
-                                            </span>
-                                        @empty
-                                            <span class="text-muted small">None generated yet</span>
-                                        @endforelse
+                                <div class="col-md-4 col-12">
+                                    <div class="p-3 bg-light rounded border">
+                                        <small class="text-muted d-block fw-semibold mb-1">SEARCH ENGINE</small>
+                                        <span class="badge bg-success-subtle text-success fw-medium" style="font-size: 11px;">
+                                            <i class="ri-flashlight-line me-1"></i>Typesense Hybrid (BM25 + Vector)
+                                        </span>
                                     </div>
                                 </div>
                             </div>
+
                             <div class="mt-3 p-2 d-flex align-items-center" style="background-color: #f0f9ff; border: 1px dashed #bae6fd; border-radius: 6px;">
                                 <i class="ri-information-line text-info me-2 fs-5"></i>
                                 <span class="small text-muted">
-                                    <strong>Automatic Lifecycle:</strong> Updating this FAQ will asynchronously regenerate these terms and re-index them in Typesense with zero runtime latency.
+                                    <strong>Automatic Vector Synchronization:</strong> Saving any changes to the question or answer will asynchronously re-compute semantic vectors and update Typesense in real-time with zero search downtime.
                                 </span>
                             </div>
                         </div>
@@ -221,7 +192,7 @@
 
                             <div class="mb-3">
                                 <button type="button" class="btn btn-sm w-100 py-2 text-primary" style="background-color: #eff6ff; border: 1px solid #bfdbfe; font-weight: 500;" onclick="triggerResync('{{ $faq->id }}')">
-                                    <i class="ri-refresh-line me-1"></i> Re-sync to Typesense & Regenerate Lexicon
+                                    <i class="ri-refresh-line me-1"></i> Re-sync Vector Search Index
                                 </button>
                             </div>
 
@@ -258,8 +229,8 @@
     <script>
         function triggerResync(faqId) {
             swal({
-                title: "Re-sync to Typesense?",
-                text: "This will regenerate the commerce ontology lexicon and immediately sync vectors to Typesense.",
+                title: "Re-sync to Vector Engine?",
+                text: "This will regenerate embeddings and synchronize this FAQ with Typesense for AI retrieval.",
                 icon: "info",
                 buttons: ["Cancel", "Sync Now"],
             }).then((willSync) => {

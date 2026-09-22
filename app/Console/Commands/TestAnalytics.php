@@ -41,9 +41,9 @@ class TestAnalytics extends Command
                 $this->line("Engine: " . $result['engine']);
                 $this->line("Intent: " . $result['intent']);
                 $this->line("Latency (ms): " . $result['latency_ms']);
-                $this->line("Report: " . $result['report']);
+                $this->line("Report:\n" . $result['report']);
             } else {
-                $this->error("Analytics query failed internally.");
+                $this->error("Analytics query failed internally: " . json_encode($result, JSON_PRETTY_PRINT));
             }
         } catch (\Exception $e) {
             $this->error("Error communicating with Analytics service: " . $e->getMessage());

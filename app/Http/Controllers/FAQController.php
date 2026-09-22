@@ -63,7 +63,6 @@ class FAQController extends Controller
     public function edit(FAQ $faq): View
     {
         $this->authorizeWorkspace($faq);
-        $faq->load('lexicon');
 
         return view('admin.faqs.edit', [
             'faq'        => $faq,
@@ -141,7 +140,7 @@ class FAQController extends Controller
     }
 
     /**
-     * Manually trigger re-sync to Typesense and lexicon regeneration.
+     * Manually trigger re-sync to vector search engine.
      */
     public function resync(Request $request, FAQ $faq): JsonResponse|RedirectResponse
     {
@@ -152,7 +151,7 @@ class FAQController extends Controller
         if ($request->ajax() || $request->expectsJson()) {
             return response()->json([
                 'success' => true,
-                'message' => 'Sync job queued successfully. Typesense and Lexicon are updating.',
+                'message' => 'Sync job queued successfully. Vector index is updating.',
             ]);
         }
 

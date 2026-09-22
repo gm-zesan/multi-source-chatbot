@@ -46,17 +46,14 @@ class FAQIndexJob implements ShouldQueue
     /**
      * Execute the job.
      */
-    public function handle(
-        RetrievalClient $retrievalClient,
-        ?\App\Services\FAQ\FaqLexiconGeneratorService $lexiconGenerator = null,
-    ): void {
-        $lexiconGenerator = $lexiconGenerator ?? app(\App\Services\FAQ\FaqLexiconGeneratorService::class);
+    public function handle(RetrievalClient $retrievalClient): void
+    {
         $this->faq->refresh();
 
         try {
             // Case 1: Deletion, soft-deleted, or explicitly deactivated
             $isDeletion = ($this->action === 'delete' || $this->faq->trashed());
-            $isExplicitlyInactive = ($this->action === 'index' && ! $this->faq->is_active && ! $this->faq->hasFailed() && $this->faq->lifecycle_status !== \App\Enums\FaqLifecycleStatus::VALIDATING);
+            $isExplicitlyInactive = ($this->action === 'index' && ! $this->faq->is_active && ! $this->faq->hasFailed() && $this->faq->lifecycle_status !== \App\Enums\FaqLifecycleStatus::SYNCING);
 
             if ($isDeletion || $isExplicitlyInactive) {
                 $retrievalClient->deleteFaq($this->faq->id, $this->faq->workspace_id);
@@ -69,62 +66,37 @@ class FAQIndexJob implements ShouldQueue
                 return;
             }
 
-            // Step 1: Transition to VALIDATING
+            // Step 1: Transition to SYNCING
             $this->faq->update([
-                'lifecycle_status' => \App\Enums\FaqLifecycleStatus::VALIDATING,
+                'lifecycle_status' => \App\Enums\FaqLifecycleStatus::SYNCING,
                 'sync_error'       => null,
             ]);
 
-            // Step 2: Generate & validate commerce domain lexicon
-            $lexicon = $lexiconGenerator->generateAndStore($this->faq);
-
-            if (! $lexicon || ! $lexicon->is_validated) {
-                // Validation failed -> Do not sync to Typesense, remove from Typesense if existed
-                $this->faq->update([
-                    'lifecycle_status' => \App\Enums\FaqLifecycleStatus::VALIDATION_FAILED,
-                    'is_active'        => false,
-                    'sync_error'       => 'Commerce lexicon validation failed or anti-hallucination boundary triggered.',
-                ]);
-                $retrievalClient->deleteFaq($this->faq->id, $this->faq->workspace_id);
-
-                Log::warning('[FAQIndexJob] Lexicon validation failed; document withheld from retrieval', [
-                    'faq_id' => $this->faq->id,
-                ]);
-                return;
-            }
-
-            // Step 3: Transition to SYNCING
-            $this->faq->update([
-                'lifecycle_status' => \App\Enums\FaqLifecycleStatus::SYNCING,
-            ]);
-
-            $this->faq->load('lexicon');
-
+            // Step 2: Direct Vector Synchronization to Typesense & Python AI Retrieval Engine
             $synced = $retrievalClient->syncFaq($this->faq);
 
             if ($synced === false) {
                 $this->faq->update([
                     'lifecycle_status' => \App\Enums\FaqLifecycleStatus::SYNC_FAILED,
                     'is_active'        => false,
-                    'sync_error'       => 'Typesense vector synchronization failed.',
+                    'sync_error'       => 'Vector retrieval engine synchronization failed.',
                 ]);
                 return;
             }
 
-            // Step 4: Successfully validated & synced -> Transition to ACTIVE
+            // Step 3: Successfully synced -> Transition to ACTIVE & searchable
             $this->faq->update([
                 'lifecycle_status' => \App\Enums\FaqLifecycleStatus::ACTIVE,
                 'is_active'        => true,
                 'sync_error'       => null,
             ]);
 
-            Log::debug('[FAQIndexJob] FAQ successfully validated, synced and activated', [
+            Log::debug('[FAQIndexJob] FAQ successfully synced and activated', [
                 'faq_id' => $this->faq->id,
                 'action' => $this->action,
                 'status' => 'active',
             ]);
         } catch (\Throwable $e) {
-            dump('CAUGHT IN FAQIndexJob: ' . $e->getMessage());
             $this->faq->update([
                 'lifecycle_status' => \App\Enums\FaqLifecycleStatus::SYNC_FAILED,
                 'is_active'        => false,

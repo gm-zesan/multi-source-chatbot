@@ -109,10 +109,10 @@
 
                             <div class="mb-3 p-3" style="background-color: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 6px;">
                                 <div class="d-flex align-items-center mb-1 text-success fw-bold small">
-                                    <i class="ri-sparkling-fill me-1"></i> Automatic AI Lexicon Ingestion
+                                    <i class="ri-sparkling-fill me-1"></i> AI Vector Search Ingestion
                                 </div>
                                 <p class="text-muted mb-0" style="font-size: 11px; line-height: 1.4;">
-                                    Upon saving, our background pipeline will automatically map this FAQ into the 11-domain Commerce Ontology and extract validated Bengali, Banglish, and F-Commerce aliases for instant retrieval.
+                                    Upon saving, our background pipeline will automatically compute 768-dimensional multilingual embeddings and index this FAQ in Typesense for instant semantic search.
                                 </p>
                             </div>
 

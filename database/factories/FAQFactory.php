@@ -81,7 +81,6 @@ class FAQFactory extends Factory
             'question' => $faq['question'],
             'answer' => $faq['answer'],
             'searchable_text' => null,
-            'embedding_version' => null,
             'is_active' => true,
             'priority' => fake()->numberBetween(0, 100),
             'hit_count' => fake()->numberBetween(0, 5000),

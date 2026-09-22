@@ -5,14 +5,11 @@ declare(strict_types=1);
 namespace Tests\Feature;
 
 use App\Enums\FaqLifecycleStatus;
-use App\Enums\Permissions\FAQPermission;
 use App\Enums\RoleEnum;
 use App\Jobs\FAQIndexJob;
 use App\Models\FAQ;
-use App\Models\FaqLexicon;
 use App\Models\User;
 use App\Models\Workspace;
-use App\Services\FAQ\FaqLexiconGeneratorService;
 use App\Services\Retrieval\RetrievalClient;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Queue;
@@ -51,7 +48,7 @@ class FAQLifecyclePipelineTest extends TestCase
         $this->adminUser->assignRole($role);
     }
 
-    public function test_admin_created_faq_starts_in_validating_and_is_not_searchable(): void
+    public function test_admin_created_faq_starts_in_syncing_and_is_not_searchable(): void
     {
         Queue::fake();
 
@@ -69,8 +66,8 @@ class FAQLifecyclePipelineTest extends TestCase
         $faq = FAQ::where('question', 'What is the return policy for damaged items?')->first();
         $this->assertNotNull($faq);
 
-        // Core Invariant Check: Not active or searchable upon DB creation
-        $this->assertEquals(FaqLifecycleStatus::VALIDATING, $faq->lifecycle_status);
+        // Core Invariant Check: Not active or searchable upon DB creation until vector sync completes
+        $this->assertEquals(FaqLifecycleStatus::SYNCING, $faq->lifecycle_status);
         $this->assertFalse($faq->is_active);
         $this->assertFalse($faq->shouldBeSearchable());
         $this->assertFalse($faq->isReadyForRetrieval());
@@ -80,14 +77,14 @@ class FAQLifecyclePipelineTest extends TestCase
         });
     }
 
-    public function test_successful_validation_and_sync_activates_faq(): void
+    public function test_successful_sync_activates_faq(): void
     {
         $faq = FAQ::create([
             'workspace_id'     => $this->workspace->id,
             'question'         => 'What is your refund timeframe?',
             'answer'           => 'Refunds are processed within 5 to 7 working days to your original payment method.',
             'document_type'    => 'refund_policy',
-            'lifecycle_status' => FaqLifecycleStatus::VALIDATING,
+            'lifecycle_status' => FaqLifecycleStatus::SYNCING,
             'is_active'        => false,
         ]);
 
@@ -112,42 +109,6 @@ class FAQLifecyclePipelineTest extends TestCase
         $this->assertNull($faq->sync_error);
     }
 
-    public function test_lexicon_validation_failure_transitions_to_validation_failed_and_withholds_document(): void
-    {
-        $faq = FAQ::create([
-            'workspace_id'     => $this->workspace->id,
-            'question'         => 'Broken policy question',
-            'answer'           => 'Broken policy answer',
-            'document_type'    => 'custom_policy',
-            'lifecycle_status' => FaqLifecycleStatus::VALIDATING,
-            'is_active'        => false,
-        ]);
-
-        $mockClient = $this->createMock(RetrievalClient::class);
-        // Should delete from Typesense if existed, and NEVER sync
-        $mockClient->expects($this->once())
-            ->method('deleteFaq')
-            ->with($faq->id, $this->workspace->id);
-        $mockClient->expects($this->never())->method('syncFaq');
-
-        // Mock generator to return unvalidated / null lexicon
-        $mockGenerator = $this->createMock(FaqLexiconGeneratorService::class);
-        $mockGenerator->expects($this->once())
-            ->method('generateAndStore')
-            ->willReturn(null);
-
-        $job = new FAQIndexJob($faq, 'index');
-        $job->handle($mockClient, $mockGenerator);
-
-        $faq->refresh();
-
-        $this->assertEquals(FaqLifecycleStatus::VALIDATION_FAILED, $faq->lifecycle_status);
-        $this->assertFalse($faq->is_active);
-        $this->assertFalse($faq->shouldBeSearchable());
-        $this->assertTrue($faq->hasFailed());
-        $this->assertNotNull($faq->sync_error);
-    }
-
     public function test_typesense_sync_failure_transitions_to_sync_failed(): void
     {
         $faq = FAQ::create([
@@ -155,14 +116,14 @@ class FAQLifecyclePipelineTest extends TestCase
             'question'         => 'Exchange period policy',
             'answer'           => 'You can exchange within 7 days.',
             'document_type'    => 'exchange_policy',
-            'lifecycle_status' => FaqLifecycleStatus::VALIDATING,
+            'lifecycle_status' => FaqLifecycleStatus::SYNCING,
             'is_active'        => false,
         ]);
 
         $mockClient = $this->createMock(RetrievalClient::class);
         $mockClient->expects($this->once())
             ->method('syncFaq')
-            ->willReturn(false); // Typesense failure
+            ->willReturn(false); // Typesense / embedding failure
 
         $job = new FAQIndexJob($faq, 'index');
         $job->handle($mockClient);
@@ -200,8 +161,8 @@ class FAQLifecyclePipelineTest extends TestCase
 
         $faq->refresh();
 
-        // Resets to validating and clears previous error
-        $this->assertEquals(FaqLifecycleStatus::VALIDATING, $faq->lifecycle_status);
+        // Resets to syncing and clears previous error
+        $this->assertEquals(FaqLifecycleStatus::SYNCING, $faq->lifecycle_status);
         $this->assertNull($faq->sync_error);
 
         Queue::assertPushed(FAQIndexJob::class, function (FAQIndexJob $job) use ($faq) {
