@@ -8,11 +8,11 @@ return [
     | Python Analytics Service Base URL
     |--------------------------------------------------------------------------
     |
-    | Base URL for the Python Baseline Analytics Service (running via FastAPI / Uvicorn).
-    | By default, this runs on port 8200 (port 8002 is reserved by Windows Hyper-V).
+    | Base URL for the Python Analytics Service (now part of the AI Engine).
+    | By default, this runs on port 8001 alongside the Retrieval Engine.
     |
     */
-    'base_url' => env('PYTHON_ANALYTICS_URL', env('PYTHON_MEMORY_SERVICE_URL', 'http://127.0.0.1:8002')),
+    'base_url' => env('PYTHON_ANALYTICS_URL', env('PYTHON_RETRIEVAL_URL', 'http://127.0.0.1:8001')),
 
     /*
     |--------------------------------------------------------------------------

@@ -20,7 +20,7 @@ class AnalyticsClient
      */
     public function baseUrl(): string
     {
-        return rtrim($this->baseUrl ?? (string) config('analytics.base_url', 'http://127.0.0.1:8002'), '/');
+        return rtrim($this->baseUrl ?? (string) config('analytics.base_url', 'http://127.0.0.1:8001'), '/');
     }
 
     /**

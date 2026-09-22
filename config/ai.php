@@ -12,8 +12,8 @@ return [
     |
     */
 
-    'default' => env('AI_DEFAULT_PROVIDER', 'deepseek'),
-    'default_model' => env('AI_DEFAULT_MODEL', 'deepseek-chat'),
+    'default' => env('LLM_PROVIDER', env('AI_DEFAULT_PROVIDER', 'deepseek')),
+    'default_model' => env('LLM_MODEL', env('AI_DEFAULT_MODEL', 'deepseek-chat')),
 
     'fallback_provider' => env('AI_FALLBACK_PROVIDER', 'openrouter'),
     'fallback_model' => env('AI_FALLBACK_MODEL', 'openrouter/free'),
@@ -48,14 +48,14 @@ return [
     'providers' => [
         'openrouter' => [
             'driver' => 'openrouter',
-            'key' => env('OPENROUTER_API_KEY'),
-            'url' => env('OPENROUTER_URL', 'https://openrouter.ai/api/v1'),
+            'key' => env('LLM_API_KEY', env('OPENROUTER_API_KEY')),
+            'url' => env('LLM_BASE_URL', env('OPENROUTER_URL', 'https://openrouter.ai/api/v1')),
         ],
 
         'deepseek' => [
             'driver' => 'deepseek',
-            'key' => env('DEEPSEEK_API_KEY'),
-            'url' => env('DEEPSEEK_URL', 'https://api.deepseek.com'),
+            'key' => env('LLM_API_KEY', env('DEEPSEEK_API_KEY')),
+            'url' => env('LLM_BASE_URL', env('DEEPSEEK_URL', 'https://api.deepseek.com')),
         ],
 
         'openai' => [
