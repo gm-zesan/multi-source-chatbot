@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Feature\E2E;
 
-use App\AI\Agents\CustomerSupportAgent;
+use App\AI\Agents\ConversationalSupportAgent;
 use App\AI\Routing\RouteType;
 use App\AI\Routing\RoutingResult;
 use Tests\Feature\E2E\Support\BaseE2ETestCase;
@@ -29,7 +29,7 @@ class E2E05DirectChatLLMTest extends BaseE2ETestCase
             'Can you explain what an e-commerce website is?',
         ];
 
-        CustomerSupportAgent::fake([
+        ConversationalSupportAgent::fake([
             'Hello! I am your AI assistant. How can I help you today?',
             'I am doing great, thank you! How can I assist you with your shopping today?',
             'An e-commerce website is an online platform that allows buying and selling of products or services over the internet.',
@@ -78,7 +78,7 @@ class E2E05DirectChatLLMTest extends BaseE2ETestCase
             'Python কী?',
         ];
 
-        CustomerSupportAgent::fake(['আমি শুধুমাত্র এই শপের পণ্য ও সেবা সম্পর্কিত তথ্য দিতে পারি।']);
+        ConversationalSupportAgent::fake(['আমি শুধুমাত্র এই শপের পণ্য ও সেবা সম্পর্কিত তথ্য দিতে পারি।']);
 
         foreach ($oodQueries as $query) {
             $this->routerMock->shouldReceive('route')

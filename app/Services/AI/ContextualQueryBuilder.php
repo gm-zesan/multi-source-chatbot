@@ -25,9 +25,13 @@ class ContextualQueryBuilder
     public const CONFIDENCE_THRESHOLD = 0.70;
     public const WINNER_MARGIN = 0.20;
 
+    private readonly ConversationMemoryService $memoryService;
+
     public function __construct(
-        private readonly ?ConversationMemoryService $memoryService = null,
-    ) {}
+        ?ConversationMemoryService $memoryService = null,
+    ) {
+        $this->memoryService = $memoryService ?? app(ConversationMemoryService::class);
+    }
 
     /**
      * Resolve structured contextual resolution result (Phase M2 KGM-Aware Contract).
@@ -138,6 +142,8 @@ class ContextualQueryBuilder
                 source: 'local_turns'
             );
         }
+
+
 
         $expectedType = $this->determineExpectedEntityType($cleanQuery, $activeTopic);
 
@@ -354,7 +360,7 @@ class ContextualQueryBuilder
         }
 
         // Order inquiries: Tracking, Delivery arrival, Consignment status
-        if (preg_match('/(কবে\s*পাবো|kobe\s*pabo|when\s+will|ট্র্যাক|track|tracking|কুরিয়ার|courier|পার্সেল|parcel|অর্ডার|order)/ui', $qLower)) {
+        if (preg_match('/(কবে\s*পাবো|kobe\s*pabo|when\s+will|ডেলিভারি|delivery|কবে|ট্র্যাক|track|tracking|কুরিয়ার|courier|পার্সেল|parcel|অর্ডার|order)/ui', $qLower)) {
             return 'Order';
         }
 
@@ -389,7 +395,15 @@ class ContextualQueryBuilder
 
             // Compatibility penalty if type contradicts expected type
             if ($expectedType !== null && $type !== $expectedType) {
-                $recencyScore -= 0.40;
+                if ($expectedType === 'Order' && $type === 'Product') {
+                    // Asking about the delivery/order status of a specific product is common.
+                    $recencyScore -= 0.15;
+                } elseif ($expectedType === 'Product' && $type === 'Order') {
+                    // Asking about product details of a specific order is less common.
+                    $recencyScore -= 0.30;
+                } else {
+                    $recencyScore -= 0.40;
+                }
             }
 
             if ($recencyScore >= 0.40) {
@@ -527,7 +541,7 @@ class ContextualQueryBuilder
 
         // Multiple candidates evaluation: Margin Check
         $second = $candidates[1];
-        $margin = $winner['score'] - $second['score'];
+        $margin = round($winner['score'] - $second['score'], 4);
 
         if ($winner['score'] >= self::CONFIDENCE_THRESHOLD && $margin >= self::WINNER_MARGIN) {
             return [
@@ -652,6 +666,9 @@ class ContextualQueryBuilder
         }
         if (preg_match('/(কালার|রং|color|colour)/ui', $qLower)) {
             return "{$entityName} এর কালার ভ্যারিয়েন্ট কি কি আছে?";
+        }
+        if (preg_match('/(কবে|when|delivery|ডেলিভারি|পৌঁছাবে|পাবো|kobe)/ui', $qLower)) {
+            return "{$entityName} এর ডেলিভারি কবে পাবো?";
         }
 
         return "{$entityName} সম্পর্কিত তথ্য: {$query}";
@@ -840,9 +857,9 @@ class ContextualQueryBuilder
         $turns = [];
 
         if ($conversation !== null) {
-            $messages = $conversation->relationLoaded('messages')
-                ? $conversation->messages
-                : ($conversation->exists ? $conversation->messages()->orderBy('id', 'desc')->limit(6)->get()->reverse()->values() : collect());
+            $messages = $conversation->exists
+                ? $conversation->messages()->orderBy('id', 'desc')->limit(6)->get()->reverse()->values()
+                : ($conversation->relationLoaded('messages') ? $conversation->messages : collect());
 
             for ($i = $messages->count() - 1; $i >= 0; $i--) {
                 $msg = $messages->get($i);

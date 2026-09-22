@@ -18,7 +18,6 @@ use App\Services\Chat\ConversationService;
 use App\Services\FAQ\FAQSearch;
 use App\Services\Analytics\AnalyticsClient;
 use App\Services\Memory\ConversationMemoryService;
-use Illuminate\Support\Collection as SupportCollection;
 use Illuminate\Support\Facades\Log;
 
 class CustomerSupportService
@@ -47,15 +46,15 @@ class CustomerSupportService
         ?ClarificationManager $clarificationManager = null,
         ?AnalyticsClient $analyticsClient = null,
     ) {
-        $this->router = $router ?? new HybridRouter();
-        $this->actionSafety = $actionSafety ?? new ActionSafetyService();
+        $this->router = $router ?? app(HybridRouter::class);
+        $this->actionSafety = $actionSafety ?? app(ActionSafetyService::class);
         $this->memoryService = $memoryService ?? app(ConversationMemoryService::class);
-        $this->contextualQueryBuilder = $contextualQueryBuilder ?? new ContextualQueryBuilder($this->memoryService);
-        $this->businessService = $businessService ?? new BusinessSourceOfTruthService();
-        $this->llmClient = $llmClient ?? new LLMClient();
-        $this->answerabilityGate = $answerabilityGate ?? new SemanticAnswerabilityGate();
-        $this->clarificationManager = $clarificationManager ?? new ClarificationManager();
-        $this->analyticsClient = $analyticsClient ?? new AnalyticsClient();
+        $this->contextualQueryBuilder = $contextualQueryBuilder ?? app(ContextualQueryBuilder::class);
+        $this->businessService = $businessService ?? app(BusinessSourceOfTruthService::class);
+        $this->llmClient = $llmClient ?? app(LLMClient::class);
+        $this->answerabilityGate = $answerabilityGate ?? app(SemanticAnswerabilityGate::class);
+        $this->clarificationManager = $clarificationManager ?? app(ClarificationManager::class);
+        $this->analyticsClient = $analyticsClient ?? app(AnalyticsClient::class);
     }
 
     /**
@@ -231,7 +230,7 @@ class CustomerSupportService
                 workspaceId: $workspaceId,
             ));
         } catch (\Throwable $e) {
-            \Illuminate\Support\Facades\Log::warning('[CustomerSupportService] Telemetry dispatch failed safely (Observer pattern): ' . $e->getMessage());
+            Log::warning('[CustomerSupportService] Telemetry dispatch failed safely (Observer pattern): ' . $e->getMessage());
         }
 
         return $savedMessage;
@@ -295,6 +294,8 @@ class CustomerSupportService
         $contextualSignal = ($contextResult->isSelfContained())
             ? null
             : (($contextResult->resolvedQuery !== null && $contextResult->resolvedQuery !== $contextResult->rawQuery) ? $contextResult->resolvedQuery : null);
+
+
 
         // ── Hybrid Router ─────────────────────────────────────────────────────────────
         $t_router_start = microtime(true);
@@ -749,6 +750,7 @@ class CustomerSupportService
                 'primary_provider'  => $primaryProvider,
                 'fallback_provider' => $fallbackProvider,
                 'error'             => $ePrimary->getMessage(),
+                'trace'             => $ePrimary->getTraceAsString(),
                 'workspace_id'      => $workspaceId,
             ]);
 

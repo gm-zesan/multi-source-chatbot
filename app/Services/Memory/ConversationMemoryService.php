@@ -148,6 +148,7 @@ class ConversationMemoryService
 
         foreach ($memories as $mem) {
             $relation = (string) ($mem['relation'] ?? $mem['predicate'] ?? $mem['type'] ?? 'fact');
+            $mem['relation'] = $relation;
             $status = (string) ($mem['status'] ?? 'current');
 
             if ($status === 'past' || $status === 'superseded') {

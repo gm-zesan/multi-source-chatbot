@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Feature\E2E;
 
-use App\AI\Agents\CustomerSupportAgent;
+use App\AI\Agents\KnowledgeSupportAgent;
 use App\AI\Routing\RouteType;
 use App\AI\Routing\RoutingResult;
 use App\Models\FAQ;
@@ -44,7 +44,7 @@ class E2E10FullOrchestrationTraceTest extends BaseE2ETestCase
     {
         $traces = [];
 
-        CustomerSupportAgent::fake([
+        KnowledgeSupportAgent::fake([
             'আপনার Black Cotton Panjabi অর্ডারটি গ্রহণ করা হয়েছে।',
             'আমাদের ডেলিভারি চার্জ ঢাকার মধ্যে ৬০ টাকা এবং ঢাকার বাইরে ১২০ টাকা।',
             'আপনার অর্ডার স্ট্যাটাস প্রক্রিয়াধীন আছে।',
@@ -203,6 +203,9 @@ class E2E10FullOrchestrationTraceTest extends BaseE2ETestCase
             ->andReturn($this->createHitCollection($this->panjabiPricingFaq, 0.93, 'lexicon'));
 
         $t6Result = $this->service->handleQuery($t6Query, $this->workspace->id, $this->conversation);
+        if ($t6Result['route'] === 'uncertain') {
+            dump($t6Result);
+        }
 
         $traces['turn_6'] = E2EObservabilityTracer::trace($t6Query, $t6Result, [
             'tier_used'      => 1,

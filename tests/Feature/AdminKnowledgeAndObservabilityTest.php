@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Feature;
 
-use App\AI\Agents\CustomerSupportAgent;
+use App\AI\Agents\KnowledgeSupportAgent;
 use App\Enums\Permissions\FAQPermission;
 use App\Enums\RoleEnum;
 use App\Jobs\FAQIndexJob;
@@ -110,7 +110,7 @@ class AdminKnowledgeAndObservabilityTest extends TestCase
 
     public function test_chat_simulator_returns_answerability_gate_diagnostics(): void
     {
-        CustomerSupportAgent::fake([
+        KnowledgeSupportAgent::fake([
             'Sure, we can help you with returns.'
         ]);
 

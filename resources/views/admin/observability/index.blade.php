@@ -20,6 +20,11 @@
             border: 1px solid #e2e8f0;
             border-radius: 8px;
             padding: 16px 20px;
+            transition: transform 0.15s ease, box-shadow 0.15s ease;
+        }
+
+        .kpi-card:hover {
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
         }
 
         .kpi-icon {
@@ -208,7 +213,7 @@
             z-index: 1070 !important;
         }
 
-        /* Remove outline and box-shadow on focus for all buttons, selects, and inputs */
+        /* Remove outline and box-shadow on focus */
         button:focus,
         button:focus-visible,
         button:active,
@@ -224,13 +229,8 @@
         .btn:focus,
         .btn:focus-visible,
         .btn:active,
-        .btn-check:focus + .btn,
         .form-select:focus,
-        .form-select:focus-visible,
-        .form-select:active,
         .form-control:focus,
-        .form-control:focus-visible,
-        .form-control:active,
         .dataTables_wrapper select:focus,
         .dataTables_wrapper input:focus,
         .nav-link:focus,
@@ -256,11 +256,23 @@
                     </nav>
                 </div>
 
-                <div class="d-flex align-items-center gap-2">
-                    <span class="badge"
+                <div class="d-flex align-items-center gap-3">
+                    <div class="d-flex align-items-center gap-2">
+                        <label for="autoRefreshSelect" class="small text-muted mb-0 fw-medium">Auto-Refresh:</label>
+                        <select id="autoRefreshSelect" class="form-select form-select-sm" style="width: 100px; font-size: 12px;" onchange="handleAutoRefreshChange(this.value)">
+                            <option value="0">Off</option>
+                            <option value="5">5s</option>
+                            <option value="10" selected>10s</option>
+                            <option value="30">30s</option>
+                        </select>
+                    </div>
+
+                    <span class="badge d-flex align-items-center gap-1" id="liveIndicator"
                         style="background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; padding: 6px 12px; font-weight: 500; font-size: 12px;">
-                        <i class="ri-pulse-line me-1"></i> Stream Active
+                        <span class="spinner-grow spinner-grow-sm text-success" style="width: 8px; height: 8px;" role="status"></span>
+                        Stream Active
                     </span>
+
                     <button class="btn btn-sm btn-outline-secondary" onclick="location.reload()">
                         <i class="ri-refresh-line me-1"></i> Refresh
                     </button>
@@ -469,11 +481,13 @@
         <div class="row">
             <div class="col-12">
                 <div class="card table-card">
-                    <div class="card-header table-header">
+                    <div class="card-header table-header d-flex align-items-center justify-content-between">
                         <div class="title-with-breadcrumb">
                             <div class="table-title">Recent Turn Traces</div>
                         </div>
-                        <span class="text-muted small">Live Inbound/Outbound Exchanges</span>
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="text-muted small">Showing last {{ $messages->count() }} interactions</span>
+                        </div>
                     </div>
                     <div class="card-body" style="overflow-x: auto">
                         <table class="table dataTable w-100" id="data-table" style="min-width: 950px;">
@@ -493,8 +507,8 @@
                                 @foreach ($messages as $index => $msg)
                                     @php
                                         $meta = $msg->metadata ?? [];
-                                        $route = strtolower($meta['route'] ?? $meta['router_type'] ?? 'knowledge');
-                                        $gate = strtolower($meta['answerability_decision']['status'] ?? $meta['answerability'] ?? 'none');
+                                        $route = strtolower((string) ($meta['route'] ?? $meta['router_type'] ?? 'knowledge'));
+                                        $gate = strtolower((string) ($meta['answerability_decision']['status'] ?? $meta['answerability'] ?? 'none'));
                                         $latency = $meta['total_time_ms'] ?? $meta['routing_telemetry']['total_e2e_ms'] ?? null;
                                     @endphp
                                     <tr>
@@ -506,7 +520,7 @@
                                         <td>
                                             <a href="{{ route('conversations.show', $msg->conversation_id) }}"
                                                 class="fw-medium text-decoration-none h-auto w-auto justify-content-start">
-                                                {{ $msg->conversation?->customer_name ?? '#' . substr($msg->conversation_id, 0, 8) }}
+                                                {{ $msg->conversation?->customer_name ?? '#' . substr((string) $msg->conversation_id, 0, 8) }}
                                             </a>
                                             <small
                                                 class="text-muted d-block">{{ $msg->conversation?->channelAccount?->channel?->name ?? 'Direct Chat' }}</small>
@@ -659,13 +673,13 @@
                                 <div id="modalGroundingContent" class="small text-dark"></div>
                             </div>
 
-                            {{-- Linguistic & Lexicon Signals --}}
-                            <div id="modalLexiconSection" class="grounding-card d-none">
+                            {{-- Vector Retrieval & Search Telemetry --}}
+                            <div id="modalRetrievalSection" class="grounding-card d-none">
                                 <div class="small fw-semibold text-uppercase text-muted mb-2"
                                     style="letter-spacing: 0.5px;">
-                                    <i class="ri-text me-1 text-success"></i> Linguistic & Lexicon Telemetry
+                                    <i class="ri-search-eye-line me-1 text-success"></i> Vector Retrieval & Semantic Search Telemetry
                                 </div>
-                                <div id="modalLexiconContent" class="small text-dark"></div>
+                                <div id="modalRetrievalContent" class="small text-dark"></div>
                             </div>
                         </div>
 
@@ -699,6 +713,23 @@
     <script>
         let currentReplyText = '';
         let currentJsonText = '';
+        let autoRefreshTimer = null;
+
+        function handleAutoRefreshChange(intervalSeconds) {
+            if (autoRefreshTimer) {
+                clearInterval(autoRefreshTimer);
+                autoRefreshTimer = null;
+            }
+            const sec = parseInt(intervalSeconds, 10);
+            if (sec > 0) {
+                localStorage.setItem('obs_auto_refresh', sec);
+                autoRefreshTimer = setInterval(() => {
+                    location.reload();
+                }, sec * 1000);
+            } else {
+                localStorage.setItem('obs_auto_refresh', 0);
+            }
+        }
 
         document.addEventListener('DOMContentLoaded', function () {
             // Relocate modal to body
@@ -712,6 +743,18 @@
                     pageLength: 20,
                     order: [[0, 'asc']]
                 });
+            }
+
+            // Restore auto-refresh preference
+            const savedInterval = localStorage.getItem('obs_auto_refresh');
+            if (savedInterval !== null) {
+                const select = document.getElementById('autoRefreshSelect');
+                if (select) {
+                    select.value = savedInterval;
+                    handleAutoRefreshChange(savedInterval);
+                }
+            } else {
+                handleAutoRefreshChange(10);
             }
         });
 
@@ -760,13 +803,13 @@
             if (decision.status || (Array.isArray(hits) && hits.length > 0) || decision.target_title) {
                 let html = '<div class="d-flex flex-column gap-2">';
                 if (decision.target_title) {
-                    html += `<div><strong>Matched Document:</strong> <span class="text-primary">${escapeHtml(decision.target_title)}</span></div>`;
+                    html += `<div><strong>Matched Policy/Document:</strong> <span class="text-primary">${escapeHtml(decision.target_title)}</span></div>`;
                 }
                 if (decision.best_score) {
-                    html += `<div><strong>Confidence Score:</strong> <span class="badge bg-secondary">${Math.round(decision.best_score * 100)}%</span></div>`;
+                    html += `<div><strong>Confidence Match Score:</strong> <span class="badge bg-success">${Math.round(decision.best_score * 100)}%</span></div>`;
                 }
                 if (decision.reason) {
-                    html += `<div><strong>Gate Reason:</strong> <span class="text-muted">${escapeHtml(decision.reason)}</span></div>`;
+                    html += `<div><strong>Gate Evaluation:</strong> <span class="text-muted">${escapeHtml(decision.reason)}</span></div>`;
                 }
                 html += '</div>';
                 groundingContent.innerHTML = html;
@@ -775,31 +818,30 @@
                 groundingSection.classList.add('d-none');
             }
 
-            // Lexicon details
-            const lexiconSection = document.getElementById('modalLexiconSection');
-            const lexiconContent = document.getElementById('modalLexiconContent');
-            const lexTel = meta.lexicon_telemetry || meta.linguistic_telemetry || {};
+            // Vector Retrieval Telemetry
+            const retrievalSection = document.getElementById('modalRetrievalSection');
+            const retrievalContent = document.getElementById('modalRetrievalContent');
+            const retTel = meta.retrieval_sub_stages || meta.lexicon_telemetry || meta.routing_telemetry || {};
 
-            if (lexTel.canonical_concepts || lexTel.expansion_triggered || lexTel.reranker_reason) {
+            if (retTel.final_score || retTel.total_retrieval_latency_ms || retTel.expanded_query || (Array.isArray(retTel.returned_faq_ids) && retTel.returned_faq_ids.length > 0)) {
                 let html = '<div class="d-flex flex-column gap-2">';
-                if (Array.isArray(lexTel.canonical_concepts) && lexTel.canonical_concepts.length > 0) {
-                    html += '<div><strong>Canonical Concepts:</strong> ';
-                    lexTel.canonical_concepts.forEach(c => {
-                        html += `<span class="badge bg-light text-dark border me-1">${escapeHtml(c)}</span>`;
-                    });
-                    html += '</div>';
+                if (retTel.final_score) {
+                    html += `<div><strong>Vector Search Score:</strong> <span class="badge bg-primary">${(retTel.final_score * 100).toFixed(1)}%</span></div>`;
                 }
-                if (lexTel.expanded_query) {
-                    html += `<div><strong>Expanded Query:</strong> <code>${escapeHtml(lexTel.expanded_query)}</code></div>`;
+                if (retTel.total_retrieval_latency_ms) {
+                    html += `<div><strong>Retrieval Engine Latency:</strong> <code>${retTel.total_retrieval_latency_ms} ms</code></div>`;
                 }
-                if (lexTel.reranker_reason) {
-                    html += `<div><strong>Reranker Decision:</strong> <span class="text-info">${escapeHtml(lexTel.reranker_reason)}</span></div>`;
+                if (retTel.expanded_query) {
+                    html += `<div><strong>Contextual Signal Query:</strong> <code>${escapeHtml(retTel.expanded_query)}</code></div>`;
+                }
+                if (Array.isArray(retTel.returned_faq_ids) && retTel.returned_faq_ids.length > 0) {
+                    html += `<div><strong>Matched Doc IDs:</strong> ${retTel.returned_faq_ids.map(id => `<span class="badge bg-light text-dark border me-1">#${escapeHtml(id.substring(0, 8))}</span>`).join('')}</div>`;
                 }
                 html += '</div>';
-                lexiconContent.innerHTML = html;
-                lexiconSection.classList.remove('d-none');
+                retrievalContent.innerHTML = html;
+                retrievalSection.classList.remove('d-none');
             } else {
-                lexiconSection.classList.add('d-none');
+                retrievalSection.classList.add('d-none');
             }
 
             // JSON box

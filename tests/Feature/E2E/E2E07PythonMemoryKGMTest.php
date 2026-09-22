@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Feature\E2E;
 
-use App\AI\Agents\CustomerSupportAgent;
+use App\AI\Agents\ConversationalSupportAgent;
 use App\AI\Routing\RouteType;
 use App\AI\Routing\RoutingResult;
 use App\Models\Conversation;
@@ -53,7 +53,7 @@ class E2E07PythonMemoryKGMTest extends BaseE2ETestCase
                 'formatted_memory_context' => "Known Customer Facts:\n- Customer prefers size XL",
             ]);
 
-        CustomerSupportAgent::fake(['আপনার সংরক্ষিত প্রেফারেন্স অনুযায়ী আপনার সাইজ হলো XL।']);
+        ConversationalSupportAgent::fake(['আপনার সংরক্ষিত প্রেফারেন্স অনুযায়ী আপনার সাইজ হলো XL।']);
 
         $result = $this->service->handleQuery($query, $this->workspace->id, $this->conversation);
 
@@ -108,7 +108,7 @@ class E2E07PythonMemoryKGMTest extends BaseE2ETestCase
                 'formatted_memory_context' => "Customer Facts (Latest takes precedence):\n- Current Size: XL\n- Historical: M",
             ]);
 
-        CustomerSupportAgent::fake(['আপনার বর্তমান সাইজ XL হিসেবে আপডেট করা আছে।']);
+        ConversationalSupportAgent::fake(['আপনার বর্তমান সাইজ XL হিসেবে আপডেট করা আছে।']);
 
         $result = $this->service->handleQuery($query, $this->workspace->id, $this->conversation);
 
@@ -153,7 +153,7 @@ class E2E07PythonMemoryKGMTest extends BaseE2ETestCase
                 'formatted_memory_context' => "Past Orders:\n- Order #1042 (Delivered)",
             ]);
 
-        CustomerSupportAgent::fake(['আপনার পূর্ববর্তী অর্ডারটি ছিল #1042।']);
+        ConversationalSupportAgent::fake(['আপনার পূর্ববর্তী অর্ডারটি ছিল #1042।']);
 
         $personalResult = $this->service->handleQuery($personalQuery, $this->workspace->id, $this->conversation);
 

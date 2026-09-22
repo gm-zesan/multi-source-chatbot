@@ -4,7 +4,10 @@ declare(strict_types=1);
 
 namespace Tests\Feature;
 
-use App\AI\Agents\CustomerSupportAgent;
+use App\AI\Agents\KnowledgeSupportAgent;
+use App\Enums\FaqLifecycleStatus;
+use App\Models\FAQ;
+use App\Models\FAQCategory;
 use App\Models\User;
 use App\Models\Workspace;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -17,6 +20,7 @@ class ChatSimulatorTest extends TestCase
 
     private User $admin;
     private Workspace $workspace;
+    private FAQCategory $category;
 
     protected function setUp(): void
     {
@@ -31,6 +35,19 @@ class ChatSimulatorTest extends TestCase
             'workspace_id' => $this->workspace->id,
         ]);
         $this->admin->assignRole('superadmin');
+
+        $this->category = FAQCategory::create([
+            'workspace_id' => $this->workspace->id,
+            'name'         => 'General Support',
+            'slug'         => 'general-support',
+            'is_active'    => true,
+        ]);
+
+        $routerMock = \Mockery::mock(\App\AI\Routing\HybridRouter::class);
+        $routerMock->shouldReceive('route')
+            ->byDefault()
+            ->andReturn(new \App\AI\Routing\RoutingResult(\App\AI\Routing\RouteType::KNOWLEDGE, 0.95, 'delivery_info'));
+        $this->app->instance(\App\AI\Routing\HybridRouter::class, $routerMock);
     }
 
     public function test_simulator_page_can_be_rendered(): void
@@ -44,7 +61,16 @@ class ChatSimulatorTest extends TestCase
 
     public function test_simulator_send_processes_message_with_ai_agent_and_crm_extraction(): void
     {
-        CustomerSupportAgent::fake([
+        FAQ::create([
+            'workspace_id'     => $this->workspace->id,
+            'category_id'      => $this->category->id,
+            'question'         => 'How long is delivery?',
+            'answer'           => 'Our standard delivery time is 3-5 business days.',
+            'lifecycle_status' => FaqLifecycleStatus::ACTIVE,
+            'is_active'        => true,
+        ]);
+
+        KnowledgeSupportAgent::fake([
             'Our standard delivery time is 3-5 business days.',
         ]);
 
@@ -100,7 +126,7 @@ class ChatSimulatorTest extends TestCase
 
     public function test_simulator_returns_complete_turn_decision_trace_without_secrets(): void
     {
-        CustomerSupportAgent::fake([
+        KnowledgeSupportAgent::fake([
             'রিটার্ন পলিসি অনুযায়ী ৭ দিনের মধ্যে পণ্য ফেরত দেওয়া যাবে।',
         ]);
 

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Feature;
 
-use App\AI\Agents\CustomerSupportAgent;
+use App\AI\Agents\KnowledgeSupportAgent;
 use App\Models\Channel;
 use App\Models\ChannelAccount;
 use App\Models\Conversation;
@@ -61,6 +61,12 @@ class ProviderAbstractionTest extends TestCase
             'answer'       => 'Delivery inside Dhaka is 60 BDT and takes 24-48 hours.',
             'is_active'    => true,
         ]);
+
+        $routerMock = \Mockery::mock(\App\AI\Routing\HybridRouter::class);
+        $routerMock->shouldReceive('route')
+            ->byDefault()
+            ->andReturn(new \App\AI\Routing\RoutingResult(\App\AI\Routing\RouteType::KNOWLEDGE, 0.95, 'shipping_rate'));
+        $this->app->instance(\App\AI\Routing\HybridRouter::class, $routerMock);
     }
 
     public function test_primary_provider_succeeds(): void

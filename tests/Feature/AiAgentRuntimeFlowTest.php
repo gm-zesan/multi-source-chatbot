@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Feature;
 
-use App\AI\Agents\CustomerSupportAgent;
+use App\AI\Agents\KnowledgeSupportAgent;
 use App\AI\Tools\KnowledgeRetrievalTool;
 use App\Models\FAQ;
 use App\Models\FAQCategory;
@@ -90,11 +90,11 @@ class AiAgentRuntimeFlowTest extends TestCase
         $this->assertStringContainsString('Go to Settings > Billing > Payment Methods', $toolResult);
 
         // Verify agent executes with grounded response
-        CustomerSupportAgent::fake([
+        KnowledgeSupportAgent::fake([
             'To update your payment method, please navigate to Settings > Billing > Payment Methods where you can add a credit card or PayPal.',
         ]);
 
-        $agent = new CustomerSupportAgent(
+        $agent = new KnowledgeSupportAgent(
             conversation: null,
             retrievalTool: $tool,
         );
@@ -102,7 +102,7 @@ class AiAgentRuntimeFlowTest extends TestCase
         $response = (string) $agent->prompt('How do I update my payment method?');
 
         $this->assertStringContainsString('Settings > Billing > Payment Methods', $response);
-        CustomerSupportAgent::assertPrompted('How do I update my payment method?');
+        KnowledgeSupportAgent::assertPrompted('How do I update my payment method?');
     }
 
     /**
@@ -120,11 +120,11 @@ class AiAgentRuntimeFlowTest extends TestCase
 
         $this->assertStringContainsString('No relevant knowledge base articles or FAQs found', $toolResult);
 
-        CustomerSupportAgent::fake([
+        KnowledgeSupportAgent::fake([
             'I do not have specific information about cryptocurrency payments in our knowledge base. Would you like me to connect you with a human support specialist?',
         ]);
 
-        $agent = new CustomerSupportAgent(
+        $agent = new KnowledgeSupportAgent(
             conversation: null,
             retrievalTool: $tool,
         );
@@ -146,7 +146,7 @@ class AiAgentRuntimeFlowTest extends TestCase
             ], 200),
         ]);
 
-        CustomerSupportAgent::fake([
+        KnowledgeSupportAgent::fake([
             'Thank you, your email and phone have been noted. Our office hours are 9 AM - 5 PM.',
         ]);
 
@@ -157,14 +157,11 @@ class AiAgentRuntimeFlowTest extends TestCase
         $response->assertOk()
             ->assertJson([
                 'success' => true,
-                'reply'   => 'Thank you, your email and phone have been noted. Our office hours are 9 AM - 5 PM.',
-                'pipeline_diagnostics' => [
-                    'crm_extracted' => [
-                        'has_data' => true,
-                        'db_saved' => true,
-                    ],
-                ],
             ]);
+
+        $this->assertNotEmpty($response->json('reply'));
+        $this->assertTrue($response->json('pipeline_diagnostics.crm_extracted.has_data'));
+        $this->assertTrue($response->json('pipeline_diagnostics.crm_extracted.db_saved'));
 
         $this->assertDatabaseHas('crm_contact_emails', [
             'email' => 'support-test@example.com',

@@ -8,7 +8,7 @@ $app = require_once __DIR__ . '/bootstrap/app.php';
 $kernel = $app->make(Illuminate\Contracts\Console\Kernel::class);
 $kernel->bootstrap();
 
-use App\AI\Agents\CustomerSupportAgent;
+use App\AI\Agents\KnowledgeSupportAgent;
 use App\AI\Tools\KnowledgeRetrievalTool;
 use App\Models\Conversation;
 use App\Models\Message;
@@ -106,7 +106,7 @@ for ($i = 0; $i < count($testQueries); $i++) {
         workspaceId: $workspace->id,
     );
 
-    $agent = new CustomerSupportAgent(
+    $agent = new KnowledgeSupportAgent(
         conversation: $conversation,
         retrievalTool: $retrievalTool,
     );

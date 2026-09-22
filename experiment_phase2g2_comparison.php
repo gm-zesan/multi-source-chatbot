@@ -8,7 +8,7 @@ $app = require_once __DIR__ . '/bootstrap/app.php';
 $kernel = $app->make(Illuminate\Contracts\Console\Kernel::class);
 $kernel->bootstrap();
 
-use App\AI\Agents\CustomerSupportAgent;
+use App\AI\Agents\KnowledgeSupportAgent;
 use App\AI\Tools\KnowledgeRetrievalTool;
 use App\Models\Conversation;
 use App\Models\FAQ;
@@ -196,7 +196,7 @@ function runSideBySide(
 
     $t_serial_start = microtime(true);
     $serialTool = new KnowledgeRetrievalTool(faqSearch: $faqSearch, workspaceId: $workspaceId);
-    $serialAgent = new CustomerSupportAgent(conversation: $conversation, retrievalTool: $serialTool);
+    $serialAgent = new KnowledgeSupportAgent(conversation: $conversation, retrievalTool: $serialTool);
     $serialResponse = promptWithRetry($serialAgent, $query, $provider, $model);
     $serialTotalMs = round((microtime(true) - $t_serial_start) * 1000, 2);
     $serialLlmMs = array_sum(array_column($serialSteps, 'time_ms'));
@@ -372,7 +372,7 @@ foreach ($multiTurns as $tIdx => $tQuery) {
     // Serial turn
     Message::create(['conversation_id' => $multiTurnConvSerial->id, 'direction' => 'inbound', 'body' => $tQuery, 'status' => 'delivered']);
     $sTool = new KnowledgeRetrievalTool(faqSearch: $faqSearch, workspaceId: 1);
-    $sAgent = new CustomerSupportAgent(conversation: $multiTurnConvSerial, retrievalTool: $sTool);
+    $sAgent = new KnowledgeSupportAgent(conversation: $multiTurnConvSerial, retrievalTool: $sTool);
     $sStart = microtime(true);
     $sReply = promptWithRetry($sAgent, $tQuery, $experimentProvider, $experimentModel);
     $sMs = round((microtime(true) - $sStart) * 1000, 2);

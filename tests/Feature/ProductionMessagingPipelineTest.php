@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Feature;
 
-use App\AI\Agents\CustomerSupportAgent;
+use App\AI\Agents\KnowledgeSupportAgent;
 use App\Events\IncomingMessageReceived;
 use App\Jobs\ReceiveMessengerWebhookJob;
 use App\Listeners\ExtractCRMEntitiesListener;
@@ -92,6 +92,12 @@ class ProductionMessagingPipelineTest extends TestCase
             'is_active' => true,
             'is_searchable' => true,
         ]);
+
+        $routerMock = \Mockery::mock(\App\AI\Routing\HybridRouter::class);
+        $routerMock->shouldReceive('route')
+            ->byDefault()
+            ->andReturn(new \App\AI\Routing\RoutingResult(\App\AI\Routing\RouteType::KNOWLEDGE, 0.95, 'return_policy'));
+        $this->app->instance(\App\AI\Routing\HybridRouter::class, $routerMock);
     }
 
     /**
@@ -107,7 +113,7 @@ class ProductionMessagingPipelineTest extends TestCase
             ], 200),
         ]);
 
-        CustomerSupportAgent::fake([
+        KnowledgeSupportAgent::fake([
             'Store A allows returns within 30 days when accompanied by your purchase receipt.',
         ]);
 

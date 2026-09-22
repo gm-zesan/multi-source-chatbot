@@ -51,6 +51,19 @@ class EventSourcingTest extends TestCase
             'direction'       => 'inbound',
             'type'            => 'text',
         ]);
+
+        \App\Models\FAQ::create([
+            'workspace_id' => $workspace->id,
+            'question'     => 'How do I reset my password?',
+            'answer'       => 'Click forgot password on the login screen to reset your password.',
+            'is_active'    => true,
+        ]);
+
+        $routerMock = \Mockery::mock(\App\AI\Routing\HybridRouter::class);
+        $routerMock->shouldReceive('route')
+            ->byDefault()
+            ->andReturn(new \App\AI\Routing\RoutingResult(\App\AI\Routing\RouteType::KNOWLEDGE, 0.95, 'faq_inquiry'));
+        $this->app->instance(\App\AI\Routing\HybridRouter::class, $routerMock);
     }
 
     public function test_incoming_message_received_has_correct_listeners_registered(): void
@@ -131,7 +144,7 @@ class EventSourcingTest extends TestCase
 
     public function test_run_faq_engine_listener_executes_ai_agent_and_saves_outbound_reply(): void
     {
-        \App\AI\Agents\CustomerSupportAgent::fake([
+        \App\AI\Agents\KnowledgeSupportAgent::fake([
             'Click forgot password on the login screen to reset your password.',
         ]);
 
@@ -156,7 +169,7 @@ class EventSourcingTest extends TestCase
 
     public function test_run_faq_engine_listener_delivers_to_channel_driver(): void
     {
-        \App\AI\Agents\CustomerSupportAgent::fake([
+        \App\AI\Agents\KnowledgeSupportAgent::fake([
             'Our standard shipping takes 2-3 business days.',
         ]);
 

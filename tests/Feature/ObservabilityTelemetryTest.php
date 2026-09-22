@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Feature;
 
-use App\AI\Agents\CustomerSupportAgent;
+use App\AI\Agents\KnowledgeSupportAgent;
 use App\Events\AITelemetryRecorded;
 use App\Listeners\RecordAITelemetryListener;
 use App\Models\Channel;
@@ -59,13 +59,33 @@ class ObservabilityTelemetryTest extends TestCase
             'status'             => 'open',
             'last_direction'     => 'inbound',
         ]);
+
+        \App\Models\FAQ::create([
+            'workspace_id' => $this->workspace->id,
+            'question'     => 'How fast is delivery?',
+            'answer'       => 'Standard delivery time is 3 business days.',
+            'is_active'    => true,
+        ]);
+
+        \App\Models\FAQ::create([
+            'workspace_id' => $this->workspace->id,
+            'question'     => 'What is the return policy?',
+            'answer'       => 'Here is the return policy details.',
+            'is_active'    => true,
+        ]);
+
+        $routerMock = \Mockery::mock(\App\AI\Routing\HybridRouter::class);
+        $routerMock->shouldReceive('route')
+            ->byDefault()
+            ->andReturn(new \App\AI\Routing\RoutingResult(\App\AI\Routing\RouteType::KNOWLEDGE, 0.95, 'faq_inquiry'));
+        $this->app->instance(\App\AI\Routing\HybridRouter::class, $routerMock);
     }
 
     public function test_ai_telemetry_recorded_event_is_dispatched_on_customer_reply(): void
     {
         Event::fake([AITelemetryRecorded::class]);
 
-        CustomerSupportAgent::fake([
+        KnowledgeSupportAgent::fake([
             'Standard delivery time is 3 business days.',
         ]);
 
@@ -117,7 +137,7 @@ class ObservabilityTelemetryTest extends TestCase
     public function test_telemetry_observer_invariant_failure_never_breaks_customer_delivery(): void
     {
         // When telemetry recording fails or logs error, CustomerSupportService MUST succeed
-        CustomerSupportAgent::fake([
+        KnowledgeSupportAgent::fake([
             'Here is the return policy details.',
         ]);
 

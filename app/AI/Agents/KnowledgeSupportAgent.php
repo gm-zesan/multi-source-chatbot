@@ -9,13 +9,14 @@ use Illuminate\Database\Eloquent\Collection;
 use Laravel\Ai\Contracts\Agent;
 use Laravel\Ai\Contracts\Conversational;
 use Laravel\Ai\Contracts\HasProviderOptions;
+use Laravel\Ai\Contracts\HasTools;
 use Laravel\Ai\Enums\Lab;
 use Laravel\Ai\Messages\AssistantMessage;
 use Laravel\Ai\Messages\UserMessage;
 use Laravel\Ai\Promptable;
 use Stringable;
 
-class KnowledgeSupportAgent implements Agent, Conversational, HasProviderOptions
+class KnowledgeSupportAgent implements Agent, Conversational, HasProviderOptions, HasTools
 {
     use Promptable;
 
@@ -24,6 +25,7 @@ class KnowledgeSupportAgent implements Agent, Conversational, HasProviderOptions
         public readonly ?Collection $retrievedKnowledge = null,
         public readonly ?string $memoryContext = null,
         public readonly ?string $businessContext = null,
+        public readonly mixed $retrievalTool = null,
     ) {}
 
     public function instructions(): Stringable|string
@@ -57,9 +59,10 @@ You are a professional Enterprise Customer Support AI Assistant. Your goal is to
 </ROLE>
 
 <CONTEXT_HIERARCHY>
+Context Hierarchy & Conflict Resolution:
 1. Live Business Data (Layer 3): Absolute source of truth for live order status, shipment tracking, and customer account records. Overrides past conversational memory.
 2. Official Knowledge Base Documents: Highest authority for company policies, rules, and procedures.
-3. Customer Conversation Graph Memory (Layer 2): Grounding for customer preferences without overriding live data.
+3. Customer Conversation Graph Memory: Grounding for customer preferences without overriding live data.
 </CONTEXT_HIERARCHY>
 
 <RULES>
@@ -147,5 +150,14 @@ PROMPT;
         }
 
         return $aiMessages;
+    }
+
+    public function tools(): iterable
+    {
+        if ($this->retrievalTool !== null) {
+            return [$this->retrievalTool];
+        }
+
+        return [];
     }
 }

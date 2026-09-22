@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Feature;
 
-use App\AI\Agents\CustomerSupportAgent;
+use App\AI\Agents\KnowledgeSupportAgent;
 use App\Models\Channel;
 use App\Models\ChannelAccount;
 use App\Models\Conversation;
@@ -77,6 +77,20 @@ class AdminConversationTest extends TestCase
             'workspace_id' => $workspace->id,
         ]);
         $this->admin->assignRole('superadmin');
+
+        \App\Models\FAQ::create([
+            'workspace_id'     => $workspace->id,
+            'question'         => 'What are your store hours?',
+            'answer'           => 'We are open Monday to Friday from 9 AM to 6 PM.',
+            'lifecycle_status' => \App\Enums\FaqLifecycleStatus::ACTIVE,
+            'is_active'        => true,
+        ]);
+
+        $routerMock = \Mockery::mock(\App\AI\Routing\HybridRouter::class);
+        $routerMock->shouldReceive('route')
+            ->byDefault()
+            ->andReturn(new \App\AI\Routing\RoutingResult(\App\AI\Routing\RouteType::KNOWLEDGE, 0.95, 'store_hours'));
+        $this->app->instance(\App\AI\Routing\HybridRouter::class, $routerMock);
     }
 
     public function test_admin_can_view_conversations_index_page(): void
@@ -103,7 +117,7 @@ class AdminConversationTest extends TestCase
     public function test_admin_can_trigger_ai_reply_for_conversation(): void
     {
         // Fake Laravel AI Agent LLM response
-        CustomerSupportAgent::fake([
+        KnowledgeSupportAgent::fake([
             'We are open Monday to Friday from 9 AM to 6 PM.',
         ]);
 

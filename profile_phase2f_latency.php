@@ -8,7 +8,7 @@ $app = require_once __DIR__ . '/bootstrap/app.php';
 $kernel = $app->make(Illuminate\Contracts\Console\Kernel::class);
 $kernel->bootstrap();
 
-use App\AI\Agents\CustomerSupportAgent;
+use App\AI\Agents\KnowledgeSupportAgent;
 use App\AI\Tools\KnowledgeRetrievalTool;
 use App\Events\IncomingMessageReceived;
 use App\Listeners\RunFAQEngineListener;
@@ -172,7 +172,7 @@ for ($runIndex = 1; $runIndex <= count($testQueries); $runIndex++) {
         faqSearch: $faqSearch,
         workspaceId: $workspace->id,
     );
-    $agent = new CustomerSupportAgent(
+    $agent = new KnowledgeSupportAgent(
         conversation: $conversation,
         retrievalTool: $retrievalTool,
     );

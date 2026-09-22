@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Feature\E2E;
 
-use App\AI\Agents\CustomerSupportAgent;
+use App\AI\Agents\KnowledgeSupportAgent;
 use App\AI\Routing\RouteType;
 use App\AI\Routing\RoutingResult;
 use Tests\Feature\E2E\Support\BaseE2ETestCase;
@@ -51,7 +51,7 @@ class E2E08LatestOrderPronounContextTest extends BaseE2ETestCase
             ->once()
             ->andReturn($this->createHitCollection($this->orderFaq, 0.90, 'semantic'));
 
-        CustomerSupportAgent::fake([
+        KnowledgeSupportAgent::fake([
             'আপনার লেটেস্ট অর্ডার #1042 বর্তমানে ইন-ট্রানজিটে রয়েছে এবং আগামীকাল ডেলিভারি হবে।',
         ]);
 
@@ -143,7 +143,7 @@ class E2E08LatestOrderPronounContextTest extends BaseE2ETestCase
             ->once()
             ->andReturn($this->createHitCollection($this->orderFaq, 0.89, 'semantic'));
 
-        CustomerSupportAgent::fake([
+        KnowledgeSupportAgent::fake([
             'আপনার Black Cotton Panjabi এর ডেলিভারি ২ কর্মদিবসের মধ্যে সম্পন্ন হবে।',
         ]);
 

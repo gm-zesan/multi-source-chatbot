@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Feature;
 
-use App\AI\Agents\CustomerSupportAgent;
+use App\AI\Agents\KnowledgeSupportAgent;
 use App\Jobs\IngestConversationMemoryJob;
 use App\Models\Channel;
 use App\Models\ChannelAccount;
@@ -65,6 +65,12 @@ class ProductionHardeningValidationTest extends TestCase
             'answer'       => 'Workspace B refunds within 14 business days.',
             'is_active'    => true,
         ]);
+
+        $routerMock = \Mockery::mock(\App\AI\Routing\HybridRouter::class);
+        $routerMock->shouldReceive('route')
+            ->byDefault()
+            ->andReturn(new \App\AI\Routing\RoutingResult(\App\AI\Routing\RouteType::KNOWLEDGE, 0.95, 'refund_policy'));
+        $this->app->instance(\App\AI\Routing\HybridRouter::class, $routerMock);
     }
 
     /**
@@ -72,7 +78,7 @@ class ProductionHardeningValidationTest extends TestCase
      */
     public function test_concurrent_sessions_maintain_strict_workspace_isolation(): void
     {
-        CustomerSupportAgent::fake([
+        KnowledgeSupportAgent::fake([
             'Response for User A',
             'Response for User B',
         ]);
@@ -108,7 +114,7 @@ class ProductionHardeningValidationTest extends TestCase
     public function test_provider_failure_gracefully_emits_grounded_fallback(): void
     {
         // Mock provider network error by throwing exception inside faked agent
-        CustomerSupportAgent::fake(function () {
+        KnowledgeSupportAgent::fake(function () {
             throw new \RuntimeException('DeepSeek provider connection timed out');
         });
 
@@ -172,7 +178,7 @@ class ProductionHardeningValidationTest extends TestCase
      */
     public function test_simulator_send_has_rate_limiting_protection(): void
     {
-        CustomerSupportAgent::fake(['Rate limit response']);
+        KnowledgeSupportAgent::fake(['Rate limit response']);
 
         $res = $this->actingAs($this->userA)->post(route('simulator.send'), [
             'message' => 'hello test',
@@ -190,7 +196,7 @@ class ProductionHardeningValidationTest extends TestCase
      */
     public function test_payloads_do_not_leak_system_secrets_or_raw_cypher(): void
     {
-        CustomerSupportAgent::fake(['Normal safe answer.']);
+        KnowledgeSupportAgent::fake(['Normal safe answer.']);
 
         $res = $this->actingAs($this->userA)->post(route('simulator.send'), [
             'message' => 'delivery charge koto',
