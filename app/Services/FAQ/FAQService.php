@@ -55,7 +55,7 @@ class FAQService
      */
     public function getDataTables(?Request $request = null): JsonResponse
     {
-        $query = $this->workspaceQuery()->with(['category', 'lexicon']);
+        $query = $this->workspaceQuery()->with(['category']);
 
         $status = $request?->input('status');
         if ($status === 'trashed') {

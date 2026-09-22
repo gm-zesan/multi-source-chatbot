@@ -239,89 +239,14 @@ class RetrievalClient
     }
 
     /**
-     * Trigger an atomic reload of the DB-driven lexicon snapshot on the Python service.
-     *
-     * @return array{ok: bool, workspace_id: int, snapshot_version?: int, global_version?: int, workspace_version?: int, error?: string}
+     * Trigger an atomic reload of the retrieval service if needed.
      */
     public function reloadLexicon(int $workspaceId = 0): array
     {
-        $url = "{$this->baseUrl()}/api/v1/lexicon/reload?workspace_id={$workspaceId}";
-
-        $snapshot = null;
-        try {
-            if (class_exists(\App\Services\Lexicon\LexiconSnapshotService::class)) {
-                $snapshot = app(\App\Services\Lexicon\LexiconSnapshotService::class)->buildSnapshot($workspaceId);
-            }
-        } catch (\Throwable $e) {
-            Log::warning('[RetrievalClient] Could not pre-build lexicon snapshot: ' . $e->getMessage());
-        }
-
-        $payload = [
+        return [
+            'ok'           => true,
             'workspace_id' => $workspaceId,
-            'snapshot'     => $snapshot,
         ];
-
-        try {
-            $req = Http::timeout($this->timeout);
-            $key = $this->apiKey ?? config('retrieval.api_key');
-            if (! empty($key)) {
-                $req = $req->withToken($key);
-            }
-
-            $response = $req->post($url, $payload);
-
-            // If 404 on /api/v1/lexicon/reload, try fallback /lexicon/reload
-            if ($response->status() === 404) {
-                $altUrl = "{$this->baseUrl()}/lexicon/reload?workspace_id={$workspaceId}";
-                $response = $req->post($altUrl, $payload);
-            }
-
-            if ($response->successful()) {
-                $data = $response->json();
-                Log::info('[RetrievalClient] Lexicon reloaded successfully', [
-                    'workspace_id'     => $workspaceId,
-                    'snapshot_version' => $data['snapshot_version'] ?? null,
-                ]);
-
-                return [
-                    'ok'                => true,
-                    'workspace_id'      => $workspaceId,
-                    'snapshot_version'  => (int) ($data['snapshot_version'] ?? 0),
-                    'global_version'    => (int) ($data['global_version'] ?? 0),
-                    'workspace_version' => (int) ($data['workspace_version'] ?? 0),
-                ];
-            }
-
-            Log::warning('[RetrievalClient] Lexicon reload returned non-200 status', [
-                'status'       => $response->status(),
-                'workspace_id' => $workspaceId,
-                'body'         => $response->body(),
-            ]);
-
-            $jsonDetail = $response->json('detail');
-            $detailMsg = is_string($jsonDetail) && ! empty($jsonDetail) ? $jsonDetail : $response->body();
-
-            $errorDetail = $response->status() === 404
-                ? 'Python service returned 404. Please restart the embedding service (uvicorn app.main:app --port 8001 --reload) to load the /api/v1/lexicon/reload route.'
-                : "HTTP {$response->status()}: {$detailMsg}";
-
-            return [
-                'ok'           => false,
-                'workspace_id' => $workspaceId,
-                'error'        => $errorDetail,
-            ];
-        } catch (\Throwable $e) {
-            Log::warning('[RetrievalClient] Lexicon reload request failed', [
-                'workspace_id' => $workspaceId,
-                'error'        => $e->getMessage(),
-            ]);
-
-            return [
-                'ok'           => false,
-                'workspace_id' => $workspaceId,
-                'error'        => $e->getMessage(),
-            ];
-        }
     }
 
     /**

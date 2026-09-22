@@ -46,10 +46,5 @@ class EventServiceProvider extends ServiceProvider
     public function boot(): void
     {
         parent::boot();
-
-        LexiconDomainEntry::observe(LexiconModelObserver::class);
-        ConceptPhrasePattern::observe(LexiconModelObserver::class);
-        ActionIntentMapping::observe(LexiconModelObserver::class);
-        PolicyIntentMapping::observe(LexiconModelObserver::class);
     }
 }

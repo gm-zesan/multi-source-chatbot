@@ -116,11 +116,6 @@ class FAQ extends Model
         return $this->belongsTo(User::class, 'updated_by');
     }
 
-    public function lexicon(): \Illuminate\Database\Eloquent\Relations\HasOne
-    {
-        return $this->hasOne(FaqLexicon::class, 'faq_id');
-    }
-
     /**
      * Increment the hit count and update last_used_at.
      */
