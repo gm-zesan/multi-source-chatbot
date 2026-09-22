@@ -4,18 +4,12 @@ declare(strict_types=1);
 
 namespace App\Services\AI;
 
-use App\AI\Agents\ActionOrchestratorAgent;
 use App\AI\Agents\ConversationalSupportAgent;
-use App\AI\Agents\CustomerSupportAgent;
 use App\AI\Agents\KnowledgeSupportAgent;
 use App\AI\LLM\LLMClient;
 use App\AI\Routing\HybridRouter;
 use App\AI\Routing\RouteType;
 use App\AI\Routing\RoutingResult;
-use App\AI\Tools\CancelOrderTool;
-use App\AI\Tools\CreateTicketTool;
-use App\AI\Tools\GetOrderTool;
-use App\AI\Tools\KnowledgeRetrievalTool;
 use App\Models\Conversation;
 use App\Models\Message;
 use App\Models\Workspace;
@@ -370,29 +364,18 @@ class CustomerSupportService
         $t_llm_start = microtime(true);
         $replyText = match ($routingResult->route) {
             RouteType::KNOWLEDGE => (
-                CustomerSupportAgent::isFaked()
-                    ? $this->promptKnowledgeAgent(
-                        conversation: $conversation,
-                        query: $query,
-                        workspaceId: $workspaceId,
-                        retrievedHits: $groundedHits,
-                        memoryContext: $memoryContext,
-                        businessContext: $businessContext,
-                    )
+                $answerabilityDecision !== null && $answerabilityDecision->isAmbiguous()
+                    ? $this->executeUncertainRoute($conversation ?? new Conversation(), $query, $routingResult)
                     : (
-                        $answerabilityDecision !== null && $answerabilityDecision->isAmbiguous()
-                            ? $this->executeUncertainRoute($conversation ?? new Conversation(), $query, $routingResult)
-                            : (
-                                $answerabilityDecision !== null && $answerabilityDecision->isUnanswerable()
-                                    ? $this->executeOodRoute($conversation, $query)
-                                    : $this->promptKnowledgeAgent(
-                                        conversation: $conversation,
-                                        query: $query,
-                                        workspaceId: $workspaceId,
-                                        retrievedHits: $groundedHits,
-                                        memoryContext: $memoryContext,
-                                        businessContext: $businessContext,
-                                    )
+                        $answerabilityDecision !== null && $answerabilityDecision->isUnanswerable()
+                            ? $this->executeOodRoute($conversation, $query)
+                            : $this->promptKnowledgeAgent(
+                                conversation: $conversation,
+                                query: $query,
+                                workspaceId: $workspaceId,
+                                retrievedHits: $groundedHits,
+                                memoryContext: $memoryContext,
+                                businessContext: $businessContext,
                             )
                     )
             ),
@@ -601,22 +584,20 @@ class CustomerSupportService
 
         $decision = $this->answerabilityGate->evaluate($query, $retrievalHits, null);
 
-        if (!CustomerSupportAgent::isFaked()) {
-            if ($decision->isAmbiguous()) {
-                return $this->executeUncertainRoute(
-                    conversation: $conversation,
-                    query: $query,
-                    routingResult: new \App\AI\Routing\RoutingResult(
-                        route: RouteType::UNCERTAIN,
-                        confidence: 0.5,
-                        intent: 'uncertain_ambiguous',
-                    ),
-                );
-            }
+        if ($decision->isAmbiguous()) {
+            return $this->executeUncertainRoute(
+                conversation: $conversation,
+                query: $query,
+                routingResult: new \App\AI\Routing\RoutingResult(
+                    route: RouteType::UNCERTAIN,
+                    confidence: 0.5,
+                    intent: 'uncertain_ambiguous',
+                ),
+            );
+        }
 
-            if ($decision->isUnanswerable()) {
-                return $this->executeOodRoute($conversation, $query);
-            }
+        if ($decision->isUnanswerable()) {
+            return $this->executeOodRoute($conversation, $query);
         }
 
         return $this->promptKnowledgeAgent(
@@ -751,24 +732,6 @@ class CustomerSupportService
         $fallbackProvider = config('ai.fallback_provider', 'openrouter');
         $fallbackModel = config('ai.fallback_model', 'openrouter/free');
 
-        // Check if CustomerSupportAgent was faked in testing
-        if (CustomerSupportAgent::isFaked()) {
-            try {
-                $fakeAgent = new CustomerSupportAgent(
-                    conversation: $conversation,
-                    retrievalTool: new KnowledgeRetrievalTool($this->faqSearch, $workspaceId),
-                );
-                return (string) $fakeAgent->prompt($query, provider: $primaryProvider, model: $primaryModel);
-            } catch (\Throwable $eFake) {
-                Log::warning('[CustomerSupportService] Faked agent simulation exception: ' . $eFake->getMessage());
-                $topHit = $retrievedHits->first();
-                if ($topHit && $topHit->finalScore >= 0.45 && !empty($topHit->faq?->answer)) {
-                    return $topHit->faq->answer;
-                }
-                return $this->defaultFallbackText();
-            }
-        }
-
         $agent = new KnowledgeSupportAgent(
             conversation: $conversation,
             retrievedKnowledge: $retrievedHits,
@@ -821,11 +784,6 @@ class CustomerSupportService
         $primaryModel = config('ai.default_model', 'deepseek-chat');
         $fallbackProvider = config('ai.fallback_provider', 'openrouter');
         $fallbackModel = config('ai.fallback_model', 'openrouter/free');
-
-        if (CustomerSupportAgent::isFaked()) {
-            $fakeAgent = new CustomerSupportAgent(conversation: $conversation);
-            return (string) $fakeAgent->prompt($query, provider: $primaryProvider, model: $primaryModel);
-        }
 
         $agent = new ConversationalSupportAgent(
             conversation: $conversation,
@@ -898,35 +856,6 @@ class CustomerSupportService
         }
 
         return false;
-    }
-
-    private function promptActionOrchestratorAgent(
-        Conversation $conversation,
-        string $query,
-        int $workspaceId,
-    ): string {
-        try {
-            $provider = config('ai.default', 'deepseek');
-            $model = config('ai.default_model', 'deepseek-chat');
-
-            $tools = [
-                new CancelOrderTool(workspaceId: $workspaceId, conversation: $conversation),
-                new GetOrderTool(workspaceId: $workspaceId, conversation: $conversation),
-                new CreateTicketTool(workspaceId: $workspaceId, conversation: $conversation),
-            ];
-
-            $agent = new ActionOrchestratorAgent(
-                conversation: $conversation,
-                actionTools: $tools,
-            );
-
-            return (string) $agent->prompt($query, provider: $provider, model: $model);
-        } catch (\Throwable $e) {
-            Log::warning('[CustomerSupportService] Action orchestrator failed', [
-                'error' => $e->getMessage(),
-            ]);
-            return "আপনার অ্যাকশন অনুরোধটি প্রসেস করা সম্ভব হয়নি। অনুগ্রহ করে কিছুক্ষণ পর আবার চেষ্টা করুন।";
-        }
     }
 
     private function defaultFallbackText(): string
