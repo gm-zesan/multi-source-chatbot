@@ -29,10 +29,6 @@ class DatabaseSeeder extends Seeder
             FAQSeeder::class,
             KnowledgeSearchLogSeeder::class,
             UnansweredQuestionSeeder::class,
-            LexiconDomainEntrySeeder::class,
-            ConceptPhrasePatternSeeder::class,
-            ActionIntentMappingSeeder::class,
-            PolicyIntentMappingSeeder::class,
             AnalyticsDatabaseSeeder::class,
         ]);
     }
