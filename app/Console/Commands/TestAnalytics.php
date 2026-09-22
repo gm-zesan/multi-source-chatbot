@@ -29,7 +29,7 @@ class TestAnalytics extends Command
         $this->info("Starting Analytics & CRM Integration Verification...");
         
         $workspaceId = 1;
-        $query = "What were the total sales for last month?";
+        $query = "month wise sale data daw?";
         
         $this->line("Sending query: " . $query);
         
