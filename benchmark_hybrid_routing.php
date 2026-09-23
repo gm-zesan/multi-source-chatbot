@@ -25,13 +25,13 @@ echo "🚀 BENCHMARK: HYBRID ROUTING + SELECTIVE TOOL CALLING ARCHITECTURE EVALU
 echo "=========================================================================================\n";
 
 $experimentProvider = 'deepseek';
-$experimentModel    = 'deepseek-chat';
-$experimentApiKey   = env('DEEPSEEK_API_KEY') ?: env('PHASE2G2_DEEPSEEK_API_KEY');
-$experimentApiUrl   = env('DEEPSEEK_URL', env('PHASE2G2_DEEPSEEK_URL', 'https://api.deepseek.com'));
+$experimentModel = 'deepseek-flash';
+$experimentApiKey = env('DEEPSEEK_API_KEY') ?: env('PHASE2G2_DEEPSEEK_API_KEY');
+$experimentApiUrl = env('DEEPSEEK_URL', env('PHASE2G2_DEEPSEEK_URL', 'https://api.deepseek.com'));
 
 config([
-    'ai.default'                => $experimentProvider,
-    'ai.default_model'          => $experimentModel,
+    'ai.default' => $experimentProvider,
+    'ai.default_model' => $experimentModel,
     'ai.providers.deepseek.key' => $experimentApiKey,
     'ai.providers.deepseek.url' => $experimentApiUrl,
 ]);
@@ -72,12 +72,12 @@ $conv2 = Conversation::firstOrCreate(
 $ws2Faq = FAQ::firstOrCreate(
     [
         'workspace_id' => $ws2->id,
-        'question'     => 'What is the custom enterprise hotline for Tenant B?',
+        'question' => 'What is the custom enterprise hotline for Tenant B?',
     ],
     [
-        'answer'       => 'The custom enterprise VIP hotline for Tenant B is +1-800-TENANT-B-VIP.',
-        'priority'     => 100,
-        'is_active'    => true,
+        'answer' => 'The custom enterprise VIP hotline for Tenant B is +1-800-TENANT-B-VIP.',
+        'priority' => 100,
+        'is_active' => true,
     ]
 );
 $retrievalClient->syncFaq($ws2Faq);
@@ -146,16 +146,16 @@ foreach ($testMatrix as $idx => $item) {
     $isRouteCorrect = ($actualRoute === $item['expected_route']);
 
     $results[] = [
-        'num'            => $num,
-        'query'          => $item['q'],
-        'category'       => $item['cat'],
-        'workspace_id'   => $item['ws'],
+        'num' => $num,
+        'query' => $item['q'],
+        'category' => $item['cat'],
+        'workspace_id' => $item['ws'],
         'expected_route' => $item['expected_route']->value,
-        'actual_route'   => $actualRoute->value,
-        'route_correct'  => $isRouteCorrect,
-        'confidence'     => $serviceResult['confidence'],
-        'total_ms'       => $totalMs,
-        'reply'          => $serviceResult['reply'],
+        'actual_route' => $actualRoute->value,
+        'route_correct' => $isRouteCorrect,
+        'confidence' => $serviceResult['confidence'],
+        'total_ms' => $totalMs,
+        'reply' => $serviceResult['reply'],
     ];
 
     $statusIcon = $isRouteCorrect ? '✅' : '❌';
@@ -171,9 +171,9 @@ echo "==========================================================================
 
 $multiConv = Conversation::create([
     'channel_account_id' => $acc1->id,
-    'external_user_id'   => 'conv_multiturn_action_' . time(),
-    'status'             => 'active',
-    'customer_name'      => 'Action User Multi',
+    'external_user_id' => 'conv_multiturn_action_' . time(),
+    'status' => 'active',
+    'customer_name' => 'Action User Multi',
 ]);
 
 // Turn 1: Request Cancel
@@ -199,10 +199,10 @@ echo "--------------------------------------------------------------------------
 
 $categories = [
     'A. Knowledge (EN/BN/Banglish)' => fn($r) => str_starts_with($r['category'], 'A. Knowledge'),
-    'B. Chat (EN/BN/Banglish)'      => fn($r) => str_starts_with($r['category'], 'B. Chat'),
-    'C. Action & Clarification'     => fn($r) => str_starts_with($r['category'], 'C. Action'),
-    'D. 10 Frozen OOD Negatives'    => fn($r) => str_starts_with($r['category'], 'D. OOD Negative'),
-    'F. Multi-Tenant Isolation'     => fn($r) => str_starts_with($r['category'], 'F. Isolation'),
+    'B. Chat (EN/BN/Banglish)' => fn($r) => str_starts_with($r['category'], 'B. Chat'),
+    'C. Action & Clarification' => fn($r) => str_starts_with($r['category'], 'C. Action'),
+    'D. 10 Frozen OOD Negatives' => fn($r) => str_starts_with($r['category'], 'D. OOD Negative'),
+    'F. Multi-Tenant Isolation' => fn($r) => str_starts_with($r['category'], 'F. Isolation'),
 ];
 
 foreach ($categories as $catName => $filterFn) {

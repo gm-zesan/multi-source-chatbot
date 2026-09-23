@@ -116,7 +116,7 @@ PROMPT;
         $request = LLMRequest::fromPrompt(
             prompt: $cleanQuery,
             systemPrompt: $systemPrompt,
-            model: config('ai.default_model', 'deepseek-chat'),
+            model: config('ai.default_model', 'deepseek-flash'),
             temperature: 0.0,
             maxTokens: 150,
         );

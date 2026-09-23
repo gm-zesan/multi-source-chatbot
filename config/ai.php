@@ -13,7 +13,7 @@ return [
     */
 
     'default' => env('LLM_PROVIDER', env('AI_DEFAULT_PROVIDER', 'deepseek')),
-    'default_model' => env('LLM_MODEL', env('AI_DEFAULT_MODEL', 'deepseek-chat')),
+    'default_model' => env('LLM_MODEL', env('AI_DEFAULT_MODEL', 'deepseek-flash')),
 
     'fallback_provider' => env('AI_FALLBACK_PROVIDER', 'openrouter'),
     'fallback_model' => env('AI_FALLBACK_MODEL', 'openrouter/free'),

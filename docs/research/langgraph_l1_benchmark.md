@@ -23,7 +23,7 @@
 
 We implemented a completely isolated `LangGraph` service (`python-langchain-service`) running on port `8003` to test LangGraph strictly as a workflow orchestrator (Routing L1 Phase). The Native v2.2 Router in PHP was frozen as the control baseline.
 
-We successfully connected Laravel to the new Python service and ran the exact same 38-query benchmark suite against both routers using identical model configurations (`deepseek-chat`).
+We successfully connected Laravel to the new Python service and ran the exact same 38-query benchmark suite against both routers using identical model configurations (`deepseek-flash`).
 
 ## Phase L1 (Base Prompt) Results
 

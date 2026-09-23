@@ -26,13 +26,13 @@ echo "==========================================================================
 
 // Configure model provider
 $experimentProvider = 'deepseek';
-$experimentModel    = 'deepseek-chat';
-$experimentApiKey   = env('DEEPSEEK_API_KEY') ?: env('PHASE2G2_DEEPSEEK_API_KEY');
-$experimentApiUrl   = env('DEEPSEEK_URL', env('PHASE2G2_DEEPSEEK_URL', 'https://api.deepseek.com'));
+$experimentModel = 'deepseek-flash';
+$experimentApiKey = env('DEEPSEEK_API_KEY') ?: env('PHASE2G2_DEEPSEEK_API_KEY');
+$experimentApiUrl = env('DEEPSEEK_URL', env('PHASE2G2_DEEPSEEK_URL', 'https://api.deepseek.com'));
 
 config([
-    'ai.default'                => $experimentProvider,
-    'ai.default_model'          => $experimentModel,
+    'ai.default' => $experimentProvider,
+    'ai.default_model' => $experimentModel,
     'ai.providers.deepseek.key' => $experimentApiKey,
     'ai.providers.deepseek.url' => $experimentApiUrl,
 ]);
@@ -112,9 +112,9 @@ $knowledgeQueries = [
 foreach ($knowledgeQueries as $item) {
     $conv = Conversation::create([
         'channel_account_id' => $acc1->id,
-        'external_user_id'   => 'e2e_know_' . uniqid(),
-        'status'             => 'active',
-        'customer_name'      => 'Knowledge Tester',
+        'external_user_id' => 'e2e_know_' . uniqid(),
+        'status' => 'active',
+        'customer_name' => 'Knowledge Tester',
     ]);
 
     $t_start = microtime(true);
@@ -129,10 +129,10 @@ foreach ($knowledgeQueries as $item) {
 
     $testResults[] = [
         'category' => "1. Knowledge ({$item['lang']})",
-        'query'    => $item['q'],
-        'route'    => $res['route'],
-        'pass'     => $routeOk && $hasGrounding,
-        'latency'  => $lat,
+        'query' => $item['q'],
+        'route' => $res['route'],
+        'pass' => $routeOk && $hasGrounding,
+        'latency' => $lat,
     ];
 
     $icon = ($routeOk && $hasGrounding) ? '✅' : '❌';
@@ -160,9 +160,9 @@ $chatQueries = [
 foreach ($chatQueries as $item) {
     $conv = Conversation::create([
         'channel_account_id' => $acc1->id,
-        'external_user_id'   => 'e2e_chat_' . uniqid(),
-        'status'             => 'active',
-        'customer_name'      => 'Chat Tester',
+        'external_user_id' => 'e2e_chat_' . uniqid(),
+        'status' => 'active',
+        'customer_name' => 'Chat Tester',
     ]);
 
     $t_start = microtime(true);
@@ -177,10 +177,10 @@ foreach ($chatQueries as $item) {
 
     $testResults[] = [
         'category' => "2. Chat ({$item['lang']})",
-        'query'    => $item['q'],
-        'route'    => $res['route'],
-        'pass'     => $routeOk && $nonEmpty,
-        'latency'  => $lat,
+        'query' => $item['q'],
+        'route' => $res['route'],
+        'pass' => $routeOk && $nonEmpty,
+        'latency' => $lat,
     ];
 
     $icon = ($routeOk && $nonEmpty) ? '✅' : '❌';
@@ -212,9 +212,9 @@ $disambiguationCases = [
 foreach ($disambiguationCases as $item) {
     $conv = Conversation::create([
         'channel_account_id' => $acc1->id,
-        'external_user_id'   => 'e2e_disam_' . uniqid(),
-        'status'             => 'active',
-        'customer_name'      => 'Disambiguation Tester',
+        'external_user_id' => 'e2e_disam_' . uniqid(),
+        'status' => 'active',
+        'customer_name' => 'Disambiguation Tester',
     ]);
 
     $t_start = microtime(true);
@@ -226,10 +226,10 @@ foreach ($disambiguationCases as $item) {
 
     $testResults[] = [
         'category' => "3. Invariant Disambiguation",
-        'query'    => $item['q'],
-        'route'    => $res['route'],
-        'pass'     => $routeOk,
-        'latency'  => $lat,
+        'query' => $item['q'],
+        'route' => $res['route'],
+        'pass' => $routeOk,
+        'latency' => $lat,
     ];
 
     $icon = $routeOk ? '✅' : '❌';
@@ -245,9 +245,9 @@ echo "\n── 4. DETERMINISTIC ACTION HANDOFF & ZERO-MUTATION INVARIANT ──�
 echo "\n  Scenario A: English Direct Action Request (Team Handoff)\n";
 $convEn = Conversation::create([
     'channel_account_id' => $acc1->id,
-    'external_user_id'   => 'e2e_act_en_' . uniqid(),
-    'status'             => 'active',
-    'customer_name'      => 'John English',
+    'external_user_id' => 'e2e_act_en_' . uniqid(),
+    'status' => 'active',
+    'customer_name' => 'John English',
 ]);
 
 $resA = $customerSupportService->handleQuery("Please cancel my order #1024", $ws1->id, $convEn);
@@ -264,9 +264,9 @@ assertCondition($noPendingA, "Zero pending mutation state registered", $totalAss
 echo "\n  Scenario B: Bangla Imperative Action Request (Team Handoff)\n";
 $convBn = Conversation::create([
     'channel_account_id' => $acc1->id,
-    'external_user_id'   => 'e2e_act_bn_' . uniqid(),
-    'status'             => 'active',
-    'customer_name'      => 'রহিম বাংলা',
+    'external_user_id' => 'e2e_act_bn_' . uniqid(),
+    'status' => 'active',
+    'customer_name' => 'রহিম বাংলা',
 ]);
 
 $resB = $customerSupportService->handleQuery("আমার অর্ডার #2048 বাতিল করে দিন", $ws1->id, $convBn);
@@ -283,9 +283,9 @@ assertCondition($noPendingB, "Zero pending mutation state for Bangla request", $
 echo "\n  Scenario C: Banglish Imperative Action Request (Team Handoff)\n";
 $convBanglish = Conversation::create([
     'channel_account_id' => $acc1->id,
-    'external_user_id'   => 'e2e_act_bg_' . uniqid(),
-    'status'             => 'active',
-    'customer_name'      => 'Karim Banglish',
+    'external_user_id' => 'e2e_act_bg_' . uniqid(),
+    'status' => 'active',
+    'customer_name' => 'Karim Banglish',
 ]);
 
 $resC = $customerSupportService->handleQuery("order ta cancel kore den", $ws1->id, $convBanglish);
@@ -302,9 +302,9 @@ assertCondition($noPendingC, "Zero pending mutation state for Banglish request",
 echo "\n  Scenario D: 3 Consecutive Uncertain Queries (Automatic Human Handoff)\n";
 $convUncertain = Conversation::create([
     'channel_account_id' => $acc1->id,
-    'external_user_id'   => 'e2e_unc_3x_' . uniqid(),
-    'status'             => 'active',
-    'customer_name'      => 'Uncertain Multi-turn Tester',
+    'external_user_id' => 'e2e_unc_3x_' . uniqid(),
+    'status' => 'active',
+    'customer_name' => 'Uncertain Multi-turn Tester',
 ]);
 
 $t1Unc = $customerSupportService->generateReply($convUncertain, "cancel", $ws1->id);
@@ -351,9 +351,9 @@ $oodTestCases = [
 foreach ($oodTestCases as $item) {
     $conv = Conversation::create([
         'channel_account_id' => $acc1->id,
-        'external_user_id'   => 'e2e_ood_' . uniqid(),
-        'status'             => 'active',
-        'customer_name'      => 'OOD Tester',
+        'external_user_id' => 'e2e_ood_' . uniqid(),
+        'status' => 'active',
+        'customer_name' => 'OOD Tester',
     ]);
 
     $t_start = microtime(true);
@@ -369,10 +369,10 @@ foreach ($oodTestCases as $item) {
 
     $testResults[] = [
         'category' => "5. OOD Safety ({$item['lang']})",
-        'query'    => $item['q'],
-        'route'    => $res['route'],
-        'pass'     => $isOod && $isFast,
-        'latency'  => $lat,
+        'query' => $item['q'],
+        'route' => $res['route'],
+        'pass' => $isOod && $isFast,
+        'latency' => $lat,
     ];
 
     $icon = ($isOod && $isFast) ? '✅' : '❌';
@@ -386,15 +386,15 @@ echo "\n── 6. MULTI-TENANT COMPLETE E2E ISOLATION (Zero Cross-Tenant Leak) �
 
 $convWs1 = Conversation::create([
     'channel_account_id' => $acc1->id,
-    'external_user_id'   => 'e2e_tenant_ws1_' . uniqid(),
-    'status'             => 'active',
-    'customer_name'      => 'Tenant 1 User',
+    'external_user_id' => 'e2e_tenant_ws1_' . uniqid(),
+    'status' => 'active',
+    'customer_name' => 'Tenant 1 User',
 ]);
 $convWs2 = Conversation::create([
     'channel_account_id' => $acc2->id,
-    'external_user_id'   => 'e2e_tenant_ws2_' . uniqid(),
-    'status'             => 'active',
-    'customer_name'      => 'Tenant 2 User',
+    'external_user_id' => 'e2e_tenant_ws2_' . uniqid(),
+    'status' => 'active',
+    'customer_name' => 'Tenant 2 User',
 ]);
 
 // Test 1: Tenant 1 queries Tenant 2's secret VIP line
@@ -427,7 +427,7 @@ echo "--------------------------------------------------------------------------
 $dimensions = [
     '1. Knowledge (EN / BN / Banglish)' => fn($r) => str_starts_with($r['category'], '1. Knowledge'),
     '2. Chat & Greetings (EN/BN/Banglish)' => fn($r) => str_starts_with($r['category'], '2. Chat'),
-    '3. Invariant Disambiguation'       => fn($r) => str_starts_with($r['category'], '3. Invariant'),
+    '3. Invariant Disambiguation' => fn($r) => str_starts_with($r['category'], '3. Invariant'),
     '5. OOD Safety Gates (EN/BN/Banglish)' => fn($r) => str_starts_with($r['category'], '5. OOD Safety'),
 ];
 

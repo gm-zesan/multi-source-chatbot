@@ -171,7 +171,7 @@ class CustomerSupportService
                 'source' => 'customer_support_agent',
                 'router_type' => 'hybrid_router',
                 'provider' => config('ai.default', 'deepseek'),
-                'model' => config('ai.default_model', 'deepseek-chat'),
+                'model' => config('ai.default_model', 'deepseek-flash'),
             ]),
         );
     }
@@ -225,7 +225,7 @@ class CustomerSupportService
                     'answerability_decision' => $result['answerability_decision'] ?? null,
                     'routing_telemetry'      => $result['routing_telemetry'] ?? [],
                     'provider'               => config('ai.default', 'deepseek'),
-                    'model'                  => config('ai.default_model', 'deepseek-chat'),
+                    'model'                  => config('ai.default_model', 'deepseek-flash'),
                 ],
                 workspaceId: $workspaceId,
             ));
@@ -434,7 +434,7 @@ class CustomerSupportService
             'answerability_decision' => $answerabilityDecision?->toArray(),
             'raw_llm_response' => [
                 'provider' => config('ai.default', 'deepseek'),
-                'model' => config('ai.default_model', 'deepseek-chat'),
+                'model' => config('ai.default_model', 'deepseek-flash'),
                 'raw_reply_text' => $replyText,
                 'prompt_tokens' => $promptTokens,
                 'completion_tokens' => $completionTokens,
@@ -729,7 +729,7 @@ class CustomerSupportService
         ?string $businessContext = null,
     ): string {
         $primaryProvider = config('ai.default', 'deepseek');
-        $primaryModel = config('ai.default_model', 'deepseek-chat');
+        $primaryModel = config('ai.default_model', 'deepseek-flash');
         $fallbackProvider = config('ai.fallback_provider', 'openrouter');
         $fallbackModel = config('ai.fallback_model', 'openrouter/free');
 
@@ -783,7 +783,7 @@ class CustomerSupportService
         ?string $memoryContext = null,
     ): string {
         $primaryProvider = config('ai.default', 'deepseek');
-        $primaryModel = config('ai.default_model', 'deepseek-chat');
+        $primaryModel = config('ai.default_model', 'deepseek-flash');
         $fallbackProvider = config('ai.fallback_provider', 'openrouter');
         $fallbackModel = config('ai.fallback_model', 'openrouter/free');
 

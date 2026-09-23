@@ -36,14 +36,14 @@ class LLMProviderAbstractionTest extends TestCase
             ], 200),
         ]);
 
-        $provider = new DeepSeekProvider(apiKey: 'sk-test', baseUrl: 'https://api.deepseek.com', defaultModel: 'deepseek-chat');
+        $provider = new DeepSeekProvider(apiKey: 'sk-test', baseUrl: 'https://api.deepseek.com', defaultModel: 'deepseek-flash');
         $request = LLMRequest::fromPrompt('Test prompt', 'System instructions');
 
         $response = $provider->send($request);
 
         $this->assertInstanceOf(LLMResponse::class, $response);
         $this->assertEquals('deepseek', $response->provider);
-        $this->assertEquals('deepseek-chat', $response->model);
+        $this->assertEquals('deepseek-flash', $response->model);
         $this->assertEquals('DeepSeek standard response', $response->content);
         $this->assertEquals(15, $response->usage['total_tokens']);
     }
@@ -119,7 +119,7 @@ class LLMProviderAbstractionTest extends TestCase
         ]);
 
         $client = new LLMClient([
-            'deepseek'   => new DeepSeekProvider('sk-test', 'https://api.deepseek.com'),
+            'deepseek' => new DeepSeekProvider('sk-test', 'https://api.deepseek.com'),
             'openrouter' => new OpenRouterProvider('sk-test', 'https://openrouter.ai/api/v1'),
         ]);
 
@@ -159,7 +159,7 @@ class LLMProviderAbstractionTest extends TestCase
         ]);
 
         $client = new LLMClient([
-            'deepseek'   => new DeepSeekProvider('sk-bad-key', 'https://api.deepseek.com'),
+            'deepseek' => new DeepSeekProvider('sk-bad-key', 'https://api.deepseek.com'),
             'openrouter' => new OpenRouterProvider('sk-good-key', 'https://openrouter.ai/api/v1'),
         ]);
 

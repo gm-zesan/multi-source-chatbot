@@ -29,9 +29,9 @@ echo "🔬 PHASE 2G.2: FULL FROZEN BENCHMARK ARCHITECTURE EVALUATION (DEEPSEEK P
 echo "=========================================================================================\n";
 
 $experimentProvider = 'deepseek';
-$experimentModel    = 'deepseek-chat';
-$experimentApiKey   = env('DEEPSEEK_API_KEY') ?: env('PHASE2G2_DEEPSEEK_API_KEY');
-$experimentApiUrl   = env('DEEPSEEK_URL', env('PHASE2G2_DEEPSEEK_URL', 'https://api.deepseek.com'));
+$experimentModel = 'deepseek-flash';
+$experimentApiKey = env('DEEPSEEK_API_KEY') ?: env('PHASE2G2_DEEPSEEK_API_KEY');
+$experimentApiUrl = env('DEEPSEEK_URL', env('PHASE2G2_DEEPSEEK_URL', 'https://api.deepseek.com'));
 
 config([
     'ai.providers.deepseek.key' => $experimentApiKey,
@@ -51,12 +51,12 @@ $ws2 = Workspace::firstOrCreate(
 $ws2Faq = FAQ::firstOrCreate(
     [
         'workspace_id' => $ws2->id,
-        'question'     => 'What is the custom enterprise hotline for Tenant B?',
+        'question' => 'What is the custom enterprise hotline for Tenant B?',
     ],
     [
-        'answer'       => 'The custom enterprise VIP hotline for Tenant B is +1-800-TENANT-B-VIP.',
-        'priority'     => 100,
-        'is_active'    => true,
+        'answer' => 'The custom enterprise VIP hotline for Tenant B is +1-800-TENANT-B-VIP.',
+        'priority' => 100,
+        'is_active' => true,
     ]
 );
 $retrievalClient->syncFaq($ws2Faq);
@@ -79,7 +79,8 @@ class CandidateSingleCallAgent implements Agent, Conversational
     public function __construct(
         public readonly ?Conversation $conversation = null,
         public readonly ?\Illuminate\Database\Eloquent\Collection $retrievedKnowledge = null,
-    ) {}
+    ) {
+    }
 
     public function instructions(): string
     {
@@ -184,13 +185,13 @@ function runSideBySide(
     Event::forget(StepCompleted::class);
     Event::listen(StepCompleted::class, function (StepCompleted $e) use (&$serialSteps) {
         $serialSteps[$e->stepNumber] = [
-            'time_ms'           => round($e->time, 2),
-            'prompt_tokens'     => $e->response->usage->promptTokens ?? 0,
+            'time_ms' => round($e->time, 2),
+            'prompt_tokens' => $e->response->usage->promptTokens ?? 0,
             'completion_tokens' => $e->response->usage->completionTokens ?? 0,
-            'total_tokens'      => ($e->response->usage->promptTokens ?? 0) + ($e->response->usage->completionTokens ?? 0),
-            'routed_model'      => $e->response->meta->model ?? $e->model,
-            'finish'            => $e->response->finishReason->value ?? '',
-            'tool_calls'        => count($e->response->toolCalls),
+            'total_tokens' => ($e->response->usage->promptTokens ?? 0) + ($e->response->usage->completionTokens ?? 0),
+            'routed_model' => $e->response->meta->model ?? $e->model,
+            'finish' => $e->response->finishReason->value ?? '',
+            'tool_calls' => count($e->response->toolCalls),
         ];
     });
 
@@ -208,12 +209,12 @@ function runSideBySide(
     Event::forget(StepCompleted::class);
     Event::listen(StepCompleted::class, function (StepCompleted $e) use (&$candidateSteps) {
         $candidateSteps[$e->stepNumber] = [
-            'time_ms'           => round($e->time, 2),
-            'prompt_tokens'     => $e->response->usage->promptTokens ?? 0,
+            'time_ms' => round($e->time, 2),
+            'prompt_tokens' => $e->response->usage->promptTokens ?? 0,
             'completion_tokens' => $e->response->usage->completionTokens ?? 0,
-            'total_tokens'      => ($e->response->usage->promptTokens ?? 0) + ($e->response->usage->completionTokens ?? 0),
-            'routed_model'      => $e->response->meta->model ?? $e->model,
-            'finish'            => $e->response->finishReason->value ?? '',
+            'total_tokens' => ($e->response->usage->promptTokens ?? 0) + ($e->response->usage->completionTokens ?? 0),
+            'routed_model' => $e->response->meta->model ?? $e->model,
+            'finish' => $e->response->finishReason->value ?? '',
         ];
     });
 
@@ -239,36 +240,38 @@ function runSideBySide(
         $hasRefusalSerial = false;
         $hasRefusalCand = false;
         foreach ($refusalSignals as $sig) {
-            if (stripos($serialResponse, $sig) !== false) $hasRefusalSerial = true;
-            if (stripos($candidateResponse, $sig) !== false) $hasRefusalCand = true;
+            if (stripos($serialResponse, $sig) !== false)
+                $hasRefusalSerial = true;
+            if (stripos($candidateResponse, $sig) !== false)
+                $hasRefusalCand = true;
         }
         $oodSafeSerial = $hasRefusalSerial;
         $oodSafeCand = $hasRefusalCand;
     }
 
     return [
-        'query'          => $query,
-        'category'       => $category,
-        'workspace_id'   => $workspaceId,
-        'is_ood'         => $isOod,
-        'serial'         => [
-            'total_ms'     => $serialTotalMs,
-            'llm_ms'       => $serialLlmMs,
-            'calls_count'  => count($serialSteps),
-            'steps'        => $serialSteps,
-            'response'     => $serialResponse,
-            'ood_safe'     => $oodSafeSerial,
+        'query' => $query,
+        'category' => $category,
+        'workspace_id' => $workspaceId,
+        'is_ood' => $isOod,
+        'serial' => [
+            'total_ms' => $serialTotalMs,
+            'llm_ms' => $serialLlmMs,
+            'calls_count' => count($serialSteps),
+            'steps' => $serialSteps,
+            'response' => $serialResponse,
+            'ood_safe' => $oodSafeSerial,
         ],
-        'candidate'      => [
-            'total_ms'     => $candTotalMs,
+        'candidate' => [
+            'total_ms' => $candTotalMs,
             'retrieval_ms' => $candRetrievalMs,
-            'llm_ms'       => $candLlmMs,
-            'calls_count'  => count($candidateSteps),
-            'steps'        => $candidateSteps,
-            'hits_count'   => $retrievedHits->count(),
-            'top_hit'      => $retrievedHits->first()?->faq?->question ?? 'NONE',
-            'response'     => $candidateResponse,
-            'ood_safe'     => $oodSafeCand,
+            'llm_ms' => $candLlmMs,
+            'calls_count' => count($candidateSteps),
+            'steps' => $candidateSteps,
+            'hits_count' => $retrievedHits->count(),
+            'top_hit' => $retrievedHits->first()?->faq?->question ?? 'NONE',
+            'response' => $candidateResponse,
+            'ood_safe' => $oodSafeCand,
         ],
     ];
 }
@@ -346,16 +349,16 @@ echo "==========================================================================
 
 $multiTurnConvSerial = Conversation::create([
     'channel_account_id' => 1,
-    'external_user_id'   => 'conv_full_multiturn_serial_' . time(),
-    'status'             => 'active',
-    'customer_name'      => 'Full MultiTurn Serial',
+    'external_user_id' => 'conv_full_multiturn_serial_' . time(),
+    'status' => 'active',
+    'customer_name' => 'Full MultiTurn Serial',
 ]);
 
 $multiTurnConvCand = Conversation::create([
     'channel_account_id' => 1,
-    'external_user_id'   => 'conv_full_multiturn_cand_' . time(),
-    'status'             => 'active',
-    'customer_name'      => 'Full MultiTurn Cand',
+    'external_user_id' => 'conv_full_multiturn_cand_' . time(),
+    'status' => 'active',
+    'customer_name' => 'Full MultiTurn Cand',
 ]);
 
 $multiTurns = [
@@ -393,10 +396,10 @@ foreach ($multiTurns as $tIdx => $tQuery) {
     echo "  [Candidate Turn {$tNum}] ({$cMs} ms): \"" . mb_substr(str_replace("\n", " ", trim($cReply)), 0, 80) . "...\"\n";
 
     $multiTurnSummary[] = [
-        'turn'      => $tNum,
-        'query'     => $tQuery,
+        'turn' => $tNum,
+        'query' => $tQuery,
         'serial_ms' => $sMs,
-        'cand_ms'   => $cMs,
+        'cand_ms' => $cMs,
     ];
 }
 
@@ -410,36 +413,37 @@ printf("%-28s | %-16s | %-14s | %-14s | %-10s | %-10s\n", "Category", "Metric", 
 echo "---------------------------------------------------------------------------------------------------------\n";
 
 $groundedSubset = array_filter($fullResults, fn($r) => $r['category'] === 'A. Grounded');
-$oodSubset      = array_filter($fullResults, fn($r) => $r['category'] === 'C. OOD Negative');
-$convSubset     = array_filter($fullResults, fn($r) => $r['category'] === 'B. Conversational');
-$allSubset      = $fullResults;
+$oodSubset = array_filter($fullResults, fn($r) => $r['category'] === 'C. OOD Negative');
+$convSubset = array_filter($fullResults, fn($r) => $r['category'] === 'B. Conversational');
+$allSubset = $fullResults;
 
-function avgMetricFull(array $items, string $arch, string $key): float {
+function avgMetricFull(array $items, string $arch, string $key): float
+{
     $vals = array_map(fn($x) => $x[$arch][$key], $items);
     return count($vals) ? round(array_sum($vals) / count($vals), 2) : 0.0;
 }
 
 $meanSerialGrounded = avgMetricFull($groundedSubset, 'serial', 'total_ms');
-$meanCandGrounded   = avgMetricFull($groundedSubset, 'candidate', 'total_ms');
-$speedupGrounded    = $meanSerialGrounded > 0 ? round((($meanSerialGrounded - $meanCandGrounded) / $meanSerialGrounded) * 100, 1) : 0.0;
+$meanCandGrounded = avgMetricFull($groundedSubset, 'candidate', 'total_ms');
+$speedupGrounded = $meanSerialGrounded > 0 ? round((($meanSerialGrounded - $meanCandGrounded) / $meanSerialGrounded) * 100, 1) : 0.0;
 
 $meanSerialConv = avgMetricFull($convSubset, 'serial', 'total_ms');
-$meanCandConv   = avgMetricFull($convSubset, 'candidate', 'total_ms');
+$meanCandConv = avgMetricFull($convSubset, 'candidate', 'total_ms');
 
 $meanSerialOod = avgMetricFull($oodSubset, 'serial', 'total_ms');
-$meanCandOod   = avgMetricFull($oodSubset, 'candidate', 'total_ms');
+$meanCandOod = avgMetricFull($oodSubset, 'candidate', 'total_ms');
 
 $meanSerialAll = avgMetricFull($allSubset, 'serial', 'total_ms');
-$meanCandAll   = avgMetricFull($allSubset, 'candidate', 'total_ms');
-$speedupAll    = $meanSerialAll > 0 ? round((($meanSerialAll - $meanCandAll) / $meanSerialAll) * 100, 1) : 0.0;
+$meanCandAll = avgMetricFull($allSubset, 'candidate', 'total_ms');
+$speedupAll = $meanSerialAll > 0 ? round((($meanSerialAll - $meanCandAll) / $meanSerialAll) * 100, 1) : 0.0;
 
 $serialOodPass = count(array_filter($oodSubset, fn($r) => $r['serial']['ood_safe']));
-$candOodPass   = count(array_filter($oodSubset, fn($r) => $r['candidate']['ood_safe']));
+$candOodPass = count(array_filter($oodSubset, fn($r) => $r['candidate']['ood_safe']));
 
 printf("%-28s | %-16s | %12.2f ms | %14.2f ms | %8.1f%% | %-10s\n", "A. Knowledge Grounded (5)", "Mean E2E Latency", $meanSerialGrounded, $meanCandGrounded, $speedupGrounded, "FASTER");
-printf("%-28s | %-16s | %12.2f ms | %14.2f ms | %8.1f%% | %-10s\n", "B. Conversational (4)", "Mean E2E Latency", $meanSerialConv, $meanCandConv, round((($meanSerialConv-$meanCandConv)/$meanSerialConv)*100, 1), "NATURAL");
+printf("%-28s | %-16s | %12.2f ms | %14.2f ms | %8.1f%% | %-10s\n", "B. Conversational (4)", "Mean E2E Latency", $meanSerialConv, $meanCandConv, round((($meanSerialConv - $meanCandConv) / $meanSerialConv) * 100, 1), "NATURAL");
 printf("%-28s | %-16s | %12d/10 | %14d/10 | %8s | %-10s\n", "C. OOD Safety Rejection (10)", "Safe Refusal Rate", $serialOodPass, $candOodPass, "100%", "SAFE");
-printf("%-28s | %-16s | %12.2f ms | %14.2f ms | %8.1f%% | %-10s\n", "C. OOD Latency (10)", "Mean E2E Latency", $meanSerialOod, $meanCandOod, round((($meanSerialOod-$meanCandOod)/$meanSerialOod)*100, 1), "FASTER");
+printf("%-28s | %-16s | %12.2f ms | %14.2f ms | %8.1f%% | %-10s\n", "C. OOD Latency (10)", "Mean E2E Latency", $meanSerialOod, $meanCandOod, round((($meanSerialOod - $meanCandOod) / $meanSerialOod) * 100, 1), "FASTER");
 printf("%-28s | %-16s | %12.2f ms | %14.2f ms | %8.1f%% | %-10s\n", "Overall Full Benchmark (21)", "Mean E2E Latency", $meanSerialAll, $meanCandAll, $speedupAll, "FASTER");
 printf("%-28s | %-16s | %12d calls| %14d call | %8s | %-10s\n", "LLM Calls (Grounded)", "Invocations/Query", 2, 1, "-50%", "OPTIMAL");
 echo "=========================================================================================================\n";

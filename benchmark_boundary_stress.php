@@ -22,12 +22,12 @@ echo "🎯 BENCHMARK: HYBRID ROUTER BOUNDARY & MIXED-INTENT STRESS TEST SUITE (5
 echo "=================================================================================================\n";
 
 // Configure model provider
-$experimentApiKey   = env('DEEPSEEK_API_KEY');
-$experimentApiUrl   = env('DEEPSEEK_URL', env('PHASE2G2_DEEPSEEK_URL', 'https://api.deepseek.com'));
+$experimentApiKey = env('DEEPSEEK_API_KEY');
+$experimentApiUrl = env('DEEPSEEK_URL', env('PHASE2G2_DEEPSEEK_URL', 'https://api.deepseek.com'));
 
 config([
-    'ai.default'                => 'deepseek',
-    'ai.default_model'          => 'deepseek-chat',
+    'ai.default' => 'deepseek',
+    'ai.default_model' => 'deepseek-flash',
     'ai.providers.deepseek.key' => $experimentApiKey,
     'ai.providers.deepseek.url' => $experimentApiUrl,
 ]);
@@ -133,9 +133,9 @@ echo "\nEvaluating " . $totalTests . " Boundary Stress Queries across all 13 Cat
 foreach ($matrix as $idx => $item) {
     $conv = Conversation::create([
         'channel_account_id' => $acc->id,
-        'external_user_id'   => 'bnd_' . uniqid(),
-        'status'             => 'active',
-        'customer_name'      => 'Boundary Tester',
+        'external_user_id' => 'bnd_' . uniqid(),
+        'status' => 'active',
+        'customer_name' => 'Boundary Tester',
     ]);
 
     $t_start = microtime(true);
@@ -159,21 +159,21 @@ foreach ($matrix as $idx => $item) {
     }
 
     $icon = $ok ? '✅' : '❌';
-    $num = str_pad((string)($idx + 1), 2, ' ', STR_PAD_LEFT);
+    $num = str_pad((string) ($idx + 1), 2, ' ', STR_PAD_LEFT);
     echo "  {$icon} [{$num}/{$totalTests}] [{$item['cat']}] [{$item['lang']}] ({$lat} ms) \"{$item['q']}\"\n";
     echo "       ↳ Route: Expected=[{$item['exp']->value}], Actual=[{$actualRoute->value}] (Intent: {$res['routing_telemetry']['intent']}, Conf: {$res['confidence']})\n";
     echo "       ↳ Reply: \"" . mb_substr(str_replace("\n", " ", trim($res['reply'])), 0, 75) . "...\"\n";
 
     $results[] = [
-        'cat'            => $item['cat'],
-        'lang'           => $item['lang'],
-        'query'          => $item['q'],
+        'cat' => $item['cat'],
+        'lang' => $item['lang'],
+        'query' => $item['q'],
         'expected_route' => $item['exp']->value,
-        'actual_route'   => $actualRoute->value,
-        'intent'         => $res['routing_telemetry']['intent'],
-        'confidence'     => $res['confidence'],
-        'latency'        => $lat,
-        'pass'           => $ok,
+        'actual_route' => $actualRoute->value,
+        'intent' => $res['routing_telemetry']['intent'],
+        'confidence' => $res['confidence'],
+        'latency' => $lat,
+        'pass' => $ok,
     ];
 
     usleep(100000); // 100ms spacing

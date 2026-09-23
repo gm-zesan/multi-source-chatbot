@@ -167,7 +167,7 @@ class LLMClient
         if ($cleanName === $fallbackName && $cleanName !== $primaryName) {
             $model = (string) config('ai.fallback_model', 'openrouter/free');
         } else {
-            $model = (string) config('ai.default_model', 'deepseek-chat');
+            $model = (string) config('ai.default_model', 'deepseek-flash');
         }
 
         $provider = new GenericProvider($cleanName, $apiKey, $baseUrl, $model);

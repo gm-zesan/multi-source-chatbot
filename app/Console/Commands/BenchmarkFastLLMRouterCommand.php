@@ -39,7 +39,7 @@ class BenchmarkFastLLMRouterCommand extends Command
         // Freeze research parameters
         $providerName = config('ai.default', 'deepseek');
         $providerConfig = config("ai.providers.{$providerName}");
-        $model = config('ai.default_model', 'deepseek-chat');
+        $model = config('ai.default_model', 'deepseek-flash');
 
         $this->info("Dataset:    fast_llm_router_v2_2_benchmark_dataset.json");
         $this->info("Provider:   " . ucfirst($providerName));
@@ -63,7 +63,7 @@ class BenchmarkFastLLMRouterCommand extends Command
         $this->info("Loaded {$totalQueries} benchmark evaluation queries.\n");
 
         $correctRoutes = 0;
-        
+
         $analyticsTotal = 0;
         $analyticsCorrect = 0;
 
@@ -72,7 +72,7 @@ class BenchmarkFastLLMRouterCommand extends Command
 
         $securityGateTotal = 0;
         $securityGateCorrect = 0;
-        
+
         $mutationExpected = 0;
         $mutationDetected = 0;
 
@@ -91,7 +91,7 @@ class BenchmarkFastLLMRouterCommand extends Command
         foreach ($queries as $item) {
             $query = $item['query'];
             $expectedRouteStr = strtoupper($item['expected_route']);
-            $expectedRoute = match($expectedRouteStr) {
+            $expectedRoute = match ($expectedRouteStr) {
                 'CHAT' => RouteType::CHAT,
                 'KNOWLEDGE' => RouteType::KNOWLEDGE,
                 'ANALYTICS' => RouteType::ANALYTICS,
@@ -114,11 +114,11 @@ class BenchmarkFastLLMRouterCommand extends Command
                 $totalToolCalls += $toolCallsCount;
                 $totalIterations += ($result->agentExecution['iterations'] ?? 1);
             }
-            
+
             $isRouteCorrect = $actualRoute === $expectedRoute;
             $isSecurityCorrect = $actualSecurity === $expectedSecurity;
             $isCorrect = $isRouteCorrect && $isSecurityCorrect;
-            
+
             $securityGateTotal++;
             if ($isSecurityCorrect) {
                 $securityGateCorrect++;
@@ -168,12 +168,12 @@ class BenchmarkFastLLMRouterCommand extends Command
             // Determine if an API error triggered a fallback
             if ($result->intent === 'llm_routing_error_fallback') {
                 $resultsTable[] = [
-                    'Query'    => substr($query, 0, 40) . (strlen($query) > 40 ? '...' : ''),
+                    'Query' => substr($query, 0, 40) . (strlen($query) > 40 ? '...' : ''),
                     'Expected' => $expectedRoute->value,
-                    'Actual'   => 'FAILED',
-                    'Match'    => '⚠️',
-                    'Latency'  => $result->routerLatencyMs . 'ms',
-                    'Reason'   => 'API_ERROR_BLOCKED',
+                    'Actual' => 'FAILED',
+                    'Match' => '⚠️',
+                    'Latency' => $result->routerLatencyMs . 'ms',
+                    'Reason' => 'API_ERROR_BLOCKED',
                 ];
                 $this->error("Benchmark aborted due to API failure: " . ($result->signals['error'] ?? 'Unknown Error'));
                 $this->info("Status: INVALID / BLOCKED (Provider returned HTTP error)");
@@ -187,12 +187,12 @@ class BenchmarkFastLLMRouterCommand extends Command
             $actualDisplay = $actualRoute->value . ($actualSecurity !== 'allowed' ? " [{$actualSecurity}]" : "");
 
             $resultsTable[] = [
-                'Query'    => substr($query, 0, 40) . (strlen($query) > 40 ? '...' : ''),
+                'Query' => substr($query, 0, 40) . (strlen($query) > 40 ? '...' : ''),
                 'Expected' => $expectedDisplay,
-                'Actual'   => $actualDisplay,
-                'Match'    => $isCorrect ? '✅' : '❌',
-                'Latency'  => $result->routerLatencyMs . 'ms',
-                'Reason'   => substr($reason, 0, 50) . (strlen($reason) > 50 ? '...' : ''),
+                'Actual' => $actualDisplay,
+                'Match' => $isCorrect ? '✅' : '❌',
+                'Latency' => $result->routerLatencyMs . 'ms',
+                'Reason' => substr($reason, 0, 50) . (strlen($reason) > 50 ? '...' : ''),
             ];
         }
 
@@ -208,7 +208,7 @@ class BenchmarkFastLLMRouterCommand extends Command
         $uncertainRecall = $uncertainTotal > 0 ? ($uncertainCorrect / $uncertainTotal) * 100 : 0;
         $securityGateAccuracy = $securityGateTotal > 0 ? ($securityGateCorrect / $securityGateTotal) * 100 : 0;
         $avgLatency = count($latencies) > 0 ? array_sum($latencies) / count($latencies) : 0;
-        
+
         $p50Latency = 0;
         $p95Latency = 0;
         if (count($latencies) > 0) {

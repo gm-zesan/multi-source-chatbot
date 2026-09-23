@@ -480,12 +480,40 @@
             <!-- Left: Interactive Chat Window -->
             <div class="col-lg-7 col-md-12 mb-3 mb-lg-0 h-100">
                 <div class="chat-card">
+                    <!-- Chat Header -->
+                    <div class="chat-header">
+                        <div>
+                            <h5 class="mb-0 fw-bold d-flex align-items-center gap-2" style="color: #0f172a;">
+                                <i class="ri-robot-2-line text-primary"></i> AI Assistant
+                            </h5>
+                            <small class="text-muted" style="font-size: 11px;">Interactive test environment</small>
+                        </div>
+                        <div class="d-flex align-items-center gap-2">
+                            <button type="button"
+                                class="btn btn-sm btn-outline-danger d-flex align-items-center gap-1 shadow-sm px-3"
+                                onclick="clearSimulatorChat()" style="font-size: 13px; border-radius: 6px;">
+                                <i class="ri-delete-bin-line"></i> Clear
+                            </button>
+                            <button type="button" class="btn btn-sm btn-dark d-flex align-items-center gap-1 shadow-sm px-3"
+                                data-bs-toggle="modal" data-bs-target="#usageWizardModal"
+                                style="font-size: 13px; border-radius: 6px;">
+                                <i class="ri-money-dollar-circle-line text-warning"></i> Usage & Cost
+                            </button>
+                        </div>
+                    </div>
 
                     <!-- Messages area -->
                     <div class="chat-messages" id="chatMessages">
                         <div class="message-bubble message-bot">
                             👋 Hi! I am your AI Chatbot simulator. Type any question or message below.
                         </div>
+                        @if(isset($messages) && $messages->isNotEmpty())
+                            @foreach($messages as $msg)
+                                <div class="message-bubble {{ $msg->direction === 'inbound' ? 'message-user' : 'message-bot' }}">
+                                    {!! nl2br(e($msg->body)) !!}
+                                </div>
+                            @endforeach
+                        @endif
                     </div>
 
                     <!-- Input area -->
@@ -510,7 +538,9 @@
                             <h6 class="mb-0 text-white fw-bold"><i class="ri-cpu-line me-1"></i> Pipeline Inspector</h6>
                             <small class="text-white-50" style="font-size: 11px;">Real-time infrastructure trace</small>
                         </div>
-                        <span class="status-badge status-none" id="totalTimeBadge">0 ms</span>
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="status-badge status-none" id="totalTimeBadge">0 ms</span>
+                        </div>
                     </div>
 
                     <div class="diag-body" id="diagBody">
@@ -588,25 +618,6 @@
                                 </div>
                             </div>
 
-                            {{-- Dynamic Lexicon & Linguistic Engine Trace --}}
-                            <div class="p-2 mb-3 rounded" style="background: #f8fafc; border: 1px dashed #3b82f6; font-size: 11px;" id="traceLexiconCard">
-                                <div class="d-flex justify-content-between align-items-center mb-1">
-                                    <span class="text-primary fw-bold"><i class="ri-book-read-line me-1"></i> Linguistic & Lexicon Trace</span>
-                                    <span id="traceLexiconTierBadge" class="badge bg-light text-dark border">Fast-Path</span>
-                                </div>
-                                <div class="mb-1">
-                                    <span class="text-muted">Concepts:</span>
-                                    <span id="traceLexiconConcepts"><span class="badge bg-secondary">None</span></span>
-                                </div>
-                                <div class="mb-1" id="traceLexiconExpansionRow" style="display: none;">
-                                    <span class="text-muted">Expansion:</span>
-                                    <code id="traceLexiconExpansion" class="text-dark bg-white px-1 border rounded"></code>
-                                </div>
-                                <div id="traceLexiconRerankRow" style="display: none;">
-                                    <span class="text-muted">Reranker:</span>
-                                    <span id="traceLexiconRerank" class="badge bg-info text-dark"></span>
-                                </div>
-                            </div>
 
                             {{-- LLM Generation & Latency Breakdown --}}
                             <div class="p-2 rounded"
@@ -636,7 +647,8 @@
                                 </div>
 
                                 {{-- Granular Stage-Level Latency Tree --}}
-                                <div class="mt-2 pt-2 border-top" style="border-color: #cbd5e1 !important; font-family: monospace; font-size: 11px;">
+                                <div class="mt-2 pt-2 border-top"
+                                    style="border-color: #cbd5e1 !important; font-family: monospace; font-size: 11px;">
                                     <div class="d-flex justify-content-between py-0.5">
                                         <span>🧭 Router</span>
                                         <strong id="latDetailedRouter">0 ms</strong>
@@ -653,23 +665,9 @@
                                         <span>🔍 Knowledge Retrieval</span>
                                         <strong id="latDetailedRetrieval" class="text-primary">0 ms</strong>
                                     </div>
-                                    <div id="latRetrievalSubTree" style="padding-left: 14px; color: #64748b; font-size: 10.5px;">
-                                        <div class="d-flex justify-content-between">
-                                            <span>├─ Tier Executed</span>
-                                            <span id="latTierExecuted" class="badge bg-secondary-subtle text-secondary py-0 px-1">N/A</span>
-                                        </div>
-                                        <div class="d-flex justify-content-between">
-                                            <span>├─ Tier 1 (Dense Hybrid)</span>
-                                            <span id="latTier1">0 ms</span>
-                                        </div>
-                                        <div class="d-flex justify-content-between">
-                                            <span>├─ Tier 2 (Synonym Exp)</span>
-                                            <span id="latTier2">0 ms</span>
-                                        </div>
-                                        <div class="d-flex justify-content-between">
-                                            <span>├─ Tier 3 (LLM Exp)</span>
-                                            <span id="latTier3">0 ms</span>
-                                        </div>
+                                    <div id="latRetrievalSubTree"
+                                        style="padding-left: 14px; color: #64748b; font-size: 10.5px;">
+
                                         <div class="d-flex justify-content-between">
                                             <span>├─ Embedding</span>
                                             <span id="latEmbedding">0 ms</span>
@@ -691,7 +689,8 @@
                                         <span>⚡ Live LLM Generation</span>
                                         <strong id="latDetailedLlm" class="text-danger">0 ms</strong>
                                     </div>
-                                    <div class="d-flex justify-content-between py-0.5 border-top mt-1 pt-1" style="border-color: #cbd5e1 !important;">
+                                    <div class="d-flex justify-content-between py-0.5 border-top mt-1 pt-1"
+                                        style="border-color: #cbd5e1 !important;">
                                         <span class="fw-bold text-dark">⏱️ Total Pipeline (E2E)</span>
                                         <strong id="latDetailedTotal" class="text-success fw-bold">0 ms</strong>
                                     </div>
@@ -822,15 +821,1140 @@
                 </div>
             </div>
         </div>
+        <!-- Usage & Cost Wizard Modal -->
+        <div class="modal fade" id="usageWizardModal" tabindex="-1" aria-labelledby="usageWizardLabel" aria-hidden="true">
+
+            <div class="modal-dialog modal-dialog-centered modal-xl usage-wizard-dialog">
+                <div class="modal-content usage-wizard-modal p-0 border-0">
+
+                    <!-- HEADER -->
+                    <div class="usage-wizard-header">
+                        <div class="d-flex align-items-center gap-3">
+
+                            <div class="usage-wizard-icon">
+                                <i class="ri-bar-chart-box-line"></i>
+                            </div>
+
+                            <div>
+                                <h5 class="mb-0 text-white fw-bold" id="usageWizardLabel">
+                                    LLM Telemetry & Billing
+                                </h5>
+
+                                <div class="usage-wizard-subtitle">
+                                    Track token usage, request cost and billing
+                                </div>
+                            </div>
+
+                        </div>
+
+                        <button type="button" class="usage-wizard-close" data-bs-dismiss="modal" aria-label="Close">
+                            <i class="ri-close-line"></i>
+                        </button>
+                    </div>
+
+
+                    <!-- BODY -->
+                    <div class="usage-wizard-body">
+
+                        <!-- TOP COST SUMMARY -->
+                        <div class="usage-cost-card">
+
+                            <div class="usage-cost-main">
+
+                                <div class="usage-label">
+                                    TOTAL SESSION COST
+                                </div>
+
+                                <div class="usage-total-cost">
+                                    <span id="wizTotalCost">$0.000000</span>
+                                    <span class="badge bg-success-subtle text-success border border-success-subtle fs-6 ms-2 align-middle" id="wizTotalCostBdt" style="font-weight: 700; font-size: 16px !important;">৳0.0000</span>
+                                </div>
+
+                                <div class="usage-cost-meta">
+                                    <span>
+                                        <i class="ri-pulse-line"></i>
+                                        <span id="wizTotalRequests">0</span> requests
+                                    </span>
+
+                                    <span class="usage-dot"></span>
+
+                                    <span>
+                                        <span id="wizAvgTokens">0</span> avg tokens/request
+                                    </span>
+                                </div>
+
+                            </div>
+
+
+                            <div class="usage-cost-breakdown">
+
+                                <div class="usage-cost-row input">
+                                    <div>
+                                        <i class="ri-arrow-down-line"></i>
+                                        <span>Input Cost</span>
+                                    </div>
+
+                                    <strong id="wizInputCost">
+                                        $0.00000
+                                    </strong>
+                                </div>
+
+
+                                <div class="usage-cost-row output">
+                                    <div>
+                                        <i class="ri-arrow-up-line"></i>
+                                        <span>Output Cost</span>
+                                    </div>
+
+                                    <strong id="wizOutputCost">
+                                        $0.00000
+                                    </strong>
+                                </div>
+
+                            </div>
+
+                        </div>
+
+
+                        <!-- STATS -->
+                        <div class="usage-stats-grid">
+
+                            <div class="usage-stat-card">
+                                <div class="usage-stat-icon blue">
+                                    <i class="ri-message-3-line"></i>
+                                </div>
+
+                                <div>
+                                    <div class="usage-stat-label">
+                                        REQUESTS
+                                    </div>
+
+                                    <div class="usage-stat-value" id="wizTotalRequests_stat">
+                                        0
+                                    </div>
+                                </div>
+                            </div>
+
+
+                            <div class="usage-stat-card">
+                                <div class="usage-stat-icon amber">
+                                    <i class="ri-speed-up-line"></i>
+                                </div>
+
+                                <div>
+                                    <div class="usage-stat-label">
+                                        TOKENS / QUERY
+                                    </div>
+
+                                    <div class="usage-stat-value" id="wizAvgTokens_stat">
+                                        0
+                                    </div>
+                                </div>
+                            </div>
+
+
+                            <div class="usage-stat-card">
+                                <div class="usage-stat-icon green">
+                                    <i class="ri-arrow-down-line"></i>
+                                </div>
+
+                                <div>
+                                    <div class="usage-stat-label">
+                                        INPUT TOKENS
+                                    </div>
+
+                                    <div class="usage-stat-value" id="wizTotalInputTokens">
+                                        0
+                                    </div>
+                                </div>
+                            </div>
+
+
+                            <div class="usage-stat-card">
+                                <div class="usage-stat-icon purple">
+                                    <i class="ri-arrow-up-line"></i>
+                                </div>
+
+                                <div>
+                                    <div class="usage-stat-label">
+                                        OUTPUT TOKENS
+                                    </div>
+
+                                    <div class="usage-stat-value" id="wizTotalOutputTokens">
+                                        0
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div>
+
+
+                        <!-- MAIN GRID -->
+                        <div class="usage-main-grid">
+
+                            <!-- PRICING -->
+                            <div class="usage-panel">
+
+                                <div class="usage-panel-header">
+                                    <div>
+                                        <div class="usage-panel-title">
+                                            <i class="ri-settings-4-line"></i>
+                                            Pricing Setup
+                                        </div>
+
+                                        <div class="usage-panel-description">
+                                            Cost per 1 million tokens
+                                        </div>
+                                    </div>
+                                </div>
+
+
+                                <div class="usage-panel-body">
+
+                                    <!-- INPUT PRICE -->
+                                    <div class="usage-field">
+
+                                        <div class="usage-field-header">
+                                            <label>
+                                                Input tokens
+                                            </label>
+
+                                            <span class="usage-currency">
+                                                USD / 1M
+                                            </span>
+                                        </div>
+
+                                        <div class="usage-input">
+                                            <i class="ri-money-dollar-circle-line"></i>
+
+                                            <input type="number" step="0.001" min="0" id="configInputPrice" value="0.30"
+                                                onchange="renderUsageWizard()">
+                                        </div>
+
+                                    </div>
+
+
+                                    <!-- OUTPUT PRICE -->
+                                    <div class="usage-field">
+
+                                        <div class="usage-field-header">
+                                            <label>
+                                                Output tokens
+                                            </label>
+
+                                            <span class="usage-currency">
+                                                USD / 1M
+                                            </span>
+                                        </div>
+
+                                        <div class="usage-input">
+                                            <i class="ri-money-dollar-circle-line"></i>
+
+                                            <input type="number" step="0.001" min="0" id="configOutputPrice" value="1.20"
+                                                onchange="renderUsageWizard()">
+                                        </div>
+
+                                    </div>
+
+                                    <!-- USD TO BDT RATE -->
+                                    <div class="usage-field">
+
+                                        <div class="usage-field-header">
+                                            <label>
+                                                USD to BDT Rate
+                                            </label>
+
+                                            <span class="usage-currency">
+                                                BDT / $1
+                                            </span>
+                                        </div>
+
+                                        <div class="usage-input">
+                                            <i class="ri-exchange-dollar-line"></i>
+
+                                            <input type="number" step="1" min="1" id="configBdtRate" value="122"
+                                                onchange="renderUsageWizard()">
+                                        </div>
+
+                                    </div>
+
+                                    <div class="usage-pricing-note">
+                                        <i class="ri-information-line"></i>
+
+                                        <span>
+                                            Shows both USD ($) and Bangladeshi Taka (৳) costs calculated at Peak Hour rate.
+                                        </span>
+                                    </div>
+
+                                </div>
+
+                            </div>
+
+
+                            <!-- REQUEST BREAKDOWN -->
+                            <div class="usage-panel usage-request-panel">
+
+                                <div class="usage-panel-header">
+
+                                    <div>
+                                        <div class="usage-panel-title">
+                                            <i class="ri-list-check-2"></i>
+                                            Request Breakdown
+                                        </div>
+
+                                        <div class="usage-panel-description">
+                                            Individual LLM usage and cost
+                                        </div>
+                                    </div>
+
+                                    <div class="usage-average-badge">
+                                        Avg.
+                                        <strong id="wizAvgCost">$0.00</strong>
+                                        / req
+                                    </div>
+
+                                </div>
+
+
+                                <div class="usage-table-wrapper">
+
+                                    <table class="usage-table">
+
+                                        <thead>
+                                            <tr>
+                                                <th>#</th>
+                                                <th>MODEL</th>
+                                                <th class="text-end">
+                                                    INPUT
+                                                </th>
+                                                <th class="text-end">
+                                                    OUTPUT
+                                                </th>
+                                                <th class="text-end">
+                                                    TOTAL
+                                                </th>
+                                                <th class="text-end">
+                                                    COST
+                                                </th>
+                                            </tr>
+                                        </thead>
+
+                                        <tbody id="wizBreakdownTableBody">
+
+                                            <tr>
+                                                <td colspan="6">
+
+                                                    <div class="usage-empty-state">
+
+                                                        <div class="usage-empty-icon">
+                                                            <i class="ri-inbox-line"></i>
+                                                        </div>
+
+                                                        <div class="usage-empty-title">
+                                                            No requests logged yet
+                                                        </div>
+
+                                                        <div class="usage-empty-text">
+                                                            LLM request usage will appear here.
+                                                        </div>
+
+                                                    </div>
+
+                                                </td>
+                                            </tr>
+
+                                        </tbody>
+
+                                    </table>
+
+                                </div>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+        <style>
+            /* =========================================================
+                       LLM USAGE WIZARD
+                       ========================================================= */
+
+            .usage-wizard-dialog {
+                max-width: 1120px;
+                background: transparent;
+            }
+
+            .usage-wizard-modal {
+                border: 0 !important;
+                border-radius: 18px !important;
+                overflow: hidden !important;
+                background: #f8fafc !important;
+                padding: 0 !important;
+                margin: 0 !important;
+                box-shadow:
+                    0 30px 80px rgba(15, 23, 42, 0.25),
+                    0 10px 30px rgba(15, 23, 42, 0.12);
+            }
+
+
+            /* ---------------------------------------------------------
+                       HEADER
+                       --------------------------------------------------------- */
+
+            .usage-wizard-header {
+                min-height: 76px;
+                padding: 16px 22px !important;
+                margin: 0 !important;
+
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+
+                background:
+                    linear-gradient(135deg,
+                        #0f172a 0%,
+                        #172554 100%);
+
+                border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+            }
+
+            .usage-wizard-icon {
+                width: 42px;
+                height: 42px;
+
+                display: flex;
+                align-items: center;
+                justify-content: center;
+
+                border-radius: 10px;
+
+                background: rgba(255, 255, 255, 0.1);
+                border: 1px solid rgba(255, 255, 255, 0.12);
+
+                color: #38bdf8;
+                font-size: 21px;
+            }
+
+            .usage-wizard-subtitle {
+                margin-top: 3px;
+                font-size: 11px;
+                color: #94a3b8;
+            }
+
+            .usage-wizard-close {
+                width: 34px;
+                height: 34px;
+
+                display: flex;
+                align-items: center;
+                justify-content: center;
+
+                border: 0;
+                border-radius: 8px;
+
+                background: rgba(255, 255, 255, 0.06);
+
+                color: #cbd5e1;
+                font-size: 19px;
+
+                transition: 0.2s ease;
+            }
+
+            .usage-wizard-close:hover {
+                background: rgba(255, 255, 255, 0.12);
+                color: #fff;
+            }
+
+
+            /* ---------------------------------------------------------
+                       BODY
+                       --------------------------------------------------------- */
+
+            .usage-wizard-body {
+                padding: 20px;
+                background: #f8fafc;
+
+                max-height: calc(100vh - 150px);
+                overflow-y: auto;
+            }
+
+
+            /* ---------------------------------------------------------
+                       COST SUMMARY
+                       --------------------------------------------------------- */
+
+            .usage-cost-card {
+                display: grid;
+                grid-template-columns: 1.2fr 1fr;
+
+                background: #ffffff;
+
+                border: 1px solid #e2e8f0;
+                border-radius: 14px;
+
+                overflow: hidden;
+
+                box-shadow:
+                    0 2px 6px rgba(15, 23, 42, 0.04);
+            }
+
+            .usage-cost-main {
+                padding: 22px 24px;
+            }
+
+            .usage-label {
+                font-size: 10px;
+                font-weight: 700;
+                letter-spacing: 1.2px;
+
+                color: #64748b;
+            }
+
+            .usage-total-cost {
+                margin-top: 4px;
+
+                font-size: 38px;
+                line-height: 1.1;
+                font-weight: 800;
+
+                color: #2563eb;
+            }
+
+            .usage-cost-meta {
+                margin-top: 9px;
+
+                display: flex;
+                align-items: center;
+                gap: 8px;
+
+                font-size: 11px;
+                color: #64748b;
+            }
+
+            .usage-cost-meta i {
+                color: #3b82f6;
+            }
+
+            .usage-dot {
+                width: 3px;
+                height: 3px;
+
+                border-radius: 50%;
+                background: #94a3b8;
+            }
+
+
+            /* COST BREAKDOWN */
+
+            .usage-cost-breakdown {
+                padding: 18px 20px;
+
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+                gap: 9px;
+
+                background: #f8fafc;
+
+                border-left: 1px solid #e2e8f0;
+            }
+
+            .usage-cost-row {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+
+                padding: 10px 12px;
+
+                border-radius: 9px;
+
+                font-size: 12px;
+            }
+
+            .usage-cost-row>div {
+                display: flex;
+                align-items: center;
+                gap: 7px;
+            }
+
+            .usage-cost-row.input {
+                color: #15803d;
+                background: #f0fdf4;
+                border: 1px solid #bbf7d0;
+            }
+
+            .usage-cost-row.output {
+                color: #be123c;
+                background: #fff1f2;
+                border: 1px solid #fecdd3;
+            }
+
+
+            /* ---------------------------------------------------------
+                       STATS
+                       --------------------------------------------------------- */
+
+            .usage-stats-grid {
+                display: grid;
+                grid-template-columns: repeat(4, 1fr);
+
+                gap: 12px;
+
+                margin-top: 14px;
+            }
+
+            .usage-stat-card {
+                min-height: 82px;
+
+                display: flex;
+                align-items: center;
+                gap: 12px;
+
+                padding: 14px;
+
+                background: #ffffff;
+
+                border: 1px solid #e2e8f0;
+                border-radius: 12px;
+
+                box-shadow:
+                    0 1px 3px rgba(15, 23, 42, 0.03);
+
+                transition: 0.2s ease;
+            }
+
+            .usage-stat-card:hover {
+                transform: translateY(-1px);
+
+                border-color: #cbd5e1;
+
+                box-shadow:
+                    0 5px 15px rgba(15, 23, 42, 0.06);
+            }
+
+            .usage-stat-icon {
+                width: 34px;
+                height: 34px;
+
+                flex: 0 0 34px;
+
+                display: flex;
+                align-items: center;
+                justify-content: center;
+
+                border-radius: 9px;
+
+                font-size: 16px;
+            }
+
+            .usage-stat-icon.blue {
+                color: #2563eb;
+                background: #eff6ff;
+            }
+
+            .usage-stat-icon.amber {
+                color: #d97706;
+                background: #fffbeb;
+            }
+
+            .usage-stat-icon.green {
+                color: #16a34a;
+                background: #f0fdf4;
+            }
+
+            .usage-stat-icon.purple {
+                color: #7c3aed;
+                background: #f5f3ff;
+            }
+
+            .usage-stat-label {
+                font-size: 9px;
+                font-weight: 700;
+                letter-spacing: .8px;
+                color: #94a3b8;
+            }
+
+            .usage-stat-value {
+                margin-top: 2px;
+
+                font-size: 20px;
+                line-height: 1.2;
+
+                font-weight: 750;
+                color: #0f172a;
+            }
+
+
+            /* ---------------------------------------------------------
+                       MAIN GRID
+                       --------------------------------------------------------- */
+
+            .usage-main-grid {
+                display: grid;
+                grid-template-columns: 300px minmax(0, 1fr);
+
+                gap: 14px;
+
+                margin-top: 14px;
+            }
+
+            .usage-panel {
+                background: #ffffff;
+
+                border: 1px solid #e2e8f0;
+                border-radius: 12px;
+
+                overflow: hidden;
+
+                box-shadow:
+                    0 1px 3px rgba(15, 23, 42, 0.03);
+            }
+
+            .usage-panel-header {
+                min-height: 62px;
+
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+
+                padding: 12px 15px;
+
+                border-bottom: 1px solid #e2e8f0;
+            }
+
+            .usage-panel-title {
+                display: flex;
+                align-items: center;
+                gap: 7px;
+
+                font-size: 11px;
+                font-weight: 750;
+
+                color: #334155;
+
+                letter-spacing: .7px;
+                text-transform: uppercase;
+            }
+
+            .usage-panel-title i {
+                color: #64748b;
+            }
+
+            .usage-panel-description {
+                margin-top: 3px;
+
+                font-size: 10px;
+                color: #94a3b8;
+            }
+
+
+            /* ---------------------------------------------------------
+                       PRICING
+                       --------------------------------------------------------- */
+
+            .usage-panel-body {
+                padding: 15px;
+            }
+
+            .usage-field {
+                margin-bottom: 16px;
+            }
+
+            .usage-field:last-of-type {
+                margin-bottom: 14px;
+            }
+
+            .usage-field-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+
+                margin-bottom: 6px;
+            }
+
+            .usage-field-header label {
+                margin: 0;
+
+                font-size: 11px;
+                font-weight: 600;
+
+                color: #475569;
+            }
+
+            .usage-currency {
+                padding: 3px 7px;
+
+                border-radius: 5px;
+
+                background: #f1f5f9;
+                border: 1px solid #e2e8f0;
+
+                font-size: 9px;
+                font-weight: 700;
+
+                color: #64748b;
+            }
+
+            .usage-input {
+                height: 36px;
+
+                display: flex;
+                align-items: center;
+
+                border: 1px solid #cbd5e1;
+                border-radius: 8px;
+
+                background: #ffffff;
+
+                overflow: hidden;
+
+                transition: .2s ease;
+            }
+
+            .usage-input:focus-within {
+                border-color: #60a5fa;
+
+                box-shadow:
+                    0 0 0 3px rgba(59, 130, 246, .08);
+            }
+
+            .usage-input i {
+                padding-left: 10px;
+
+                color: #94a3b8;
+            }
+
+            .usage-input input {
+                width: 100%;
+                height: 100%;
+
+                padding: 0 10px;
+
+                border: 0;
+                outline: 0;
+
+                background: transparent;
+
+                font-size: 12px;
+                font-weight: 600;
+
+                color: #334155;
+            }
+
+            .usage-pricing-note {
+                display: flex;
+                align-items: flex-start;
+                gap: 7px;
+
+                padding: 9px;
+
+                border-radius: 8px;
+
+                background: #f8fafc;
+                border: 1px solid #e2e8f0;
+
+                font-size: 9px;
+                line-height: 1.5;
+
+                color: #64748b;
+            }
+
+            .usage-pricing-note i {
+                color: #3b82f6;
+                font-size: 13px;
+            }
+
+
+            /* ---------------------------------------------------------
+                       REQUEST BREAKDOWN
+                       --------------------------------------------------------- */
+
+            .usage-average-badge {
+                padding: 5px 9px;
+
+                border-radius: 20px;
+
+                background: #fff1f2;
+                border: 1px solid #fecdd3;
+
+                color: #e11d48;
+
+                font-size: 9px;
+                white-space: nowrap;
+            }
+
+            .usage-average-badge strong {
+                font-weight: 750;
+            }
+
+            .usage-table-wrapper {
+                max-height: 240px;
+
+                overflow: auto;
+            }
+
+            .usage-table {
+                width: 100%;
+                margin: 0;
+
+                border-collapse: collapse;
+
+                font-size: 11px;
+            }
+
+            .usage-table thead {
+                position: sticky;
+                top: 0;
+                z-index: 2;
+
+                background: #f8fafc;
+            }
+
+            .usage-table th {
+                padding: 9px 10px;
+
+                border-bottom: 1px solid #e2e8f0;
+
+                color: #64748b;
+
+                font-size: 9px;
+                font-weight: 750;
+
+                letter-spacing: .5px;
+            }
+
+            .usage-table td {
+                padding: 9px 10px;
+
+                border-bottom: 1px solid #f1f5f9;
+
+                color: #475569;
+            }
+
+            .usage-table tbody tr:hover {
+                background: #f8fafc;
+            }
+
+
+            /* ---------------------------------------------------------
+                       EMPTY STATE
+                       --------------------------------------------------------- */
+
+            .usage-empty-state {
+                min-height: 150px;
+
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+
+                color: #94a3b8;
+            }
+
+            .usage-empty-icon {
+                width: 40px;
+                height: 40px;
+
+                display: flex;
+                align-items: center;
+                justify-content: center;
+
+                margin-bottom: 8px;
+
+                border-radius: 10px;
+
+                background: #f1f5f9;
+
+                color: #94a3b8;
+
+                font-size: 18px;
+            }
+
+            .usage-empty-title {
+                font-size: 11px;
+                font-weight: 650;
+                color: #64748b;
+            }
+
+            .usage-empty-text {
+                margin-top: 3px;
+
+                font-size: 10px;
+                color: #94a3b8;
+            }
+
+
+            /* ---------------------------------------------------------
+                       SCROLLBAR
+                       --------------------------------------------------------- */
+
+            .usage-wizard-body::-webkit-scrollbar,
+            .usage-table-wrapper::-webkit-scrollbar {
+                width: 5px;
+                height: 5px;
+            }
+
+            .usage-wizard-body::-webkit-scrollbar-thumb,
+            .usage-table-wrapper::-webkit-scrollbar-thumb {
+                background: #cbd5e1;
+                border-radius: 10px;
+            }
+
+            .usage-wizard-body::-webkit-scrollbar-track,
+            .usage-table-wrapper::-webkit-scrollbar-track {
+                background: transparent;
+            }
+
+
+            /* ---------------------------------------------------------
+                       RESPONSIVE
+                       --------------------------------------------------------- */
+
+            @media (max-width: 900px) {
+
+                .usage-cost-card {
+                    grid-template-columns: 1fr;
+                }
+
+                .usage-cost-breakdown {
+                    border-left: 0;
+                    border-top: 1px solid #e2e8f0;
+                }
+
+                .usage-stats-grid {
+                    grid-template-columns: repeat(2, 1fr);
+                }
+
+                .usage-main-grid {
+                    grid-template-columns: 1fr;
+                }
+
+            }
+
+            @media (max-width: 576px) {
+
+                .usage-wizard-body {
+                    padding: 12px;
+                }
+
+                .usage-wizard-header {
+                    padding: 14px;
+                }
+
+                .usage-total-cost {
+                    font-size: 32px;
+                }
+
+                .usage-stats-grid {
+                    grid-template-columns: 1fr;
+                }
+
+            }
+        </style>
+
     </div>
 @endsection
 
 @push('custom-scripts')
     <script>
+        // ── LLM Usage & Cost Wizard State ──
+        let llmUsageHistory = @json($llmUsageHistory ?? []);
+
+        function renderUsageWizard() {
+            const inputPricePerM = parseFloat(document.getElementById('configInputPrice').value) || 0;
+            const outputPricePerM = parseFloat(document.getElementById('configOutputPrice').value) || 0;
+            const bdtRate = parseFloat(document.getElementById('configBdtRate')?.value) || 122;
+
+            let totalRequests = llmUsageHistory.length;
+            let totalInputTokens = 0;
+            let totalOutputTokens = 0;
+            let totalCost = 0;
+            let inputCost = 0;
+            let outputCost = 0;
+
+            const tbody = document.getElementById('wizBreakdownTableBody');
+            tbody.innerHTML = '';
+
+            if (totalRequests === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-4"><i class="ri-inbox-line fs-3 opacity-25 d-block mb-1"></i>No requests logged yet.</td></tr>';
+            }
+
+            llmUsageHistory.forEach((req, index) => {
+                let reqInputTokens = req.prompt_tokens || 0;
+                let reqOutputTokens = req.completion_tokens || 0;
+                let reqTotalTokens = req.total_tokens || (reqInputTokens + reqOutputTokens);
+
+                totalInputTokens += reqInputTokens;
+                totalOutputTokens += reqOutputTokens;
+
+                let reqInputCost = (reqInputTokens / 1000000) * inputPricePerM;
+                let reqOutputCost = (reqOutputTokens / 1000000) * outputPricePerM;
+                let reqCost = reqInputCost + reqOutputCost;
+                let reqCostBdt = reqCost * bdtRate;
+
+                inputCost += reqInputCost;
+                outputCost += reqOutputCost;
+                totalCost += reqCost;
+
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                                <td class="ps-3">${index + 1}</td>
+                                <td><span class="badge bg-secondary-subtle text-secondary border">${req.model || 'deepseek-flash'}</span></td>
+                                <td class="text-end text-dark fw-medium">${reqInputTokens.toLocaleString()}</td>
+                                <td class="text-end text-primary fw-medium">${reqOutputTokens.toLocaleString()}</td>
+                                <td class="text-end text-muted fw-medium">${reqTotalTokens.toLocaleString()}</td>
+                                <td class="text-end pe-3">
+                                    <span class="fw-bold text-success">$${reqCost.toFixed(6)}</span>
+                                    <span class="badge bg-light text-dark border ms-1" style="font-size: 11px;">৳${reqCostBdt.toFixed(4)}</span>
+                                </td>
+                            `;
+                tbody.appendChild(tr);
+            });
+
+            document.getElementById('wizTotalRequests').innerText = totalRequests.toLocaleString();
+            if (document.getElementById('wizTotalRequests_stat')) document.getElementById('wizTotalRequests_stat').innerText = totalRequests.toLocaleString();
+            document.getElementById('wizTotalInputTokens').innerText = totalInputTokens.toLocaleString();
+            document.getElementById('wizTotalOutputTokens').innerText = totalOutputTokens.toLocaleString();
+
+            let avgTokens = totalRequests > 0 ? Math.round((totalInputTokens + totalOutputTokens) / totalRequests) : 0;
+            document.getElementById('wizAvgTokens').innerText = avgTokens.toLocaleString();
+            if (document.getElementById('wizAvgTokens_stat')) document.getElementById('wizAvgTokens_stat').innerText = avgTokens.toLocaleString();
+
+            let totalCostBdt = totalCost * bdtRate;
+            document.getElementById('wizTotalCost').innerText = `$${totalCost.toFixed(6)}`;
+            if (document.getElementById('wizTotalCostBdt')) {
+                document.getElementById('wizTotalCostBdt').innerText = `৳${totalCostBdt.toFixed(4)}`;
+            }
+
+            document.getElementById('wizInputCost').innerText = `$${inputCost.toFixed(6)} (৳${(inputCost * bdtRate).toFixed(4)})`;
+            document.getElementById('wizOutputCost').innerText = `$${outputCost.toFixed(6)} (৳${(outputCost * bdtRate).toFixed(4)})`;
+
+            let avgCost = totalRequests > 0 ? (totalCost / totalRequests) : 0;
+            let avgCostBdt = avgCost * bdtRate;
+            document.getElementById('wizAvgCost').innerHTML = `$${avgCost.toFixed(6)} <span class="ms-1 opacity-75">(৳${avgCostBdt.toFixed(4)})</span>`;
+        }
+
         function setQuery(text) {
             document.getElementById('userInput').value = text;
             document.getElementById('userInput').focus();
         }
+
+        window.onload = function () {
+            const chatMessages = document.getElementById('chatMessages');
+            if (chatMessages) {
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            }
+
+            // Restore Usage History
+            if (llmUsageHistory.length > 0) {
+                renderUsageWizard();
+            }
+        };
 
         function setQueryAndSend(text) {
             document.getElementById('userInput').value = text;
@@ -866,6 +1990,13 @@
                 });
 
                 const data = await response.json();
+
+                // ── Update LLM Usage Wizard ──
+                if (data.decision_trace && data.decision_trace.llm_generation) {
+                    const llmGen = data.decision_trace.llm_generation;
+                    llmUsageHistory.push(llmGen);
+                    renderUsageWizard();
+                }
 
                 // ── RAW LLM RESPONSE & COMPLETE PAYLOAD DEBUG LOG ──
                 console.group("%c🤖 [Conversational AI] Raw Response & Pipeline Telemetry", "background: #2563eb; color: #fff; padding: 4px 8px; border-radius: 4px; font-weight: bold;");
@@ -929,55 +2060,55 @@
                 // 2. UNCERTAIN Interactive Clickable Suggestions
                 if (route === 'uncertain' && Array.isArray(data.suggestions) && data.suggestions.length > 0) {
                     const chipsHtml = data.suggestions.map(s => `
-                                                                            <button type="button" class="suggestion-chip" onclick="setQueryAndSend('${escapeJs(s)}')">
-                                                                                <i class="ri-arrow-right-s-line text-warning"></i> ${escapeHtml(s)}
-                                                                            </button>
-                                                                        `).join('');
+                                                                                        <button type="button" class="suggestion-chip" onclick="setQueryAndSend('${escapeJs(s)}')">
+                                                                                            <i class="ri-arrow-right-s-line text-warning"></i> ${escapeHtml(s)}
+                                                                                        </button>
+                                                                                    `).join('');
 
                     extraCardsHtml += `
-                                                                            <div class="suggestions-container">
-                                                                                <span class="suggestion-label"><i class="ri-lightbulb-line text-warning me-1"></i> Did you mean (Click to select):</span>
-                                                                                ${chipsHtml}
-                                                                            </div>
-                                                                        `;
+                                                                                        <div class="suggestions-container">
+                                                                                            <span class="suggestion-label"><i class="ri-lightbulb-line text-warning me-1"></i> Did you mean (Click to select):</span>
+                                                                                            ${chipsHtml}
+                                                                                        </div>
+                                                                                    `;
                 }
 
                 // 3. KNOWLEDGE Grounded Citations & Sources
                 if (route === 'knowledge' && Array.isArray(data.sources) && data.sources.length > 0) {
                     const sourceChips = data.sources.map(src => `
-                                                                            <span class="source-chip" title="Score: ${src.score}%">
-                                                                                <i class="ri-checkbox-circle-fill text-success"></i> ${escapeHtml(src.question)}
-                                                                            </span>
-                                                                        `).join('');
+                                                                                        <span class="source-chip" title="Score: ${src.score}%">
+                                                                                            <i class="ri-checkbox-circle-fill text-success"></i> ${escapeHtml(src.question)}
+                                                                                        </span>
+                                                                                    `).join('');
 
                     extraCardsHtml += `
-                                                                            <div class="sources-container">
-                                                                                <span class="text-muted small fw-bold"><i class="ri-shield-check-line text-success me-1"></i> Grounded from FAQ:</span>
-                                                                                ${sourceChips}
-                                                                            </div>
-                                                                        `;
+                                                                                        <div class="sources-container">
+                                                                                            <span class="text-muted small fw-bold"><i class="ri-shield-check-line text-success me-1"></i> Grounded from FAQ:</span>
+                                                                                            ${sourceChips}
+                                                                                        </div>
+                                                                                    `;
                 }
 
                 // 4. ACTION / 3x UNCERTAIN Safe Human Handoff Notice Card
                 if (data.is_handoff || route === 'action') {
                     extraCardsHtml += `
-                                                                            <div class="handoff-alert-card">
-                                                                                <div class="handoff-icon"><i class="ri-customer-service-2-line"></i></div>
-                                                                                <div>
-                                                                                    <strong class="d-block text-dark small" style="font-size:12px;">Human Support Request Registered</strong>
-                                                                                    <small class="text-muted">A customer support specialist will review your request shortly.</small>
-                                                                                </div>
-                                                                            </div>
-                                                                        `;
+                                                                                        <div class="handoff-alert-card">
+                                                                                            <div class="handoff-icon"><i class="ri-customer-service-2-line"></i></div>
+                                                                                            <div>
+                                                                                                <strong class="d-block text-dark small" style="font-size:12px;">Human Support Request Registered</strong>
+                                                                                                <small class="text-muted">A customer support specialist will review your request shortly.</small>
+                                                                                            </div>
+                                                                                        </div>
+                                                                                    `;
                 }
 
                 // Footer metadata
                 metaHtml = `
-                                                        <div class="message-meta">
-                                                            <span>${data.pipeline_diagnostics?.total_time_ms || 0} ms</span>
-                                                            <span>Route: <strong>${route.toUpperCase()}</strong></span>
-                                                        </div>
-                                                    `;
+                                                                    <div class="message-meta">
+                                                                        <span>${data.pipeline_diagnostics?.total_time_ms || 0} ms</span>
+                                                                        <span>Route: <strong>${route.toUpperCase()}</strong></span>
+                                                                    </div>
+                                                                `;
             }
 
             const formattedBodyHtml = renderFormattedMessage(content);
@@ -1221,9 +2352,9 @@
                 if (sources.length > 0) {
                     sources.forEach(s => {
                         docHtml += `<div class="d-flex justify-content-between align-items-center p-1 px-2 mb-1" style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 4px; font-size: 11px;">
-                                                                <span class="text-truncate" style="max-width: 220px;"><strong>[${escapeHtml(s.category)}]</strong> ${escapeHtml(s.question)}</span>
-                                                                <span class="badge bg-success-subtle text-success">${s.score}%</span>
-                                                            </div>`;
+                                                                            <span class="text-truncate" style="max-width: 220px;"><strong>[${escapeHtml(s.category)}]</strong> ${escapeHtml(s.question)}</span>
+                                                                            <span class="badge bg-success-subtle text-success">${s.score}%</span>
+                                                                        </div>`;
                     });
                 } else {
                     docHtml = '<span class="text-muted small">Zero ungrounded documents passed to LLM (Safe fallback).</span>';
@@ -1268,8 +2399,8 @@
                 const isActive = (idx === currentTurnIndex);
                 const btnClass = isActive ? 'btn-primary text-white shadow-sm' : 'btn-outline-secondary';
                 return `<button type="button" class="btn btn-xs ${btnClass} py-0 px-2" style="font-size: 11px; border-radius: 12px; white-space: nowrap;" onclick="selectTurn(${idx})">
-                                                        Turn #${t.turnNumber}
-                                                    </button>`;
+                                                                    Turn #${t.turnNumber}
+                                                                </button>`;
             }).join('');
         }
 
@@ -1339,13 +2470,13 @@
             // LLM generation
             const llm = trace.llm_generation || {};
             const provider = llm.provider || 'DeepSeek';
-            const model = llm.model || 'deepseek-chat';
+            const model = llm.model || 'deepseek-flash';
             const status = llm.status || 'GENERATED';
             document.getElementById('traceLlmStatus').textContent = `${provider} (${model}) — ${status}`;
 
             // Latencies
             const lat = trace.latency_breakdown || {};
-            const sub = lat.retrieval_sub_stages || trace.lexicon_telemetry || {};
+            const sub = lat.retrieval_sub_stages || {};
 
             // High-level summary tiles
             document.getElementById('latRouter').textContent = `${lat.router_ms || 0} ms`;
@@ -1359,11 +2490,7 @@
             document.getElementById('latDetailedMemory').textContent = `${lat.memory_retrieval_ms || 0} ms`;
             document.getElementById('latDetailedRetrieval').textContent = `${lat.knowledge_retrieval_ms ?? lat.retrieval_ms ?? 0} ms`;
 
-            const tierStr = (sub.tier_executed || trace.lexicon_telemetry?.tier_executed || 'Fast-Path').replace(/_/g, ' ');
-            document.getElementById('latTierExecuted').textContent = tierStr;
-            document.getElementById('latTier1').textContent = `${sub.tier1_ms || 0} ms`;
-            document.getElementById('latTier2').textContent = `${sub.tier2_ms || 0} ms`;
-            document.getElementById('latTier3').textContent = `${sub.tier3_ms || 0} ms`;
+
             document.getElementById('latEmbedding').textContent = `${sub.embedding_ms || 0} ms`;
             document.getElementById('latTypesense').textContent = `${sub.typesense_ms || 0} ms`;
             document.getElementById('latReranker').textContent = `${sub.rerank_ms || 0} ms`;
@@ -1372,34 +2499,7 @@
             document.getElementById('latDetailedLlm').textContent = `${lat.llm_generation_ms ?? lat.llm_ms ?? 0} ms${lat.ttft_ms ? ` (TTFT: ${lat.ttft_ms} ms)` : ''}`;
             document.getElementById('latDetailedTotal').textContent = `${lat.total_e2e_ms ?? lat.total_ms ?? 0} ms`;
 
-            // Lexicon & Linguistic Telemetry
-            const lex = trace.lexicon_telemetry || {};
-            const concepts = lex.canonical_concepts || [];
-            const conceptsContainer = document.getElementById('traceLexiconConcepts');
-            if (concepts.length > 0) {
-                conceptsContainer.innerHTML = concepts.map(c => `<span class="badge bg-primary me-1">${escapeHtml(c)}</span>`).join('');
-            } else {
-                conceptsContainer.innerHTML = '<span class="badge bg-secondary">None</span>';
-            }
 
-            const tierBadge = document.getElementById('traceLexiconTierBadge');
-            tierBadge.textContent = (lex.tier_executed || 'Fast-Path').replace(/_/g, ' ');
-
-            const expRow = document.getElementById('traceLexiconExpansionRow');
-            if (lex.expansion_triggered && lex.expanded_query) {
-                expRow.style.display = 'block';
-                document.getElementById('traceLexiconExpansion').textContent = lex.expanded_query;
-            } else {
-                expRow.style.display = 'none';
-            }
-
-            const rerankRow = document.getElementById('traceLexiconRerankRow');
-            if (lex.reranker_applied && lex.reranker_reason) {
-                rerankRow.style.display = 'block';
-                document.getElementById('traceLexiconRerank').textContent = lex.reranker_reason;
-            } else {
-                rerankRow.style.display = 'none';
-            }
         }
 
         async function clearSimulatorChat() {

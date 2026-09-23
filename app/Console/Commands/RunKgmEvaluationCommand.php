@@ -37,7 +37,7 @@ class RunKgmEvaluationCommand extends Command
         $totalCases = count($testCases);
 
         $this->line("• Loaded {$totalCases} golden test scenarios across 18 benchmark dimensions.");
-        $this->line("• Primary Provider: DeepSeek (deepseek-chat)");
+        $this->line("• Primary Provider: DeepSeek (deepseek-flash)");
         $this->newLine();
 
         $workspaceId = (int) $this->option('workspace');
@@ -56,8 +56,8 @@ class RunKgmEvaluationCommand extends Command
         $conflictPrecedenceTotal = 0;
 
         $latencies = [
-            'gate'    => [],
-            'search'  => [],
+            'gate' => [],
+            'search' => [],
             'context' => [],
         ];
 
@@ -105,9 +105,9 @@ class RunKgmEvaluationCommand extends Command
                     conversationId: 'eval_' . $id,
                     channel: 'benchmark',
                     messages: array_map(fn($m, $i) => [
-                        'id'         => $i + 1,
-                        'direction'  => $m['direction'],
-                        'body'       => $m['body'],
+                        'id' => $i + 1,
+                        'direction' => $m['direction'],
+                        'body' => $m['body'],
                         'created_at' => date('c'),
                     ], $history, array_keys($history))
                 );

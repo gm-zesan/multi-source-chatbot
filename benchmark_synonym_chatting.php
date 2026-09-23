@@ -21,12 +21,12 @@ echo "💬 COMPREHENSIVE SYNONYM CHATTING & CONVERSATIONAL INVARIANT BENCHMARK\n
 echo "=================================================================================================\n";
 
 // Configure model provider
-$experimentApiKey   = env('DEEPSEEK_API_KEY') ?: env('PHASE2G2_DEEPSEEK_API_KEY');
-$experimentApiUrl   = env('DEEPSEEK_URL', env('PHASE2G2_DEEPSEEK_URL', 'https://api.deepseek.com'));
+$experimentApiKey = env('DEEPSEEK_API_KEY') ?: env('PHASE2G2_DEEPSEEK_API_KEY');
+$experimentApiUrl = env('DEEPSEEK_URL', env('PHASE2G2_DEEPSEEK_URL', 'https://api.deepseek.com'));
 
 config([
-    'ai.default'                => 'deepseek',
-    'ai.default_model'          => 'deepseek-chat',
+    'ai.default' => 'deepseek',
+    'ai.default_model' => 'deepseek-flash',
     'ai.providers.deepseek.key' => $experimentApiKey,
     'ai.providers.deepseek.url' => $experimentApiUrl,
 ]);
@@ -112,9 +112,9 @@ echo "\nEvaluating " . $totalTests . " Synonym Chatting Queries across 5 Convers
 foreach ($synonymMatrix as $idx => $item) {
     $conv = Conversation::create([
         'channel_account_id' => $acc->id,
-        'external_user_id'   => 'syn_' . uniqid(),
-        'status'             => 'active',
-        'customer_name'      => 'Synonym Tester',
+        'external_user_id' => 'syn_' . uniqid(),
+        'status' => 'active',
+        'customer_name' => 'Synonym Tester',
     ]);
 
     $t_start = microtime(true);
@@ -130,16 +130,16 @@ foreach ($synonymMatrix as $idx => $item) {
     }
 
     $icon = $ok ? '✅' : '❌';
-    $num = str_pad((string)($idx + 1), 2, ' ', STR_PAD_LEFT);
+    $num = str_pad((string) ($idx + 1), 2, ' ', STR_PAD_LEFT);
     echo "  {$icon} [{$num}/{$totalTests}] [{$item['lang']}|{$item['type']}] ({$lat} ms) \"{$item['q']}\"\n";
     echo "       ↳ Reply: \"" . mb_substr(str_replace("\n", " ", trim($res['reply'])), 0, 75) . "...\"\n";
 
     $results[] = [
-        'type'    => $item['type'],
-        'lang'    => $item['lang'],
-        'query'   => $item['q'],
-        'route'   => $res['route'],
-        'pass'    => $ok,
+        'type' => $item['type'],
+        'lang' => $item['lang'],
+        'query' => $item['q'],
+        'route' => $res['route'],
+        'pass' => $ok,
         'latency' => $lat,
     ];
 
@@ -157,7 +157,8 @@ $types = ['Opener', 'Presence Check', 'Identity Check', 'Liveness Check', 'Grati
 foreach ($types as $type) {
     $subset = array_filter($results, fn($r) => $r['type'] === $type);
     $cnt = count($subset);
-    if ($cnt === 0) continue;
+    if ($cnt === 0)
+        continue;
     $pCnt = count(array_filter($subset, fn($r) => $r['pass']));
     $rate = round(($pCnt / $cnt) * 100, 1);
     $lats = array_column($subset, 'latency');

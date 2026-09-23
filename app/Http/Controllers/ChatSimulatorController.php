@@ -26,12 +26,20 @@ class ChatSimulatorController extends Controller
     ) {
     }
 
-    /**
-     * Display the Chat Simulator UI.
-     */
-    public function index(): View
+    public function index(Request $request): View
     {
-        return view('admin.simulator');
+        $workspaceId = $this->resolveWorkspaceId();
+        $conversation = $this->resolveSimulatorConversation($request, $workspaceId);
+        $messages = $conversation->messages()->orderBy('created_at', 'asc')->get();
+        $rawHistory = $conversation->metadata['llm_usage_history'] ?? [];
+        $llmUsageHistory = array_map(function ($item) {
+            if (isset($item['model']) && ($item['model'] === 'deepseek-chat' || $item['model'] === 'Deepseek-Chat')) {
+                $item['model'] = 'deepseek-flash';
+            }
+            return $item;
+        }, $rawHistory);
+
+        return view('admin.simulator', compact('messages', 'llmUsageHistory'));
     }
 
     /**
@@ -110,7 +118,7 @@ class ChatSimulatorController extends Controller
                         'answerability_decision' => $supportResult['answerability_decision'] ?? null,
                         'routing_telemetry' => $supportResult['routing_telemetry'] ?? [],
                         'provider' => config('ai.default', 'deepseek'),
-                        'model' => config('ai.default_model', 'deepseek-chat'),
+                        'model' => config('ai.default_model', 'deepseek-flash'),
                     ],
                     workspaceId: $workspaceId,
                 ));
@@ -157,8 +165,11 @@ class ChatSimulatorController extends Controller
             'grounded_hit_count' => (int) ($answerabilityDecision['grounded_count'] ?? count($supportResult['sources'] ?? [])),
             'llm_generation' => [
                 'provider' => config('ai.default', 'deepseek'),
-                'model' => config('ai.default_model', 'deepseek-chat'),
+                'model' => config('ai.default_model', 'deepseek-flash'),
                 'status' => !empty($supportResult['reply']) ? 'GENERATED' : 'FALLBACK',
+                'prompt_tokens' => $supportResult['raw_llm_response']['prompt_tokens'] ?? 0,
+                'completion_tokens' => $supportResult['raw_llm_response']['completion_tokens'] ?? 0,
+                'total_tokens' => $supportResult['raw_llm_response']['total_tokens'] ?? 0,
             ],
             'latency_breakdown' => [
                 'router_ms' => $routerLatency,
@@ -185,6 +196,14 @@ class ChatSimulatorController extends Controller
                 'tier_executed' => $supportResult['lexicon_telemetry']['tier_executed'] ?? null,
             ],
         ];
+
+        // ── Persistent Usage Tracking ──
+        $metadata = $conversation->metadata ?? [];
+        if (!isset($metadata['llm_usage_history'])) {
+            $metadata['llm_usage_history'] = [];
+        }
+        $metadata['llm_usage_history'][] = $decisionTrace['llm_generation'];
+        $conversation->update(['metadata' => $metadata]);
 
         return response()->json([
             'success' => true,

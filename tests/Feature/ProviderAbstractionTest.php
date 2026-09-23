@@ -41,25 +41,25 @@ class ProviderAbstractionTest extends TestCase
 
         $account = ChannelAccount::create([
             'workspace_id' => $this->workspace->id,
-            'channel_id'   => $channel->id,
-            'name'         => 'Web Widget',
-            'external_id'  => 'web_widget_prov',
+            'channel_id' => $channel->id,
+            'name' => 'Web Widget',
+            'external_id' => 'web_widget_prov',
             'access_token' => 'token_123',
-            'is_active'    => true,
+            'is_active' => true,
         ]);
 
         $this->conversation = Conversation::create([
             'channel_account_id' => $account->id,
-            'external_user_id'   => 'user_prov_888',
-            'status'             => 'open',
-            'last_direction'     => 'inbound',
+            'external_user_id' => 'user_prov_888',
+            'status' => 'open',
+            'last_direction' => 'inbound',
         ]);
 
         FAQ::create([
             'workspace_id' => $this->workspace->id,
-            'question'     => 'What are your shipping rates inside Dhaka?',
-            'answer'       => 'Delivery inside Dhaka is 60 BDT and takes 24-48 hours.',
-            'is_active'    => true,
+            'question' => 'What are your shipping rates inside Dhaka?',
+            'answer' => 'Delivery inside Dhaka is 60 BDT and takes 24-48 hours.',
+            'is_active' => true,
         ]);
 
         $routerMock = \Mockery::mock(\App\AI\Routing\HybridRouter::class);
@@ -72,7 +72,7 @@ class ProviderAbstractionTest extends TestCase
     public function test_primary_provider_succeeds(): void
     {
         Config::set('ai.default', 'deepseek');
-        Config::set('ai.default_model', 'deepseek-chat');
+        Config::set('ai.default_model', 'deepseek-flash');
 
         Http::fake([
             'https://api.deepseek.com/*' => Http::response([
@@ -97,7 +97,7 @@ class ProviderAbstractionTest extends TestCase
     public function test_fallback_provider_triggered_when_primary_fails(): void
     {
         Config::set('ai.default', 'deepseek');
-        Config::set('ai.default_model', 'deepseek-chat');
+        Config::set('ai.default_model', 'deepseek-flash');
         Config::set('ai.fallback_provider', 'openrouter');
         Config::set('ai.fallback_model', 'openrouter/free');
 
@@ -146,8 +146,8 @@ class ProviderAbstractionTest extends TestCase
         Http::fake([
             // Both providers fail
             'https://api.deepseek.com/*' => Http::response(['error' => 'Rate limit exceeded'], 429),
-            'https://openrouter.ai/*'   => Http::response(['error' => 'Service Unavailable'], 503),
-            '*/memory/search'           => Http::response(['has_memories' => false], 200),
+            'https://openrouter.ai/*' => Http::response(['error' => 'Service Unavailable'], 503),
+            '*/memory/search' => Http::response(['has_memories' => false], 200),
         ]);
 
         $service = app(CustomerSupportService::class);

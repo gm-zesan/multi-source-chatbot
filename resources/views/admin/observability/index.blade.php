@@ -259,7 +259,8 @@
                 <div class="d-flex align-items-center gap-3">
                     <div class="d-flex align-items-center gap-2">
                         <label for="autoRefreshSelect" class="small text-muted mb-0 fw-medium">Auto-Refresh:</label>
-                        <select id="autoRefreshSelect" class="form-select form-select-sm" style="width: 100px; font-size: 12px;" onchange="handleAutoRefreshChange(this.value)">
+                        <select id="autoRefreshSelect" class="form-select form-select-sm"
+                            style="width: 100px; font-size: 12px;" onchange="handleAutoRefreshChange(this.value)">
                             <option value="0">Off</option>
                             <option value="5">5s</option>
                             <option value="10" selected>10s</option>
@@ -269,7 +270,8 @@
 
                     <span class="badge d-flex align-items-center gap-1" id="liveIndicator"
                         style="background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; padding: 6px 12px; font-weight: 500; font-size: 12px;">
-                        <span class="spinner-grow spinner-grow-sm text-success" style="width: 8px; height: 8px;" role="status"></span>
+                        <span class="spinner-grow spinner-grow-sm text-success" style="width: 8px; height: 8px;"
+                            role="status"></span>
                         Stream Active
                     </span>
 
@@ -677,7 +679,8 @@
                             <div id="modalRetrievalSection" class="grounding-card d-none">
                                 <div class="small fw-semibold text-uppercase text-muted mb-2"
                                     style="letter-spacing: 0.5px;">
-                                    <i class="ri-search-eye-line me-1 text-success"></i> Vector Retrieval & Semantic Search Telemetry
+                                    <i class="ri-search-eye-line me-1 text-success"></i> Vector Retrieval & Semantic Search
+                                    Telemetry
                                 </div>
                                 <div id="modalRetrievalContent" class="small text-dark"></div>
                             </div>
@@ -779,7 +782,7 @@
 
             // Provider & Model
             const provider = meta.provider || 'DeepSeek';
-            const model = meta.model || 'deepseek-chat';
+            const model = meta.model || 'deepseek-flash';
             const providerEl = document.getElementById('modalProvider');
             providerEl.textContent = `${provider} (${model})`;
             providerEl.title = `${provider} (${model})`;
