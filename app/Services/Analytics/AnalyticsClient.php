@@ -38,20 +38,25 @@ class AnalyticsClient
      * @param int $workspaceId Authenticated runtime workspace context
      * @return array<string, mixed>
      */
-    public function query(string $query, int $workspaceId): array
+    public function query(string $query, int $workspaceId, array $history = []): array
     {
         $t_start = microtime(true);
         $url = "{$this->baseUrl()}/analytics/query";
 
         try {
+            $payload = [
+                'query' => $query,
+                'workspace_id' => $workspaceId,
+                'engine' => 'semantic',
+            ];
+            if (!empty($history)) {
+                $payload['history'] = $history;
+            }
+
             $response = Http::timeout($this->timeout())
                 ->asJson()
                 ->acceptJson()
-                ->post($url, [
-                    'query' => $query,
-                    'workspace_id' => $workspaceId,
-                    'engine' => 'semantic'
-                ]);
+                ->post($url, $payload);
 
             $elapsedMs = round((microtime(true) - $t_start) * 1000, 2);
 

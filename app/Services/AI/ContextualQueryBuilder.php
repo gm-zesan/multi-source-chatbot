@@ -600,12 +600,12 @@ class ContextualQueryBuilder
         $qLower = mb_strtolower($query);
 
         // English and Banglish pronouns
-        if (preg_match('/\b(it|this|that|them|they|these|those|its|their|eta|ota|sheta|eita|oita|sheita|etar|otar|shetar|eitar|oitar)\b/ui', $qLower)) {
+        if (preg_match('/\b(it|this|that|them|they|these|those|its|their|his|her|eta|ota|sheta|eita|oita|sheita|etar|otar|shetar|eitar|oitar|tader|tar|taderke|unader|oder|taderki)\b/ui', $qLower)) {
             return true;
         }
 
         // Bengali pronouns (Unicode boundary safe)
-        if (preg_match('/(^|[^\p{L}\p{N}])(এটা|ওটা|সেটা|এইটা|ওইটা|সেইটা|এটার|ওটার|সেটার|এগুলোর|ওগুলোর|এগুলো|ওগুলো|তারা|তাদের)($|[^\p{L}\p{N}])/u', $qLower)) {
+        if (preg_match('/(^|[^\p{L}\p{N}])(এটা|ওটা|সেটা|এইটা|ওইটা|সেইটা|এটার|ওটার|সেটার|এগুলোর|ওগুলোর|এগুলো|ওগুলো|তারা|তাদের|তার|তাদেরকে|উনাদের|ওদের)($|[^\p{L}\p{N}])/u', $qLower)) {
             return true;
         }
 

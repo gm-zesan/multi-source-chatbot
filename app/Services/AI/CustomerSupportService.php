@@ -72,24 +72,27 @@ class CustomerSupportService
 
         $t_start = microtime(true);
 
-        // ── Phase M2: Context Resolution & Phase M4-A: Ambiguity Short-Circuit ─────
-        $contextResult = $this->contextualQueryBuilder->resolveContext($query, $conversation);
-        if ($contextResult->needsClarification()) {
-            $ambiguityResponse = $this->clarificationManager->handleAmbiguity(
-                conversation: $conversation,
-                rawQuery: $query,
-                contextResult: $contextResult,
-                workspaceId: $effectiveWorkspaceId,
-            );
-            return $ambiguityResponse['reply'];
-        }
-
-        // ── 1. Hybrid Routing ────────────────────────────────────────────────
+        // ── 1. Hybrid Routing (Evaluates with full dialogue context) ────────────────────────────────────────────────
         $routingResult = $this->router->route(
             query: $query,
             conversation: $conversation,
             workspaceId: $effectiveWorkspaceId,
         );
+
+        // ── Phase M2: Context Resolution & Ambiguity Handling (Knowledge/Uncertain only) ─────
+        $contextResult = null;
+        if ($routingResult->isKnowledge() || $routingResult->isUncertain()) {
+            $contextResult = $this->contextualQueryBuilder->resolveContext($query, $conversation);
+            if ($contextResult->needsClarification() && $routingResult->isUncertain()) {
+                $ambiguityResponse = $this->clarificationManager->handleAmbiguity(
+                    conversation: $conversation,
+                    rawQuery: $query,
+                    contextResult: $contextResult,
+                    workspaceId: $effectiveWorkspaceId,
+                );
+                return $ambiguityResponse['reply'];
+            }
+        }
 
         // ── 1.5 Retrieve Memory & Live Business Source of Truth (Skipped for Analytics) ─────
         $memoryContext = null;
@@ -268,58 +271,57 @@ class CustomerSupportService
         $this->lastLlmUsage = null;
         $t_start = microtime(true);
 
-        // ── Phase M2: Context Resolution & Phase M4-A: Context Ambiguity Short-Circuit ─────
-        $t_context_start = microtime(true);
-        $contextResult = $this->contextualQueryBuilder->resolveContext($query, $conversation);
-        $contextResolutionMs = round((microtime(true) - $t_context_start) * 1000, 2);
-
-        if ($contextResult->needsClarification()) {
-            $t_clarification_start = microtime(true);
-            $clarificationResult = $this->clarificationManager->handleAmbiguity(
-                conversation: $conversation,
-                rawQuery: $query,
-                contextResult: $contextResult,
-                workspaceId: $workspaceId,
-            );
-            $clarificationMs = round((microtime(true) - $t_clarification_start) * 1000, 2);
-            $totalE2eMs = round((microtime(true) - $t_start) * 1000, 2);
-
-            $clarificationResult['latency_breakdown'] = [
-                'router_ms'              => 0.0,
-                'context_resolution_ms'  => $contextResolutionMs,
-                'clarification_ms'       => $clarificationMs,
-                'memory_gate_ms'         => 0.0,
-                'memory_retrieval_ms'    => 0.0,
-                'business_context_ms'    => 0.0,
-                'knowledge_retrieval_ms' => 0.0,
-                'retrieval_ms'           => 0.0,
-                'answerability_ms'       => 0.0,
-                'llm_generation_ms'      => 0.0,
-                'llm_ms'                 => 0.0,
-                'total_e2e_ms'           => $totalE2eMs,
-                'total_ms'               => $totalE2eMs,
-                'retrieval_sub_stages'   => [],
-            ];
-            $clarificationResult['routing_telemetry']['total_e2e_ms'] = $totalE2eMs;
-
-            return $clarificationResult;
-        }
-
-        // Pre-compute contextual signal for router & downstream tasks
-        $contextualSignal = ($contextResult->isSelfContained())
-            ? null
-            : (($contextResult->resolvedQuery !== null && $contextResult->resolvedQuery !== $contextResult->rawQuery) ? $contextResult->resolvedQuery : null);
-
-
-
-        // ── Hybrid Router ─────────────────────────────────────────────────────────────
+        // ── 1. Hybrid Router (Evaluates with full dialogue context) ──────────────────
         $t_router_start = microtime(true);
         $routingResult = $this->router->route(
-            query: $contextualSignal ?? $query,
+            query: $query,
             conversation: $conversation,
             workspaceId: $workspaceId,
         );
         $routerLatencyMs = round((microtime(true) - $t_router_start) * 1000, 2);
+
+        // ── Phase M2: Context Resolution & Context Ambiguity Handling (Knowledge/Uncertain only) ─────
+        $contextResult = null;
+        $contextResolutionMs = 0.0;
+        $contextualSignal = null;
+        if ($routingResult->isKnowledge() || $routingResult->isUncertain()) {
+            $t_context_start = microtime(true);
+            $contextResult = $this->contextualQueryBuilder->resolveContext($query, $conversation);
+            $contextResolutionMs = round((microtime(true) - $t_context_start) * 1000, 2);
+            $contextualSignal = $contextResult->resolvedQuery ?? ($contextResult->activeTopic ?? null);
+
+            if ($contextResult->needsClarification() && $routingResult->isUncertain()) {
+                $t_clarification_start = microtime(true);
+                $clarificationResult = $this->clarificationManager->handleAmbiguity(
+                    conversation: $conversation,
+                    rawQuery: $query,
+                    contextResult: $contextResult,
+                    workspaceId: $workspaceId,
+                );
+                $clarificationMs = round((microtime(true) - $t_clarification_start) * 1000, 2);
+                $totalE2eMs = round((microtime(true) - $t_start) * 1000, 2);
+
+                $clarificationResult['latency_breakdown'] = [
+                    'router_ms'              => $routerLatencyMs,
+                    'context_resolution_ms'  => $contextResolutionMs,
+                    'clarification_ms'       => $clarificationMs,
+                    'memory_gate_ms'         => 0.0,
+                    'memory_retrieval_ms'    => 0.0,
+                    'business_context_ms'    => 0.0,
+                    'knowledge_retrieval_ms' => 0.0,
+                    'retrieval_ms'           => 0.0,
+                    'answerability_ms'       => 0.0,
+                    'llm_generation_ms'      => 0.0,
+                    'llm_ms'                 => 0.0,
+                    'total_e2e_ms'           => $totalE2eMs,
+                    'total_ms'               => $totalE2eMs,
+                    'retrieval_sub_stages'   => [],
+                ];
+                $clarificationResult['routing_telemetry']['total_e2e_ms'] = $totalE2eMs;
+
+                return $clarificationResult;
+            }
+        }
 
         // ── Phase M3: Memory Relevance Gate & Unified Memory Context (Skipped for Analytics) ──
         $memoryContext = null;
@@ -683,9 +685,26 @@ class CustomerSupportService
         @set_time_limit(120);
         $this->resetUncertainCount($conversation);
 
+        $history = [];
+        if ($conversation->exists) {
+            $recentMessages = $conversation->messages()
+                ->latest('id')
+                ->take(4)
+                ->get()
+                ->reverse();
+
+            foreach ($recentMessages as $msg) {
+                $history[] = [
+                    'role' => $msg->is_from_user ? 'user' : 'assistant',
+                    'content' => trim(strip_tags((string) ($msg->body ?? ''))),
+                ];
+            }
+        }
+
         $analyticsResult = $this->analyticsClient->query(
             query: $query,
             workspaceId: $workspaceId,
+            history: $history,
         );
 
         return $analyticsResult['report'] ?? $this->defaultFallbackText();

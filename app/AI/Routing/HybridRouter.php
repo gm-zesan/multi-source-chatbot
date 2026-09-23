@@ -87,8 +87,8 @@ Your strictly single purpose is to classify the user's intent into exactly ONE o
 
 <ROUTE_DEFINITIONS>
 - CHAT: Pure conversational chitchat, greetings, gratitude, pleasantries, or generic capabilities questions (e.g. "hi", "how are you", "what can you do").
-- KNOWLEDGE: Questions about company policies, pricing, guides, FAQ, or general information seeking (e.g. "how do I cancel?", "what is the refund policy?", "shipping charge koto?").
-- ANALYTICS: Queries asking for business metrics, performance, cash-in, sales, dues, or leaderboard data (e.g. "ajke koto sale holo?", "top 3 buyers dao", "Rahim er due koto?", "Hasan koto taka collect korse?").
+- KNOWLEDGE: Questions about company policies, shipping charges, return guides, FAQ, or general informational policies (e.g. "how do I cancel?", "what is the refund policy?", "shipping charge koto?").
+- ANALYTICS: Queries asking for business metrics, performance, sales, collections, dues, debt assignments, staff/salespersons lists and details, customer directories, product catalog prices, or database GET queries (e.g. "ajke koto sale holo?", "total salesman koto jon?", "nam ki tader?", "tader phone number dao", "customer list dao", "product price list", "Rahim er due koto?", "Hasan koto taka collect korse?").
 - UNCERTAIN: Vague, highly ambiguous queries, single keywords lacking context, OR explicit imperative commands to mutate state (e.g. "cancel my order", "make him admin", "delete orders"). Mutation is currently not supported.
 - OOD: Out of domain queries completely unrelated to e-commerce, customer support or business metrics (e.g. weather, politics, recipes, code generation).
 </ROUTE_DEFINITIONS>
@@ -113,8 +113,36 @@ ONLY return a valid JSON object with exactly the following keys, strictly in thi
 </OUTPUT_SCHEMA>
 PROMPT;
 
+        $historyBlock = '';
+        if ($conversation !== null && $conversation->exists) {
+            $recentMessages = $conversation->messages()
+                ->latest('id')
+                ->take(4)
+                ->get()
+                ->reverse();
+
+            if ($recentMessages->isNotEmpty()) {
+                $lines = [];
+                foreach ($recentMessages as $msg) {
+                    $sender = $msg->is_from_user ? 'User' : 'Assistant';
+                    $body = trim(strip_tags((string) ($msg->body ?? '')));
+                    if (mb_strlen($body) > 160) {
+                        $body = mb_substr($body, 0, 160) . '...';
+                    }
+                    if ($body !== '') {
+                        $lines[] = "{$sender}: {$body}";
+                    }
+                }
+                if (!empty($lines)) {
+                    $historyBlock = "<RECENT_CONVERSATION_CONTEXT>\n" . implode("\n", $lines) . "\n</RECENT_CONVERSATION_CONTEXT>\n\n";
+                }
+            }
+        }
+
+        $fullPrompt = $historyBlock . "Current User Query: {$cleanQuery}";
+
         $request = LLMRequest::fromPrompt(
-            prompt: $cleanQuery,
+            prompt: $fullPrompt,
             systemPrompt: $systemPrompt,
             model: config('ai.default_model', 'deepseek-chat'),
             temperature: 0.0,
