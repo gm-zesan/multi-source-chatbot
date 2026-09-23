@@ -90,16 +90,24 @@ class ChatSimulatorController extends Controller
         // Save AI outbound response to conversation history for next turn context
         if (!empty($supportResult['reply'])) {
             $totalElapsedSoFar = round((microtime(true) - $startTime) * 1000, 2);
+            $rawLlm = $supportResult['raw_llm_response'] ?? [];
             $outboundMsg = $this->customerSupportService->saveOutboundReply(
                 conversation: $conversation,
                 replyText: $supportResult['reply'],
                 deliveryResponse: [
-                    'route' => $supportResult['route'] ?? 'knowledge',
-                    'confidence' => $supportResult['confidence'] ?? 1.0,
-                    'answered' => $supportResult['answered'] ?? false,
-                    'total_time_ms' => $totalElapsedSoFar,
+                    'route'                  => $supportResult['route'] ?? 'knowledge',
+                    'confidence'             => $supportResult['confidence'] ?? 1.0,
+                    'answered'               => $supportResult['answered'] ?? false,
+                    'total_time_ms'          => $totalElapsedSoFar,
                     'answerability_decision' => $supportResult['answerability_decision'] ?? null,
-                    'routing_telemetry' => $supportResult['routing_telemetry'] ?? [],
+                    'routing_telemetry'      => $supportResult['routing_telemetry'] ?? [],
+                    'llm_usage'              => [
+                        'prompt_tokens'     => $rawLlm['prompt_tokens'] ?? 0,
+                        'completion_tokens' => $rawLlm['completion_tokens'] ?? 0,
+                        'total_tokens'      => $rawLlm['total_tokens'] ?? 0,
+                        'router_tokens'     => $rawLlm['router_tokens'] ?? [],
+                        'agent_tokens'      => $rawLlm['agent_tokens'] ?? [],
+                    ],
                 ],
             );
 

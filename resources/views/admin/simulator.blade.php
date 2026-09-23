@@ -859,6 +859,23 @@
                         <!-- TOP COST SUMMARY -->
                         <div class="usage-cost-card">
 
+                            <!-- PRICING & RATE INFO (LEFT SIDE) -->
+                            <div class="usage-cost-rates">
+                                <div class="usage-label">PRICING SETUP (PEAK)</div>
+                                <div class="usage-rate-item mt-2">
+                                    <span class="text-muted"><i class="ri-arrow-down-circle-line text-success me-1"></i>Input Rate:</span>
+                                    <strong class="text-dark">$0.30 <small class="text-muted fw-normal">/ 1M</small></strong>
+                                </div>
+                                <div class="usage-rate-item mt-1">
+                                    <span class="text-muted"><i class="ri-arrow-up-circle-line text-danger me-1"></i>Output Rate:</span>
+                                    <strong class="text-dark">$1.20 <small class="text-muted fw-normal">/ 1M</small></strong>
+                                </div>
+                                <div class="usage-rate-item mt-1">
+                                    <span class="text-muted"><i class="ri-exchange-dollar-line text-primary me-1"></i>USD / BDT:</span>
+                                    <strong class="text-primary">1 USD = ৳130</strong>
+                                </div>
+                            </div>
+
                             <div class="usage-cost-main">
 
                                 <div class="usage-label">
@@ -1191,7 +1208,7 @@
 
             .usage-cost-card {
                 display: grid;
-                grid-template-columns: 1.2fr 1fr;
+                grid-template-columns: 240px 1.2fr 1fr;
 
                 background: #ffffff;
 
@@ -1202,6 +1219,23 @@
 
                 box-shadow:
                     0 2px 6px rgba(15, 23, 42, 0.04);
+            }
+
+            .usage-cost-rates {
+                padding: 18px 20px;
+                background: #fafafa;
+                border-right: 1px solid #e2e8f0;
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+                font-size: 11px;
+            }
+
+            .usage-rate-item {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                padding: 4px 0;
             }
 
             .usage-cost-main {

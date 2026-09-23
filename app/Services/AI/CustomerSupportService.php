@@ -201,12 +201,19 @@ class CustomerSupportService
             conversation: $conversation,
             replyText: $replyText,
             deliveryResponse: array_merge($deliveryResponse, [
-                'route' => $result['route'] ?? 'knowledge',
-                'confidence' => $result['confidence'] ?? 1.0,
-                'answered' => $result['answered'] ?? false,
-                'total_time_ms' => $result['routing_telemetry']['total_e2e_ms'] ?? null,
+                'route'                  => $result['route'] ?? 'knowledge',
+                'confidence'             => $result['confidence'] ?? 1.0,
+                'answered'               => $result['answered'] ?? false,
+                'total_time_ms'          => $result['routing_telemetry']['total_e2e_ms'] ?? null,
                 'answerability_decision' => $result['answerability_decision'] ?? null,
-                'routing_telemetry' => $result['routing_telemetry'] ?? [],
+                'routing_telemetry'      => $result['routing_telemetry'] ?? [],
+                'llm_usage'              => [
+                    'prompt_tokens'     => $result['raw_llm_response']['prompt_tokens'] ?? 0,
+                    'completion_tokens' => $result['raw_llm_response']['completion_tokens'] ?? 0,
+                    'total_tokens'      => $result['raw_llm_response']['total_tokens'] ?? 0,
+                    'router_tokens'     => $result['raw_llm_response']['router_tokens'] ?? [],
+                    'agent_tokens'      => $result['raw_llm_response']['agent_tokens'] ?? [],
+                ],
             ]),
         );
 
@@ -224,6 +231,13 @@ class CustomerSupportService
                     'total_time_ms'          => $result['routing_telemetry']['total_e2e_ms'] ?? null,
                     'answerability_decision' => $result['answerability_decision'] ?? null,
                     'routing_telemetry'      => $result['routing_telemetry'] ?? [],
+                    'llm_usage'              => [
+                        'prompt_tokens'     => $result['raw_llm_response']['prompt_tokens'] ?? 0,
+                        'completion_tokens' => $result['raw_llm_response']['completion_tokens'] ?? 0,
+                        'total_tokens'      => $result['raw_llm_response']['total_tokens'] ?? 0,
+                        'router_tokens'     => $result['raw_llm_response']['router_tokens'] ?? [],
+                        'agent_tokens'      => $result['raw_llm_response']['agent_tokens'] ?? [],
+                    ],
                     'provider'               => config('ai.default', 'deepseek'),
                     'model'                  => config('ai.default_model', 'deepseek-flash'),
                 ],

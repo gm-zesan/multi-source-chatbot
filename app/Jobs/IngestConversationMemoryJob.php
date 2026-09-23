@@ -98,11 +98,59 @@ class IngestConversationMemoryJob implements ShouldQueue
                 messages: $messages,
             );
 
+            // Record Background Memory Ingestion LLM Usage if tokens were consumed
+            if (!empty($result['llm_usage']) && (($result['llm_usage']['prompt_tokens'] ?? 0) + ($result['llm_usage']['completion_tokens'] ?? 0) > 0)) {
+                $usage = $result['llm_usage'];
+                $this->conversation->refresh();
+                $metadata = $this->conversation->metadata ?? [];
+                if (!isset($metadata['llm_usage_history'])) {
+                    $metadata['llm_usage_history'] = [];
+                }
+                $metadata['llm_usage_history'][] = [
+                    'provider'          => $usage['provider'] ?? 'deepseek',
+                    'model'             => $usage['model'] ?? 'deepseek-flash',
+                    'status'            => 'INGESTED (Memory)',
+                    'prompt_tokens'     => (int) ($usage['prompt_tokens'] ?? 0),
+                    'completion_tokens' => (int) ($usage['completion_tokens'] ?? 0),
+                    'total_tokens'      => (int) ($usage['total_tokens'] ?? 0),
+                ];
+                $this->conversation->update(['metadata' => $metadata]);
+
+                // Also update the latest outbound Message record with memory_tokens breakdown
+                $lastOutbound = $this->conversation->messages()
+                    ->where('direction', 'outbound')
+                    ->latest('id')
+                    ->first();
+
+                if ($lastOutbound) {
+                    $msgMeta = (array) ($lastOutbound->metadata ?? []);
+                    $msgUsage = $msgMeta['llm_usage'] ?? [];
+
+                    $memPrompt = (int) ($usage['prompt_tokens'] ?? 0);
+                    $memCompletion = (int) ($usage['completion_tokens'] ?? 0);
+                    $memTotal = (int) ($usage['total_tokens'] ?? 0);
+
+                    $msgUsage['memory_tokens'] = [
+                        'prompt_tokens'     => $memPrompt,
+                        'completion_tokens' => $memCompletion,
+                        'total_tokens'      => $memTotal,
+                    ];
+
+                    $msgUsage['prompt_tokens'] = ((int) ($msgUsage['prompt_tokens'] ?? 0)) + $memPrompt;
+                    $msgUsage['completion_tokens'] = ((int) ($msgUsage['completion_tokens'] ?? 0)) + $memCompletion;
+                    $msgUsage['total_tokens'] = ((int) ($msgUsage['total_tokens'] ?? 0)) + $memTotal;
+
+                    $msgMeta['llm_usage'] = $msgUsage;
+                    $lastOutbound->update(['metadata' => $msgMeta]);
+                }
+            }
+
             Log::info('[IngestConversationMemoryJob] Successfully ingested conversation into Graph Memory', [
                 'conversation_id'   => $this->conversation->id,
                 'customer_id'       => $customerId,
                 'edges_created'     => $result['edges_created'] ?? 0,
                 'entities_count'    => $result['entities_extracted'] ?? 0,
+                'llm_tokens'        => $result['llm_usage']['total_tokens'] ?? 0,
             ]);
         } catch (\Throwable $e) {
             Log::warning('[IngestConversationMemoryJob] Failed to ingest conversation memory', [
