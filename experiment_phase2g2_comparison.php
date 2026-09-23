@@ -29,7 +29,7 @@ echo "🔬 PHASE 2G.2: FULL FROZEN BENCHMARK ARCHITECTURE EVALUATION (DEEPSEEK P
 echo "=========================================================================================\n";
 
 $experimentProvider = 'deepseek';
-$experimentModel = 'deepseek-flash';
+$experimentModel = 'deepseek-chat';
 $experimentApiKey = env('DEEPSEEK_API_KEY') ?: env('PHASE2G2_DEEPSEEK_API_KEY');
 $experimentApiUrl = env('DEEPSEEK_URL', env('PHASE2G2_DEEPSEEK_URL', 'https://api.deepseek.com'));
 

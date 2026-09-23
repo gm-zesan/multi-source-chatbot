@@ -20,6 +20,7 @@ class LLMRequest
         public ?array $tools = null,
         public ?array $responseFormat = null,
         public array $metadata = [],
+        public array $extraBody = [],
     ) {}
 
     /**
@@ -31,6 +32,7 @@ class LLMRequest
         ?string $model = null,
         float $temperature = 0.7,
         ?int $maxTokens = null,
+        array $extraBody = [],
     ): self {
         $messages = [];
         if ($systemPrompt !== null && trim($systemPrompt) !== '') {
@@ -43,6 +45,7 @@ class LLMRequest
             model: $model,
             temperature: $temperature,
             maxTokens: $maxTokens,
+            extraBody: $extraBody,
         );
     }
 }

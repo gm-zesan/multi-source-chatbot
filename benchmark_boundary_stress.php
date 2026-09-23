@@ -27,7 +27,7 @@ $experimentApiUrl = env('DEEPSEEK_URL', env('PHASE2G2_DEEPSEEK_URL', 'https://ap
 
 config([
     'ai.default' => 'deepseek',
-    'ai.default_model' => 'deepseek-flash',
+    'ai.default_model' => 'deepseek-chat',
     'ai.providers.deepseek.key' => $experimentApiKey,
     'ai.providers.deepseek.url' => $experimentApiUrl,
 ]);

@@ -25,18 +25,18 @@ class RecordAITelemetryListener implements ShouldQueue
     {
         try {
             Log::info('[AITelemetry] Observability event received', [
-                'workspace_id'      => $event->workspaceId,
-                'conversation_id'   => $event->conversation?->id,
-                'message_id'        => $event->outboundMessage?->id,
-                'query_len'         => mb_strlen($event->query),
-                'route'             => $event->telemetry['route'] ?? 'unknown',
-                'gate'              => $event->telemetry['answerability_decision']['status'] ?? 'bypassed',
-                'latency_ms'        => $event->telemetry['total_time_ms'] ?? 0.0,
-                'prompt_tokens'     => $event->telemetry['llm_usage']['prompt_tokens'] ?? 0,
+                'workspace_id' => $event->workspaceId,
+                'conversation_id' => $event->conversation?->id,
+                'message_id' => $event->outboundMessage?->id,
+                'query_len' => mb_strlen($event->query),
+                'route' => $event->telemetry['route'] ?? 'unknown',
+                'gate' => $event->telemetry['answerability_decision']['status'] ?? 'bypassed',
+                'latency_ms' => $event->telemetry['total_time_ms'] ?? 0.0,
+                'prompt_tokens' => $event->telemetry['llm_usage']['prompt_tokens'] ?? 0,
                 'completion_tokens' => $event->telemetry['llm_usage']['completion_tokens'] ?? 0,
-                'total_tokens'      => $event->telemetry['llm_usage']['total_tokens'] ?? 0,
-                'provider'          => $event->telemetry['provider'] ?? config('ai.default', 'deepseek'),
-                'model'             => $event->telemetry['model'] ?? config('ai.default_model', 'deepseek-flash'),
+                'total_tokens' => $event->telemetry['llm_usage']['total_tokens'] ?? 0,
+                'provider' => $event->telemetry['provider'] ?? config('ai.default', 'deepseek'),
+                'model' => $event->telemetry['model'] ?? config('ai.default_model', 'deepseek-chat'),
             ]);
         } catch (\Throwable $e) {
             // Observer pattern: absorb any logging/storage failure safely

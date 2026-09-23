@@ -37,7 +37,7 @@ class RunKgmEvaluationCommand extends Command
         $totalCases = count($testCases);
 
         $this->line("• Loaded {$totalCases} golden test scenarios across 18 benchmark dimensions.");
-        $this->line("• Primary Provider: DeepSeek (deepseek-flash)");
+        $this->line("• Primary Provider: DeepSeek (deepseek-chat)");
         $this->newLine();
 
         $workspaceId = (int) $this->option('workspace');

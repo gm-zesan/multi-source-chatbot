@@ -39,7 +39,7 @@ class BenchmarkFastLLMRouterCommand extends Command
         // Freeze research parameters
         $providerName = config('ai.default', 'deepseek');
         $providerConfig = config("ai.providers.{$providerName}");
-        $model = config('ai.default_model', 'deepseek-flash');
+        $model = config('ai.default_model', 'deepseek-chat');
 
         $this->info("Dataset:    fast_llm_router_v2_2_benchmark_dataset.json");
         $this->info("Provider:   " . ucfirst($providerName));

@@ -72,7 +72,7 @@ class ProviderAbstractionTest extends TestCase
     public function test_primary_provider_succeeds(): void
     {
         Config::set('ai.default', 'deepseek');
-        Config::set('ai.default_model', 'deepseek-flash');
+        Config::set('ai.default_model', 'deepseek-chat');
 
         Http::fake([
             'https://api.deepseek.com/*' => Http::response([
@@ -97,7 +97,7 @@ class ProviderAbstractionTest extends TestCase
     public function test_fallback_provider_triggered_when_primary_fails(): void
     {
         Config::set('ai.default', 'deepseek');
-        Config::set('ai.default_model', 'deepseek-flash');
+        Config::set('ai.default_model', 'deepseek-chat');
         Config::set('ai.fallback_provider', 'openrouter');
         Config::set('ai.fallback_model', 'openrouter/free');
 

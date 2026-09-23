@@ -3,7 +3,7 @@
     "version": "1.0.0",
     "evaluation_target": "Conversation Graph Memory (KGM v1) vs Sliding Window Buffer",
     "primary_llm_provider": "deepseek",
-    "primary_llm_model": "deepseek-flash",
+    "primary_llm_model": "deepseek-chat",
     "services": {
       "retrieval_engine": "http://127.0.0.1:8001",
       "memory_service": "http://127.0.0.1:8002",

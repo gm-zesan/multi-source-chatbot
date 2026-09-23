@@ -782,7 +782,7 @@
 
             // Provider & Model
             const provider = meta.provider || 'DeepSeek';
-            const model = meta.model || 'deepseek-flash';
+            const model = meta.model || 'deepseek-chat';
             const providerEl = document.getElementById('modalProvider');
             providerEl.textContent = `${provider} (${model})`;
             providerEl.title = `${provider} (${model})`;

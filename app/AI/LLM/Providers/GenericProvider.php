@@ -37,11 +37,11 @@ class GenericProvider implements LLMProviderInterface
         // DeepSeek: https://api.deepseek.com -> https://api.deepseek.com/chat/completions
         $url = "{$this->baseUrl}/chat/completions";
 
-        $payload = [
+        $payload = array_merge([
             'model'       => $model,
             'messages'    => $request->messages,
             'temperature' => $request->temperature,
-        ];
+        ], $request->extraBody);
 
         if ($request->maxTokens !== null) {
             $payload['max_tokens'] = $request->maxTokens;

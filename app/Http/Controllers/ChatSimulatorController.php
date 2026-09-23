@@ -34,7 +34,7 @@ class ChatSimulatorController extends Controller
         $rawHistory = $conversation->metadata['llm_usage_history'] ?? [];
         $llmUsageHistory = array_values(array_filter(array_map(function ($item) {
             if (isset($item['model']) && ($item['model'] === 'deepseek-chat' || $item['model'] === 'Deepseek-Chat')) {
-                $item['model'] = 'deepseek-flash';
+                $item['model'] = 'deepseek-chat';
             }
             return $item;
         }, $rawHistory), function ($item) {
@@ -95,18 +95,18 @@ class ChatSimulatorController extends Controller
                 conversation: $conversation,
                 replyText: $supportResult['reply'],
                 deliveryResponse: [
-                    'route'                  => $supportResult['route'] ?? 'knowledge',
-                    'confidence'             => $supportResult['confidence'] ?? 1.0,
-                    'answered'               => $supportResult['answered'] ?? false,
-                    'total_time_ms'          => $totalElapsedSoFar,
+                    'route' => $supportResult['route'] ?? 'knowledge',
+                    'confidence' => $supportResult['confidence'] ?? 1.0,
+                    'answered' => $supportResult['answered'] ?? false,
+                    'total_time_ms' => $totalElapsedSoFar,
                     'answerability_decision' => $supportResult['answerability_decision'] ?? null,
-                    'routing_telemetry'      => $supportResult['routing_telemetry'] ?? [],
-                    'llm_usage'              => [
-                        'prompt_tokens'     => $rawLlm['prompt_tokens'] ?? 0,
+                    'routing_telemetry' => $supportResult['routing_telemetry'] ?? [],
+                    'llm_usage' => [
+                        'prompt_tokens' => $rawLlm['prompt_tokens'] ?? 0,
                         'completion_tokens' => $rawLlm['completion_tokens'] ?? 0,
-                        'total_tokens'      => $rawLlm['total_tokens'] ?? 0,
-                        'router_tokens'     => $rawLlm['router_tokens'] ?? [],
-                        'agent_tokens'      => $rawLlm['agent_tokens'] ?? [],
+                        'total_tokens' => $rawLlm['total_tokens'] ?? 0,
+                        'router_tokens' => $rawLlm['router_tokens'] ?? [],
+                        'agent_tokens' => $rawLlm['agent_tokens'] ?? [],
                     ],
                 ],
             );
@@ -129,7 +129,7 @@ class ChatSimulatorController extends Controller
                         'answerability_decision' => $supportResult['answerability_decision'] ?? null,
                         'routing_telemetry' => $supportResult['routing_telemetry'] ?? [],
                         'provider' => config('ai.default', 'deepseek'),
-                        'model' => config('ai.default_model', 'deepseek-flash'),
+                        'model' => config('ai.default_model', 'deepseek-chat'),
                     ],
                     workspaceId: $workspaceId,
                 ));
@@ -176,7 +176,7 @@ class ChatSimulatorController extends Controller
             'grounded_hit_count' => (int) ($answerabilityDecision['grounded_count'] ?? count($supportResult['sources'] ?? [])),
             'llm_generation' => [
                 'provider' => config('ai.default', 'deepseek'),
-                'model' => config('ai.default_model', 'deepseek-flash'),
+                'model' => config('ai.default_model', 'deepseek-chat'),
                 'status' => !empty($supportResult['reply']) ? 'GENERATED' : 'FALLBACK',
                 'prompt_tokens' => $supportResult['raw_llm_response']['prompt_tokens'] ?? 0,
                 'completion_tokens' => $supportResult['raw_llm_response']['completion_tokens'] ?? 0,

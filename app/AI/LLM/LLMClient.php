@@ -76,6 +76,13 @@ class LLMClient
         $fallbackUsed = false;
         $errorCategory = null;
 
+        // Disable thinking mode natively for DeepSeek APIs
+        if ($primaryName === 'deepseek') {
+            $request->extraBody = array_merge($request->extraBody, [
+                'thinking' => ['type' => 'disabled']
+            ]);
+        }
+
         // Tier 1: Try Primary Provider
         try {
             $provider = $this->resolveProvider($primaryName);
@@ -167,7 +174,7 @@ class LLMClient
         if ($cleanName === $fallbackName && $cleanName !== $primaryName) {
             $model = (string) config('ai.fallback_model', 'openrouter/free');
         } else {
-            $model = (string) config('ai.default_model', 'deepseek-flash');
+            $model = (string) config('ai.default_model', 'deepseek-chat');
         }
 
         $provider = new GenericProvider($cleanName, $apiKey, $baseUrl, $model);

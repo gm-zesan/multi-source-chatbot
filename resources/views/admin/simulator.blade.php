@@ -863,15 +863,20 @@
                             <div class="usage-cost-rates">
                                 <div class="usage-label">PRICING SETUP (PEAK)</div>
                                 <div class="usage-rate-item mt-2">
-                                    <span class="text-muted"><i class="ri-arrow-down-circle-line text-success me-1"></i>Input Rate:</span>
-                                    <strong class="text-dark">$0.30 <small class="text-muted fw-normal">/ 1M</small></strong>
+                                    <span class="text-muted"><i
+                                            class="ri-arrow-down-circle-line text-success me-1"></i>Input Rate:</span>
+                                    <strong class="text-dark">$0.30 <small class="text-muted fw-normal">/
+                                            1M</small></strong>
                                 </div>
                                 <div class="usage-rate-item mt-1">
-                                    <span class="text-muted"><i class="ri-arrow-up-circle-line text-danger me-1"></i>Output Rate:</span>
-                                    <strong class="text-dark">$1.20 <small class="text-muted fw-normal">/ 1M</small></strong>
+                                    <span class="text-muted"><i class="ri-arrow-up-circle-line text-danger me-1"></i>Output
+                                        Rate:</span>
+                                    <strong class="text-dark">$1.20 <small class="text-muted fw-normal">/
+                                            1M</small></strong>
                                 </div>
                                 <div class="usage-rate-item mt-1">
-                                    <span class="text-muted"><i class="ri-exchange-dollar-line text-primary me-1"></i>USD / BDT:</span>
+                                    <span class="text-muted"><i class="ri-exchange-dollar-line text-primary me-1"></i>USD /
+                                        BDT:</span>
                                     <strong class="text-primary">1 USD = ৳130</strong>
                                 </div>
                             </div>
@@ -884,7 +889,10 @@
 
                                 <div class="usage-total-cost">
                                     <span id="wizTotalCost">$0.000000</span>
-                                    <span class="badge bg-success-subtle text-success border border-success-subtle fs-6 ms-2 align-middle" id="wizTotalCostBdt" style="font-weight: 700; font-size: 16px !important;">৳0.0000</span>
+                                    <span
+                                        class="badge bg-success-subtle text-success border border-success-subtle fs-6 ms-2 align-middle"
+                                        id="wizTotalCostBdt"
+                                        style="font-weight: 700; font-size: 16px !important;">৳0.0000</span>
                                 </div>
 
                                 <div class="usage-cost-meta">
@@ -1099,8 +1107,8 @@
 
         <style>
             /* =========================================================
-                       LLM USAGE WIZARD
-                       ========================================================= */
+                           LLM USAGE WIZARD
+                           ========================================================= */
 
             .usage-wizard-dialog {
                 max-width: 1120px;
@@ -1121,8 +1129,8 @@
 
 
             /* ---------------------------------------------------------
-                       HEADER
-                       --------------------------------------------------------- */
+                           HEADER
+                           --------------------------------------------------------- */
 
             .usage-wizard-header {
                 min-height: 76px;
@@ -1190,8 +1198,8 @@
 
 
             /* ---------------------------------------------------------
-                       BODY
-                       --------------------------------------------------------- */
+                           BODY
+                           --------------------------------------------------------- */
 
             .usage-wizard-body {
                 padding: 20px;
@@ -1203,8 +1211,8 @@
 
 
             /* ---------------------------------------------------------
-                       COST SUMMARY
-                       --------------------------------------------------------- */
+                           COST SUMMARY
+                           --------------------------------------------------------- */
 
             .usage-cost-card {
                 display: grid;
@@ -1331,8 +1339,8 @@
 
 
             /* ---------------------------------------------------------
-                       STATS
-                       --------------------------------------------------------- */
+                           STATS
+                           --------------------------------------------------------- */
 
             .usage-stats-grid {
                 display: grid;
@@ -1426,8 +1434,8 @@
 
 
             /* ---------------------------------------------------------
-                       MAIN GRID
-                       --------------------------------------------------------- */
+                           MAIN GRID
+                           --------------------------------------------------------- */
 
             .usage-main-grid {
                 display: grid;
@@ -1489,8 +1497,8 @@
 
 
             /* ---------------------------------------------------------
-                       PRICING
-                       --------------------------------------------------------- */
+                           PRICING
+                           --------------------------------------------------------- */
 
             .usage-panel-body {
                 padding: 15px;
@@ -1606,8 +1614,8 @@
 
 
             /* ---------------------------------------------------------
-                       REQUEST BREAKDOWN
-                       --------------------------------------------------------- */
+                           REQUEST BREAKDOWN
+                           --------------------------------------------------------- */
 
             .usage-average-badge {
                 padding: 5px 9px;
@@ -1677,8 +1685,8 @@
 
 
             /* ---------------------------------------------------------
-                       EMPTY STATE
-                       --------------------------------------------------------- */
+                           EMPTY STATE
+                           --------------------------------------------------------- */
 
             .usage-empty-state {
                 min-height: 150px;
@@ -1725,8 +1733,8 @@
 
 
             /* ---------------------------------------------------------
-                       SCROLLBAR
-                       --------------------------------------------------------- */
+                           SCROLLBAR
+                           --------------------------------------------------------- */
 
             .usage-wizard-body::-webkit-scrollbar,
             .usage-table-wrapper::-webkit-scrollbar {
@@ -1747,8 +1755,8 @@
 
 
             /* ---------------------------------------------------------
-                       RESPONSIVE
-                       --------------------------------------------------------- */
+                           RESPONSIVE
+                           --------------------------------------------------------- */
 
             @media (max-width: 900px) {
 
@@ -1839,16 +1847,16 @@
 
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
-                                <td class="ps-3">${index + 1}</td>
-                                <td><span class="badge bg-secondary-subtle text-secondary border">${req.model || 'deepseek-flash'}</span></td>
-                                <td class="text-end text-dark fw-medium">${reqInputTokens.toLocaleString()}</td>
-                                <td class="text-end text-primary fw-medium">${reqOutputTokens.toLocaleString()}</td>
-                                <td class="text-end text-muted fw-medium">${reqTotalTokens.toLocaleString()}</td>
-                                <td class="text-end pe-3">
-                                    <span class="fw-bold text-success">$${reqCost.toFixed(6)}</span>
-                                    <span class="badge bg-light text-dark border ms-1" style="font-size: 11px;">৳${reqCostBdt.toFixed(4)}</span>
-                                </td>
-                            `;
+                                    <td class="ps-3">${index + 1}</td>
+                                    <td><span class="badge bg-secondary-subtle text-secondary border">${req.model || 'deepseek-chat'}</span></td>
+                                    <td class="text-end text-dark fw-medium">${reqInputTokens.toLocaleString()}</td>
+                                    <td class="text-end text-primary fw-medium">${reqOutputTokens.toLocaleString()}</td>
+                                    <td class="text-end text-muted fw-medium">${reqTotalTokens.toLocaleString()}</td>
+                                    <td class="text-end pe-3">
+                                        <span class="fw-bold text-success">$${reqCost.toFixed(6)}</span>
+                                        <span class="badge bg-light text-dark border ms-1" style="font-size: 11px;">৳${reqCostBdt.toFixed(4)}</span>
+                                    </td>
+                                `;
                 tbody.appendChild(tr);
             });
 
@@ -1999,55 +2007,55 @@
                 // 2. UNCERTAIN Interactive Clickable Suggestions
                 if (route === 'uncertain' && Array.isArray(data.suggestions) && data.suggestions.length > 0) {
                     const chipsHtml = data.suggestions.map(s => `
-                                                                                        <button type="button" class="suggestion-chip" onclick="setQueryAndSend('${escapeJs(s)}')">
-                                                                                            <i class="ri-arrow-right-s-line text-warning"></i> ${escapeHtml(s)}
-                                                                                        </button>
-                                                                                    `).join('');
+                                                                                            <button type="button" class="suggestion-chip" onclick="setQueryAndSend('${escapeJs(s)}')">
+                                                                                                <i class="ri-arrow-right-s-line text-warning"></i> ${escapeHtml(s)}
+                                                                                            </button>
+                                                                                        `).join('');
 
                     extraCardsHtml += `
-                                                                                        <div class="suggestions-container">
-                                                                                            <span class="suggestion-label"><i class="ri-lightbulb-line text-warning me-1"></i> Did you mean (Click to select):</span>
-                                                                                            ${chipsHtml}
-                                                                                        </div>
-                                                                                    `;
+                                                                                            <div class="suggestions-container">
+                                                                                                <span class="suggestion-label"><i class="ri-lightbulb-line text-warning me-1"></i> Did you mean (Click to select):</span>
+                                                                                                ${chipsHtml}
+                                                                                            </div>
+                                                                                        `;
                 }
 
                 // 3. KNOWLEDGE Grounded Citations & Sources
                 if (route === 'knowledge' && Array.isArray(data.sources) && data.sources.length > 0) {
                     const sourceChips = data.sources.map(src => `
-                                                                                        <span class="source-chip" title="Score: ${src.score}%">
-                                                                                            <i class="ri-checkbox-circle-fill text-success"></i> ${escapeHtml(src.question)}
-                                                                                        </span>
-                                                                                    `).join('');
+                                                                                            <span class="source-chip" title="Score: ${src.score}%">
+                                                                                                <i class="ri-checkbox-circle-fill text-success"></i> ${escapeHtml(src.question)}
+                                                                                            </span>
+                                                                                        `).join('');
 
                     extraCardsHtml += `
-                                                                                        <div class="sources-container">
-                                                                                            <span class="text-muted small fw-bold"><i class="ri-shield-check-line text-success me-1"></i> Grounded from FAQ:</span>
-                                                                                            ${sourceChips}
-                                                                                        </div>
-                                                                                    `;
+                                                                                            <div class="sources-container">
+                                                                                                <span class="text-muted small fw-bold"><i class="ri-shield-check-line text-success me-1"></i> Grounded from FAQ:</span>
+                                                                                                ${sourceChips}
+                                                                                            </div>
+                                                                                        `;
                 }
 
                 // 4. ACTION / 3x UNCERTAIN Safe Human Handoff Notice Card
                 if (data.is_handoff || route === 'action') {
                     extraCardsHtml += `
-                                                                                        <div class="handoff-alert-card">
-                                                                                            <div class="handoff-icon"><i class="ri-customer-service-2-line"></i></div>
-                                                                                            <div>
-                                                                                                <strong class="d-block text-dark small" style="font-size:12px;">Human Support Request Registered</strong>
-                                                                                                <small class="text-muted">A customer support specialist will review your request shortly.</small>
+                                                                                            <div class="handoff-alert-card">
+                                                                                                <div class="handoff-icon"><i class="ri-customer-service-2-line"></i></div>
+                                                                                                <div>
+                                                                                                    <strong class="d-block text-dark small" style="font-size:12px;">Human Support Request Registered</strong>
+                                                                                                    <small class="text-muted">A customer support specialist will review your request shortly.</small>
+                                                                                                </div>
                                                                                             </div>
-                                                                                        </div>
-                                                                                    `;
+                                                                                        `;
                 }
 
                 // Footer metadata
                 metaHtml = `
-                                                                    <div class="message-meta">
-                                                                        <span>${data.pipeline_diagnostics?.total_time_ms || 0} ms</span>
-                                                                        <span>Route: <strong>${route.toUpperCase()}</strong></span>
-                                                                    </div>
-                                                                `;
+                                                                        <div class="message-meta">
+                                                                            <span>${data.pipeline_diagnostics?.total_time_ms || 0} ms</span>
+                                                                            <span>Route: <strong>${route.toUpperCase()}</strong></span>
+                                                                        </div>
+                                                                    `;
             }
 
             const formattedBodyHtml = renderFormattedMessage(content);
@@ -2291,9 +2299,9 @@
                 if (sources.length > 0) {
                     sources.forEach(s => {
                         docHtml += `<div class="d-flex justify-content-between align-items-center p-1 px-2 mb-1" style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 4px; font-size: 11px;">
-                                                                            <span class="text-truncate" style="max-width: 220px;"><strong>[${escapeHtml(s.category)}]</strong> ${escapeHtml(s.question)}</span>
-                                                                            <span class="badge bg-success-subtle text-success">${s.score}%</span>
-                                                                        </div>`;
+                                                                                <span class="text-truncate" style="max-width: 220px;"><strong>[${escapeHtml(s.category)}]</strong> ${escapeHtml(s.question)}</span>
+                                                                                <span class="badge bg-success-subtle text-success">${s.score}%</span>
+                                                                            </div>`;
                     });
                 } else {
                     docHtml = '<span class="text-muted small">Zero ungrounded documents passed to LLM (Safe fallback).</span>';
@@ -2338,8 +2346,8 @@
                 const isActive = (idx === currentTurnIndex);
                 const btnClass = isActive ? 'btn-primary text-white shadow-sm' : 'btn-outline-secondary';
                 return `<button type="button" class="btn btn-xs ${btnClass} py-0 px-2" style="font-size: 11px; border-radius: 12px; white-space: nowrap;" onclick="selectTurn(${idx})">
-                                                                    Turn #${t.turnNumber}
-                                                                </button>`;
+                                                                        Turn #${t.turnNumber}
+                                                                    </button>`;
             }).join('');
         }
 
@@ -2409,7 +2417,7 @@
             // LLM generation
             const llm = trace.llm_generation || {};
             const provider = llm.provider || 'DeepSeek';
-            const model = llm.model || 'deepseek-flash';
+            const model = llm.model || 'deepseek-chat';
             const status = llm.status || 'GENERATED';
             document.getElementById('traceLlmStatus').textContent = `${provider} (${model}) — ${status}`;
 

@@ -113,7 +113,7 @@ echo "\n";
 // 4. LLM GENERATION PROFILING (KnowledgeSupportAgent)
 // ─────────────────────────────────────────────────────────────────────────────
 $provider = config('ai.default', 'deepseek');
-$model = config('ai.default_model', 'deepseek-flash');
+$model = config('ai.default_model', 'deepseek-chat');
 
 $groundedHits = $retrievalHits->filter(fn($h) => $h->finalScore >= 0.45);
 $agent = new KnowledgeSupportAgent(

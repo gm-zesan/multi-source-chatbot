@@ -116,7 +116,7 @@ PROMPT;
         $request = LLMRequest::fromPrompt(
             prompt: $cleanQuery,
             systemPrompt: $systemPrompt,
-            model: config('ai.default_model', 'deepseek-flash'),
+            model: config('ai.default_model', 'deepseek-chat'),
             temperature: 0.0,
             maxTokens: 150,
         );
@@ -135,7 +135,8 @@ PROMPT;
             
             $result = json_decode($content, true);
             if (!is_array($result) || !isset($result['route'], $result['confidence'], $result['security_status'])) {
-                throw new \RuntimeException('Invalid or missing fields in router JSON response');
+                $rawDump = json_encode($response->rawResponse ?? []);
+                throw new \RuntimeException("Invalid or missing fields in router JSON response. Content: '{$content}'. Raw: {$rawDump}");
             }
             
             $routeStr = strtoupper((string) $result['route']);
