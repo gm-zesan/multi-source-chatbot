@@ -32,12 +32,15 @@ class ChatSimulatorController extends Controller
         $conversation = $this->resolveSimulatorConversation($request, $workspaceId);
         $messages = $conversation->messages()->orderBy('created_at', 'asc')->get();
         $rawHistory = $conversation->metadata['llm_usage_history'] ?? [];
-        $llmUsageHistory = array_map(function ($item) {
+        $llmUsageHistory = array_values(array_filter(array_map(function ($item) {
             if (isset($item['model']) && ($item['model'] === 'deepseek-chat' || $item['model'] === 'Deepseek-Chat')) {
                 $item['model'] = 'deepseek-flash';
             }
             return $item;
-        }, $rawHistory);
+        }, $rawHistory), function ($item) {
+            $total = (int) ($item['total_tokens'] ?? (($item['prompt_tokens'] ?? 0) + ($item['completion_tokens'] ?? 0)));
+            return $total > 0;
+        }));
 
         return view('admin.simulator', compact('messages', 'llmUsageHistory'));
     }
@@ -197,13 +200,16 @@ class ChatSimulatorController extends Controller
             ],
         ];
 
-        // ── Persistent Usage Tracking ──
-        $metadata = $conversation->metadata ?? [];
-        if (!isset($metadata['llm_usage_history'])) {
-            $metadata['llm_usage_history'] = [];
+        // ── Persistent Usage Tracking (Only for actual paid LLM calls) ──
+        $hasPaidTokens = (($decisionTrace['llm_generation']['prompt_tokens'] ?? 0) + ($decisionTrace['llm_generation']['completion_tokens'] ?? 0)) > 0;
+        if ($hasPaidTokens) {
+            $metadata = $conversation->metadata ?? [];
+            if (!isset($metadata['llm_usage_history'])) {
+                $metadata['llm_usage_history'] = [];
+            }
+            $metadata['llm_usage_history'][] = $decisionTrace['llm_generation'];
+            $conversation->update(['metadata' => $metadata]);
         }
-        $metadata['llm_usage_history'][] = $decisionTrace['llm_generation'];
-        $conversation->update(['metadata' => $metadata]);
 
         return response()->json([
             'success' => true,

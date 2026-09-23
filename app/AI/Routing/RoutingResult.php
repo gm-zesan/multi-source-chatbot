@@ -21,6 +21,7 @@ class RoutingResult
         public readonly string $securityStatus = 'allowed',
         public readonly ?string $ambiguityType = null,
         public readonly ?array $agentExecution = null,
+        public readonly ?array $routerUsage = null,
     ) {}
 
     public function isKnowledge(): bool

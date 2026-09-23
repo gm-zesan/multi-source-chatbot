@@ -194,6 +194,7 @@ PROMPT;
                 isFallback: false,
                 securityStatus: $securityStatus,
                 ambiguityType: $ambiguityType,
+                routerUsage: $response->usage ?? null,
             );
 
         } catch (\Throwable $e) {

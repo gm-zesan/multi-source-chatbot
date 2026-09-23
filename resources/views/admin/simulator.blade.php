@@ -992,106 +992,7 @@
                         <!-- MAIN GRID -->
                         <div class="usage-main-grid">
 
-                            <!-- PRICING -->
-                            <div class="usage-panel">
-
-                                <div class="usage-panel-header">
-                                    <div>
-                                        <div class="usage-panel-title">
-                                            <i class="ri-settings-4-line"></i>
-                                            Pricing Setup
-                                        </div>
-
-                                        <div class="usage-panel-description">
-                                            Cost per 1 million tokens
-                                        </div>
-                                    </div>
-                                </div>
-
-
-                                <div class="usage-panel-body">
-
-                                    <!-- INPUT PRICE -->
-                                    <div class="usage-field">
-
-                                        <div class="usage-field-header">
-                                            <label>
-                                                Input tokens
-                                            </label>
-
-                                            <span class="usage-currency">
-                                                USD / 1M
-                                            </span>
-                                        </div>
-
-                                        <div class="usage-input">
-                                            <i class="ri-money-dollar-circle-line"></i>
-
-                                            <input type="number" step="0.001" min="0" id="configInputPrice" value="0.30"
-                                                onchange="renderUsageWizard()">
-                                        </div>
-
-                                    </div>
-
-
-                                    <!-- OUTPUT PRICE -->
-                                    <div class="usage-field">
-
-                                        <div class="usage-field-header">
-                                            <label>
-                                                Output tokens
-                                            </label>
-
-                                            <span class="usage-currency">
-                                                USD / 1M
-                                            </span>
-                                        </div>
-
-                                        <div class="usage-input">
-                                            <i class="ri-money-dollar-circle-line"></i>
-
-                                            <input type="number" step="0.001" min="0" id="configOutputPrice" value="1.20"
-                                                onchange="renderUsageWizard()">
-                                        </div>
-
-                                    </div>
-
-                                    <!-- USD TO BDT RATE -->
-                                    <div class="usage-field">
-
-                                        <div class="usage-field-header">
-                                            <label>
-                                                USD to BDT Rate
-                                            </label>
-
-                                            <span class="usage-currency">
-                                                BDT / $1
-                                            </span>
-                                        </div>
-
-                                        <div class="usage-input">
-                                            <i class="ri-exchange-dollar-line"></i>
-
-                                            <input type="number" step="1" min="1" id="configBdtRate" value="122"
-                                                onchange="renderUsageWizard()">
-                                        </div>
-
-                                    </div>
-
-                                    <div class="usage-pricing-note">
-                                        <i class="ri-information-line"></i>
-
-                                        <span>
-                                            Shows both USD ($) and Bangladeshi Taka (৳) costs calculated at Peak Hour rate.
-                                        </span>
-                                    </div>
-
-                                </div>
-
-                            </div>
-
-
-                            <!-- REQUEST BREAKDOWN -->
+                            <!-- REQUEST BREAKDOWN (FULL WIDTH) -->
                             <div class="usage-panel usage-request-panel">
 
                                 <div class="usage-panel-header">
@@ -1496,7 +1397,7 @@
 
             .usage-main-grid {
                 display: grid;
-                grid-template-columns: 300px minmax(0, 1fr);
+                grid-template-columns: 1fr;
 
                 gap: 14px;
 
@@ -1866,9 +1767,10 @@
         let llmUsageHistory = @json($llmUsageHistory ?? []);
 
         function renderUsageWizard() {
-            const inputPricePerM = parseFloat(document.getElementById('configInputPrice').value) || 0;
-            const outputPricePerM = parseFloat(document.getElementById('configOutputPrice').value) || 0;
-            const bdtRate = parseFloat(document.getElementById('configBdtRate')?.value) || 122;
+            // Hardcoded Peak Hour Rates & Fixed 130 BDT/$ Exchange Rate
+            const inputPricePerM = 0.30;
+            const outputPricePerM = 1.20;
+            const bdtRate = 130;
 
             let totalRequests = llmUsageHistory.length;
             let totalInputTokens = 0;
@@ -1991,11 +1893,14 @@
 
                 const data = await response.json();
 
-                // ── Update LLM Usage Wizard ──
+                // ── Update LLM Usage Wizard (Only if actual paid LLM tokens used) ──
                 if (data.decision_trace && data.decision_trace.llm_generation) {
                     const llmGen = data.decision_trace.llm_generation;
-                    llmUsageHistory.push(llmGen);
-                    renderUsageWizard();
+                    const tokens = (llmGen.prompt_tokens || 0) + (llmGen.completion_tokens || 0);
+                    if (tokens > 0) {
+                        llmUsageHistory.push(llmGen);
+                        renderUsageWizard();
+                    }
                 }
 
                 // ── RAW LLM RESPONSE & COMPLETE PAYLOAD DEBUG LOG ──

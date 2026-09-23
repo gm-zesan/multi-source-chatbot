@@ -251,6 +251,7 @@ class CustomerSupportService
      */
     public function handleQuery(string $query, int $workspaceId, ?Conversation $conversation = null): array
     {
+        $this->lastLlmUsage = null;
         $t_start = microtime(true);
 
         // ── Phase M2: Context Resolution & Phase M4-A: Context Ambiguity Short-Circuit ─────
@@ -413,10 +414,18 @@ class CustomerSupportService
             (stripos($replyText ?? '', 'team member will contact you') !== false);
 
         $retrievalTelemetry = $this->faqSearch->getLastTelemetry();
+        $retrievalPromptTokens = (int) ($retrievalTelemetry['llm_usage']['prompt_tokens'] ?? $retrievalTelemetry['prompt_tokens'] ?? 0);
+        $retrievalCompletionTokens = (int) ($retrievalTelemetry['llm_usage']['completion_tokens'] ?? $retrievalTelemetry['completion_tokens'] ?? 0);
 
         $usage = $this->lastLlmUsage ?? null;
-        $promptTokens = $usage?->promptTokens ?? 0;
-        $completionTokens = $usage?->completionTokens ?? 0;
+        $agentPromptTokens = $usage?->promptTokens ?? 0;
+        $agentCompletionTokens = $usage?->completionTokens ?? 0;
+
+        $routerPromptTokens = (int) ($routingResult->routerUsage['prompt_tokens'] ?? 0);
+        $routerCompletionTokens = (int) ($routingResult->routerUsage['completion_tokens'] ?? 0);
+
+        $promptTokens = $agentPromptTokens + $routerPromptTokens + $retrievalPromptTokens;
+        $completionTokens = $agentCompletionTokens + $routerCompletionTokens + $retrievalCompletionTokens;
         $totalTokens = $promptTokens + $completionTokens;
 
         return [
@@ -439,6 +448,16 @@ class CustomerSupportService
                 'prompt_tokens' => $promptTokens,
                 'completion_tokens' => $completionTokens,
                 'total_tokens' => $totalTokens,
+                'router_tokens' => [
+                    'prompt_tokens' => $routerPromptTokens,
+                    'completion_tokens' => $routerCompletionTokens,
+                    'total_tokens' => $routerPromptTokens + $routerCompletionTokens,
+                ],
+                'agent_tokens' => [
+                    'prompt_tokens' => $agentPromptTokens,
+                    'completion_tokens' => $agentCompletionTokens,
+                    'total_tokens' => $agentPromptTokens + $agentCompletionTokens,
+                ],
                 'grounded_documents_count' => $groundedHits->count(),
                 'grounded_faq_questions' => $groundedHits->map(fn($h) => $h->faq?->question)->values()->all(),
             ],
