@@ -5,7 +5,9 @@
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <title>Multi-Source Chatbot</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/remixicon@4.2.0/fonts/remixicon.css" rel="stylesheet">
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         /* ── CSS Variables (Theme) ── */
         :root {
@@ -189,6 +191,88 @@
         @keyframes typing{
             0%,60%,100%{opacity:0.3;transform:scale(0.8)}
             30%{opacity:1;transform:scale(1)}
+        }
+
+        /* ── Visual Data Chart & Export Styling ── */
+        .analytics-chart-card {
+            background: #ffffff;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            padding: 12px;
+            margin-top: 10px;
+            box-shadow: var(--shadow-sm);
+        }
+        .analytics-chart-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            padding-bottom: 6px;
+            border-bottom: 1px solid var(--border-light);
+        }
+        .analytics-chart-title {
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .chart-toggle-group {
+            display: flex;
+            gap: 3px;
+            background: var(--gray-light);
+            padding: 2px;
+            border-radius: 6px;
+        }
+        .chart-toggle-btn {
+            font-size: 11px;
+            padding: 2px 7px;
+            border-radius: 4px;
+            border: none;
+            background: transparent;
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.15s ease;
+        }
+        .chart-toggle-btn.active {
+            background: #ffffff;
+            color: var(--accent);
+            box-shadow: 0 1px 2px rgba(0,0,0,0.08);
+        }
+        .chart-canvas-wrapper {
+            position: relative;
+            height: 160px;
+            width: 100%;
+        }
+        .export-actions-bar {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 6px;
+            margin-top: 8px;
+            padding-top: 6px;
+            border-top: 1px dashed var(--border);
+        }
+        .export-btn {
+            font-size: 11px;
+            padding: 3px 8px;
+            border-radius: 4px;
+            border: 1px solid var(--border);
+            background: var(--surface);
+            color: var(--text-secondary);
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-weight: 500;
+            transition: all 0.15s ease;
+            text-decoration: none;
+        }
+        .export-btn:hover {
+            background: var(--surface-hover);
+            color: var(--text-primary);
         }
 
         /* ── Error Message ── */
@@ -458,12 +542,65 @@
                             html+=confidenceHTML(pct);
                         }
                         // Content
+                        let rawMsg = response.message ?? '';
                         if(response.type==='table'){
                             html+=renderTable(response.data||[]);
                         } else {
-                            html+=renderMarkdownText(response.message??'No data');
+                            html+=renderMarkdownText(rawMsg || 'No data');
                         }
+
+                        // Chart & Export Parsing (Only for queries that warrant visual charts)
+                        const parsed = parseAnalyticsData(rawMsg);
+                        let chartId = null;
+                        let initialChartType = 'bar';
+
+                        if (parsed && isChartNeeded(query, parsed)) {
+                            initialChartType = detectOptimalChartType(query, parsed);
+                            chartId = 'chart_pub_' + Math.random().toString(36).substring(2, 9);
+                            window.activeChatCharts = window.activeChatCharts || {};
+                            window.activeChatCharts[chartId] = parsed;
+
+                            html += `
+                                <div class="analytics-chart-card" id="card_${chartId}">
+                                    <div class="analytics-chart-header">
+                                        <div class="analytics-chart-title">
+                                            <i class="ri-pie-chart-2-fill text-primary"></i>
+                                            <span>Visual Breakdown (${parsed.title})</span>
+                                        </div>
+                                        <div class="chart-toggle-group">
+                                            <button type="button" class="chart-toggle-btn ${initialChartType === 'bar' ? 'active' : ''}" onclick="switchChatChartType('${chartId}', 'bar', this)">Bar</button>
+                                            <button type="button" class="chart-toggle-btn ${initialChartType === 'doughnut' ? 'active' : ''}" onclick="switchChatChartType('${chartId}', 'doughnut', this)">Donut</button>
+                                            <button type="button" class="chart-toggle-btn ${initialChartType === 'line' ? 'active' : ''}" onclick="switchChatChartType('${chartId}', 'line', this)">Line</button>
+                                        </div>
+                                    </div>
+                                    <div class="chart-canvas-wrapper">
+                                        <canvas id="${chartId}"></canvas>
+                                    </div>
+                                    <div class="export-actions-bar">
+                                        <button type="button" class="export-btn" onclick="triggerChatExport('${chartId}', 'pdf')">
+                                            <i class="ri-file-pdf-line text-danger"></i> PDF
+                                        </button>
+                                        <button type="button" class="export-btn" onclick="triggerChatExport('${chartId}', 'xlsx')">
+                                            <i class="ri-file-excel-line text-success"></i> Excel
+                                        </button>
+                                        <button type="button" class="export-btn" onclick="triggerChatExport('${chartId}', 'csv')">
+                                            <i class="ri-file-text-line text-primary"></i> CSV
+                                        </button>
+                                        <button type="button" class="export-btn" onclick="copyChatReport(this, '${escapeJs(rawMsg)}')">
+                                            <i class="ri-file-copy-line"></i> Copy
+                                        </button>
+                                    </div>
+                                </div>
+                            `;
+                        }
+
                         addBotMsg(html);
+
+                        if (chartId && parsed) {
+                            setTimeout(() => {
+                                initChatChartJs(chartId, parsed, initialChartType);
+                            }, 50);
+                        }
                     } else {
                         addBotMsg('<div style="color:var(--text-muted)">No results returned.</div>');
                     }
@@ -503,16 +640,258 @@
             return html;
         }
 
-        // ─── Init ────────────────────────────────────────────────────
+        // ── Visual Data Charts & Export Handlers ──
+        window.chatChartJsInstances = window.chatChartJsInstances || {};
 
-        $(function(){
-            // Empty state
-            $('#chat').html(buildEmptyState());
+        function isChartNeeded(query, parsed) {
+            if (!parsed || !parsed.dataPoints || parsed.dataPoints.length === 0) return false;
+            
+            const q = (query || '').toLowerCase();
+            const explicitKeywords = [
+                'chart', 'graph', 'চার্ট', 'গ্রাফ', 'pie', 'bar', 'line', 'donut', 
+                'পাই', 'ডোনাট', 'বার', 'লাইন', 'visual', 'ভিজ্যুয়াল', 'breakdown', 'ব্রেকডাউন'
+            ];
+            const isExplicit = explicitKeywords.some(kw => q.includes(kw));
 
-            // Send handlers
-            $('#send').on('click',sendQuery);
-            $('#message').on('keydown',function(e){if(e.key==='Enter')sendQuery()});
-        });
+            // Show chart if user explicitly asked for a chart/graph OR if dataset has 2 or more data points (comparisons / breakdown)
+            return isExplicit || parsed.dataPoints.length >= 2;
+        }
+
+        function detectOptimalChartType(query, parsed) {
+            const q = (query || '').toLowerCase();
+
+            // 1. Explicit user chart type request has top priority
+            if (q.includes('pie') || q.includes('donut') || q.includes('পাই') || q.includes('ডোনাট')) return 'doughnut';
+            if (q.includes('bar') || q.includes('বার') || q.includes('কলাম') || q.includes('column')) return 'bar';
+            if (q.includes('line') || q.includes('লাইন') || q.includes('গ্রাফ') || q.includes('trend') || q.includes('ট্রেন্ড')) return 'line';
+
+            // 2. Semantic detection based on question & dataset title
+            const title = (parsed?.title || '').toLowerCase();
+            const combined = q + ' ' + title;
+
+            // Distribution / Share / Methods / Categories -> Donut
+            if (combined.includes('method') || combined.includes('মেথড') || combined.includes('share') || combined.includes('ভাগ') || 
+                combined.includes('অনুপাত') || combined.includes('ratio') || combined.includes('category') || combined.includes('ক্যাটাগরি') ||
+                combined.includes('payment') || combined.includes('পেমেন্ট') || combined.includes('status') || combined.includes('স্ট্যাটাস')) {
+                return 'doughnut';
+            }
+
+            // Time-series / Trends / Daily / Monthly -> Line
+            if (combined.includes('trend') || combined.includes('ট্রেন্ড') || combined.includes('daily') || combined.includes('দৈনিক') || 
+                combined.includes('monthly') || combined.includes('মাসিক') || combined.includes('দিন') || combined.includes('days') || 
+                combined.includes('date') || combined.includes('তারিখ') || combined.includes('history') || combined.includes('timeline')) {
+                return 'line';
+            }
+
+            // Default for comparisons, rankings, entity lists -> Bar
+            return 'bar';
+        }
+
+        function parseAnalyticsData(text) {
+            if (!text || typeof text !== 'string') return null;
+            const lines = text.split('\n');
+            const dataPoints = [];
+            let mainTitle = 'Metrics Breakdown';
+
+            const metricRegex = /[-*•]\s*\**([A-Za-z0-9\s_&-]+?)\**:\s*([^\n\r]+)/;
+            
+            for (const line of lines) {
+                const trimmed = line.trim();
+                if (trimmed.startsWith('#') || trimmed.includes('**Business Analytics') || trimmed.includes('Summary')) {
+                    const cleanTitle = trimmed.replace(/^[#* \-_]+|[#* \-_]+$/g, '');
+                    if (cleanTitle) mainTitle = cleanTitle;
+                }
+
+                const match = trimmed.match(metricRegex);
+                if (match) {
+                    const label = match[1].trim();
+                    const rawVal = match[2].trim();
+                    const cleanNumStr = rawVal.replace(/[^0-9.-]/g, '');
+                    const num = parseFloat(cleanNumStr);
+
+                    if (!isNaN(num) && num > 0) {
+                        dataPoints.push({
+                            label: label,
+                            raw: rawVal,
+                            value: num,
+                        });
+                    }
+                }
+            }
+
+            if (dataPoints.length === 0) return null;
+
+            return {
+                title: mainTitle,
+                dataPoints: dataPoints,
+            };
+        }
+
+        function initChatChartJs(canvasId, parsedData, type = 'bar') {
+            const ctx = document.getElementById(canvasId);
+            if (!ctx) return;
+
+            if (window.chatChartJsInstances[canvasId]) {
+                window.chatChartJsInstances[canvasId].destroy();
+            }
+
+            const labels = parsedData.dataPoints.map(dp => dp.label);
+            const dataValues = parsedData.dataPoints.map(dp => dp.value);
+
+            const palette = [
+                'rgba(37, 99, 235, 0.85)',
+                'rgba(16, 185, 129, 0.85)',
+                'rgba(245, 158, 11, 0.85)',
+                'rgba(139, 92, 246, 0.85)',
+                'rgba(236, 72, 153, 0.85)'
+            ];
+
+            const borderPalette = [
+                '#1d4ed8',
+                '#059669',
+                '#d97706',
+                '#7c3aed',
+                '#db2777'
+            ];
+
+            const chartConfig = {
+                type: type,
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: parsedData.title,
+                        data: dataValues,
+                        backgroundColor: type === 'line' ? 'rgba(37, 99, 235, 0.15)' : palette.slice(0, dataValues.length),
+                        borderColor: type === 'line' ? '#2563eb' : borderPalette.slice(0, dataValues.length),
+                        borderWidth: 1.5,
+                        fill: type === 'line',
+                        tension: 0.35,
+                        borderRadius: type === 'bar' ? 6 : 0,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: type === 'doughnut' || type === 'pie',
+                            position: 'bottom',
+                            labels: { boxWidth: 10, font: { size: 10 } }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const orig = parsedData.dataPoints[context.dataIndex]?.raw || context.raw;
+                                    return ` ${context.label}: ${orig}`;
+                                }
+                            }
+                        }
+                    },
+                    scales: type === 'doughnut' || type === 'pie' ? {} : {
+                        y: {
+                            beginAtZero: true,
+                            grid: { color: 'rgba(0,0,0,0.04)' },
+                            ticks: { font: { size: 10 } }
+                        },
+                        x: {
+                            grid: { display: false },
+                            ticks: { font: { size: 10 } }
+                        }
+                    }
+                }
+            };
+
+            window.chatChartJsInstances[canvasId] = new Chart(ctx, chartConfig);
+        }
+
+        function switchChatChartType(chartId, newType, btn) {
+            const card = document.getElementById(`card_${chartId}`);
+            if (card) {
+                card.querySelectorAll('.chart-toggle-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+            }
+
+            const parsed = window.activeChatCharts?.[chartId];
+            if (parsed) {
+                initChatChartJs(chartId, parsed, newType);
+            }
+        }
+
+        async function triggerChatExport(chartId, format) {
+            const parsed = window.activeChatCharts?.[chartId];
+            if (!parsed) {
+                alert('No structured chart data found to export.');
+                return;
+            }
+
+            const headers = ['Metric / Label', 'Value (Formatted)'];
+            const rows = parsed.dataPoints.map(dp => [dp.label, dp.raw]);
+            const summary = {
+                'Report Title': parsed.title,
+                'Generated By': 'AI Analytics Engine',
+                'Export Date': new Date().toLocaleString(),
+            };
+
+            const payload = {
+                format: format,
+                title: parsed.title,
+                headers: headers,
+                rows: rows,
+                summary: summary,
+            };
+
+            try {
+                const response = await fetch("{{ route('export.analytics') }}", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "X-CSRF-TOKEN": "{{ csrf_token() }}"
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) {
+                    throw new Error("Export failed with status " + response.status);
+                }
+
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                const ext = format === 'xlsx' ? 'xlsx' : (format === 'pdf' ? 'pdf' : 'csv');
+                a.download = `analytics-report-${Date.now()}.${ext}`;
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                window.URL.revokeObjectURL(url);
+            } catch (err) {
+                console.error("Export error:", err);
+                alert("Could not complete export: " + err.message);
+            }
+        }
+
+        function copyChatReport(btn, text) {
+            if (!navigator.clipboard) {
+                const ta = document.createElement('textarea');
+                ta.value = text;
+                document.body.appendChild(ta);
+                ta.select();
+                document.execCommand('copy');
+                document.body.removeChild(ta);
+            } else {
+                navigator.clipboard.writeText(text);
+            }
+
+            const origHtml = btn.innerHTML;
+            btn.innerHTML = '<i class="ri-check-line text-success"></i> Copied!';
+            setTimeout(() => {
+                btn.innerHTML = origHtml;
+            }, 2000);
+        }
+
+        function escapeJs(str) {
+            return String(str).replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '\\"');
+        }
     </script>
 
 </body>

@@ -25,4 +25,12 @@ class Message extends Model
     {
         return $this->belongsTo(Conversation::class);
     }
+
+    /**
+     * Determine if the message originated from the end-user / customer.
+     */
+    public function getIsFromUserAttribute(): bool
+    {
+        return $this->direction === 'inbound';
+    }
 }

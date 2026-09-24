@@ -50,13 +50,18 @@ class KnowledgeRetrievalTool implements Tool
         ?string $contextualSignal = null,
         int $perPage = 5,
     ): Collection {
-        return $this->faqSearch->search(
-            query: $query,
-            perPage: $perPage,
-            workspaceId: $workspaceId ?? $this->workspaceId,
-            conversation: $conversation,
-            contextualSignal: $contextualSignal,
-        );
+        try {
+            return $this->faqSearch->search(
+                query: $query,
+                perPage: $perPage,
+                workspaceId: $workspaceId ?? $this->workspaceId,
+                conversation: $conversation,
+                contextualSignal: $contextualSignal,
+            );
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning('[KnowledgeRetrievalTool] Downstream search failed: ' . $e->getMessage());
+            return new Collection([]);
+        }
     }
 
     /**

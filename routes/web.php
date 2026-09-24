@@ -40,6 +40,11 @@ Route::middleware('auth')->prefix('dashboard')->group(function () {
     Route::post('/simulator/send', [ChatSimulatorController::class, 'send'])->middleware('throttle:60,1')->name('simulator.send');
     Route::post('/simulator/clear', [ChatSimulatorController::class, 'clear'])->name('simulator.clear');
 
+    // Export Routes (Excel, CSV, PDF)
+    Route::get('/export/simulator/{format}', [\App\Http\Controllers\ExportController::class, 'exportSimulator'])->name('export.simulator');
+    Route::get('/export/conversation/{conversation}/{format}', [\App\Http\Controllers\ExportController::class, 'exportConversation'])->name('export.conversation');
+    Route::post('/export/analytics', [\App\Http\Controllers\ExportController::class, 'exportAnalytics'])->name('export.analytics');
+
     // Observability & Telemetry Dashboard
     Route::get('/observability', [ObservabilityController::class, 'index'])->name('observability.index');
 

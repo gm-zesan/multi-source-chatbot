@@ -5,6 +5,7 @@
 @endsection
 
 @push('custom-style')
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         .simulator-container {
             height: calc(100vh - 100px);
@@ -17,6 +18,103 @@
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
             background: #ffffff;
             border: 1px solid #e5e7eb;
+        }
+
+        /* ── Visual Data Chart & Export Styling ── */
+        .analytics-chart-card {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 14px;
+            margin-top: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+        }
+        .analytics-chart-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #f1f5f9;
+        }
+        .analytics-chart-title {
+            font-size: 12.5px;
+            font-weight: 700;
+            color: #1e293b;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .chart-toggle-group {
+            display: flex;
+            gap: 4px;
+            background: #f1f5f9;
+            padding: 2px;
+            border-radius: 6px;
+        }
+        .chart-toggle-btn {
+            font-size: 11px;
+            padding: 2px 8px;
+            border-radius: 4px;
+            border: none;
+            background: transparent;
+            color: #64748b;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.15s ease;
+        }
+        .chart-toggle-btn.active {
+            background: #ffffff;
+            color: #2563eb;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .chart-canvas-wrapper {
+            position: relative;
+            height: 180px;
+            width: 100%;
+        }
+        .export-actions-bar {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 6px;
+            margin-top: 10px;
+            padding-top: 8px;
+            border-top: 1px dashed #e2e8f0;
+        }
+        .export-btn {
+            font-size: 11px;
+            padding: 4px 9px;
+            border-radius: 6px;
+            border: 1px solid #cbd5e1;
+            background: #f8fafc;
+            color: #334155;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-weight: 500;
+            transition: all 0.15s ease;
+            text-decoration: none;
+        }
+        .export-btn:hover {
+            background: #e2e8f0;
+            color: #0f172a;
+        }
+        .export-btn.btn-pdf:hover {
+            background: #fee2e2;
+            color: #dc2626;
+            border-color: #fca5a5;
+        }
+        .export-btn.btn-excel:hover {
+            background: #dcfce7;
+            color: #16a34a;
+            border-color: #86efac;
+        }
+        .export-btn.btn-csv:hover {
+            background: #dbeafe;
+            color: #2563eb;
+            border-color: #93c5fd;
         }
 
         .chat-header {
@@ -489,6 +587,20 @@
                             <small class="text-muted" style="font-size: 11px;">Interactive test environment</small>
                         </div>
                         <div class="d-flex align-items-center gap-2">
+                            <!-- Export Session Dropdown -->
+                            <div class="dropdown">
+                                <button class="btn btn-sm btn-outline-primary dropdown-toggle d-flex align-items-center gap-1 shadow-sm px-3"
+                                    type="button" id="exportSessionDropdown" data-bs-toggle="dropdown" aria-expanded="false"
+                                    style="font-size: 13px; border-radius: 6px;">
+                                    <i class="ri-download-2-line"></i> Export
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-end shadow-sm" aria-labelledby="exportSessionDropdown">
+                                    <li><a class="dropdown-item d-flex align-items-center gap-2" href="{{ route('export.simulator', 'pdf') }}" target="_blank"><i class="ri-file-pdf-line text-danger"></i> Export as PDF</a></li>
+                                    <li><a class="dropdown-item d-flex align-items-center gap-2" href="{{ route('export.simulator', 'xlsx') }}"><i class="ri-file-excel-line text-success"></i> Export as Excel (.xlsx)</a></li>
+                                    <li><a class="dropdown-item d-flex align-items-center gap-2" href="{{ route('export.simulator', 'csv') }}"><i class="ri-file-text-line text-primary"></i> Export as CSV</a></li>
+                                </ul>
+                            </div>
+
                             <button type="button"
                                 class="btn btn-sm btn-outline-danger d-flex align-items-center gap-1 shadow-sm px-3"
                                 onclick="clearSimulatorChat()" style="font-size: 13px; border-radius: 6px;">
@@ -1960,6 +2072,7 @@
                 sendBtn.disabled = false;
 
                 if (data.success) {
+                    data.userQuery = text;
                     // Append bot reply with route-aware cards
                     appendMessage(data.reply, 'bot', data);
                     // Update turn decision trace
@@ -1999,7 +2112,7 @@
                 } else if (route === 'uncertain') {
                     headerBadgeHtml = `<div class="mb-2"><span class="route-pill uncertain"><i class="ri-question-line"></i> Clarification Needed</span></div>`;
                 } else if (route === 'analytics') {
-                    headerBadgeHtml = `<div class="mb-2"><span class="route-pill analytics"><i class="ri-bar-chart-box-line"></i> Business Analytics</span></div>`;
+                    headerBadgeHtml = `<div class="mb-2"><span class="route-pill analytics"><i class="ri-bar-chart-box-line"></i> Business Analytics & BI</span></div>`;
                 } else if (route === 'action' || data.is_handoff) {
                     headerBadgeHtml = `<div class="mb-2"><span class="route-pill action"><i class="ri-user-shared-line"></i> Support Specialist Transfer</span></div>`;
                 }
@@ -2007,61 +2120,124 @@
                 // 2. UNCERTAIN Interactive Clickable Suggestions
                 if (route === 'uncertain' && Array.isArray(data.suggestions) && data.suggestions.length > 0) {
                     const chipsHtml = data.suggestions.map(s => `
-                                                                                            <button type="button" class="suggestion-chip" onclick="setQueryAndSend('${escapeJs(s)}')">
-                                                                                                <i class="ri-arrow-right-s-line text-warning"></i> ${escapeHtml(s)}
-                                                                                            </button>
-                                                                                        `).join('');
+                        <button type="button" class="suggestion-chip" onclick="setQueryAndSend('${escapeJs(s)}')">
+                            <i class="ri-arrow-right-s-line text-warning"></i> ${escapeHtml(s)}
+                        </button>
+                    `).join('');
 
                     extraCardsHtml += `
-                                                                                            <div class="suggestions-container">
-                                                                                                <span class="suggestion-label"><i class="ri-lightbulb-line text-warning me-1"></i> Did you mean (Click to select):</span>
-                                                                                                ${chipsHtml}
-                                                                                            </div>
-                                                                                        `;
+                        <div class="suggestions-container">
+                            <span class="suggestion-label"><i class="ri-lightbulb-line text-warning me-1"></i> Did you mean (Click to select):</span>
+                            ${chipsHtml}
+                        </div>
+                    `;
                 }
 
                 // 3. KNOWLEDGE Grounded Citations & Sources
                 if (route === 'knowledge' && Array.isArray(data.sources) && data.sources.length > 0) {
                     const sourceChips = data.sources.map(src => `
-                                                                                            <span class="source-chip" title="Score: ${src.score}%">
-                                                                                                <i class="ri-checkbox-circle-fill text-success"></i> ${escapeHtml(src.question)}
-                                                                                            </span>
-                                                                                        `).join('');
+                        <span class="source-chip" title="Score: ${src.score}%">
+                            <i class="ri-checkbox-circle-fill text-success"></i> ${escapeHtml(src.question)}
+                        </span>
+                    `).join('');
 
                     extraCardsHtml += `
-                                                                                            <div class="sources-container">
-                                                                                                <span class="text-muted small fw-bold"><i class="ri-shield-check-line text-success me-1"></i> Grounded from FAQ:</span>
-                                                                                                ${sourceChips}
-                                                                                            </div>
-                                                                                        `;
+                        <div class="sources-container">
+                            <span class="text-muted small fw-bold"><i class="ri-shield-check-line text-success me-1"></i> Grounded from FAQ:</span>
+                            ${sourceChips}
+                        </div>
+                    `;
                 }
 
-                // 4. ACTION / 3x UNCERTAIN Safe Human Handoff Notice Card
+                // 4. ANALYTICS Dynamic Visual Chart & Export Card (Selective & Intelligent Type)
+                let chartId = null;
+                let parsedAnalytics = null;
+                let initialChartType = 'bar';
+
+                if (route === 'analytics') {
+                    parsedAnalytics = parseAnalyticsData(content);
+                    const userQ = data.userQuery || data.query || '';
+                    if (parsedAnalytics && isChartNeeded(userQ, parsedAnalytics)) {
+                        initialChartType = detectOptimalChartType(userQ, parsedAnalytics);
+                        chartId = 'chart_' + Math.random().toString(36).substring(2, 9);
+                        window.activeSimulatorCharts = window.activeSimulatorCharts || {};
+                        window.activeSimulatorCharts[chartId] = parsedAnalytics;
+
+                        extraCardsHtml += `
+                            <div class="analytics-chart-card" id="card_${chartId}">
+                                <div class="analytics-chart-header">
+                                    <div class="analytics-chart-title">
+                                        <i class="ri-pie-chart-2-fill text-primary"></i>
+                                        <span>Visual Breakdown (${parsedAnalytics.title})</span>
+                                    </div>
+                                    <div class="chart-toggle-group">
+                                        <button type="button" class="chart-toggle-btn ${initialChartType === 'bar' ? 'active' : ''}" onclick="switchChartType('${chartId}', 'bar', this)">Bar</button>
+                                        <button type="button" class="chart-toggle-btn ${initialChartType === 'doughnut' ? 'active' : ''}" onclick="switchChartType('${chartId}', 'doughnut', this)">Donut</button>
+                                        <button type="button" class="chart-toggle-btn ${initialChartType === 'line' ? 'active' : ''}" onclick="switchChartType('${chartId}', 'line', this)">Line</button>
+                                    </div>
+                                </div>
+                                <div class="chart-canvas-wrapper">
+                                    <canvas id="${chartId}"></canvas>
+                                </div>
+                                <div class="export-actions-bar">
+                                    <span class="text-muted small me-auto" style="font-size: 11px;"><i class="ri-flashlight-line text-warning"></i> Real-time DB Insight</span>
+                                    <button type="button" class="export-btn btn-pdf" onclick="triggerExport('${chartId}', 'pdf')">
+                                        <i class="ri-file-pdf-line"></i> PDF
+                                    </button>
+                                    <button type="button" class="export-btn btn-excel" onclick="triggerExport('${chartId}', 'xlsx')">
+                                        <i class="ri-file-excel-line"></i> Excel
+                                    </button>
+                                    <button type="button" class="export-btn btn-csv" onclick="triggerExport('${chartId}', 'csv')">
+                                        <i class="ri-file-text-line"></i> CSV
+                                    </button>
+                                    <button type="button" class="export-btn" onclick="copyReportText(this, '${escapeJs(content)}')">
+                                        <i class="ri-file-copy-line"></i> Copy
+                                    </button>
+                                </div>
+                            </div>
+                        `;
+                    }
+                }
+
+                // 5. ACTION / 3x UNCERTAIN Safe Human Handoff Notice Card
                 if (data.is_handoff || route === 'action') {
                     extraCardsHtml += `
-                                                                                            <div class="handoff-alert-card">
-                                                                                                <div class="handoff-icon"><i class="ri-customer-service-2-line"></i></div>
-                                                                                                <div>
-                                                                                                    <strong class="d-block text-dark small" style="font-size:12px;">Human Support Request Registered</strong>
-                                                                                                    <small class="text-muted">A customer support specialist will review your request shortly.</small>
-                                                                                                </div>
-                                                                                            </div>
-                                                                                        `;
+                        <div class="handoff-alert-card">
+                            <div class="handoff-icon"><i class="ri-customer-service-2-line"></i></div>
+                            <div>
+                                <strong class="d-block text-dark small" style="font-size:12px;">Human Support Request Registered</strong>
+                                <small class="text-muted">A customer support specialist will review your request shortly.</small>
+                            </div>
+                        </div>
+                    `;
                 }
 
                 // Footer metadata
                 metaHtml = `
-                                                                        <div class="message-meta">
-                                                                            <span>${data.pipeline_diagnostics?.total_time_ms || 0} ms</span>
-                                                                            <span>Route: <strong>${route.toUpperCase()}</strong></span>
-                                                                        </div>
-                                                                    `;
+                    <div class="message-meta">
+                        <span>${data.pipeline_diagnostics?.total_time_ms || 0} ms</span>
+                        <span>Route: <strong>${route.toUpperCase()}</strong></span>
+                    </div>
+                `;
             }
 
             const formattedBodyHtml = renderFormattedMessage(content);
             div.innerHTML = `${headerBadgeHtml}${formattedBodyHtml}${extraCardsHtml}${metaHtml}`;
             container.appendChild(div);
             container.scrollTop = container.scrollHeight;
+
+            // Render Chart.js instance after DOM attachment
+            if (sender === 'bot' && data && data.route === 'analytics') {
+                const parsed = parseAnalyticsData(content);
+                const userQ = data.userQuery || data.query || '';
+                if (parsed && isChartNeeded(userQ, parsed)) {
+                    const optimalType = detectOptimalChartType(userQ, parsed);
+                    const canvasList = div.querySelectorAll('canvas');
+                    canvasList.forEach(c => {
+                        initChartJs(c.id, parsed, optimalType);
+                    });
+                }
+            }
         }
 
         /**
@@ -2462,6 +2638,263 @@
                 console.error("Failed to clear chat session:", e);
             }
             window.location.reload();
+        }
+
+        // ── Visual Data Charts & Export Handlers ──
+        window.chartJsInstances = window.chartJsInstances || {};
+
+        function isChartNeeded(query, parsed) {
+            if (!parsed || !parsed.dataPoints || parsed.dataPoints.length === 0) return false;
+            
+            const q = (query || '').toLowerCase();
+            const explicitKeywords = [
+                'chart', 'graph', 'চার্ট', 'গ্রাফ', 'pie', 'bar', 'line', 'donut', 
+                'পাই', 'ডোনাট', 'বার', 'লাইন', 'visual', 'ভিজ্যুয়াল', 'breakdown', 'ব্রেকডাউন'
+            ];
+            const isExplicit = explicitKeywords.some(kw => q.includes(kw));
+
+            // Show chart if user explicitly requested a chart/graph OR if dataset has 2 or more data points (comparisons / breakdown)
+            return isExplicit || parsed.dataPoints.length >= 2;
+        }
+
+        function detectOptimalChartType(query, parsed) {
+            const q = (query || '').toLowerCase();
+
+            // 1. Explicit user chart type request has top priority
+            if (q.includes('pie') || q.includes('donut') || q.includes('পাই') || q.includes('ডোনাট')) return 'doughnut';
+            if (q.includes('bar') || q.includes('বার') || q.includes('কলাম') || q.includes('column')) return 'bar';
+            if (q.includes('line') || q.includes('লাইন') || q.includes('গ্রাফ') || q.includes('trend') || q.includes('ট্রেন্ড')) return 'line';
+
+            // 2. Semantic detection based on question & dataset title
+            const title = (parsed?.title || '').toLowerCase();
+            const combined = q + ' ' + title;
+
+            // Distribution / Share / Methods / Categories -> Donut
+            if (combined.includes('method') || combined.includes('মেথড') || combined.includes('share') || combined.includes('ভাগ') || 
+                combined.includes('অনুপাত') || combined.includes('ratio') || combined.includes('category') || combined.includes('ক্যাটাগরি') ||
+                combined.includes('payment') || combined.includes('পেমেন্ট') || combined.includes('status') || combined.includes('স্ট্যাটাস')) {
+                return 'doughnut';
+            }
+
+            // Time-series / Trends / Daily / Monthly -> Line
+            if (combined.includes('trend') || combined.includes('ট্রেন্ড') || combined.includes('daily') || combined.includes('দৈনিক') || 
+                combined.includes('monthly') || combined.includes('মাসিক') || combined.includes('দিন') || combined.includes('days') || 
+                combined.includes('date') || combined.includes('তারিখ') || combined.includes('history') || combined.includes('timeline')) {
+                return 'line';
+            }
+
+            // Default for comparisons, rankings, entity lists -> Bar
+            return 'bar';
+        }
+
+        function parseAnalyticsData(text) {
+            if (!text || typeof text !== 'string') return null;
+            const lines = text.split('\n');
+            const dataPoints = [];
+            let mainTitle = 'Metrics Breakdown';
+
+            // Extract bullet points with numeric values (e.g. - **Sales Amount:** ৳420,000.00)
+            const metricRegex = /[-*•]\s*\**([A-Za-z0-9\s_&-]+?)\**:\s*([^\n\r]+)/;
+            
+            for (const line of lines) {
+                const trimmed = line.trim();
+                if (trimmed.startsWith('#') || trimmed.includes('**Business Analytics') || trimmed.includes('Summary')) {
+                    const cleanTitle = trimmed.replace(/^[#* \-_]+|[#* \-_]+$/g, '');
+                    if (cleanTitle) mainTitle = cleanTitle;
+                }
+
+                const match = trimmed.match(metricRegex);
+                if (match) {
+                    const label = match[1].trim();
+                    const rawVal = match[2].trim();
+                    // Extract numerical value (supports currency ৳, $, commas, floats)
+                    const cleanNumStr = rawVal.replace(/[^0-9.-]/g, '');
+                    const num = parseFloat(cleanNumStr);
+
+                    if (!isNaN(num) && num > 0) {
+                        dataPoints.push({
+                            label: label,
+                            raw: rawVal,
+                            value: num,
+                        });
+                    }
+                }
+            }
+
+            if (dataPoints.length === 0) return null;
+
+            return {
+                title: mainTitle,
+                dataPoints: dataPoints,
+            };
+        }
+
+        function initChartJs(canvasId, parsedData, type = 'bar') {
+            const ctx = document.getElementById(canvasId);
+            if (!ctx) return;
+
+            if (window.chartJsInstances[canvasId]) {
+                window.chartJsInstances[canvasId].destroy();
+            }
+
+            const labels = parsedData.dataPoints.map(dp => dp.label);
+            const dataValues = parsedData.dataPoints.map(dp => dp.value);
+
+            const palette = [
+                'rgba(37, 99, 235, 0.85)',
+                'rgba(16, 185, 129, 0.85)',
+                'rgba(245, 158, 11, 0.85)',
+                'rgba(139, 92, 246, 0.85)',
+                'rgba(236, 72, 153, 0.85)',
+                'rgba(14, 165, 233, 0.85)'
+            ];
+
+            const borderPalette = [
+                '#1d4ed8',
+                '#059669',
+                '#d97706',
+                '#7c3aed',
+                '#db2777',
+                '#0284c7'
+            ];
+
+            const chartConfig = {
+                type: type,
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: parsedData.title,
+                        data: dataValues,
+                        backgroundColor: type === 'line' ? 'rgba(37, 99, 235, 0.15)' : palette.slice(0, dataValues.length),
+                        borderColor: type === 'line' ? '#2563eb' : borderPalette.slice(0, dataValues.length),
+                        borderWidth: 1.5,
+                        fill: type === 'line',
+                        tension: 0.35,
+                        borderRadius: type === 'bar' ? 6 : 0,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: type === 'doughnut' || type === 'pie',
+                            position: 'bottom',
+                            labels: {
+                                boxWidth: 10,
+                                font: { size: 10 }
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const orig = parsedData.dataPoints[context.dataIndex]?.raw || context.raw;
+                                    return ` ${context.label}: ${orig}`;
+                                }
+                            }
+                        }
+                    },
+                    scales: type === 'doughnut' || type === 'pie' ? {} : {
+                        y: {
+                            beginAtZero: true,
+                            grid: { color: 'rgba(0,0,0,0.04)' },
+                            ticks: { font: { size: 10 } }
+                        },
+                        x: {
+                            grid: { display: false },
+                            ticks: { font: { size: 10 } }
+                        }
+                    }
+                }
+            };
+
+            window.chartJsInstances[canvasId] = new Chart(ctx, chartConfig);
+        }
+
+        function switchChartType(chartId, newType, btn) {
+            const card = document.getElementById(`card_${chartId}`);
+            if (card) {
+                card.querySelectorAll('.chart-toggle-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+            }
+
+            const parsed = window.activeSimulatorCharts?.[chartId];
+            if (parsed) {
+                initChartJs(chartId, parsed, newType);
+            }
+        }
+
+        async function triggerExport(chartId, format) {
+            const parsed = window.activeSimulatorCharts?.[chartId];
+            if (!parsed) {
+                alert('No structured chart data found to export.');
+                return;
+            }
+
+            const headers = ['Metric / Label', 'Value (Formatted)'];
+            const rows = parsed.dataPoints.map(dp => [dp.label, dp.raw]);
+            const summary = {
+                'Report Title': parsed.title,
+                'Generated By': 'AI Analytics Engine',
+                'Export Date': new Date().toLocaleString(),
+            };
+
+            const payload = {
+                format: format,
+                title: parsed.title,
+                headers: headers,
+                rows: rows,
+                summary: summary,
+            };
+
+            try {
+                // Post form or blob download
+                const response = await fetch("{{ route('export.analytics') }}", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "X-CSRF-TOKEN": "{{ csrf_token() }}"
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) {
+                    throw new Error("Export failed with status " + response.status);
+                }
+
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                const ext = format === 'xlsx' ? 'xlsx' : (format === 'pdf' ? 'pdf' : 'csv');
+                a.download = `analytics-report-${Date.now()}.${ext}`;
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                window.URL.revokeObjectURL(url);
+            } catch (err) {
+                console.error("Export error:", err);
+                alert("Could not complete export: " + err.message);
+            }
+        }
+
+        function copyReportText(btn, text) {
+            if (!navigator.clipboard) {
+                const ta = document.createElement('textarea');
+                ta.value = text;
+                document.body.appendChild(ta);
+                ta.select();
+                document.execCommand('copy');
+                document.body.removeChild(ta);
+            } else {
+                navigator.clipboard.writeText(text);
+            }
+
+            const origHtml = btn.innerHTML;
+            btn.innerHTML = '<i class="ri-check-line text-success"></i> Copied!';
+            setTimeout(() => {
+                btn.innerHTML = origHtml;
+            }, 2000);
         }
 
         function escapeHtml(str) {

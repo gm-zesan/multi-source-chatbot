@@ -148,4 +148,25 @@ class SemanticAnswerabilityGateTest extends TestCase
         $this->assertTrue($decision->groundedHits->isEmpty());
         $this->assertSame('insufficient_evidence', $decision->reasons['rule']);
     }
+
+    public function test_empty_retrieval_collection_is_unanswerable(): void
+    {
+        $hits = new Collection([]);
+        $decision = $this->gate->evaluate('What is your refund policy?', $hits, null);
+
+        $this->assertTrue($decision->isUnanswerable());
+        $this->assertFalse($decision->isConfident());
+        $this->assertTrue($decision->groundedHits->isEmpty());
+        $this->assertSame(0.0, $decision->confidenceScore);
+    }
+
+    public function test_malformed_hit_objects_fail_safely(): void
+    {
+        $hits = new Collection([
+            (object) ['finalScore' => 0.85], // Missing faq object
+        ]);
+
+        $decision = $this->gate->evaluate('What is your warranty terms?', $hits, null);
+        $this->assertInstanceOf(AnswerabilityDecision::class, $decision);
+    }
 }

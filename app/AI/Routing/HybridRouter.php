@@ -197,8 +197,8 @@ PROMPT;
                 default => throw new \RuntimeException('Unknown route type: ' . $routeStr),
             };
 
-            // Enforce safe route on mutation block
-            if ($securityStatus === 'blocked_mutation') {
+            // Enforce safe route on mutation block or sub-threshold confidence
+            if ($securityStatus === 'blocked_mutation' || ($confidence < $this->confidenceThreshold && $route !== RouteType::CHAT && $route !== RouteType::OOD)) {
                 $route = RouteType::UNCERTAIN;
             }
 

@@ -42,7 +42,7 @@ class CustomerSupportServiceAnalyticsTest extends TestCase
         $mockAnalyticsClient = Mockery::mock(AnalyticsClient::class);
         $mockAnalyticsClient->shouldReceive('query')
             ->once()
-            ->with('Aj koto cashin hoise?', 5)
+            ->with('Aj koto cashin hoise?', 5, Mockery::any())
             ->andReturn([
                 'success'    => true,
                 'intent'     => 'cash_collection',
@@ -50,11 +50,14 @@ class CustomerSupportServiceAnalyticsTest extends TestCase
                 'latency_ms' => 45.2,
             ]);
 
+        $businessAnalyticsTool = new \App\AI\Tools\BusinessAnalyticsTool($mockAnalyticsClient);
+
         $service = new CustomerSupportService(
             faqSearch: $mockFaqSearch,
             conversationService: $mockConvService,
             router: $mockRouter,
             analyticsClient: $mockAnalyticsClient,
+            businessAnalyticsTool: $businessAnalyticsTool,
         );
 
         $result = $service->handleQuery(
