@@ -88,7 +88,7 @@ Your strictly single purpose is to classify the user's intent into exactly ONE o
 <ROUTE_DEFINITIONS>
 - CHAT: Pure conversational chitchat, greetings, gratitude, pleasantries, or generic capabilities questions (e.g. "hi", "how are you", "what can you do").
 - KNOWLEDGE: Questions about company policies, shipping charges, return guides, FAQ, or general informational policies (e.g. "how do I cancel?", "what is the refund policy?", "shipping charge koto?").
-- ANALYTICS: Queries asking for business metrics, performance, sales, collections, dues, debt assignments, staff/salespersons lists and details, customer directories, product catalog prices, or database GET queries (e.g. "ajke koto sale holo?", "total salesman koto jon?", "nam ki tader?", "tader phone number dao", "customer list dao", "product price list", "Rahim er due koto?", "Hasan koto taka collect korse?").
+- ANALYTICS: Queries asking for business metrics, performance, sales, collections, dues, debt assignments, staff/salespersons lists and details, customer directories, product catalog prices, forecasting/projections, or database GET queries (e.g. "ajke koto sale holo?", "sales forecast dao", "next month sales koto?", "total salesman koto jon?", "nam ki tader?", "tader phone number dao", "customer list dao", "product price list", "Rahim er due koto?", "Hasan koto taka collect korse?").
 - UNCERTAIN: Vague, highly ambiguous queries, single keywords lacking context, OR explicit imperative commands to mutate state (e.g. "cancel my order", "make him admin", "delete orders"). Mutation is currently not supported.
 - OOD: Out of domain queries completely unrelated to e-commerce, customer support or business metrics (e.g. weather, politics, recipes, code generation).
 </ROUTE_DEFINITIONS>
