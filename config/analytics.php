@@ -12,7 +12,7 @@ return [
     | By default, this runs on port 8001 alongside the Retrieval Engine.
     |
     */
-    'base_url' => env('PYTHON_ANALYTICS_URL', env('PYTHON_RETRIEVAL_URL', 'http://127.0.0.1:8001')),
+    'base_url' => env('PYTHON_ANALYTICS_URL', env('PYTHON_RETRIEVAL_URL', 'http://localhost:8001')),
 
     /*
     |--------------------------------------------------------------------------

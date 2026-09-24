@@ -31,6 +31,9 @@ class CustomerSupportService
     private readonly SemanticAnswerabilityGate $answerabilityGate;
     private readonly ClarificationManager $clarificationManager;
     private readonly AnalyticsClient $analyticsClient;
+    private readonly \App\AI\Tools\KnowledgeRetrievalTool $knowledgeRetrievalTool;
+    private readonly \App\AI\Tools\BusinessAnalyticsTool $businessAnalyticsTool;
+    private readonly \App\AI\Tools\ExcelAnalyticsTool $excelAnalyticsTool;
     private ?\Laravel\Ai\Responses\Data\Usage $lastLlmUsage = null;
 
     public function __construct(
@@ -45,6 +48,9 @@ class CustomerSupportService
         ?SemanticAnswerabilityGate $answerabilityGate = null,
         ?ClarificationManager $clarificationManager = null,
         ?AnalyticsClient $analyticsClient = null,
+        ?\App\AI\Tools\KnowledgeRetrievalTool $knowledgeRetrievalTool = null,
+        ?\App\AI\Tools\BusinessAnalyticsTool $businessAnalyticsTool = null,
+        ?\App\AI\Tools\ExcelAnalyticsTool $excelAnalyticsTool = null,
     ) {
         $this->router = $router ?? app(HybridRouter::class);
         $this->actionSafety = $actionSafety ?? app(ActionSafetyService::class);
@@ -55,6 +61,9 @@ class CustomerSupportService
         $this->answerabilityGate = $answerabilityGate ?? app(SemanticAnswerabilityGate::class);
         $this->clarificationManager = $clarificationManager ?? app(ClarificationManager::class);
         $this->analyticsClient = $analyticsClient ?? app(AnalyticsClient::class);
+        $this->knowledgeRetrievalTool = $knowledgeRetrievalTool ?? app(\App\AI\Tools\KnowledgeRetrievalTool::class);
+        $this->businessAnalyticsTool = $businessAnalyticsTool ?? app(\App\AI\Tools\BusinessAnalyticsTool::class);
+        $this->excelAnalyticsTool = $excelAnalyticsTool ?? app(\App\AI\Tools\ExcelAnalyticsTool::class);
     }
 
     /**
@@ -360,12 +369,12 @@ class CustomerSupportService
 
         if ($routingResult->isKnowledge() || $routingResult->isUncertain()) {
             $t_retrieval_start = microtime(true);
-            $retrievalHits = $this->faqSearch->search(
+            $retrievalHits = $this->knowledgeRetrievalTool->execute(
                 query: $query,
-                perPage: 5,
                 workspaceId: $workspaceId,
                 conversation: $conversation,
                 contextualSignal: $contextualSignal,
+                perPage: 5,
             );
             $knowledgeRetrievalMs = round((microtime(true) - $t_retrieval_start) * 1000, 2);
 
@@ -610,12 +619,12 @@ class CustomerSupportService
 
         $contextualSignal = $this->contextualQueryBuilder->resolveContextualSignal($query, $conversation);
 
-        $retrievalHits = $this->faqSearch->search(
+        $retrievalHits = $this->knowledgeRetrievalTool->execute(
             query: $query,
-            perPage: 5,
             workspaceId: $workspaceId,
             conversation: $conversation,
             contextualSignal: $contextualSignal,
+            perPage: 5,
         );
 
         $decision = $this->answerabilityGate->evaluate($query, $retrievalHits, null);
@@ -701,7 +710,7 @@ class CustomerSupportService
             }
         }
 
-        $analyticsResult = $this->analyticsClient->query(
+        $analyticsResult = $this->businessAnalyticsTool->execute(
             query: $query,
             workspaceId: $workspaceId,
             history: $history,

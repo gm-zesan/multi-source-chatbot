@@ -137,4 +137,85 @@ class AnalyticsClient
             ];
         }
     }
+
+    /**
+     * Upload an Excel or CSV file to the Python Analytics Virtual Database Engine.
+     *
+     * @param string $filePath Full path to local temporary/stored file
+     * @param string $filename Original filename
+     * @param int $workspaceId
+     * @param string|null $conversationId
+     * @return array<string, mixed>
+     */
+    public function uploadSpreadsheet(string $filePath, string $filename, int $workspaceId, ?string $conversationId = null): array
+    {
+        $url = "{$this->baseUrl()}/analytics/excel/upload";
+        try {
+            $req = Http::timeout($this->timeout())
+                ->attach('file', file_get_contents($filePath), $filename);
+
+            $payload = ['workspace_id' => $workspaceId];
+            if ($conversationId !== null) {
+                $payload['conversation_id'] = $conversationId;
+            }
+
+            $response = $req->post($url, $payload);
+
+            if ($response->successful()) {
+                return $response->json();
+            }
+
+            return [
+                'success' => false,
+                'message' => 'HTTP error uploading spreadsheet: ' . $response->status(),
+            ];
+        } catch (Throwable $e) {
+            Log::error('[AnalyticsClient] Failed to upload spreadsheet: ' . $e->getMessage());
+            return [
+                'success' => false,
+                'message' => 'Failed to connect to spreadsheet engine: ' . $e->getMessage(),
+            ];
+        }
+    }
+
+    /**
+     * Query an uploaded Excel virtual database using natural language.
+     *
+     * @param string $question
+     * @param int $workspaceId
+     * @param string|null $fileId
+     * @return array<string, mixed>
+     */
+    public function queryExcel(string $question, int $workspaceId, ?string $fileId = null): array
+    {
+        $url = "{$this->baseUrl()}/analytics/excel/query";
+        try {
+            $response = Http::timeout($this->timeout())
+                ->asJson()
+                ->acceptJson()
+                ->post($url, [
+                    'question'     => $question,
+                    'workspace_id' => $workspaceId,
+                    'file_id'      => $fileId,
+                ]);
+
+            if ($response->successful()) {
+                return $response->json();
+            }
+
+            return [
+                'success' => false,
+                'report'  => "⚠️ **Excel Query Error**: HTTP {$response->status()}",
+                'rows'    => [],
+            ];
+        } catch (Throwable $e) {
+            Log::error('[AnalyticsClient] Failed to query Excel: ' . $e->getMessage());
+            return [
+                'success' => false,
+                'report'  => "⚠️ **Excel Query Unavailable**: " . $e->getMessage(),
+                'rows'    => [],
+            ];
+        }
+    }
 }
+
