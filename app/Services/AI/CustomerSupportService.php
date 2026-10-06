@@ -685,6 +685,15 @@ class CustomerSupportService
      * Dispatch ANALYTICS route to the Python Baseline Analytics Service.
      * Invariant: $workspaceId is strictly injected from trusted Laravel runtime.
      */
+    /**
+     * Dispatch ANALYTICS route to either the Document Analytics Sandbox or Production MySQL Semantic Engine.
+     * Enforces source-selection precedence:
+     * 1. Explicit DB indicators override & clear active file context -> Production MySQL.
+     * 2. Explicit Document/file indicators -> Document Sandbox (establishes active file context).
+     * 3. Ambiguous follow-up with active file context -> Document Sandbox.
+     * 4. Fresh ambiguous query with no active file context -> Default Production MySQL.
+     * Invariant: $workspaceId is strictly injected from trusted Laravel runtime.
+     */
     private function executeAnalyticsRoute(
         Conversation $conversation,
         string $query,
@@ -711,7 +720,61 @@ class CustomerSupportService
         }
 
         $activeFileId = $conversation->metadata['active_file_id'] ?? null;
-        if ($activeFileId !== null) {
+        $isExplicitDb = $this->hasExplicitDatabaseIntent($query);
+        $isExplicitDoc = $this->hasExplicitDocumentIntent($query);
+
+        // Rule 1 & 2: Explicit DB request clears active file context and routes directly to Production MySQL
+        if ($isExplicitDb) {
+            if ($conversation->exists && $activeFileId !== null) {
+                $metadata = $conversation->metadata ?? [];
+                unset($metadata['active_file_id'], $metadata['active_filename'], $metadata['active_file_sheets'], $metadata['active_file_rows']);
+                $conversation->metadata = $metadata;
+                $conversation->save();
+                $activeFileId = null;
+            }
+
+            $analyticsResult = $this->businessAnalyticsTool->execute(
+                query: $query,
+                workspaceId: $workspaceId,
+                history: $history,
+            );
+
+            return $analyticsResult['report'] ?? $this->defaultFallbackText();
+        }
+
+        // Rule 1 & 3: Explicit Document request takes priority and establishes/updates file context
+        if ($isExplicitDoc) {
+            try {
+                $excelResult = $this->excelAnalyticsTool->execute(
+                    question: $query,
+                    workspaceId: $workspaceId,
+                    fileId: $activeFileId !== null ? (string) $activeFileId : null,
+                    history: $history,
+                );
+
+                if (!empty($excelResult['success']) && !empty($excelResult['report'])) {
+                    if (!empty($excelResult['source_id']) && $conversation->exists) {
+                        $metadata = $conversation->metadata ?? [];
+                        $metadata['active_file_id'] = (string) $excelResult['source_id'];
+                        if (!empty($excelResult['filename'])) {
+                            $metadata['active_filename'] = (string) $excelResult['filename'];
+                        }
+                        $conversation->metadata = $metadata;
+                        $conversation->save();
+                    }
+                    return $excelResult['report'];
+                }
+
+                if (!empty($excelResult['is_ambiguous']) || !empty($excelResult['is_cross_source_unsupported'])) {
+                    return $excelResult['report'] ?? 'Please specify which file or sheet you would like to analyze.';
+                }
+            } catch (\Throwable $e) {
+                Log::warning('[CustomerSupportService] Explicit document analytics query fallback: ' . $e->getMessage());
+            }
+        }
+
+        // Rule 4: No explicit source mentioned, but active file context exists (Conversational Follow-up)
+        if (!$isExplicitDoc && !$isExplicitDb && $activeFileId !== null) {
             try {
                 $excelResult = $this->excelAnalyticsTool->execute(
                     question: $query,
@@ -732,6 +795,7 @@ class CustomerSupportService
             }
         }
 
+        // Rule 5: No explicit source and NO active file context -> Default to Production MySQL
         $analyticsResult = $this->businessAnalyticsTool->execute(
             query: $query,
             workspaceId: $workspaceId,
@@ -739,6 +803,52 @@ class CustomerSupportService
         );
 
         return $analyticsResult['report'] ?? $this->defaultFallbackText();
+    }
+
+    /**
+     * Detect explicit database/production system references in query.
+     */
+    private function hasExplicitDatabaseIntent(string $query): bool
+    {
+        $q = mb_strtolower($query, 'UTF-8');
+        $patterns = [
+            '/\b(database|db|production\s+db|live\s+data|main\s+db|mysql)\b/i',
+            '/database[-_\s]*(e|te|er|a|এ|তে|এর|র|ডাটা|data)?/ui',
+            '/\b(db)[-_\s]*(e|te|er|a|এ|তে|এর|র)\b/ui',
+            '/(ডাটাবেজ|ডাটাবেস|ডাটাবেইজ|ডাটাবেইজে|ডাটাবেজে|ডাটাবেসে)/u',
+            '/(সিস্টেম|সিস্টেমে|সিস্টেমের|লাইভ\s*ডাটা|দোকানের\s*ডাটা|দোকানের\s*তথ্য)/u',
+            '/\b(system|system\s+data|live\s+database|store\s+data|shop\s+data)\b/i',
+        ];
+        foreach ($patterns as $pattern) {
+            if (preg_match($pattern, $q)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Detect explicit document/file references in query.
+     */
+    private function hasExplicitDocumentIntent(string $query): bool
+    {
+        $q = mb_strtolower($query, 'UTF-8');
+        if (preg_match('/\b[a-zA-Z0-9_\-\.]+\.(xlsx|xls|csv|pdf)\b/i', $q)) {
+            return true;
+        }
+        $patterns = [
+            '/\b(excel|xlsx|xls|csv|sheet|sheets|spreadsheet|document)\b/i',
+            '/\b(file|files)\b/i',
+            '/(এই|ওই|ঐ|সেই)\s*(ফাইল|file|excel|এক্সেল|শিট|sheet|csv)/ui',
+            '/(ফাইল|ফাইলে|ফাইলের|শিট|শিটে|শিটের|শীট|শীটে|শীটের|এক্সেল|এক্সেলে|স্প্রেডশিট)/u',
+            '/\b(this\s+file|this\s+excel|the\s+file|uploaded\s+file|in\s+file|from\s+file)\b/i',
+        ];
+        foreach ($patterns as $pattern) {
+            if (preg_match($pattern, $q)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private function resetUncertainCount(Conversation $conversation): void
