@@ -139,16 +139,22 @@ class AnalyticsClient
     }
 
     /**
-     * Upload an Excel or CSV file to the Python Analytics Virtual Database Engine.
+     * Upload a Document or Spreadsheet (Excel/CSV/PDF) to the Python Analytics Virtual Database Engine.
      *
      * @param string $filePath Full path to local temporary/stored file
      * @param string $filename Original filename
      * @param int $workspaceId
      * @param string|null $conversationId
+     * @param string|null $format Optional source format override (e.g. 'xlsx', 'csv', 'pdf')
      * @return array<string, mixed>
      */
-    public function uploadSpreadsheet(string $filePath, string $filename, int $workspaceId, ?string $conversationId = null): array
-    {
+    public function uploadSpreadsheet(
+        string $filePath,
+        string $filename,
+        int $workspaceId,
+        ?string $conversationId = null,
+        ?string $format = null,
+    ): array {
         $url = "{$this->baseUrl()}/analytics/excel/upload";
         try {
             $req = Http::timeout($this->timeout())
@@ -157,6 +163,9 @@ class AnalyticsClient
             $payload = ['workspace_id' => $workspaceId];
             if ($conversationId !== null) {
                 $payload['conversation_id'] = $conversationId;
+            }
+            if ($format !== null) {
+                $payload['format'] = $format;
             }
 
             $response = $req->post($url, $payload);
@@ -167,40 +176,73 @@ class AnalyticsClient
 
             return [
                 'success' => false,
-                'message' => 'HTTP error uploading spreadsheet: ' . $response->status(),
+                'message' => 'HTTP error uploading data source: ' . $response->status(),
             ];
         } catch (Throwable $e) {
-            Log::error('[AnalyticsClient] Failed to upload spreadsheet: ' . $e->getMessage());
+            Log::error('[AnalyticsClient] Failed to upload data source: ' . $e->getMessage());
             return [
                 'success' => false,
-                'message' => 'Failed to connect to spreadsheet engine: ' . $e->getMessage(),
+                'message' => 'Failed to connect to analytics engine: ' . $e->getMessage(),
             ];
         }
     }
 
     /**
-     * Query an uploaded Excel virtual database using natural language.
+     * Upload any supported data source document to the Python Data Source Registry.
+     *
+     * @param string $filePath
+     * @param string $filename
+     * @param int $workspaceId
+     * @param string|null $conversationId
+     * @param string|null $format
+     * @return array<string, mixed>
+     */
+    public function uploadDocumentSource(
+        string $filePath,
+        string $filename,
+        int $workspaceId,
+        ?string $conversationId = null,
+        ?string $format = null,
+    ): array {
+        return $this->uploadSpreadsheet($filePath, $filename, $workspaceId, $conversationId, $format);
+    }
+
+    /**
+     * Query an uploaded document/spreadsheet virtual database using natural language.
      *
      * @param string $question
      * @param int $workspaceId
      * @param string|null $fileId
+     * @param array<int, array<string, string>>|null $history
      * @return array<string, mixed>
      */
-    public function queryExcel(string $question, int $workspaceId, ?string $fileId = null): array
-    {
+    public function queryExcel(
+        string $question,
+        int $workspaceId,
+        ?string $fileId = null,
+        ?array $history = null,
+    ): array {
         $url = "{$this->baseUrl()}/analytics/excel/query";
         try {
+            $payload = [
+                'question'     => $question,
+                'workspace_id' => $workspaceId,
+            ];
+            if ($fileId !== null && trim($fileId) !== '') {
+                $payload['file_id'] = $fileId;
+            }
+            if (!empty($history)) {
+                $payload['history'] = $history;
+            }
+
             $response = Http::timeout($this->timeout())
                 ->asJson()
                 ->acceptJson()
-                ->post($url, [
-                    'question'     => $question,
-                    'workspace_id' => $workspaceId,
-                    'file_id'      => $fileId,
-                ]);
+                ->post($url, $payload);
 
             if ($response->successful()) {
-                return $response->json();
+                $data = $response->json();
+                return is_array($data) ? $data : ['success' => false, 'report' => 'Invalid response from analytics service.'];
             }
 
             return [
@@ -209,7 +251,7 @@ class AnalyticsClient
                 'rows'    => [],
             ];
         } catch (Throwable $e) {
-            Log::error('[AnalyticsClient] Failed to query Excel: ' . $e->getMessage());
+            Log::error('[AnalyticsClient] Failed to query document source: ' . $e->getMessage());
             return [
                 'success' => false,
                 'report'  => "⚠️ **Excel Query Unavailable**: " . $e->getMessage(),
@@ -217,5 +259,89 @@ class AnalyticsClient
             ];
         }
     }
+
+    /**
+     * Query document sources in the Python Data Source Engine.
+     *
+     * @param string $question
+     * @param int $workspaceId
+     * @param string|null $fileId
+     * @param array<int, array<string, string>>|null $history
+     * @return array<string, mixed>
+     */
+    public function queryDocumentSource(
+        string $question,
+        int $workspaceId,
+        ?string $fileId = null,
+        ?array $history = null,
+    ): array {
+        return $this->queryExcel($question, $workspaceId, $fileId, $history);
+    }
+
+    /**
+     * List all registered data sources for a workspace.
+     *
+     * @param int $workspaceId
+     * @return array<string, mixed>
+     */
+    public function listSources(int $workspaceId): array
+    {
+        $url = "{$this->baseUrl()}/analytics/sources/list";
+        try {
+            $response = Http::timeout($this->timeout())
+                ->acceptJson()
+                ->get($url, ['workspace_id' => $workspaceId]);
+
+            if ($response->successful()) {
+                return $response->json();
+            }
+
+            return [
+                'success' => false,
+                'sources' => [],
+                'message' => "HTTP {$response->status()}",
+            ];
+        } catch (Throwable $e) {
+            Log::error('[AnalyticsClient] Failed to list sources: ' . $e->getMessage());
+            return [
+                'success' => false,
+                'sources' => [],
+                'message' => $e->getMessage(),
+            ];
+        }
+    }
+
+    /**
+     * Delete a registered data source.
+     *
+     * @param int $workspaceId
+     * @param string $sourceId
+     * @return array<string, mixed>
+     */
+    public function deleteSource(int $workspaceId, string $sourceId): array
+    {
+        $url = "{$this->baseUrl()}/analytics/sources/{$sourceId}";
+        try {
+            $response = Http::timeout($this->timeout())
+                ->acceptJson()
+                ->delete($url, ['workspace_id' => $workspaceId]);
+
+            if ($response->successful()) {
+                return $response->json();
+            }
+
+            return [
+                'success' => false,
+                'message' => "HTTP {$response->status()}",
+            ];
+        } catch (Throwable $e) {
+            Log::error('[AnalyticsClient] Failed to delete source: ' . $e->getMessage());
+            return [
+                'success' => false,
+                'message' => $e->getMessage(),
+            ];
+        }
+    }
 }
+
 

@@ -44,7 +44,7 @@ class ChatSimulatorControllerTest extends TestCase
 
         // Attempt injection via browser payload
         \App\AI\LLM\LLMClient::fake([
-            '{"route": "ANALYTICS", "confidence": 0.99, "reason": "test"}'
+            '{"route": "ANALYTICS", "confidence": 0.99, "security_status": "allowed", "reason": "test"}'
         ]);
         $response = $this->actingAs($user)->postJson('/dashboard/simulator/send', [
             'message' => 'show total sales',

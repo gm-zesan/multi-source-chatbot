@@ -36,14 +36,20 @@ class ExcelAnalyticsTool implements Tool
      * @param string $question Natural language question about the uploaded spreadsheet
      * @param int $workspaceId Authenticated workspace context
      * @param string|null $fileId Optional file ID
+     * @param array<int, array<string, string>>|null $history Optional conversation history
      * @return array<string, mixed>
      */
-    public function execute(string $question, int $workspaceId, ?string $fileId = null): array
-    {
+    public function execute(
+        string $question,
+        int $workspaceId,
+        ?string $fileId = null,
+        ?array $history = null,
+    ): array {
         return $this->analyticsClient->queryExcel(
             question: $question,
             workspaceId: $workspaceId,
             fileId: $fileId,
+            history: $history,
         );
     }
 
@@ -55,6 +61,7 @@ class ExcelAnalyticsTool implements Tool
         $question = trim((string) ($request['question'] ?? ''));
         $workspaceId = (int) ($request['workspace_id'] ?? $this->workspaceId ?? 1);
         $fileId = isset($request['file_id']) ? (string) $request['file_id'] : null;
+        $history = isset($request['history']) && is_array($request['history']) ? $request['history'] : null;
 
         if ($question === '') {
             return 'No question provided for Excel spreadsheet analysis.';
@@ -64,6 +71,7 @@ class ExcelAnalyticsTool implements Tool
             question: $question,
             workspaceId: $workspaceId,
             fileId: $fileId,
+            history: $history,
         );
 
         return $result['report'] ?? 'Could not retrieve Excel analysis data.';

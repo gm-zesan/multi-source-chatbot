@@ -693,28 +693,73 @@
             const dataPoints = [];
             let mainTitle = 'Metrics Breakdown';
 
-            const metricRegex = /[-*•]\s*\**([A-Za-z0-9\s_&-]+?)\**:\s*([^\n\r]+)/;
-            
-            for (const line of lines) {
-                const trimmed = line.trim();
-                if (trimmed.startsWith('#') || trimmed.includes('**Business Analytics') || trimmed.includes('Summary')) {
-                    const cleanTitle = trimmed.replace(/^[#* \-_]+|[#* \-_]+$/g, '');
-                    if (cleanTitle) mainTitle = cleanTitle;
+            // 1. First attempt: Parse Markdown Table (| Category | Value |)
+            const tableLines = lines.map(l => l.trim()).filter(l => l.startsWith('|') && l.endsWith('|'));
+            if (tableLines.length >= 2) {
+                let headerFound = false;
+                let valColIdx = -1;
+                let labelColIdx = -1;
+
+                for (let i = 0; i < tableLines.length; i++) {
+                    const row = tableLines[i];
+                    if (/^\|[\s\-:|]+\|$/.test(row)) continue; // Divider row
+
+                    const cells = row.split('|').slice(1, -1).map(c => c.trim());
+                    if (!headerFound) {
+                        headerFound = true;
+                        for (let c = 0; c < cells.length; c++) {
+                            const hLower = cells[c].toLowerCase();
+                            if (hLower.includes('amount') || hLower.includes('count') || hLower.includes('total') || 
+                                hLower.includes('sales') || hLower.includes('collection') || hLower.includes('due') || 
+                                hLower.includes('taka') || hLower.includes('টাকা') || hLower.includes('সংখ্যা') || hLower.includes('পরিমাণ')) {
+                                valColIdx = c;
+                            } else if (labelColIdx === -1) {
+                                labelColIdx = c;
+                            }
+                        }
+                        if (valColIdx === -1 && cells.length >= 2) valColIdx = cells.length - 1;
+                        if (labelColIdx === -1) labelColIdx = 0;
+                    } else {
+                        const label = cells[labelColIdx] || `Item ${dataPoints.length + 1}`;
+                        const rawVal = cells[valColIdx] || '';
+                        const cleanNumStr = rawVal.replace(/[^0-9.-]/g, '');
+                        const num = parseFloat(cleanNumStr);
+
+                        if (!isNaN(num)) {
+                            dataPoints.push({
+                                label: label,
+                                raw: rawVal,
+                                value: num,
+                            });
+                        }
+                    }
                 }
+            }
 
-                const match = trimmed.match(metricRegex);
-                if (match) {
-                    const label = match[1].trim();
-                    const rawVal = match[2].trim();
-                    const cleanNumStr = rawVal.replace(/[^0-9.-]/g, '');
-                    const num = parseFloat(cleanNumStr);
+            // 2. Second attempt: Bullet points with key-value format
+            if (dataPoints.length === 0) {
+                const metricRegex = /[-*•]\s*\**([A-Za-z0-9\s_&-]+?)\**:\s*([^\n\r]+)/;
+                for (const line of lines) {
+                    const trimmed = line.trim();
+                    if (trimmed.startsWith('#') || trimmed.includes('**Business Analytics') || trimmed.includes('Summary') || trimmed.includes('Report')) {
+                        const cleanTitle = trimmed.replace(/^[#* \-_]+|[#* \-_]+$/g, '');
+                        if (cleanTitle) mainTitle = cleanTitle;
+                    }
 
-                    if (!isNaN(num) && num > 0) {
-                        dataPoints.push({
-                            label: label,
-                            raw: rawVal,
-                            value: num,
-                        });
+                    const match = trimmed.match(metricRegex);
+                    if (match) {
+                        const label = match[1].trim();
+                        const rawVal = match[2].trim();
+                        const cleanNumStr = rawVal.replace(/[^0-9.-]/g, '');
+                        const num = parseFloat(cleanNumStr);
+
+                        if (!isNaN(num) && num > 0) {
+                            dataPoints.push({
+                                label: label,
+                                raw: rawVal,
+                                value: num,
+                            });
+                        }
                     }
                 }
             }

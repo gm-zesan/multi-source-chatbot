@@ -92,4 +92,23 @@ class ExcelAnalyticsToolTest extends TestCase
 
         $this->assertSame('Could not retrieve Excel analysis data.', (string) $result);
     }
+
+    public function test_execute_delegates_with_history(): void
+    {
+        $clientMock = $this->createMock(AnalyticsClient::class);
+        $history = [['role' => 'user', 'content' => 'prev msg']];
+        $clientMock->expects($this->once())
+            ->method('queryExcel')
+            ->with('what about June?', 2, 'file_99', $history)
+            ->willReturn([
+                'success' => true,
+                'report' => 'June revenue: ৳120,000',
+            ]);
+
+        $tool = new ExcelAnalyticsTool($clientMock);
+        $result = $tool->execute('what about June?', 2, 'file_99', $history);
+
+        $this->assertTrue($result['success']);
+        $this->assertSame('June revenue: ৳120,000', $result['report']);
+    }
 }

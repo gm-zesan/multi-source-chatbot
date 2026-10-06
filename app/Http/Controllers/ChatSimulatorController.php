@@ -12,6 +12,7 @@ use App\Models\Workspace;
 use App\Services\AI\CustomerSupportService;
 use App\Services\CRM\CRMService;
 use App\Services\Retrieval\RetrievalClient;
+use App\Services\Analytics\AnalyticsClient;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -23,6 +24,7 @@ class ChatSimulatorController extends Controller
         private readonly CRMService $crmService,
         private readonly CustomerSupportService $customerSupportService,
         private readonly RetrievalClient $retrievalClient,
+        private readonly AnalyticsClient $analyticsClient,
     ) {
     }
 
@@ -42,7 +44,14 @@ class ChatSimulatorController extends Controller
             return $total > 0;
         }));
 
-        return view('admin.simulator', compact('messages', 'llmUsageHistory'));
+        $activeSpreadsheet = [
+            'file_id' => $conversation->metadata['active_file_id'] ?? null,
+            'filename' => $conversation->metadata['active_filename'] ?? null,
+            'sheets' => $conversation->metadata['active_file_sheets'] ?? [],
+            'total_rows' => $conversation->metadata['active_file_rows'] ?? 0,
+        ];
+
+        return view('admin.simulator', compact('messages', 'llmUsageHistory', 'activeSpreadsheet'));
     }
 
     /**
@@ -349,6 +358,105 @@ class ChatSimulatorController extends Controller
         $conversation->update(['metadata' => []]);
 
         return response()->json(['success' => true, 'message' => 'Simulator conversation history cleared.']);
+    }
+
+    /**
+     * Upload and ingest an Excel or CSV file for virtual database querying in the simulator.
+     */
+    public function uploadExcel(Request $request): JsonResponse
+    {
+        $request->validate([
+            'file' => 'required|file|max:20480', // 20MB max
+        ]);
+
+        $workspaceId = $this->resolveWorkspaceId();
+        $conversation = $this->resolveSimulatorConversation($request, $workspaceId);
+
+        $file = $request->file('file');
+        $originalName = $file->getClientOriginalName();
+        $tempPath = $file->getRealPath();
+
+        $result = $this->analyticsClient->uploadSpreadsheet(
+            filePath: $tempPath,
+            filename: $originalName,
+            workspaceId: $workspaceId,
+            conversationId: (string) $conversation->id,
+        );
+
+        if (!empty($result['success'])) {
+            $metadata = $conversation->metadata ?? [];
+            $fileId = (string) ($result['file_id'] ?? '');
+            $metadata['active_file_id'] = $fileId;
+            $metadata['active_filename'] = $originalName;
+            $metadata['active_file_sheets'] = $result['sheets'] ?? [];
+            $metadata['active_file_rows'] = $result['total_rows'] ?? 0;
+
+            $uploadedSources = $metadata['uploaded_sources'] ?? [];
+            if ($fileId !== '') {
+                $uploadedSources[$fileId] = [
+                    'file_id' => $fileId,
+                    'filename' => $originalName,
+                    'sheets' => $result['sheets'] ?? [],
+                    'total_rows' => $result['total_rows'] ?? 0,
+                    'uploaded_at' => now()->toIso8601String(),
+                ];
+            }
+            $metadata['uploaded_sources'] = $uploadedSources;
+            $conversation->metadata = $metadata;
+            $conversation->save();
+
+            // Record system notice in conversation
+            Message::create([
+                'conversation_id' => $conversation->id,
+                'direction' => 'inbound',
+                'type' => 'text',
+                'body' => "📎 Uploaded Data Source: {$originalName} (" . count($result['sheets'] ?? []) . " datasets/sheets)",
+            ]);
+
+            $summaryMarkdown = $result['schema_summary'] ?? ("📊 **Data Source Loaded:** `{$originalName}`\n" . count($result['sheets'] ?? []) . " datasets/sheets ingested.");
+
+            Message::create([
+                'conversation_id' => $conversation->id,
+                'direction' => 'outbound',
+                'type' => 'text',
+                'body' => $summaryMarkdown,
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => $result['message'] ?? 'Data source ingested successfully.',
+                'file_id' => $result['file_id'] ?? null,
+                'filename' => $originalName,
+                'sheets' => $result['sheets'] ?? [],
+                'total_rows' => $result['total_rows'] ?? 0,
+                'schema_summary' => $summaryMarkdown,
+                'uploaded_sources' => array_values($uploadedSources),
+            ]);
+        }
+
+        return response()->json([
+            'success' => false,
+            'message' => $result['message'] ?? 'Failed to process data source file.',
+        ], 422);
+    }
+
+    /**
+     * Clear active uploaded data source context from simulator session.
+     */
+    public function clearExcel(Request $request): JsonResponse
+    {
+        $workspaceId = $this->resolveWorkspaceId();
+        $conversation = $this->resolveSimulatorConversation($request, $workspaceId);
+
+        $metadata = $conversation->metadata ?? [];
+        unset($metadata['active_file_id'], $metadata['active_filename'], $metadata['active_file_sheets'], $metadata['active_file_rows'], $metadata['uploaded_sources']);
+        $conversation->metadata = $metadata;
+        $conversation->save();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Active data sources removed from simulator session.',
+        ]);
     }
 }
 

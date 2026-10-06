@@ -710,6 +710,28 @@ class CustomerSupportService
             }
         }
 
+        $activeFileId = $conversation->metadata['active_file_id'] ?? null;
+        if ($activeFileId !== null) {
+            try {
+                $excelResult = $this->excelAnalyticsTool->execute(
+                    question: $query,
+                    workspaceId: $workspaceId,
+                    fileId: (string) $activeFileId,
+                    history: $history,
+                );
+
+                if (!empty($excelResult['success']) && !empty($excelResult['report'])) {
+                    return $excelResult['report'];
+                }
+
+                if (!empty($excelResult['is_ambiguous']) || !empty($excelResult['is_cross_source_unsupported'])) {
+                    return $excelResult['report'] ?? 'Please specify which file or sheet you would like to analyze.';
+                }
+            } catch (\Throwable $e) {
+                Log::warning('[CustomerSupportService] Excel analytics query fallback: ' . $e->getMessage());
+            }
+        }
+
         $analyticsResult = $this->businessAnalyticsTool->execute(
             query: $query,
             workspaceId: $workspaceId,

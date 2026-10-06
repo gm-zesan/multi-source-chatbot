@@ -630,9 +630,34 @@
 
                     <!-- Input area -->
                     <div class="chat-input-area">
-                        <form id="chatForm" onsubmit="handleSend(event); return false;" class="d-flex gap-2">
+                        <!-- Active Spreadsheet Badge / Upload Bar -->
+                        <div id="activeSpreadsheetBar" class="mb-2 {{ !empty($activeSpreadsheet['file_id']) ? '' : 'd-none' }}">
+                            <div class="d-flex align-items-center justify-content-between p-2 rounded-3 bg-light border border-success border-opacity-50">
+                                <div class="d-flex align-items-center gap-2 overflow-hidden">
+                                    <span class="badge bg-success d-flex align-items-center gap-1 py-1 px-2">
+                                        <i class="ri-file-excel-2-fill"></i> Excel Virtual DB
+                                    </span>
+                                    <span id="activeSpreadsheetName" class="fw-semibold text-truncate small text-dark" style="max-width: 260px;">
+                                        {{ $activeSpreadsheet['filename'] ?? '' }}
+                                    </span>
+                                    <span id="activeSpreadsheetSheets" class="badge bg-secondary-subtle text-secondary small py-1 px-2">
+                                        {{ count($activeSpreadsheet['sheets'] ?? []) }} sheets
+                                    </span>
+                                </div>
+                                <button type="button" class="btn btn-sm btn-outline-danger py-0 px-2 rounded-pill" onclick="clearUploadedExcel()" title="Remove active spreadsheet">
+                                    <i class="ri-close-line"></i> Clear
+                                </button>
+                            </div>
+                        </div>
+
+                        <form id="chatForm" onsubmit="handleSend(event); return false;" class="d-flex gap-2 align-items-center">
+                            <input type="file" id="excelFileInput" accept=".xlsx,.xls,.csv" style="display:none;" onchange="handleExcelUpload(this)">
+                            <button type="button" class="btn btn-outline-success d-flex align-items-center gap-1 px-3" onclick="document.getElementById('excelFileInput').click()" id="uploadExcelBtn" title="Upload Excel/CSV (.xlsx, .xls, .csv)">
+                                <i class="ri-file-excel-2-line fs-5"></i>
+                                <span class="d-none d-sm-inline small fw-semibold">Upload Excel</span>
+                            </button>
                             <input type="text" id="userInput" class="form-control form-control-lg fs-6"
-                                placeholder="Type your message here..." autocomplete="off" required>
+                                placeholder="Type your message or ask spreadsheet questions..." autocomplete="off" required>
                             <button type="button" onclick="handleSend(event)" id="sendBtn"
                                 class="btn btn-primary px-4 d-flex align-items-center gap-1">
                                 <i class="ri-send-plane-fill"></i> Send
@@ -2012,6 +2037,86 @@
             }
         };
 
+        async function handleExcelUpload(input) {
+            if (!input.files || input.files.length === 0) return;
+            const file = input.files[0];
+            const uploadBtn = document.getElementById('uploadExcelBtn');
+            const originalHtml = uploadBtn.innerHTML;
+
+            uploadBtn.disabled = true;
+            uploadBtn.innerHTML = `<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span> Ingesting...`;
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            try {
+                const response = await fetch("{{ route('simulator.upload_excel') }}", {
+                    method: "POST",
+                    headers: {
+                        "X-CSRF-TOKEN": "{{ csrf_token() }}"
+                    },
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    // Update active bar UI
+                    const bar = document.getElementById('activeSpreadsheetBar');
+                    const nameEl = document.getElementById('activeSpreadsheetName');
+                    const sheetsEl = document.getElementById('activeSpreadsheetSheets');
+                    if (bar && nameEl && sheetsEl) {
+                        nameEl.innerText = data.filename || file.name;
+                        sheetsEl.innerText = `${(data.sheets || []).length} sheets`;
+                        bar.classList.remove('d-none');
+                    }
+
+                    // Append system message in chat
+                    appendMessage(`📎 **Uploaded:** ${file.name} (${(data.sheets || []).length} sheets, ${data.total_rows || 0} rows)`, 'user');
+                    appendMessage(data.schema_summary || data.message || `Spreadsheet ${file.name} ingested successfully as Virtual SQLite Database!`, 'bot', {
+                        route: 'analytics',
+                        confidence: 100,
+                        reply: data.schema_summary
+                    });
+                } else {
+                    alert("Upload Error: " + (data.message || "Failed to process file"));
+                }
+            } catch (err) {
+                console.error("Excel upload error:", err);
+                alert("Upload failed. Check server connectivity.");
+            } finally {
+                uploadBtn.disabled = false;
+                uploadBtn.innerHTML = originalHtml;
+                input.value = '';
+            }
+        }
+
+        async function clearUploadedExcel() {
+            if (!confirm("Are you sure you want to remove the active spreadsheet from this simulator session?")) return;
+
+            try {
+                const response = await fetch("{{ route('simulator.clear_excel') }}", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "X-CSRF-TOKEN": "{{ csrf_token() }}"
+                    }
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    const bar = document.getElementById('activeSpreadsheetBar');
+                    if (bar) bar.classList.add('d-none');
+                    appendMessage("🗑️ Active spreadsheet removed. Queries will now target general business databases.", 'bot', {
+                        route: 'analytics',
+                        confidence: 100
+                    });
+                }
+            } catch (err) {
+                console.error("Clear spreadsheet error:", err);
+            }
+        }
+
         function setQueryAndSend(text) {
             document.getElementById('userInput').value = text;
             const fakeEvent = { preventDefault: () => { } };
@@ -2693,30 +2798,75 @@
             const dataPoints = [];
             let mainTitle = 'Metrics Breakdown';
 
-            // Extract bullet points with numeric values (e.g. - **Sales Amount:** ৳420,000.00)
-            const metricRegex = /[-*•]\s*\**([A-Za-z0-9\s_&-]+?)\**:\s*([^\n\r]+)/;
-            
-            for (const line of lines) {
-                const trimmed = line.trim();
-                if (trimmed.startsWith('#') || trimmed.includes('**Business Analytics') || trimmed.includes('Summary')) {
-                    const cleanTitle = trimmed.replace(/^[#* \-_]+|[#* \-_]+$/g, '');
-                    if (cleanTitle) mainTitle = cleanTitle;
+            // 1. First attempt: Parse Markdown Table (| Category | Value |)
+            const tableLines = lines.map(l => l.trim()).filter(l => l.startsWith('|') && l.endsWith('|'));
+            if (tableLines.length >= 2) {
+                let headerFound = false;
+                let valColIdx = -1;
+                let labelColIdx = -1;
+
+                for (let i = 0; i < tableLines.length; i++) {
+                    const row = tableLines[i];
+                    if (/^\|[\s\-:|]+\|$/.test(row)) continue; // Divider row
+
+                    const cells = row.split('|').slice(1, -1).map(c => c.trim());
+                    if (!headerFound) {
+                        headerFound = true;
+                        // Determine label and value columns
+                        for (let c = 0; c < cells.length; c++) {
+                            const hLower = cells[c].toLowerCase();
+                            if (hLower.includes('amount') || hLower.includes('count') || hLower.includes('total') || 
+                                hLower.includes('sales') || hLower.includes('collection') || hLower.includes('due') || 
+                                hLower.includes('taka') || hLower.includes('টাকা') || hLower.includes('সংখ্যা') || hLower.includes('পরিমাণ')) {
+                                valColIdx = c;
+                            } else if (labelColIdx === -1) {
+                                labelColIdx = c;
+                            }
+                        }
+                        if (valColIdx === -1 && cells.length >= 2) valColIdx = cells.length - 1;
+                        if (labelColIdx === -1) labelColIdx = 0;
+                    } else {
+                        // Data rows
+                        const label = cells[labelColIdx] || `Item ${dataPoints.length + 1}`;
+                        const rawVal = cells[valColIdx] || '';
+                        const cleanNumStr = rawVal.replace(/[^0-9.-]/g, '');
+                        const num = parseFloat(cleanNumStr);
+
+                        if (!isNaN(num)) {
+                            dataPoints.push({
+                                label: label,
+                                raw: rawVal,
+                                value: num,
+                            });
+                        }
+                    }
                 }
+            }
 
-                const match = trimmed.match(metricRegex);
-                if (match) {
-                    const label = match[1].trim();
-                    const rawVal = match[2].trim();
-                    // Extract numerical value (supports currency ৳, $, commas, floats)
-                    const cleanNumStr = rawVal.replace(/[^0-9.-]/g, '');
-                    const num = parseFloat(cleanNumStr);
+            // 2. Second attempt: Bullet points with key-value format
+            if (dataPoints.length === 0) {
+                const metricRegex = /[-*•]\s*\**([A-Za-z0-9\s_&-]+?)\**:\s*([^\n\r]+)/;
+                for (const line of lines) {
+                    const trimmed = line.trim();
+                    if (trimmed.startsWith('#') || trimmed.includes('**Business Analytics') || trimmed.includes('Summary') || trimmed.includes('Report')) {
+                        const cleanTitle = trimmed.replace(/^[#* \-_]+|[#* \-_]+$/g, '');
+                        if (cleanTitle) mainTitle = cleanTitle;
+                    }
 
-                    if (!isNaN(num) && num > 0) {
-                        dataPoints.push({
-                            label: label,
-                            raw: rawVal,
-                            value: num,
-                        });
+                    const match = trimmed.match(metricRegex);
+                    if (match) {
+                        const label = match[1].trim();
+                        const rawVal = match[2].trim();
+                        const cleanNumStr = rawVal.replace(/[^0-9.-]/g, '');
+                        const num = parseFloat(cleanNumStr);
+
+                        if (!isNaN(num) && num > 0) {
+                            dataPoints.push({
+                                label: label,
+                                raw: rawVal,
+                                value: num,
+                            });
+                        }
                     }
                 }
             }

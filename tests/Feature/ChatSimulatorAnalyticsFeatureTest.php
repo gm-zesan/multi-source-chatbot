@@ -38,7 +38,7 @@ class ChatSimulatorAnalyticsFeatureTest extends TestCase
     public function test_simulator_send_dispatches_analytics_query_end_to_end(): void
     {
         \App\AI\LLM\LLMClient::fake([
-            '{"route": "ANALYTICS", "confidence": 0.99, "reason": "test"}'
+            '{"route": "ANALYTICS", "confidence": 0.99, "security_status": "allowed", "reason": "test"}'
         ]);
 
         Http::fake([

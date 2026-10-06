@@ -39,6 +39,8 @@ Route::middleware('auth')->prefix('dashboard')->group(function () {
     Route::get('/simulator', [ChatSimulatorController::class, 'index'])->name('simulator.index');
     Route::post('/simulator/send', [ChatSimulatorController::class, 'send'])->middleware('throttle:60,1')->name('simulator.send');
     Route::post('/simulator/clear', [ChatSimulatorController::class, 'clear'])->name('simulator.clear');
+    Route::post('/simulator/upload-excel', [ChatSimulatorController::class, 'uploadExcel'])->name('simulator.upload_excel');
+    Route::post('/simulator/clear-excel', [ChatSimulatorController::class, 'clearExcel'])->name('simulator.clear_excel');
 
     // Export Routes (Excel, CSV, PDF)
     Route::get('/export/simulator/{format}', [\App\Http\Controllers\ExportController::class, 'exportSimulator'])->name('export.simulator');
