@@ -7,9 +7,7 @@ namespace Tests\Feature;
 use App\AI\LLM\LLMClient;
 use App\AI\LLM\LLMRequest;
 use App\AI\LLM\LLMResponse;
-use App\AI\LLM\Providers\DeepSeekProvider;
-use App\AI\LLM\Providers\OpenAIProvider;
-use App\AI\LLM\Providers\OpenRouterProvider;
+use App\AI\LLM\Providers\GenericProvider;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
@@ -36,7 +34,7 @@ class LLMProviderAbstractionTest extends TestCase
             ], 200),
         ]);
 
-        $provider = new DeepSeekProvider(apiKey: 'sk-test', baseUrl: 'https://api.deepseek.com', defaultModel: 'deepseek-chat');
+        $provider = new GenericProvider(name: 'deepseek', apiKey: 'sk-test', baseUrl: 'https://api.deepseek.com', defaultModel: 'deepseek-chat');
         $request = LLMRequest::fromPrompt('Test prompt', 'System instructions');
 
         $response = $provider->send($request);
@@ -62,7 +60,7 @@ class LLMProviderAbstractionTest extends TestCase
             ], 200),
         ]);
 
-        $provider = new OpenRouterProvider(apiKey: 'sk-or-test', baseUrl: 'https://openrouter.ai/api/v1', defaultModel: 'openrouter/free');
+        $provider = new GenericProvider(name: 'openrouter', apiKey: 'sk-or-test', baseUrl: 'https://openrouter.ai/api/v1', defaultModel: 'openrouter/free');
         $request = LLMRequest::fromPrompt('Test prompt');
 
         $response = $provider->send($request);
@@ -87,7 +85,7 @@ class LLMProviderAbstractionTest extends TestCase
             ], 200),
         ]);
 
-        $provider = new OpenAIProvider(apiKey: 'sk-oa-test', baseUrl: 'https://api.openai.com/v1', defaultModel: 'gpt-4o-mini');
+        $provider = new GenericProvider(name: 'openai', apiKey: 'sk-oa-test', baseUrl: 'https://api.openai.com/v1', defaultModel: 'gpt-4o-mini');
         $request = LLMRequest::fromPrompt('Test prompt');
 
         $response = $provider->send($request);
@@ -119,8 +117,8 @@ class LLMProviderAbstractionTest extends TestCase
         ]);
 
         $client = new LLMClient([
-            'deepseek' => new DeepSeekProvider('sk-test', 'https://api.deepseek.com'),
-            'openrouter' => new OpenRouterProvider('sk-test', 'https://openrouter.ai/api/v1'),
+            'deepseek' => new GenericProvider('deepseek', 'sk-test', 'https://api.deepseek.com', 'deepseek-chat'),
+            'openrouter' => new GenericProvider('openrouter', 'sk-test', 'https://openrouter.ai/api/v1', 'openrouter/free'),
         ]);
 
         $request = LLMRequest::fromPrompt('What is the return window?');
@@ -159,8 +157,8 @@ class LLMProviderAbstractionTest extends TestCase
         ]);
 
         $client = new LLMClient([
-            'deepseek' => new DeepSeekProvider('sk-bad-key', 'https://api.deepseek.com'),
-            'openrouter' => new OpenRouterProvider('sk-good-key', 'https://openrouter.ai/api/v1'),
+            'deepseek' => new GenericProvider('deepseek', 'sk-bad-key', 'https://api.deepseek.com', 'deepseek-chat'),
+            'openrouter' => new GenericProvider('openrouter', 'sk-good-key', 'https://openrouter.ai/api/v1', 'openrouter/free'),
         ]);
 
         $this->expectException(\RuntimeException::class);
@@ -184,7 +182,7 @@ class LLMProviderAbstractionTest extends TestCase
         ]);
 
         $client = new LLMClient([
-            'deepseek' => new DeepSeekProvider('sk-test', 'https://api.deepseek.com'),
+            'deepseek' => new GenericProvider('deepseek', 'sk-test', 'https://api.deepseek.com', 'deepseek-chat'),
         ]);
 
         $response = $client->generate(LLMRequest::fromPrompt('Test'));

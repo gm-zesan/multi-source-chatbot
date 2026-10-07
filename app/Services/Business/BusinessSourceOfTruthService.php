@@ -170,6 +170,7 @@ class BusinessSourceOfTruthService
                 ->get();
 
             $qLower = mb_strtolower($query);
+            $matchedAny = false;
             foreach ($matchingProducts as $product) {
                 $pNameLower = mb_strtolower($product->name);
                 if (str_contains($qLower, $pNameLower) || str_contains($qLower, str_replace(' ', '', $pNameLower))) {
@@ -179,7 +180,18 @@ class BusinessSourceOfTruthService
                         "  * Category: {$product->category}\n" .
                         "  * Price: ৳{$formattedPrice}\n" .
                         "  * Stock Status: Available in Stock";
+                    $matchedAny = true;
                 }
+            }
+
+            // If general product list/catalog inquiry (e.g. "ki ki product ache?", "কি কি প্রোডাক্ট আছে")
+            if (!$matchedAny && preg_match('/(product|প্রোডাক্ট|পণ্য|আইটেম|item|list|তালিকা|কালেকশন|collection)/ui', $query) && $matchingProducts->isNotEmpty()) {
+                $productListLines = [];
+                foreach ($matchingProducts->take(10) as $prod) {
+                    $priceStr = number_format((float) $prod->unit_price, 2);
+                    $productListLines[] = "  * {$prod->name} ({$prod->category}) - ৳{$priceStr}";
+                }
+                $sections[] = "- Available Products in Catalog (Authoritative Truth):\n" . implode("\n", $productListLines);
             }
         } catch (\Throwable $e) {
             Log::warning('[BusinessSourceOfTruth] Product lookup skipped: ' . $e->getMessage());

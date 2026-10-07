@@ -8,11 +8,6 @@ use App\Events\IncomingMessageReceived;
 use App\Listeners\ExtractCRMEntitiesListener;
 use App\Listeners\RecordAITelemetryListener;
 use App\Listeners\RunFAQEngineListener;
-use App\Models\ActionIntentMapping;
-use App\Models\ConceptPhrasePattern;
-use App\Models\LexiconDomainEntry;
-use App\Models\PolicyIntentMapping;
-use App\Observers\LexiconModelObserver;
 use Illuminate\Foundation\Support\Providers\EventServiceProvider as ServiceProvider;
 
 class EventServiceProvider extends ServiceProvider

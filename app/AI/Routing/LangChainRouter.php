@@ -8,6 +8,15 @@ use App\Models\Conversation;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
+/**
+ * @internal Frozen Research Benchmark Adapter.
+ * 
+ * NOTE: This class is used solely for offline comparative benchmarking by
+ * BenchmarkFastLLMRouterCommand and research evaluations against the Python LangChain service.
+ * It is NOT part of the production first-hop routing pipeline.
+ * 
+ * Production Routing is exclusively controlled by App\AI\Routing\HybridRouter (v2.2 Fast LLM Semantic Router).
+ */
 class LangChainRouter
 {
     private string $baseUrl;

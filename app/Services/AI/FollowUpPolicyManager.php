@@ -46,6 +46,7 @@ class FollowUpPolicyManager
         ?Conversation $conversation = null,
         ?ContextualResolutionResult $contextResult = null,
         ?object $answerabilityDecision = null,
+        ?string $businessContext = null,
     ): FollowUpDecision {
         $cleanAnswer = trim($rawAnswer);
         $cleanFollowUp = !empty($proposedFollowUp) ? trim($proposedFollowUp) : null;
@@ -89,6 +90,10 @@ class FollowUpPolicyManager
             $isConfident = method_exists($answerabilityDecision, 'isConfident')
                 ? $answerabilityDecision->isConfident()
                 : (is_array($answerabilityDecision) && ($answerabilityDecision['status'] ?? '') === 'CONFIDENT');
+
+            if (!$isConfident && !empty($businessContext)) {
+                $isConfident = true;
+            }
 
             if (!$isConfident) {
                 return new FollowUpDecision(

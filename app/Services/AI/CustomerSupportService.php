@@ -618,7 +618,7 @@ class CustomerSupportService
                 $answerabilityDecision !== null && $answerabilityDecision->isAmbiguous()
                     ? $this->executeUncertainRoute($conversation ?? new Conversation(), $query, $routingResult)
                     : (
-                        $answerabilityDecision !== null && $answerabilityDecision->isUnanswerable()
+                        $answerabilityDecision !== null && $answerabilityDecision->isUnanswerable() && empty($businessContext)
                             ? $this->executeOodRoute($conversation, $query)
                             : $this->processAgentFollowUp(
                                 rawAgentOutput: $this->promptKnowledgeAgent(
@@ -634,6 +634,7 @@ class CustomerSupportService
                                 conversation: $conversation,
                                 contextResult: $contextResult,
                                 answerabilityDecision: $answerabilityDecision,
+                                businessContext: $businessContext,
                             )
                     )
             ),
@@ -1004,8 +1005,9 @@ ONLY return a valid JSON object with the following keys:
 }
 Rules:
 - "seller_reference": Extract the seller's name, employee code, or email mention (e.g. for "Rahim ভাইকে একটা মেইল করো", seller_reference is "Rahim").
-- "subject": Short, appropriate subject for the email. If not explicitly specified, derive a clear concise subject (e.g. "Store Notification" or "Payment Received" or "Order Update").
-- "message": The message body to send.
+- "subject": Short, clear professional subject for the email (e.g. "Office Attendance Request" or "Payment Received Notification" or "অফিসে উপস্থিত হওয়ার অনুরোধ").
+- "message": Clear, formal, professional message body to send.
+- STRICT LANGUAGE CONSTRAINT: You MUST write the "subject" and "message" in either proper, formal Standard English OR proper Bengali script (বাংলা). NEVER use phonetic Banglish / romanized Bengali (e.g. NEVER write "office e ashar jonno" or "aste bolo", write "অফিসে উপস্থিতির অনুরোধ" or "Office Attendance Request"). If the request is in Banglish, translate the subject and message into clean professional English or proper Bengali script.
 PROMPT;
 
         $request = LLMRequest::fromPrompt(
@@ -1440,6 +1442,7 @@ PROMPT;
         ?Conversation $conversation = null,
         ?ContextualResolutionResult $contextResult = null,
         ?object $answerabilityDecision = null,
+        ?string $businessContext = null,
     ): string {
         $parsed = $this->parseAgentOutput($rawAgentOutput);
 
@@ -1452,6 +1455,7 @@ PROMPT;
             conversation: $conversation,
             contextResult: $contextResult,
             answerabilityDecision: $answerabilityDecision,
+            businessContext: $businessContext,
         );
 
         $this->lastFollowUpDecision = $decision;
