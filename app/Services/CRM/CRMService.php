@@ -47,12 +47,14 @@ class CRMService
     {
         $entities = $this->extractEntities($text);
 
+        $name     = $entities['person']['name'] ?? $name;
+        $address  = $entities['location']['address'] ?? null;
         $emails   = $entities['contact']['emails'] ?? [];
         $phones   = $entities['contact']['phones'] ?? [];
         $websites = $entities['contact']['websites'] ?? [];
         $nid      = $entities['document']['nid'] ?? null;
 
-        $hasData = ! empty($emails) || ! empty($phones) || ! empty($websites) || ! empty($nid);
+        $hasData = ! empty($name) || ! empty($address) || ! empty($emails) || ! empty($phones) || ! empty($websites) || ! empty($nid);
 
         $savedContact = null;
         if ($hasData) {
@@ -64,6 +66,8 @@ class CRMService
             'db_saved'   => $savedContact !== null,
             'contact'    => $savedContact,
             'contact_id' => $savedContact?->id,
+            'name'       => $name,
+            'address'    => $address,
             'emails'     => $emails,
             'phones'     => $phones,
             'websites'   => $websites,
@@ -123,10 +127,12 @@ class CRMService
                     ->first();
             }
 
+            $extractedName = $entities['person']['name'] ?? null;
+
             if (! $contact) {
                 $contact = CRMContact::create([
                     'workspace_id' => $workspaceId,
-                    'name'         => $name ?? ($emails[0] ?? $phones[0] ?? 'Extracted Contact'),
+                    'name'         => $extractedName ?? $name ?? ($emails[0] ?? $phones[0] ?? 'Extracted Contact'),
                     'source'       => 'simulator',
                 ]);
             }
@@ -143,7 +149,7 @@ class CRMService
     protected function persistEntities(CRMContact $contact, array $entities): void
     {
         $extractedName = $entities['person']['name'] ?? null;
-        if (!empty($extractedName) && (empty($contact->name) || $contact->name === 'Extracted Contact' || filter_var($contact->name, FILTER_VALIDATE_EMAIL))) {
+        if (!empty($extractedName)) {
             $contact->update(['name' => $extractedName]);
         }
 

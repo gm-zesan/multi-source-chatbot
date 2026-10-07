@@ -163,6 +163,28 @@ class BusinessSourceOfTruthService
             }
         }
 
+        // 3. Attach authoritative Product Catalog data if product mentioned in query
+        try {
+            $matchingProducts = \App\Models\AnalyticsProduct::where('workspace_id', $workspaceId)
+                ->where('is_active', true)
+                ->get();
+
+            $qLower = mb_strtolower($query);
+            foreach ($matchingProducts as $product) {
+                $pNameLower = mb_strtolower($product->name);
+                if (str_contains($qLower, $pNameLower) || str_contains($qLower, str_replace(' ', '', $pNameLower))) {
+                    $formattedPrice = number_format((float) $product->unit_price, 2);
+                    $sections[] = "- Live Product Catalog Record (Authoritative Truth):\n" .
+                        "  * Product: {$product->name}\n" .
+                        "  * Category: {$product->category}\n" .
+                        "  * Price: ৳{$formattedPrice}\n" .
+                        "  * Stock Status: Available in Stock";
+                }
+            }
+        } catch (\Throwable $e) {
+            Log::warning('[BusinessSourceOfTruth] Product lookup skipped: ' . $e->getMessage());
+        }
+
         if (empty($sections)) {
             return null;
         }

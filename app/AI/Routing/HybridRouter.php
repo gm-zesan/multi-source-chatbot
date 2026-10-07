@@ -86,10 +86,11 @@ Your strictly single purpose is to classify the user's intent into exactly ONE o
 </ROLE>
 
 <ROUTE_DEFINITIONS>
-- CHAT: Pure conversational chitchat, greetings, gratitude, pleasantries, or generic capabilities questions (e.g. "hi", "how are you", "what can you do").
-- KNOWLEDGE: Questions about company policies, shipping charges, return guides, FAQ, or general informational policies (e.g. "how do I cancel?", "what is the refund policy?", "shipping charge koto?").
-- ANALYTICS: Queries asking for business metrics, performance, sales, collections, dues, debt assignments, staff/salespersons lists and details, customer directories, product catalog prices, forecasting/projections, or database GET queries (e.g. "ajke koto sale holo?", "sales forecast dao", "next month sales koto?", "total salesman koto jon?", "nam ki tader?", "tader phone number dao", "customer list dao", "product price list", "Rahim er due koto?", "Hasan koto taka collect korse?").
-- UNCERTAIN: Vague, highly ambiguous queries, single keywords lacking context, OR explicit imperative commands to mutate state (e.g. "cancel my order", "make him admin", "delete orders"). Mutation is currently not supported.
+- CHAT: Pure conversational chitchat, greetings, gratitude, pleasantries, generic capabilities questions, OR conversational customer purchase intent and lead information collection (e.g. "hi", "how are you", "what can you do", "এই Laptop Pro 15 টা নিতে চাই", "আমি এই প্রোডাক্টটি কিনতে চাই", "নিতে চাই", "order korte chai", or customer providing name/phone/address for lead collection). Expressing interest to purchase or take a product is conversational CHAT (security_status: "allowed") and is NOT a blocked mutation.
+- KNOWLEDGE: Product information (e.g. price, color, size, RAM/specs, warranty, availability/stock, e.g. "Laptop Pro 15 এর দাম কত?", "Laptop Pro 15 কোন color আছে?", "Laptop Pro 15 এর RAM/specification কী?", "warranty koto din?"), company policies, shipping charges, return guides, FAQ, or delivery timeframes.
+- ANALYTICS: Queries asking for business metrics, performance, aggregations, sales, collections, dues, debt assignments, staff/salespersons lists and rankings, customer directories, forecasting/projections, or business reporting (e.g. "আজকে মোট কত sales হয়েছে?", "Hasan কত sales করেছে?", "Rahim-এর কত টাকা due?", "ajke koto sale holo?", "sales forecast dao", "next month sales koto?", "total salesman koto jon?", "nam ki tader?", "tader phone number dao", "customer list dao").
+- ACTION: Explicit imperative requests to send an email notification to a specific salesperson or seller (e.g. "Rahim ভাইকে একটা মেইল করো", "Rahim-কে মেইল করে বলো payment received", "এই seller-কে একটা email পাঠাও", "send an email to Rahim"). ONLY single seller email requests are supported as ACTION. Queries asking about emails ("Rahim-এর email কী?") or bulk emails ("সব seller-কে email পাঠাও") are NOT ACTION.
+- UNCERTAIN: Vague, highly ambiguous queries, single keywords lacking context, bulk email requests (e.g. "সব seller-কে email পাঠাও"), OR explicit imperative commands to mutate database state (e.g. "delete customer 5", "make him admin", "drop table"). Note that expressing a desire to buy a product ("নিতে চাই", "কিনতে চাই") is conversational CHAT and NOT a blocked mutation.
 - OOD: Out of domain queries completely unrelated to e-commerce, customer support or business metrics (e.g. weather, politics, recipes, code generation).
 </ROUTE_DEFINITIONS>
 
@@ -106,7 +107,7 @@ Your strictly single purpose is to classify the user's intent into exactly ONE o
 ONLY return a valid JSON object with exactly the following keys, strictly in this order:
 {
   "reason": "A short string explaining your step-by-step reasoning for the classification.",
-  "route": "CHAT" | "KNOWLEDGE" | "ANALYTICS" | "UNCERTAIN" | "OOD",
+  "route": "CHAT" | "KNOWLEDGE" | "ANALYTICS" | "UNCERTAIN" | "OOD" | "ACTION",
   "confidence": 0.0 to 1.0,
   "security_status": "allowed" | "blocked_scope_override" | "blocked_adversarial" | "blocked_mutation",
   "ambiguity_type": null | "AMOUNT_AMBIGUOUS" | "TIME_AMBIGUOUS" | "ORDER_AMBIGUOUS" | "PERFORMANCE_AMBIGUOUS" | "GENERAL_AMBIGUOUS"
@@ -195,11 +196,12 @@ PROMPT;
                 'ANALYTICS' => RouteType::ANALYTICS,
                 'UNCERTAIN' => RouteType::UNCERTAIN,
                 'OOD' => RouteType::OOD,
+                'ACTION' => RouteType::ACTION,
                 default => throw new \RuntimeException('Unknown route type: ' . $routeStr),
             };
 
             // Enforce safe route on mutation block or sub-threshold confidence
-            if ($securityStatus === 'blocked_mutation' || ($confidence < $this->confidenceThreshold && $route !== RouteType::CHAT && $route !== RouteType::OOD)) {
+            if ($securityStatus === 'blocked_mutation' || ($confidence < $this->confidenceThreshold && $route !== RouteType::CHAT && $route !== RouteType::OOD && $route !== RouteType::ACTION)) {
                 $route = RouteType::UNCERTAIN;
             }
 

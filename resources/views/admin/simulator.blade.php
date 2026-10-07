@@ -566,7 +566,52 @@
             align-items: center;
             justify-content: center;
             font-size: 16px;
-            flex-shrink: 0;
+        }
+
+        .action-confirmation-box {
+            background: #fffbeb;
+            border: 1.5px solid #fcd34d;
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-top: 10px;
+        }
+
+        .btn-action-confirm {
+            background: #10b981;
+            color: #ffffff;
+            border: 1px solid #059669;
+            font-size: 13px;
+            font-weight: 600;
+            padding: 6px 14px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+        }
+        .btn-action-confirm:hover {
+            background: #059669;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(16, 185, 129, 0.25);
+        }
+
+        .btn-action-cancel {
+            background: #f87171;
+            color: #ffffff;
+            border: 1px solid #ef4444;
+            font-size: 13px;
+            font-weight: 600;
+            padding: 6px 14px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+        }
+        .btn-action-cancel:hover {
+            background: #dc2626;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(239, 68, 68, 0.25);
         }
     </style>
 @endpush
@@ -619,13 +664,6 @@
                         <div class="message-bubble message-bot">
                             👋 Hi! I am your AI Chatbot simulator. Type any question or message below.
                         </div>
-                        @if(isset($messages) && $messages->isNotEmpty())
-                            @foreach($messages as $msg)
-                                <div class="message-bubble {{ $msg->direction === 'inbound' ? 'message-user' : 'message-bot' }}">
-                                    {!! nl2br(e($msg->body)) !!}
-                                </div>
-                            @endforeach
-                        @endif
                     </div>
 
                     <!-- Input area -->
@@ -2218,22 +2256,45 @@
                     headerBadgeHtml = `<div class="mb-2"><span class="route-pill uncertain"><i class="ri-question-line"></i> Clarification Needed</span></div>`;
                 } else if (route === 'analytics') {
                     headerBadgeHtml = `<div class="mb-2"><span class="route-pill analytics"><i class="ri-bar-chart-box-line"></i> Business Analytics & BI</span></div>`;
-                } else if (route === 'action' || data.is_handoff) {
+                } else if (route === 'action') {
+                    headerBadgeHtml = `<div class="mb-2"><span class="route-pill action" style="background:#fef3c7; color:#92400e; border:1px solid #fde68a;"><i class="ri-mail-send-line"></i> Seller Notification Action</span></div>`;
+                } else if (data.is_handoff) {
                     headerBadgeHtml = `<div class="mb-2"><span class="route-pill action"><i class="ri-user-shared-line"></i> Support Specialist Transfer</span></div>`;
                 }
 
-                // 2. UNCERTAIN Interactive Clickable Suggestions
-                if (route === 'uncertain' && Array.isArray(data.suggestions) && data.suggestions.length > 0) {
-                    const chipsHtml = data.suggestions.map(s => `
-                        <button type="button" class="suggestion-chip" onclick="setQueryAndSend('${escapeJs(s)}')">
-                            <i class="ri-arrow-right-s-line text-warning"></i> ${escapeHtml(s)}
-                        </button>
-                    `).join('');
+                // 2. Interactive Suggestions & Action Confirmation Buttons
+                if (Array.isArray(data.suggestions) && data.suggestions.length > 0) {
+                    const isActionConfirm = route === 'action' || content.includes('মেইলটি পাঠাবো?');
+                    const chipsHtml = data.suggestions.map(s => {
+                        const isYes = s.toLowerCase().includes('হ্যাঁ') || s.toLowerCase().includes('yes') || s.toLowerCase().includes('পাঠান');
+                        const isNo = s.toLowerCase().includes('না') || s.toLowerCase().includes('no') || s.toLowerCase().includes('বাতিল');
+                        
+                        if (isActionConfirm) {
+                            if (isYes) {
+                                return `<button type="button" class="btn-action-confirm" onclick="setQueryAndSend('হ্যাঁ')"><i class="ri-checkbox-circle-line me-1"></i> ${escapeHtml(s)}</button>`;
+                            }
+                            if (isNo) {
+                                return `<button type="button" class="btn-action-cancel" onclick="setQueryAndSend('না')"><i class="ri-close-circle-line me-1"></i> ${escapeHtml(s)}</button>`;
+                            }
+                        }
+                        
+                        return `
+                            <button type="button" class="suggestion-chip" onclick="setQueryAndSend('${escapeJs(s)}')">
+                                <i class="ri-arrow-right-s-line text-warning"></i> ${escapeHtml(s)}
+                            </button>
+                        `;
+                    }).join('');
+
+                    const labelHtml = isActionConfirm
+                        ? '<span class="suggestion-label text-dark fw-bold"><i class="ri-question-answer-line text-primary me-1"></i> অ্যাকশন নিশ্চিত করুন (Click to Respond):</span>'
+                        : '<span class="suggestion-label"><i class="ri-lightbulb-line text-warning me-1"></i> Did you mean (Click to select):</span>';
 
                     extraCardsHtml += `
-                        <div class="suggestions-container">
-                            <span class="suggestion-label"><i class="ri-lightbulb-line text-warning me-1"></i> Did you mean (Click to select):</span>
-                            ${chipsHtml}
+                        <div class="suggestions-container ${isActionConfirm ? 'action-confirmation-box' : ''}">
+                            ${labelHtml}
+                            <div class="d-flex gap-2 mt-2 flex-wrap">
+                                ${chipsHtml}
+                            </div>
                         </div>
                     `;
                 }
@@ -2304,8 +2365,8 @@
                     }
                 }
 
-                // 5. ACTION / 3x UNCERTAIN Safe Human Handoff Notice Card
-                if (data.is_handoff || route === 'action') {
+                // 5. 3x UNCERTAIN / Safe Human Handoff Notice Card
+                if (data.is_handoff) {
                     extraCardsHtml += `
                         <div class="handoff-alert-card">
                             <div class="handoff-icon"><i class="ri-customer-service-2-line"></i></div>
@@ -2484,15 +2545,17 @@
                 crmBadge.textContent = crm.db_saved ? `Saved (#${crm.contact_id})` : "Extracted";
                 crmBadge.className = "status-badge status-ok";
                 let tags = "";
-                (crm.emails || []).forEach(e => tags += `<span class="entity-tag">✉ ${escapeHtml(e)}</span>`);
+                if (crm.name) tags += `<span class="entity-tag">👤 Name: ${escapeHtml(crm.name)}</span>`;
                 (crm.phones || []).forEach(p => tags += `<span class="entity-tag">📞 ${escapeHtml(p)}</span>`);
+                (crm.emails || []).forEach(e => tags += `<span class="entity-tag">✉ ${escapeHtml(e)}</span>`);
+                if (crm.address) tags += `<span class="entity-tag">📍 Address: ${escapeHtml(crm.address)}</span>`;
                 (crm.websites || []).forEach(w => tags += `<span class="entity-tag">🌐 ${escapeHtml(w)}</span>`);
                 if (crm.nid) tags += `<span class="entity-tag">🪪 NID: ${escapeHtml(crm.nid)}</span>`;
                 crmResults.innerHTML = tags;
             } else {
                 crmBadge.textContent = "No Contact Data";
                 crmBadge.className = "status-badge status-none";
-                crmResults.innerHTML = `<span class="text-muted small">No emails or phone numbers found in input.</span>`;
+                crmResults.innerHTML = `<span class="text-muted small">No contact details found in input.</span>`;
             }
 
             // 2. Python
@@ -3054,5 +3117,30 @@
         function escapeJs(str) {
             return String(str).replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '\\"');
         }
+
+        // ── Re-hydrate & Render Historical Chat Messages & Charts on Page Load / Refresh ──
+        const serverStoredMessages = @json($storedMessages ?? []);
+
+        document.addEventListener('DOMContentLoaded', function() {
+            if (Array.isArray(serverStoredMessages) && serverStoredMessages.length > 0) {
+                let lastUserQuery = '';
+                serverStoredMessages.forEach(msg => {
+                    if (msg.direction === 'inbound') {
+                        lastUserQuery = msg.body;
+                        appendMessage(msg.body, 'user');
+                    } else {
+                        appendMessage(msg.body, 'bot', {
+                            route: msg.route || 'knowledge',
+                            is_handoff: msg.is_handoff,
+                            suggestions: msg.suggestions || [],
+                            sources: msg.sources || [],
+                            userQuery: lastUserQuery,
+                            query: lastUserQuery,
+                            pipeline_diagnostics: msg.pipeline_diagnostics || { total_time_ms: 0 },
+                        });
+                    }
+                });
+            }
+        });
     </script>
 @endpush

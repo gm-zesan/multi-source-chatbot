@@ -15,6 +15,7 @@ class EntityExtractor
         $websites = $this->websites($text, $emails);
         $nid      = $this->nid($text, $phones);
         $name     = $this->names($text);
+        $address  = $this->address($text);
 
         return [
             'person' => [
@@ -32,7 +33,7 @@ class EntityExtractor
             ],
 
             'location' => [
-                'address' => null,
+                'address' => $address,
             ],
 
             'document' => [
@@ -43,8 +44,19 @@ class EntityExtractor
 
     protected function names(string $text): ?string
     {
-        // 1. Explicit English Name patterns
-        if (preg_match('/(?:my\s+name\s+is|i\s+am|i\'m|name\s*[:\-])\s*([a-zA-Z\s\.\']{2,40})/i', $text, $matches)) {
+        // 1. Explicit Key-Value Name patterns: "নাম: GM Zesan", "Name: Hasan", "নাম - মোঃ হাসান"
+        if (preg_match('/(?:(?:my\s+)?name|নাম|amar\s+nam|amar\s+naam)\s*[:\-]\s*([^\n\r,।!?]+)/iu', $text, $matches)) {
+            $candidate = trim($matches[1]);
+            // Strip any trailing phone/address/email labels or common keywords if written on the same line
+            $candidate = preg_split('/(?:\s*[,।!?]|\s+(?:phone|mobile|ফোন|ঠিকানা|address|email|ইমেইল|nid)\s*[:\-])/iu', $candidate)[0];
+            $candidate = trim($candidate);
+            if (mb_strlen($candidate) >= 2 && !preg_match('/^(?:a|an|the|customer|user|admin|support)$/i', $candidate)) {
+                return $candidate;
+            }
+        }
+
+        // 2. Explicit English Name patterns
+        if (preg_match('/(?:my\s+name\s+is|i\s+am|i\'m)\s+([a-zA-Z\s\.\']{2,40})/i', $text, $matches)) {
             $candidate = trim($matches[1]);
             // Strip trailing conjunctions, punctuation, or action verbs
             $candidate = preg_split('/[,.\n\r\t!?;]|\b(?:and|from|with|calling|asking|interested|here|looking)\b/i', $candidate)[0];
@@ -54,7 +66,7 @@ class EntityExtractor
             }
         }
 
-        // 2. Banglish Name patterns
+        // 3. Banglish Name patterns
         if (preg_match('/(?:amar\s+nam|amar\s+naam)\s*(?:is|holo|hoche)?\s*([a-zA-Z\s\.\']{2,40})/i', $text, $matches)) {
             $candidate = trim($matches[1]);
             $candidate = preg_split('/[,.\n\r\t!?;]|\b(?:and|ami|theke)\b/i', $candidate)[0];
@@ -64,13 +76,29 @@ class EntityExtractor
             }
         }
 
-        // 3. Bengali Name patterns
+        // 4. Bengali Name patterns
         if (preg_match('/(?:আমার\s*নাম|আমি)\s*([^\s,।!?\n\r\t0-9]{2,30}(?:\s+[^\s,।!?\n\r\t0-9]{2,30})*)/u', $text, $matches)) {
             $candidate = trim($matches[1]);
             // Strip trailing Bengali conjunctions and punctuation without ASCII \b
             $candidate = preg_split('/[,।!?\n\r\t]|\s+(?:এবং|থেকে|বলছি|আমি|জানতে|চাই|হলো|হল)(?:\s|$|[,।!?])/u', $candidate)[0];
             $candidate = trim($candidate);
-            if (mb_strlen($candidate) >= 2 && !in_array($candidate, ['কি', 'কী', 'কেমন', 'একটা', 'একটু', 'কিভাবে', 'কোন', 'সাহায্য'])) {
+            if (mb_strlen($candidate) >= 2 && !in_array($candidate, ['কি', 'কী', 'কেমন', 'একটা', 'একটু', 'কিভাবে', 'কোন', 'সাহায্য', 'এই'])) {
+                return $candidate;
+            }
+        }
+
+        return null;
+    }
+
+    protected function address(string $text): ?string
+    {
+        // Explicit Address patterns: "ঠিকানা: ধানমন্ডি, ঢাকা", "Address: House 12, Road 5, Dhaka", "Location: Mirpur"
+        if (preg_match('/(?:ঠিকানা|এড্রেস|বাসা|লোকেশন|address|location|thikana)\s*[:\-]\s*([^\n\r]+)/iu', $text, $matches)) {
+            $candidate = trim($matches[1]);
+            // Strip any trailing phone/name/product labels if on same line
+            $candidate = preg_split('/(?:\s+(?:phone|mobile|ফোন|নাম|name|product|পণ্য|দাম|price)\s*[:\-])/iu', $candidate)[0];
+            $candidate = preg_replace('/^[\s,।!?]+|[\s,।!?]+$/u', '', (string) $candidate);
+            if (mb_strlen($candidate) >= 2) {
                 return $candidate;
             }
         }

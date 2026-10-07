@@ -49,6 +49,11 @@ class RoutingResult
         return $this->route === RouteType::UNCERTAIN;
     }
 
+    public function isAction(): bool
+    {
+        return $this->route === RouteType::ACTION;
+    }
+
     /**
      * @return array<string, mixed>
      */

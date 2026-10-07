@@ -7,6 +7,7 @@ namespace App\Services\AI;
 use App\AI\Agents\ConversationalSupportAgent;
 use App\AI\Agents\KnowledgeSupportAgent;
 use App\AI\LLM\LLMClient;
+use App\AI\LLM\LLMRequest;
 use App\AI\Routing\HybridRouter;
 use App\AI\Routing\RouteType;
 use App\AI\Routing\RoutingResult;
@@ -18,6 +19,8 @@ use App\Services\Chat\ConversationService;
 use App\Services\FAQ\FAQSearch;
 use App\Services\AI\DTOs\ContextualResolutionResult;
 use App\Services\AI\DTOs\FollowUpDecision;
+use App\Services\AI\DTOs\SellerEmailProposal;
+use App\Services\AI\SellerEmailService;
 use App\Services\Analytics\AnalyticsClient;
 use App\Services\Memory\ConversationMemoryService;
 use Illuminate\Support\Facades\Log;
@@ -34,6 +37,7 @@ class CustomerSupportService
     private readonly ClarificationManager $clarificationManager;
     private readonly AnalyticsClient $analyticsClient;
     private readonly FollowUpPolicyManager $followUpPolicyManager;
+    private readonly SellerEmailService $sellerEmailService;
     private readonly \App\AI\Tools\KnowledgeRetrievalTool $knowledgeRetrievalTool;
     private readonly \App\AI\Tools\BusinessAnalyticsTool $businessAnalyticsTool;
     private readonly \App\AI\Tools\ExcelAnalyticsTool $excelAnalyticsTool;
@@ -53,6 +57,7 @@ class CustomerSupportService
         ?ClarificationManager $clarificationManager = null,
         ?AnalyticsClient $analyticsClient = null,
         ?FollowUpPolicyManager $followUpPolicyManager = null,
+        ?SellerEmailService $sellerEmailService = null,
         ?\App\AI\Tools\KnowledgeRetrievalTool $knowledgeRetrievalTool = null,
         ?\App\AI\Tools\BusinessAnalyticsTool $businessAnalyticsTool = null,
         ?\App\AI\Tools\ExcelAnalyticsTool $excelAnalyticsTool = null,
@@ -67,6 +72,7 @@ class CustomerSupportService
         $this->clarificationManager = $clarificationManager ?? app(ClarificationManager::class);
         $this->analyticsClient = $analyticsClient ?? app(AnalyticsClient::class);
         $this->followUpPolicyManager = $followUpPolicyManager ?? app(FollowUpPolicyManager::class);
+        $this->sellerEmailService = $sellerEmailService ?? app(SellerEmailService::class);
         $this->knowledgeRetrievalTool = $knowledgeRetrievalTool ?? new \App\AI\Tools\KnowledgeRetrievalTool($this->faqSearch);
         $this->businessAnalyticsTool = $businessAnalyticsTool ?? app(\App\AI\Tools\BusinessAnalyticsTool::class);
         $this->excelAnalyticsTool = $excelAnalyticsTool ?? app(\App\AI\Tools\ExcelAnalyticsTool::class);
@@ -86,6 +92,50 @@ class CustomerSupportService
             ?? 1;
 
         $t_start = microtime(true);
+
+        // ── 0. Pending Action Resolution (Turn N+1 Two-Phase Confirmation) ──
+        if ($conversation->exists) {
+            $pendingAction = $this->actionSafety->getPendingAction($conversation);
+            if ($pendingAction !== null) {
+                if ($this->actionSafety->isPendingActionExpired($pendingAction)) {
+                    $this->actionSafety->clearPendingAction($conversation);
+                    if ($this->actionSafety->isConfirmationIntent($query)) {
+                        return "কনফার্মেশনের সময়সীমা পার হয়ে গেছে। অনুগ্রহ করে অনুরোধটি আবার করুন।";
+                    }
+                } elseif ($this->actionSafety->isRejectionIntent($query)) {
+                    $this->actionSafety->clearPendingAction($conversation);
+                    return "ইমেইল পাঠানোর অনুরোধটি বাতিল করা হয়েছে। আপনার অন্য কোনো সাহায্য প্রয়োজন হলে বলুন।";
+                } elseif ($this->actionSafety->isConfirmationIntent($query)) {
+                    if (($pendingAction['action'] ?? '') === ActionSafetyService::ACTION_SEND_SELLER_EMAIL) {
+                        $sellerId = (int) ($pendingAction['seller_id'] ?? 0);
+                        $subject = (string) ($pendingAction['subject'] ?? '');
+                        $message = (string) ($pendingAction['message'] ?? '');
+                        $fingerprint = (string) ($pendingAction['fingerprint'] ?? '');
+                        $sellerName = (string) ($pendingAction['seller_name'] ?? 'সেলার');
+                        $recipientEmail = (string) ($pendingAction['recipient_email'] ?? '');
+
+                        $dispatchResult = $this->sellerEmailService->sendSellerEmail(
+                            sellerId: $sellerId,
+                            subject: $subject,
+                            message: $message,
+                            workspaceId: $effectiveWorkspaceId,
+                            expectedFingerprint: $fingerprint,
+                        );
+
+                        $this->actionSafety->clearPendingAction($conversation);
+
+                        if ($dispatchResult['success']) {
+                            return "আমি সফলভাবে {$sellerName} ({$recipientEmail})-কে ইমেইলটি পাঠিয়ে দিয়েছি।";
+                        }
+
+                        return "দুঃখিত, ইমেইলটি পাঠানো সম্ভব হয়নি (" . ($dispatchResult['message'] ?? 'ত্রুটি') . ")।";
+                    }
+                } else {
+                    // Changed request: clear old action before proceeding with new request
+                    $this->actionSafety->clearPendingAction($conversation);
+                }
+            }
+        }
 
         // ── 1. Hybrid Routing (Evaluates with full dialogue context) ────────────────────────────────────────────────
         $routingResult = $this->router->route(
@@ -109,10 +159,10 @@ class CustomerSupportService
             }
         }
 
-        // ── 1.5 Retrieve Memory & Live Business Source of Truth (Skipped for Analytics) ─────
+        // ── 1.5 Retrieve Memory & Live Business Source of Truth (Skipped for Analytics and Action) ─────
         $memoryContext = null;
         $businessContext = null;
-        if (!$routingResult->isAnalytics()) {
+        if (!$routingResult->isAnalytics() && !$routingResult->isAction()) {
             $memoryContext = $this->memoryService->retrieveContext(
                 conversation: $conversation,
                 query: $query,
@@ -143,6 +193,12 @@ class CustomerSupportService
                 memoryContext: $memoryContext,
             ),
             RouteType::ANALYTICS => $this->executeAnalyticsRoute(
+                conversation: $conversation,
+                query: $query,
+                workspaceId: $effectiveWorkspaceId,
+                routingResult: $routingResult,
+            ),
+            RouteType::ACTION => $this->executeActionRoute(
                 conversation: $conversation,
                 query: $query,
                 workspaceId: $effectiveWorkspaceId,
@@ -286,6 +342,168 @@ class CustomerSupportService
         $this->lastLlmUsage = null;
         $t_start = microtime(true);
 
+        // ── 0. Pending Action Resolution (Turn N+1 Two-Phase Confirmation) ──
+        if ($conversation !== null && $conversation->exists) {
+            $pendingAction = $this->actionSafety->getPendingAction($conversation);
+            if ($pendingAction !== null) {
+                if ($this->actionSafety->isPendingActionExpired($pendingAction)) {
+                    $this->actionSafety->clearPendingAction($conversation);
+                    if ($this->actionSafety->isConfirmationIntent($query)) {
+                        $replyText = "কনফার্মেশনের সময়সীমা পার হয়ে গেছে। অনুগ্রহ করে অনুরোধটি আবার করুন।";
+                        $totalE2eMs = round((microtime(true) - $t_start) * 1000, 2);
+                        return [
+                            'reply' => $replyText,
+                            'route' => 'action',
+                            'confidence' => 1.0,
+                            'suggestions' => [],
+                            'sources' => [],
+                            'is_handoff' => false,
+                            'memory_context' => null,
+                            'business_context' => null,
+                            'retrieval_hits' => new \Illuminate\Database\Eloquent\Collection(),
+                            'top_hit' => null,
+                            'answered' => true,
+                            'answerability_decision' => null,
+                            'follow_up_decision' => null,
+                            'raw_llm_response' => [
+                                'provider' => config('ai.default', 'deepseek'),
+                                'model' => config('ai.default_model', 'deepseek-chat'),
+                                'raw_reply_text' => $replyText,
+                                'prompt_tokens' => 0,
+                                'completion_tokens' => 0,
+                                'total_tokens' => 0,
+                                'router_tokens' => [],
+                                'agent_tokens' => [],
+                                'grounded_documents_count' => 0,
+                                'grounded_faq_questions' => [],
+                            ],
+                            'routing_telemetry' => [
+                                'route' => 'action',
+                                'confidence' => 1.0,
+                                'intent' => 'action_expired',
+                                'total_e2e_ms' => $totalE2eMs,
+                            ],
+                            'lexicon_telemetry' => [],
+                            'latency_breakdown' => [
+                                'router_ms' => 0.0,
+                                'total_e2e_ms' => $totalE2eMs,
+                                'total_ms' => $totalE2eMs,
+                            ],
+                        ];
+                    }
+                } elseif ($this->actionSafety->isRejectionIntent($query)) {
+                    $this->actionSafety->clearPendingAction($conversation);
+                    $replyText = "ইমেইল পাঠানোর অনুরোধটি বাতিল করা হয়েছে। আপনার অন্য কোনো সাহায্য প্রয়োজন হলে বলুন।";
+                    $totalE2eMs = round((microtime(true) - $t_start) * 1000, 2);
+                    return [
+                        'reply' => $replyText,
+                        'route' => 'action',
+                        'confidence' => 1.0,
+                        'suggestions' => [],
+                        'sources' => [],
+                        'is_handoff' => false,
+                        'memory_context' => null,
+                        'business_context' => null,
+                        'retrieval_hits' => new \Illuminate\Database\Eloquent\Collection(),
+                        'top_hit' => null,
+                        'answered' => true,
+                        'answerability_decision' => null,
+                        'follow_up_decision' => null,
+                        'raw_llm_response' => [
+                            'provider' => config('ai.default', 'deepseek'),
+                            'model' => config('ai.default_model', 'deepseek-chat'),
+                            'raw_reply_text' => $replyText,
+                            'prompt_tokens' => 0,
+                            'completion_tokens' => 0,
+                            'total_tokens' => 0,
+                            'router_tokens' => [],
+                            'agent_tokens' => [],
+                            'grounded_documents_count' => 0,
+                            'grounded_faq_questions' => [],
+                        ],
+                        'routing_telemetry' => [
+                            'route' => 'action',
+                            'confidence' => 1.0,
+                            'intent' => 'action_rejected',
+                            'total_e2e_ms' => $totalE2eMs,
+                        ],
+                        'lexicon_telemetry' => [],
+                        'latency_breakdown' => [
+                            'router_ms' => 0.0,
+                            'total_e2e_ms' => $totalE2eMs,
+                            'total_ms' => $totalE2eMs,
+                        ],
+                    ];
+                } elseif ($this->actionSafety->isConfirmationIntent($query)) {
+                    if (($pendingAction['action'] ?? '') === ActionSafetyService::ACTION_SEND_SELLER_EMAIL) {
+                        $sellerId = (int) ($pendingAction['seller_id'] ?? 0);
+                        $subject = (string) ($pendingAction['subject'] ?? '');
+                        $message = (string) ($pendingAction['message'] ?? '');
+                        $fingerprint = (string) ($pendingAction['fingerprint'] ?? '');
+                        $sellerName = (string) ($pendingAction['seller_name'] ?? 'সেলার');
+                        $recipientEmail = (string) ($pendingAction['recipient_email'] ?? '');
+
+                        $dispatchResult = $this->sellerEmailService->sendSellerEmail(
+                            sellerId: $sellerId,
+                            subject: $subject,
+                            message: $message,
+                            workspaceId: $workspaceId,
+                            expectedFingerprint: $fingerprint,
+                        );
+
+                        $this->actionSafety->clearPendingAction($conversation);
+
+                        $replyText = $dispatchResult['success']
+                            ? "আমি সফলভাবে {$sellerName} ({$recipientEmail})-কে ইমেইলটি পাঠিয়ে দিয়েছি।"
+                            : "দুঃখিত, ইমেইলটি পাঠানো সম্ভব হয়নি (" . ($dispatchResult['message'] ?? 'ত্রুটি') . ")।";
+
+                        $totalE2eMs = round((microtime(true) - $t_start) * 1000, 2);
+                        return [
+                            'reply' => $replyText,
+                            'route' => 'action',
+                            'confidence' => 1.0,
+                            'suggestions' => [],
+                            'sources' => [],
+                            'is_handoff' => false,
+                            'memory_context' => null,
+                            'business_context' => null,
+                            'retrieval_hits' => new \Illuminate\Database\Eloquent\Collection(),
+                            'top_hit' => null,
+                            'answered' => true,
+                            'answerability_decision' => null,
+                            'follow_up_decision' => null,
+                            'raw_llm_response' => [
+                                'provider' => config('ai.default', 'deepseek'),
+                                'model' => config('ai.default_model', 'deepseek-chat'),
+                                'raw_reply_text' => $replyText,
+                                'prompt_tokens' => 0,
+                                'completion_tokens' => 0,
+                                'total_tokens' => 0,
+                                'router_tokens' => [],
+                                'agent_tokens' => [],
+                                'grounded_documents_count' => 0,
+                                'grounded_faq_questions' => [],
+                            ],
+                            'routing_telemetry' => [
+                                'route' => 'action',
+                                'confidence' => 1.0,
+                                'intent' => 'action_executed',
+                                'total_e2e_ms' => $totalE2eMs,
+                            ],
+                            'lexicon_telemetry' => [],
+                            'latency_breakdown' => [
+                                'router_ms' => 0.0,
+                                'total_e2e_ms' => $totalE2eMs,
+                                'total_ms' => $totalE2eMs,
+                            ],
+                        ];
+                    }
+                } else {
+                    $this->actionSafety->clearPendingAction($conversation);
+                }
+            }
+        }
+
         // ── 1. Hybrid Router (Evaluates with full dialogue context) ──────────────────
         $t_router_start = microtime(true);
         $routingResult = $this->router->route(
@@ -338,13 +556,13 @@ class CustomerSupportService
             }
         }
 
-        // ── Phase M3: Memory Relevance Gate & Unified Memory Context (Skipped for Analytics) ──
+        // ── Phase M3: Memory Relevance Gate & Unified Memory Context (Skipped for Analytics and Action) ──
         $memoryContext = null;
         $memoryRetrievalMs = 0.0;
         $businessContext = null;
         $businessContextMs = 0.0;
 
-        if (!$routingResult->isAnalytics()) {
+        if (!$routingResult->isAnalytics() && !$routingResult->isAction()) {
             $t_memory_start = microtime(true);
             $memoryContext = $this->memoryService->retrieveContext(
                 conversation: $conversation,
@@ -436,6 +654,12 @@ class CustomerSupportService
                 workspaceId: $workspaceId,
                 routingResult: $routingResult,
             ),
+            RouteType::ACTION => $this->executeActionRoute(
+                conversation: $conversation ?? new Conversation(),
+                query: $query,
+                workspaceId: $workspaceId,
+                routingResult: $routingResult,
+            ),
             RouteType::OOD => $this->executeOodRoute(
                 conversation: $conversation,
                 query: $query,
@@ -452,7 +676,9 @@ class CustomerSupportService
 
         $suggestions = $routingResult->isUncertain() || ($answerabilityDecision !== null && $answerabilityDecision->isAmbiguous())
             ? $this->getClarificationSuggestions($query)
-            : [];
+            : ($routingResult->isAction() && str_contains($replyText ?? '', 'মেইলটি পাঠাবো?')
+                ? ['হ্যাঁ, পাঠান', 'না, বাতিল করুন']
+                : []);
         $sources = $routingResult->isKnowledge() ? $this->formatGroundedSources($groundedHits, $query) : [];
         $isHandoff = (!empty($conversation?->metadata['handoff_to_human'])) ||
             (stripos($replyText ?? '', 'team member will contact you') !== false);
@@ -661,7 +887,7 @@ class CustomerSupportService
             );
         }
 
-        if ($decision->isUnanswerable()) {
+        if ($decision->isUnanswerable() && empty($businessContext)) {
             return $this->executeOodRoute($conversation, $query);
         }
 
@@ -713,10 +939,118 @@ class CustomerSupportService
     }
 
     /**
-     * Handle ACTION capability with a deterministic human handoff.
-     * In the current phase, AI SDK tools, multi-turn confirmation workflows,
-     * and automatic database mutations are deferred to ensure zero accidental state changes.
+     * Handle SEND_SELLER_EMAIL action capability: Turn N Proposal Generation with confirmation prompt.
+     * Enforces deterministic resolution, tenant isolation, and two-phase safety.
      */
+    private function executeActionRoute(
+        Conversation $conversation,
+        string $query,
+        int $workspaceId,
+        RoutingResult $routingResult,
+    ): string {
+        $this->resetUncertainCount($conversation);
+
+        $proposalData = $this->promptSellerEmailProposal($query);
+        $reference = $proposalData['seller_reference'];
+        $subject = $proposalData['subject'];
+        $message = $proposalData['message'];
+
+        $sellerResult = $this->sellerEmailService->resolveSeller($reference, $workspaceId);
+
+        return match ($sellerResult['status']) {
+            'not_found' => "দুঃখিত, '{$reference}' নামের কোনো সক্রিয় সেলার পাওয়া যায়নি।",
+            'inactive' => "দুঃখিত, সেলারটি বর্তমানে নিষ্ক্রিয় (inactive), তাই ইমেইল পাঠানো সম্ভব নয়।",
+            'missing_email' => "দুঃখিত, '{$sellerResult['seller']->name}' সেলারের কোনো বৈধ ইমেইল ঠিকানা প্রোফাইলে নেই।",
+            'ambiguous' => (function () use ($sellerResult) {
+                $names = $sellerResult['matches']->map(fn($s) => "{$s->name}" . (!empty($s->employee_code) ? " ({$s->employee_code})" : ''))->implode(', ');
+                return "একাধিক সেলার পাওয়া গেছে: {$names}। আপনি কোন সেলারকে ইমেইল পাঠাতে চান দয়া করে নির্দিষ্ট করে বলুন।";
+            })(),
+            'resolved' => (function () use ($conversation, $sellerResult, $subject, $message, $workspaceId) {
+                $seller = $sellerResult['seller'];
+                $proposal = new SellerEmailProposal(
+                    sellerId: $seller->id,
+                    recipientEmail: $seller->email,
+                    subject: $subject,
+                    message: $message,
+                    sellerName: $seller->name,
+                );
+                $proposalWithFingerprint = $proposal->withFingerprint($workspaceId);
+
+                if ($conversation->exists) {
+                    $this->actionSafety->setPendingSellerEmailAction($conversation, $proposalWithFingerprint);
+                }
+
+                return "আমি {$seller->name} ({$seller->email})-কে এই মেইলটি পাঠাতে পারি:\n\nবিষয়: {$subject}\n\nবার্তা:\n{$message}\n\nমেইলটি পাঠাবো?";
+            })(),
+        };
+    }
+
+    /**
+     * Use structured LLM extraction to derive seller reference, subject, and message.
+     * Note: Output is strictly UNTRUSTED for identity/authorization; authoritative data is loaded from DB.
+     *
+     * @return array{seller_reference: string, subject: string, message: string}
+     */
+    private function promptSellerEmailProposal(string $query): array
+    {
+        $systemPrompt = <<<PROMPT
+You are a precise structured extraction assistant for seller email notifications.
+Extract the target seller reference (name, code, or email), email subject, and email body/message from the user's request.
+ONLY return a valid JSON object with the following keys:
+{
+  "seller_reference": "string",
+  "subject": "string",
+  "message": "string"
+}
+Rules:
+- "seller_reference": Extract the seller's name, employee code, or email mention (e.g. for "Rahim ভাইকে একটা মেইল করো", seller_reference is "Rahim").
+- "subject": Short, appropriate subject for the email. If not explicitly specified, derive a clear concise subject (e.g. "Store Notification" or "Payment Received" or "Order Update").
+- "message": The message body to send.
+PROMPT;
+
+        $request = LLMRequest::fromPrompt(
+            prompt: "User Request: {$query}",
+            systemPrompt: $systemPrompt,
+            model: config('ai.default_model', 'deepseek-chat'),
+            temperature: 0.0,
+            maxTokens: 300,
+        );
+        $request->responseFormat = ['type' => 'json_object'];
+
+        try {
+            $response = $this->llmClient->generate($request);
+            $content = $response->content;
+            $jsonStart = strpos($content, '{');
+            $jsonEnd = strrpos($content, '}');
+            if ($jsonStart !== false && $jsonEnd !== false) {
+                $content = substr($content, $jsonStart, $jsonEnd - $jsonStart + 1);
+            }
+            $decoded = json_decode($content, true);
+            if (is_array($decoded) && !empty($decoded['seller_reference'])) {
+                return [
+                    'seller_reference' => trim((string) $decoded['seller_reference']),
+                    'subject'          => !empty($decoded['subject']) ? trim((string) $decoded['subject']) : 'Store Notification',
+                    'message'          => !empty($decoded['message']) ? trim((string) $decoded['message']) : $query,
+                ];
+            }
+        } catch (\Throwable $e) {
+            Log::warning('[CustomerSupportService] LLM proposal extraction failed: ' . $e->getMessage());
+        }
+
+        // Deterministic fallback regex extraction
+        $ref = '';
+        if (preg_match('/(?:to|send email to|মেইল করো|মেইল পাঠাও|ইমেইল পাঠাও)\s*([a-zA-Z0-9_\-\.\@\p{Bengali}]+)/ui', $query, $m)) {
+            $ref = $m[1];
+        } elseif (preg_match('/^([a-zA-Z\p{Bengali}]+)(?:\s*(?:ভাই|ভাইকে|কে|er|এর))?/ui', $query, $m)) {
+            $ref = $m[1];
+        }
+
+        return [
+            'seller_reference' => $ref !== '' ? $ref : $query,
+            'subject'          => 'Store Notification',
+            'message'          => $query,
+        ];
+    }
     /**
      * Dispatch ANALYTICS route to the Python Baseline Analytics Service.
      * Invariant: $workspaceId is strictly injected from trusted Laravel runtime.

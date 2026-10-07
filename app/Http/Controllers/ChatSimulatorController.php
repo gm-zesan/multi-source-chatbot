@@ -51,7 +51,23 @@ class ChatSimulatorController extends Controller
             'total_rows' => $conversation->metadata['active_file_rows'] ?? 0,
         ];
 
-        return view('admin.simulator', compact('messages', 'llmUsageHistory', 'activeSpreadsheet'));
+        $storedMessages = $messages->map(function ($msg) {
+            $meta = $msg->metadata ?? [];
+            return [
+                'id' => $msg->id,
+                'direction' => $msg->direction,
+                'body' => $msg->body,
+                'route' => $meta['route'] ?? null,
+                'is_handoff' => !empty($meta['handoff_to_human']),
+                'suggestions' => $meta['suggestions'] ?? [],
+                'sources' => $meta['sources'] ?? [],
+                'pipeline_diagnostics' => [
+                    'total_time_ms' => $meta['total_time_ms'] ?? 0,
+                ],
+            ];
+        })->values()->all();
+
+        return view('admin.simulator', compact('messages', 'storedMessages', 'llmUsageHistory', 'activeSpreadsheet'));
     }
 
     /**
@@ -86,7 +102,7 @@ class ChatSimulatorController extends Controller
         $crm = $this->crmService->processForWorkspace(
             workspaceId: $workspaceId,
             text: $query,
-            name: Auth::user()?->name ?? 'Simulator User',
+            name: null,
         );
 
         // ── 2. Run Unified CustomerSupportService with Conversation Memory 
@@ -262,6 +278,8 @@ class ChatSimulatorController extends Controller
                     'has_data' => $crm['has_data'],
                     'db_saved' => $crm['db_saved'],
                     'contact_id' => $crm['contact_id'],
+                    'name' => $crm['name'] ?? null,
+                    'address' => $crm['address'] ?? null,
                     'emails' => $crm['emails'],
                     'phones' => $crm['phones'],
                     'websites' => $crm['websites'],

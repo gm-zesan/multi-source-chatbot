@@ -11,4 +11,5 @@ enum RouteType: string
     case ANALYTICS = 'analytics';
     case OOD       = 'ood';
     case UNCERTAIN = 'uncertain';
+    case ACTION    = 'action';
 }
