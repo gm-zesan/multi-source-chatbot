@@ -354,8 +354,8 @@ class ContextualQueryBuilder
     {
         $qLower = mb_strtolower($query);
 
-        // Product inquiries: Price, Size, Color, Stock, Fabric
-        if (preg_match('/(দাম|price|cost|টাকা|খরচ|সাইজ|size|কালার|color|fabric|কাপড়|পাঞ্জাবি|শার্ট|panjabi|shirt)/ui', $qLower)) {
+        // Product inquiries: Price, Size, Color, Stock, Fabric, Model, Specs, Warranty, Fees, etc.
+        if (preg_match('/(দাম|price|cost|টাকা|খরচ|সাইজ|size|কালার|color|রং|fabric|কাপড়|মডেল|model|spec|feature|ram|warranty|stock|available|পাওয়া|পাওয়া|ফি|চার্জ|fee|charge|মেনু|menu|ডাক্তার|doctor|package|item|product|পণ্য)/ui', $qLower)) {
             return 'Product';
         }
 
@@ -600,12 +600,12 @@ class ContextualQueryBuilder
         $qLower = mb_strtolower($query);
 
         // English and Banglish pronouns
-        if (preg_match('/\b(it|this|that|them|they|these|those|its|their|his|her|eta|ota|sheta|eita|oita|sheita|etar|otar|shetar|eitar|oitar|tader|tar|taderke|unader|oder|taderki)\b/ui', $qLower)) {
+        if (preg_match('/\b(it|this|that|them|they|these|those|its|their|his|her|he|she|him|eta|ota|sheta|eita|oita|sheita|etar|otar|shetar|eitar|oitar|tader|tar|taderke|unader|oder|taderki|uni|onar|unar)\b/ui', $qLower)) {
             return true;
         }
 
-        // Bengali pronouns (Unicode boundary safe)
-        if (preg_match('/(^|[^\p{L}\p{N}])(এটা|ওটা|সেটা|এইটা|ওইটা|সেইটা|এটার|ওটার|সেটার|এগুলোর|ওগুলোর|এগুলো|ওগুলো|তারা|তাদের|তার|তাদেরকে|উনাদের|ওদের)($|[^\p{L}\p{N}])/u', $qLower)) {
+        // Bengali pronouns (Unicode boundary and diacritic safe)
+        if (preg_match('/(^|[^\p{L}\p{M}\p{N}])(এটা|ওটা|সেটা|এইটা|ওইটা|সেইটা|এটার|ওটার|সেটার|এগুলোর|ওগুলোর|এগুলো|ওগুলো|তারা|তাদের|তার|তাঁর|তাদেরকে|উনাদের|ওদের|উনি|তিনি|ওনার|উনার)($|[^\p{L}\p{M}\p{N}])/u', $qLower)) {
             return true;
         }
 
@@ -736,7 +736,7 @@ class ContextualQueryBuilder
         if (preg_match('/(#\d{3,8}|order\s+#?\d+|অর্ডার\s+#?\d+|consignment)/ui', $lower)) {
             return 'Order_Tracking';
         }
-        if (preg_match('/(panjabi|পাঞ্জাবি|shirt|শার্ট|pant|প্যান্ট|polo|পোলো|সাইজ|দাম|price)/ui', $lower)) {
+        if (preg_match('/(সাইজ|size|কালার|color|রং|মডেল|model|stock|available|পাওয়া|পাওয়া|ফিচার|feature|spec|ram|মেমোরি|ডাক্তার|doctor|package|মেনু|menu|item|product|পণ্য|দাম|price)/ui', $lower)) {
             return 'Product_Inquiry';
         }
 
@@ -761,7 +761,7 @@ class ContextualQueryBuilder
     }
 
     /**
-     * Extract candidate entities (products, order IDs) from turn text.
+     * Extract candidate entities (products, services, order IDs) dynamically from turn text.
      *
      * @return string[]
      */
@@ -769,7 +769,7 @@ class ContextualQueryBuilder
     {
         $entities = [];
 
-        // Order numbers (#1234, order 5678, অর্ডার #1234) -> Canonicalized to #<digits>
+        // 1. Order numbers (#1234, order 5678, অর্ডার #1234) -> Canonicalized to #<digits>
         if (preg_match_all('/(?:#|\border\s*#?|\bঅর্ডার\s*#?)(\d{3,8})\b/ui', $text, $matches)) {
             foreach ($matches[1] as $digits) {
                 $clean = '#' . $digits;
@@ -779,33 +779,38 @@ class ContextualQueryBuilder
             }
         }
 
-        // Specific named products
-        $productPatterns = [
-            '/(iPhone\s*\d+(\s*Pro|\s*Max)?|Samsung\s*Galaxy\s*[A-Za-z0-9]+)/ui',
-            '/(Royal\s+Silk\s+Panjabi|Black\s+Cotton\s+Panjabi|White\s+Silk\s+Panjabi|Premium\s+Panjabi|Casual\s+Shirt|Polo\s+Shirt|Cotton\s+Shirt)/ui',
-            '/(কালো\s+পাঞ্জাবি|সাদা\s+পাঞ্জাবি|কটন\s+পাঞ্জাবি|সিল্ক\s+পাঞ্জাবি)/ui',
-        ];
-
-        foreach ($productPatterns as $pattern) {
-            if (preg_match_all($pattern, $text, $matches)) {
-                foreach ($matches[0] as $m) {
-                    $clean = trim($m);
-                    if (!in_array($clean, $entities, true)) {
-                        $entities[] = $clean;
-                    }
-                }
+        // 2. Title-cased / Proper Multi-word Sequences (Latin script: e.g. "Black Cotton Panjabi", "ThinkPad X1", "iPhone 15 Pro", "Burger Combo", "Doctor A", "Premium Subscription")
+        if (preg_match_all('/\b([iI]?[A-Z0-9][a-zA-Z0-9\-_]*(?:\s+(?:[A-Z0-9][a-zA-Z0-9\-_]*|[&+\/]|v\d+))+\b)/u', $text, $matches)) {
+            foreach ($matches[1] as $m) {
+                $clean = trim($m);
+                $this->addValidEntityCandidate($entities, $clean);
             }
         }
 
-        // Fallback generic product names ONLY if no specific product was found
-        if (empty($entities)) {
-            if (preg_match_all('/(Panjabi|Shirt|Pant|Polo|পাঞ্জাবি|শার্ট|পোলো\s+শার্ট)/ui', $text, $matches)) {
-                foreach ($matches[0] as $m) {
-                    $clean = trim($m);
-                    if (!in_array($clean, $entities, true)) {
-                        $entities[] = $clean;
-                    }
+        // 3. Bengali / Banglish demonstratives (এই / ওই / সেই / this / that / the <phrase>)
+        if (preg_match_all('/(?:^|[^\p{L}\p{M}\p{N}])(?:এই|ঐ|ওই|সেই|ei|oi|shei|this|that|the)\s+([\p{L}\p{M}\p{N}\-_]+(?:\s+[\p{L}\p{M}\p{N}\-_]+){0,2})/ui', $text, $matches)) {
+            foreach ($matches[1] as $m) {
+                $clean = preg_replace('/(টা|টি|টার|টির|গুলো|গুলোর|-র|-এর|-তে|-এ)$/u', '', trim($m));
+                $this->addValidEntityCandidate($entities, $clean);
+            }
+        }
+
+        // 4. Bengali Definitive suffixes on single token (<word>টা / <word>টি / <word>টার / <word>টির / <word>গুলো / <word>-(তে|এর|র|কে))
+        if (preg_match_all('/(?:^|[^\p{L}\p{M}\p{N}])([\p{L}\p{M}\p{N}\-_]+?)(?:টা|টি|টার|টির|গুলো|গুলোর|গুলা|গুলার|-(?:তে|এর|র|এ|কে))(?:$|[^\p{L}\p{M}\p{N}])/ui', $text, $matches)) {
+            foreach ($matches[1] as $m) {
+                // If candidate ends with hasanta (conjunct consonant root like 'ওয়ারেন্'), it is not a genuine suffix
+                if (str_ends_with($m, "\u{09CD}") || str_ends_with($m, '্')) {
+                    continue;
                 }
+                $clean = preg_replace('/(?:টা|টি|টার|টির|গুলো|গুলোর|গুলা|গুলার|-(?:তে|এর|র|এ|কে))$/u', '', trim($m));
+                $this->addValidEntityCandidate($entities, $clean);
+            }
+        }
+
+        // 5. Banglish <phrase> ta / <phrase> to
+        if (preg_match_all('/\b([a-zA-Z0-9\-_]+(?:\s+[a-zA-Z0-9\-_]+){0,2}?)\s+(?:ta|to|gulo)\b/ui', $text, $matches)) {
+            foreach ($matches[1] as $m) {
+                $this->addValidEntityCandidate($entities, $m);
             }
         }
 
@@ -813,7 +818,70 @@ class ContextualQueryBuilder
     }
 
     /**
+     * Add and sanitize a candidate entity into the entity list.
+     *
+     * @param string[] $entities
+     */
+    private function addValidEntityCandidate(array &$entities, string $candidate): void
+    {
+        $clean = trim($candidate, " \t\n\r\0\x0B-_.,:;!?'\"()[]{}");
+        // Strip common conversational prefixes and question starters
+        $clean = preg_replace('/^(?:yes|no|ji|ha|haa|na|ok|okay|well|great\s+choice!?|great|thanks|thank\s+you|hello|hi|hey|is\s+the|in\s+the|on\s+the|at\s+the|for\s+the|with\s+the|our|your|their|my|this|that|the|ei|oi|shei|ami|apni|tumi|amar|apnar|amader|apnara|tader|tar|আমি|আপনি|তুমি|আমরা|আমার|আপনার|আমাদের|তাদের|তার|জি|হ্যাঁ|না)\b[,\s]*/ui', '', $clean);
+        $clean = preg_replace('/\s+(?:পছন্দ\s+করেছি|order\s+korte\s+chai|select\s+korechen|তৈরি|রয়েছে|হবে|আছে|khub\s+popular.*|is\s+100%.*|ta|to|gulo|er|te)$/ui', '', $clean);
+        $clean = trim($clean, " \t\n\r\0\x0B-_.,:;!?'\"()[]{}");
+
+        if (mb_strlen($clean) < 2 || mb_strlen($clean) > 50) {
+            return;
+        }
+
+        // Filter out comparative / relational phrases (e.g. "দুটির মধ্যে কোন", "which of these")
+        if (preg_match('/(মধ্যে|moddhe|between|among|versus|\bvs\b|\bor\b|নাকি|পার্থক্য|তুলনা|better|bhalo|ভালো)/ui', $clean)) {
+            return;
+        }
+
+        // Filter out pure numbers, durations, measurements, quantifiers, and prices
+        if (preg_match('/^[০-৯0-9\s.,%+\-_]+$/u', $clean) ||
+            preg_match('/^(?:[০-৯0-9]+|\b(?:one|two|three|four|five|six|seven|eight|nine|ten|এক|দুই|তিন|চার|পাঁচ|ছয়|সাত|আট|নয়|দশ|১|২|৩|৪|৫|৬|৭|৮|৯|১০)\b)\s*(?:বছর|দিন|মাস|ঘণ্টা|মিনিট|সপ্তাহ|টাকা|পিস|টি|টা|year|years|day|days|month|months|week|weeks|hour|hours|tk|taka|bdt|percent|%|gm|kg|পয়েন্ট|point)?$/ui', $clean) ||
+            preg_match('/^(?:এক|দুই|তিন|চার|পাঁচ|ছয়|সাত|আট|নয়|দশ|একটি|একটা|একটাই|দুটি|দুটো|দুটোই|দুইটি|দুইটা|তিনটি|চারটি|পাঁচটি|উভয়|উভয়টি|সবগুলো|সবগুলা|one|two|three|four|five|six|seven|eight|nine|ten|both|all)$/ui', $clean)
+        ) {
+            return;
+        }
+
+        // Filter out pure stop words / pronouns / conversational pleasantries / common locations & units
+        $stopWords = [
+            'ei', 'oi', 'shei', 'eta', 'ota', 'sheta', 'eita', 'oita', 'etar', 'otar', 'shetar',
+            'it', 'this', 'that', 'them', 'these', 'those', 'its', 'their', 'what', 'how', 'when', 'where', 'who', 'why',
+            'ami', 'apni', 'tumi', 'amra', 'apnara', 'amar', 'apnar', 'tomar',
+            'আমি', 'আপনি', 'তুমি', 'আমরা', 'আপনার', 'আমার', 'তোমার', 'আমাদের', 'তাদের', 'তার',
+            'এটা', 'ওটা', 'সেটা', 'এইটা', 'ওইটা', 'সেইটা', 'এটার', 'ওটার', 'সেটার',
+            'দাম', 'price', 'cost', 'টাকা', 'ডেলিভারি', 'delivery', 'শিপিং', 'shipping',
+            'রিটার্ন', 'return', 'রিফান্ড', 'refund', 'ওয়ারেন্টি', 'warranty', 'গ্যারান্টি', 'guarantee', 'পেমেন্ট', 'payment',
+            'চার্জ', 'charge', 'ফি', 'fee', 'অর্ডার', 'order', 'পার্সেল', 'parcel', 'কুরিয়ার', 'courier',
+            'thanks', 'thank you', 'ধন্যবাদ', 'help', 'support', 'yes', 'no', 'জি', 'হ্যাঁ', 'না', 'okay', 'sure',
+            'product', 'পণ্য', 'item', 'details', 'feature', 'features', 'info', 'subscription',
+            'বছর', 'মাস', 'দিন', 'সপ্তাহ', 'ঘণ্টা', 'স্টক', 'stock', 'চেম্বার', 'chamber', 'অফিস', 'office', 'দোকান', 'shop',
+        ];
+
+        $lower = mb_strtolower($clean);
+        if (in_array($lower, $stopWords, true)) {
+            return;
+        }
+
+        // Avoid adding duplicate or case-insensitive duplicate
+        foreach ($entities as $existing) {
+            if (mb_strtolower($existing) === $lower) {
+                return;
+            }
+        }
+
+        $entities[] = $clean;
+    }
+
+    /**
      * Filter and deduplicate candidate entities across all conversation turns.
+     *
+     * @param string[] $entities
+     * @return string[]
      */
     private function filterCandidateEntities(array $entities): array
     {
@@ -821,26 +889,63 @@ class ContextualQueryBuilder
             return $entities;
         }
 
-        // If specific multi-word entities exist (e.g. "White Silk Panjabi"), remove generic single-word category nouns
-        $multiWordProducts = array_filter($entities, fn ($e) => str_contains(trim($e), ' ') && !str_starts_with($e, '#') && !str_starts_with($e, 'order'));
-        if (!empty($multiWordProducts)) {
-            $entities = array_values(array_filter($entities, function ($ent) use ($multiWordProducts) {
-                if (str_starts_with($ent, '#') || str_starts_with($ent, 'order')) {
-                    return true;
+        // 1. Prioritize proper multi-word title-cased entities over partial or generic single-word mentions
+        $properNamed = array_values(array_filter($entities, fn($e) => preg_match('/^[iI]?[A-Z0-9][a-zA-Z0-9\-_]*(?:\s+[A-Z0-9][a-zA-Z0-9\-_]*)+$/u', trim($e))));
+        if (!empty($properNamed)) {
+            $filtered = [];
+            foreach ($entities as $e) {
+                $isOrder = str_starts_with($e, '#') || str_starts_with(mb_strtolower($e), 'order');
+                if ($isOrder) {
+                    $filtered[] = $e;
+                    continue;
                 }
-                if (str_contains(trim($ent), ' ')) {
-                    return true;
+
+                $tokens = preg_split('/\s+/u', mb_strtolower($e), -1, PREG_SPLIT_NO_EMPTY) ?: [];
+                // If this candidate is a single generic word and we already have a multi-word proper entity, skip it
+                if (count($tokens) === 1) {
+                    continue;
                 }
-                foreach ($multiWordProducts as $spec) {
-                    if (mb_stripos($spec, $ent) !== false || ($ent === 'পাঞ্জাবি' && mb_stripos($spec, 'panjabi') !== false)) {
-                        return false;
+
+                // If this is a token subset of another proper candidate, skip it
+                $isPartialOfProper = false;
+                foreach ($properNamed as $p) {
+                    if ($p === $e) {
+                        continue;
+                    }
+                    $pTokens = preg_split('/\s+/u', mb_strtolower($p), -1, PREG_SPLIT_NO_EMPTY) ?: [];
+                    if (count($tokens) < count($pTokens) && empty(array_diff($tokens, $pTokens))) {
+                        $isPartialOfProper = true;
+                        break;
                     }
                 }
-                return true;
-            }));
+                if (!$isPartialOfProper) {
+                    $filtered[] = $e;
+                }
+            }
+            $entities = array_values(array_unique($filtered));
         }
 
-        return $entities;
+        // 2. Remove superset noisy fragments where a shorter clean entity is fully contained
+        usort($entities, fn($a, $b) => mb_strlen($a) <=> mb_strlen($b));
+        $filtered = [];
+        foreach ($entities as $ent) {
+            if (str_starts_with($ent, '#') || str_starts_with($ent, 'order')) {
+                $filtered[] = $ent;
+                continue;
+            }
+            $isExtension = false;
+            foreach ($filtered as $kept) {
+                if (mb_stripos($ent, $kept) !== false) {
+                    $isExtension = true;
+                    break;
+                }
+            }
+            if (!$isExtension) {
+                $filtered[] = $ent;
+            }
+        }
+
+        return $filtered;
     }
 
     /**

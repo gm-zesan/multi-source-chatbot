@@ -863,6 +863,13 @@ class CustomerSupportService
 
     private function executeOodRoute(?Conversation $conversation, string $query): string
     {
+        if ($conversation !== null && $conversation->exists && !empty($conversation->metadata['pending_clarification'])) {
+            $metadata = $conversation->metadata;
+            unset($metadata['pending_clarification']);
+            $conversation->metadata = $metadata;
+            $conversation->save();
+        }
+
         return "দুঃখিত, এই বিষয়টি আমাদের কাস্টমার সাপোর্ট নলেজ বেসের আওতাভুক্ত নয়। আমাদের সার্ভিস বা অ্যাকাউন্ট সম্পর্কিত কোনো প্রশ্ন থাকলে জানান, অথবা আমি আপনাকে একজন সাপোর্ট স্পেশালিস্টের সাথে যুক্ত করে দিতে পারি।";
     }
 

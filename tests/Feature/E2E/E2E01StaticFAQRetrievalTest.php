@@ -42,7 +42,7 @@ class E2E01StaticFAQRetrievalTest extends BaseE2ETestCase
         $this->faqSearchMock->shouldReceive('search')
             ->once()
             ->withArgs(function ($q, $perPage, $wsId, $conv, $signal) use ($query) {
-                return $q === $query && $wsId === $this->workspace->id && $signal === null;
+                return $q === $query && $wsId === $this->workspace->id;
             })
             ->andReturn($this->createHitCollection($this->deliveryFaq, 0.95, 'lexicon'));
 

@@ -135,6 +135,10 @@ class M5ProductionRuntimeOrchestrationTest extends TestCase
         // ── Turn 3: User introduces ambiguity between two competing items ─────
         $this->recordTurn('Black Cotton Panjabi নাকি White Silk Panjabi কোনটি ভালো?', 'outbound', 'দুটোই উন্নত মানের।');
 
+        $this->routerMock->shouldReceive('route')
+            ->once()
+            ->andReturn(new RoutingResult(RouteType::UNCERTAIN, 0.88, 'product_ambiguity'));
+
         // Ambiguity Short-Circuit: Zero FAQ calls, zero LLM calls
         $this->faqSearchMock->shouldNotReceive('search');
 
@@ -259,6 +263,10 @@ class M5ProductionRuntimeOrchestrationTest extends TestCase
             'uncertain_count' => 2,
         ];
         $this->conversation->save();
+
+        $this->routerMock->shouldReceive('route')
+            ->once()
+            ->andReturn(new RoutingResult(RouteType::UNCERTAIN, 0.88, 'uncertain_query'));
 
         $this->faqSearchMock->shouldNotReceive('search');
 
