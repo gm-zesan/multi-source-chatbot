@@ -399,8 +399,8 @@ class ContextualQueryBuilder
                     // Asking about the delivery/order status of a specific product is common.
                     $recencyScore -= 0.15;
                 } elseif ($expectedType === 'Product' && $type === 'Order') {
-                    // Asking about product details of a specific order is less common.
-                    $recencyScore -= 0.30;
+                    // Asking about product details (price, size, fabric) of an order is inapplicable.
+                    $recencyScore -= 0.40;
                 } else {
                     $recencyScore -= 0.40;
                 }

@@ -16,6 +16,8 @@ use App\Models\Workspace;
 use App\Services\Business\BusinessSourceOfTruthService;
 use App\Services\Chat\ConversationService;
 use App\Services\FAQ\FAQSearch;
+use App\Services\AI\DTOs\ContextualResolutionResult;
+use App\Services\AI\DTOs\FollowUpDecision;
 use App\Services\Analytics\AnalyticsClient;
 use App\Services\Memory\ConversationMemoryService;
 use Illuminate\Support\Facades\Log;
@@ -31,10 +33,12 @@ class CustomerSupportService
     private readonly SemanticAnswerabilityGate $answerabilityGate;
     private readonly ClarificationManager $clarificationManager;
     private readonly AnalyticsClient $analyticsClient;
+    private readonly FollowUpPolicyManager $followUpPolicyManager;
     private readonly \App\AI\Tools\KnowledgeRetrievalTool $knowledgeRetrievalTool;
     private readonly \App\AI\Tools\BusinessAnalyticsTool $businessAnalyticsTool;
     private readonly \App\AI\Tools\ExcelAnalyticsTool $excelAnalyticsTool;
     private ?\Laravel\Ai\Responses\Data\Usage $lastLlmUsage = null;
+    private ?\App\Services\AI\DTOs\FollowUpDecision $lastFollowUpDecision = null;
 
     public function __construct(
         private readonly FAQSearch $faqSearch,
@@ -48,6 +52,7 @@ class CustomerSupportService
         ?SemanticAnswerabilityGate $answerabilityGate = null,
         ?ClarificationManager $clarificationManager = null,
         ?AnalyticsClient $analyticsClient = null,
+        ?FollowUpPolicyManager $followUpPolicyManager = null,
         ?\App\AI\Tools\KnowledgeRetrievalTool $knowledgeRetrievalTool = null,
         ?\App\AI\Tools\BusinessAnalyticsTool $businessAnalyticsTool = null,
         ?\App\AI\Tools\ExcelAnalyticsTool $excelAnalyticsTool = null,
@@ -61,7 +66,8 @@ class CustomerSupportService
         $this->answerabilityGate = $answerabilityGate ?? app(SemanticAnswerabilityGate::class);
         $this->clarificationManager = $clarificationManager ?? app(ClarificationManager::class);
         $this->analyticsClient = $analyticsClient ?? app(AnalyticsClient::class);
-        $this->knowledgeRetrievalTool = $knowledgeRetrievalTool ?? app(\App\AI\Tools\KnowledgeRetrievalTool::class);
+        $this->followUpPolicyManager = $followUpPolicyManager ?? app(FollowUpPolicyManager::class);
+        $this->knowledgeRetrievalTool = $knowledgeRetrievalTool ?? new \App\AI\Tools\KnowledgeRetrievalTool($this->faqSearch);
         $this->businessAnalyticsTool = $businessAnalyticsTool ?? app(\App\AI\Tools\BusinessAnalyticsTool::class);
         $this->excelAnalyticsTool = $excelAnalyticsTool ?? app(\App\AI\Tools\ExcelAnalyticsTool::class);
     }
@@ -92,7 +98,7 @@ class CustomerSupportService
         $contextResult = null;
         if ($routingResult->isKnowledge() || $routingResult->isUncertain()) {
             $contextResult = $this->contextualQueryBuilder->resolveContext($query, $conversation);
-            if ($contextResult->needsClarification() && $routingResult->isUncertain()) {
+            if ($contextResult->needsClarification()) {
                 $ambiguityResponse = $this->clarificationManager->handleAmbiguity(
                     conversation: $conversation,
                     rawQuery: $query,
@@ -299,7 +305,7 @@ class CustomerSupportService
             $contextResolutionMs = round((microtime(true) - $t_context_start) * 1000, 2);
             $contextualSignal = $contextResult->resolvedQuery ?? ($contextResult->activeTopic ?? null);
 
-            if ($contextResult->needsClarification() && $routingResult->isUncertain()) {
+            if ($contextResult->needsClarification()) {
                 $t_clarification_start = microtime(true);
                 $clarificationResult = $this->clarificationManager->handleAmbiguity(
                     conversation: $conversation,
@@ -396,20 +402,33 @@ class CustomerSupportService
                     : (
                         $answerabilityDecision !== null && $answerabilityDecision->isUnanswerable()
                             ? $this->executeOodRoute($conversation, $query)
-                            : $this->promptKnowledgeAgent(
-                                conversation: $conversation,
+                            : $this->processAgentFollowUp(
+                                rawAgentOutput: $this->promptKnowledgeAgent(
+                                    conversation: $conversation,
+                                    query: $query,
+                                    workspaceId: $workspaceId,
+                                    retrievedHits: $groundedHits,
+                                    memoryContext: $memoryContext,
+                                    businessContext: $businessContext,
+                                ),
+                                route: RouteType::KNOWLEDGE,
                                 query: $query,
-                                workspaceId: $workspaceId,
-                                retrievedHits: $groundedHits,
-                                memoryContext: $memoryContext,
-                                businessContext: $businessContext,
+                                conversation: $conversation,
+                                contextResult: $contextResult,
+                                answerabilityDecision: $answerabilityDecision,
                             )
                     )
             ),
-            RouteType::CHAT => $this->promptConversationalAgent(
-                conversation: $conversation,
+            RouteType::CHAT => $this->processAgentFollowUp(
+                rawAgentOutput: $this->promptConversationalAgent(
+                    conversation: $conversation,
+                    query: $query,
+                    memoryContext: $memoryContext,
+                ),
+                route: RouteType::CHAT,
                 query: $query,
-                memoryContext: $memoryContext,
+                conversation: $conversation,
+                contextResult: $contextResult,
             ),
             RouteType::ANALYTICS => $this->executeAnalyticsRoute(
                 conversation: $conversation ?? new Conversation(),
@@ -466,6 +485,7 @@ class CustomerSupportService
             'top_hit' => $topHit,
             'answered' => $answered,
             'answerability_decision' => $answerabilityDecision?->toArray(),
+            'follow_up_decision' => $this->lastFollowUpDecision?->toArray(),
             'raw_llm_response' => [
                 'provider' => config('ai.default', 'deepseek'),
                 'model' => config('ai.default_model', 'deepseek-chat'),
@@ -645,13 +665,22 @@ class CustomerSupportService
             return $this->executeOodRoute($conversation, $query);
         }
 
-        return $this->promptKnowledgeAgent(
+        $rawOutput = $this->promptKnowledgeAgent(
             conversation: $conversation,
             query: $query,
             workspaceId: $workspaceId,
             retrievedHits: $decision->groundedHits,
             memoryContext: $memoryContext,
             businessContext: $businessContext,
+        );
+
+        return $this->processAgentFollowUp(
+            rawAgentOutput: $rawOutput,
+            route: RouteType::KNOWLEDGE,
+            query: $query,
+            conversation: $conversation,
+            contextResult: null,
+            answerabilityDecision: $decision,
         );
     }
 
@@ -669,10 +698,17 @@ class CustomerSupportService
             return "অর্ডার বাতিলের অনুরোধটি বাতিল করা হয়েছে এবং কোনো পরিবর্তন করা হয়নি। আপনার অন্য কোনো প্রয়োজনে বলুন, সাহায্য করতে প্রস্তুত আছি!";
         }
 
-        return $this->promptConversationalAgent(
+        $rawOutput = $this->promptConversationalAgent(
             conversation: $conversation,
             query: $query,
             memoryContext: $memoryContext,
+        );
+
+        return $this->processAgentFollowUp(
+            rawAgentOutput: $rawOutput,
+            route: RouteType::CHAT,
+            query: $query,
+            conversation: $conversation,
         );
     }
 
@@ -1058,6 +1094,79 @@ class CustomerSupportService
         }
 
         return false;
+    }
+
+    /**
+     * Process raw agent output through FollowUpPolicyManager deterministically.
+     */
+    private function processAgentFollowUp(
+        string $rawAgentOutput,
+        RouteType|string $route,
+        string $query,
+        ?Conversation $conversation = null,
+        ?ContextualResolutionResult $contextResult = null,
+        ?object $answerabilityDecision = null,
+    ): string {
+        $parsed = $this->parseAgentOutput($rawAgentOutput);
+
+        $decision = $this->followUpPolicyManager->evaluate(
+            rawAnswer: $parsed['answer'],
+            proposedFollowUp: $parsed['proposed_follow_up'],
+            followUpType: $parsed['follow_up_type'],
+            route: $route,
+            userQuery: $query,
+            conversation: $conversation,
+            contextResult: $contextResult,
+            answerabilityDecision: $answerabilityDecision,
+        );
+
+        $this->lastFollowUpDecision = $decision;
+
+        if ($conversation !== null) {
+            $this->followUpPolicyManager->recordFollowUpState($conversation, $decision);
+        }
+
+        return $decision->finalReply();
+    }
+
+    /**
+     * Parse structured LLM output or safely fallback to raw answer string.
+     *
+     * @return array{answer: string, proposed_follow_up: ?string, follow_up_type: ?string}
+     */
+    public function parseAgentOutput(string $rawOutput): array
+    {
+        $clean = trim($rawOutput);
+        $clean = preg_replace('/<think>.*?<\/think>\s*/is', '', $clean);
+        $clean = trim($clean);
+
+        // Strip markdown code fences ```json ... ```
+        if (preg_match('/```(?:json)?\s*(\{.*?\})\s*```/s', $clean, $matches)) {
+            $clean = $matches[1];
+        } elseif (preg_match('/(\{.*\})/s', $clean, $matches)) {
+            $clean = $matches[1];
+        }
+
+        $decoded = json_decode($clean, true);
+        if (is_array($decoded) && isset($decoded['answer'])) {
+            return [
+                'answer'             => trim((string) $decoded['answer']),
+                'proposed_follow_up' => !empty($decoded['proposed_follow_up']) ? trim((string) $decoded['proposed_follow_up']) : null,
+                'follow_up_type'     => !empty($decoded['follow_up_type']) ? trim((string) $decoded['follow_up_type']) : null,
+            ];
+        }
+
+        // Graceful fallback for plain text or malformed JSON
+        return [
+            'answer'             => trim($rawOutput),
+            'proposed_follow_up' => null,
+            'follow_up_type'     => null,
+        ];
+    }
+
+    public function getLastFollowUpDecision(): ?\App\Services\AI\DTOs\FollowUpDecision
+    {
+        return $this->lastFollowUpDecision;
     }
 
     private function defaultFallbackText(): string

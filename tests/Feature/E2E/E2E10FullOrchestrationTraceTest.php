@@ -141,6 +141,10 @@ class E2E10FullOrchestrationTraceTest extends BaseE2ETestCase
 
         $t4Query = 'otar parcel ta kothay?';
 
+        $this->routerMock->shouldReceive('route')
+            ->once()
+            ->andReturn(new RoutingResult(RouteType::UNCERTAIN, 0.70, 'order_tracking'));
+
         // M4-A Short-Circuit: ZERO FAQ calls
         $this->faqSearchMock->shouldNotReceive('search');
 
@@ -203,9 +207,6 @@ class E2E10FullOrchestrationTraceTest extends BaseE2ETestCase
             ->andReturn($this->createHitCollection($this->panjabiPricingFaq, 0.93, 'lexicon'));
 
         $t6Result = $this->service->handleQuery($t6Query, $this->workspace->id, $this->conversation);
-        if ($t6Result['route'] === 'uncertain') {
-            dump($t6Result);
-        }
 
         $traces['turn_6'] = E2EObservabilityTracer::trace($t6Query, $t6Result, [
             'tier_used'      => 1,

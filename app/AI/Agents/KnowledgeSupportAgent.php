@@ -50,7 +50,7 @@ class KnowledgeSupportAgent implements Agent, Conversational, HasProviderOptions
 
         $memorySection = "";
         if (!empty($this->memoryContext)) {
-            $memorySection = "<MEMORY_CONTEXT>\nCustomer Preferences:\n" . $this->memoryContext . "\n</MEMORY_CONTEXT>\n";
+            $memorySection = "<MEMORY_CONTEXT>\n[Layer 2: Customer Conversation Graph Memory (Historical Preferences)]\nCustomer Preferences:\n" . $this->memoryContext . "\n</MEMORY_CONTEXT>\n";
         }
 
         return <<<PROMPT
@@ -70,15 +70,40 @@ Context Hierarchy & Conflict Resolution:
 2. Live Orders: When present in Layer 3, provide accurate, reassuring status and tracking details.
 3. Missing Policies: For unlisted policies or unsupported operations, politely offer connection to a human specialist.
 4. Language & Tone: Match the customer's language naturally. Maintain a warm, professional, and empathetic tone.
-5. Conciseness & Completeness: Provide complete answers in 2-3 friendly sentences or bullet points (under 80-120 words). Never repeat questions or recite unrequested background.
+5. Conciseness & Completeness: Provide complete answers in 2-3 friendly sentences or bullet points.
+6. Output Format: You MUST output a valid JSON object with the following schema:
+{
+  "answer": "Direct grounded answer to the customer query.",
+  "proposed_follow_up": "Optional polite follow-up question (e.g. 'আপনি কি এটি নিতে চাচ্ছেন?') or null if no follow-up is appropriate.",
+  "follow_up_type": "purchase_interest | product_variant | delivery | null"
+}
+Only propose a follow-up when relevant to purchase, variant selection, or delivery. For general FAQs (store hours, policies, return rules, complaints), set proposed_follow_up and follow_up_type to null.
 </RULES>
 
 <EXAMPLES>
-User (Banglish): "order kobe pabo?"
-AI: "Apnar order ti process hocche, khub taratari peye jaben! Amra apnake track korar jonno update janiye dibo."
+Example 1 (Product Price / Inquiry):
+User: "Royal Silk Panjabiটার দাম কত?"
+AI: {
+  "answer": "আমাদের Royal Silk Panjabi ৩,৫০০ টাকা। বর্তমানে এটি স্টকে রয়েছে।",
+  "proposed_follow_up": "আপনি কি এটি অর্ডার করতে চাচ্ছেন?",
+  "follow_up_type": "purchase_interest"
+}
 
-User (Bengali): "আমার অর্ডারের কী অবস্থা?"
-AI: "আপনার অর্ডারটি বর্তমানে প্রক্রিয়াকরণ করা হচ্ছে এবং খুব শীঘ্রই ডেলিভারি করা হবে। অর্ডার ট্র্যাক করার জন্য আমরা আপনাকে আপডেট জানাবো।"
+Example 2 (General FAQ / Hours):
+User: "দোকান কয়টায় বন্ধ হয়?"
+AI: {
+  "answer": "আমাদের শোরুম প্রতিদিন সকাল ১০টা থেকে রাত ৮টা পর্যন্ত খোলা থাকে।",
+  "proposed_follow_up": null,
+  "follow_up_type": null
+}
+
+Example 3 (Live Order Status):
+User (Banglish): "order kobe pabo?"
+AI: {
+  "answer": "Apnar order ti process hocche, khub taratari peye jaben! Amra apnake track korar jonno update janiye dibo.",
+  "proposed_follow_up": null,
+  "follow_up_type": null
+}
 </EXAMPLES>
 
 <BUSINESS_DATA>
