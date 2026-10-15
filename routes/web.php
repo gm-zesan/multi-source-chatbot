@@ -14,9 +14,11 @@ use App\Http\Controllers\HealthController;
 use App\Http\Controllers\ObservabilityController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ConversationController;
+use App\Http\Controllers\KnowledgeDocumentController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\WebhookController;
+use App\Enums\Permissions\KnowledgeDocumentPermission;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -133,6 +135,18 @@ Route::middleware('auth')->prefix('dashboard')->group(function () {
     Route::post('/faqs/bulk-delete', [FAQController::class, 'bulkDelete'])
         ->name('faqs.bulk-delete')
         ->middleware('permission:' . \App\Enums\Permissions\FAQPermission::DELETE->value);
+
+    // ── Knowledge Documents ─────────────────────────────────────────────
+    Route::resource('/documents', KnowledgeDocumentController::class)->only(['index', 'create', 'store', 'destroy'])
+        ->middleware('permission:' . implode('|', [
+            KnowledgeDocumentPermission::VIEW->value,
+            KnowledgeDocumentPermission::CREATE->value,
+            KnowledgeDocumentPermission::DELETE->value,
+        ]));
+    Route::post('/documents/{id}/restore', [KnowledgeDocumentController::class, 'restore'])
+        ->name('documents.restore')
+        ->withTrashed()
+        ->middleware('permission:' . KnowledgeDocumentPermission::UPDATE->value);
 });
 
 require __DIR__.'/auth.php';

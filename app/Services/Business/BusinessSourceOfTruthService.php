@@ -11,14 +11,18 @@ use Illuminate\Support\Facades\Log;
 class BusinessSourceOfTruthService
 {
     /**
-     * In-memory / database mockable store for live order truth.
-     * Can be easily swapped with live ERP / Shopify / WooCommerce / DB table.
+     * In-memory test fixtures for automated testing environments.
+     * Strictly gated to the 'testing' environment to prevent synthetic data leakage in production.
      *
      * @var array<string, array<string, mixed>>
      */
     private static array $mockOrderStore = [
         '1042' => [
             'order_id'           => '1042',
+            'workspace_id'       => 1,
+            'external_user_ids'  => ['user_sot_999', 'e2e_customer_tanvir', 'e2e_trace_user_01'],
+            'customer_names'     => ['Tanvir Rahman', 'Tanvir Ahmed'],
+            'customer_phones'    => ['+8801712345678'],
             'status'             => 'Dispatched',
             'carrier'            => 'Pathao Express',
             'tracking_code'      => 'PATH-1042-BD',
@@ -29,6 +33,10 @@ class BusinessSourceOfTruthService
         ],
         '8899' => [
             'order_id'           => '8899',
+            'workspace_id'       => 1,
+            'external_user_ids'  => ['user_sot_999', 'e2e_customer_tanvir'],
+            'customer_names'     => ['Tanvir Rahman', 'Tanvir Ahmed'],
+            'customer_phones'    => ['+8801712345678'],
             'status'             => 'Delivered',
             'carrier'            => 'Steadfast Courier',
             'tracking_code'      => 'ST-8899-DH',
@@ -40,7 +48,7 @@ class BusinessSourceOfTruthService
     ];
 
     /**
-     * Register a mock order for testing or live runtime overrides.
+     * Register a mock order for testing overrides.
      *
      * @param array<string, mixed> $data
      */
@@ -50,13 +58,17 @@ class BusinessSourceOfTruthService
     }
 
     /**
-     * Clear custom mock orders.
+     * Clear custom mock orders and restore defaults.
      */
     public static function resetMockOrders(): void
     {
         self::$mockOrderStore = [
             '1042' => [
                 'order_id'           => '1042',
+                'workspace_id'       => 1,
+                'external_user_ids'  => ['user_sot_999', 'e2e_customer_tanvir', 'e2e_trace_user_01'],
+                'customer_names'     => ['Tanvir Rahman', 'Tanvir Ahmed'],
+                'customer_phones'    => ['+8801712345678'],
                 'status'             => 'Dispatched',
                 'carrier'            => 'Pathao Express',
                 'tracking_code'      => 'PATH-1042-BD',
@@ -67,6 +79,10 @@ class BusinessSourceOfTruthService
             ],
             '8899' => [
                 'order_id'           => '8899',
+                'workspace_id'       => 1,
+                'external_user_ids'  => ['user_sot_999', 'e2e_customer_tanvir'],
+                'customer_names'     => ['Tanvir Rahman', 'Tanvir Ahmed'],
+                'customer_phones'    => ['+8801712345678'],
                 'status'             => 'Delivered',
                 'carrier'            => 'Steadfast Courier',
                 'tracking_code'      => 'ST-8899-DH',
@@ -81,36 +97,180 @@ class BusinessSourceOfTruthService
     /**
      * Look up authoritative live order data.
      *
+     * Enforces:
+     * 1. Environment Guard: Mock test fixtures are only available in 'testing'.
+     * 2. No Synthetic Fallback: Unknown order IDs strictly return null.
+     * 3. Workspace Scoping: Cross-workspace order access is rejected.
+     * 4. Customer Ownership Verification: Fails closed when ownership cannot be verified.
+     *
      * @return array<string, mixed>|null
      */
-    public function lookupOrder(string|int $orderId, int $workspaceId = 1): ?array
+    public function lookupOrder(string|int $orderId, int $workspaceId = 1, ?Conversation $conversation = null): ?array
     {
-        $cleanId = ltrim((string) $orderId, '#');
-
-        if (isset(self::$mockOrderStore[$cleanId])) {
-            Log::info('[BusinessSourceOfTruth] Order resolved from live source', [
-                'order_id'     => $cleanId,
-                'status'       => self::$mockOrderStore[$cleanId]['status'],
+        // 1. Production safety: Mock fixtures are strictly restricted to automated tests under 'testing'.
+        if (!app()->environment('testing')) {
+            Log::info('[BusinessSourceOfTruth] Order lookup suppressed in non-testing environment (no authoritative source)', [
+                'order_id'     => $orderId,
                 'workspace_id' => $workspaceId,
             ]);
-            return self::$mockOrderStore[$cleanId];
+            return null;
         }
 
-        // Deterministic synthetic fallback for any positive numerical order ID
-        if (is_numeric($cleanId) && (int) $cleanId > 0) {
-            return [
-                'order_id'           => $cleanId,
-                'status'             => 'Processing',
-                'carrier'            => 'Paperfly Logistics',
-                'tracking_code'      => "PF-{$cleanId}-BD",
-                'estimated_delivery' => '2-3 business days',
-                'total_bdt'          => 1200,
-                'items'              => 'Standard Order Items',
-                'payment_status'     => 'Confirmed',
-            ];
+        $cleanId = ltrim((string) $orderId, '#');
+
+        if (!isset(self::$mockOrderStore[$cleanId])) {
+            return null;
         }
 
-        return null;
+        $order = self::$mockOrderStore[$cleanId];
+
+        // 2. Enforce Workspace Scoping
+        if (isset($order['workspace_id']) && (int) $order['workspace_id'] !== (int) $workspaceId) {
+            Log::warning('[BusinessSourceOfTruth] Cross-workspace order access attempt blocked', [
+                'order_id'            => $cleanId,
+                'requested_workspace' => $workspaceId,
+                'order_workspace'     => $order['workspace_id'],
+            ]);
+            return null;
+        }
+
+        // 3. Enforce Customer Ownership Authorization (fail-closed)
+        if ($conversation === null || !$this->isAuthorizedCustomerForOrder($conversation, $order)) {
+            Log::warning('[BusinessSourceOfTruth] Unauthorized order access attempt blocked (missing or invalid customer ownership)', [
+                'order_id'         => $cleanId,
+                'conversation_id'  => $conversation?->id,
+                'external_user_id' => $conversation?->external_user_id,
+            ]);
+            return null;
+        }
+
+        Log::info('[BusinessSourceOfTruth] Order resolved from authorized test fixture', [
+            'order_id'     => $cleanId,
+            'status'       => $order['status'] ?? 'Unknown',
+            'workspace_id' => $workspaceId,
+        ]);
+
+        return $order;
+    }
+
+    /**
+     * Verify customer ownership of the order.
+     * Fails closed if ownership evidence is missing or does not match conversation customer identity.
+     *
+     * @param Conversation $conversation
+     * @param array<string, mixed> $order
+     * @return bool
+     */
+    private function isAuthorizedCustomerForOrder(Conversation $conversation, array $order): bool
+    {
+        // 1. Gather Order Owner Identifiers
+        $allowedExternalIds = [];
+        if (!empty($order['external_user_id'])) {
+            $allowedExternalIds[] = (string) $order['external_user_id'];
+        }
+        if (!empty($order['customer_id'])) {
+            $allowedExternalIds[] = (string) $order['customer_id'];
+        }
+        if (!empty($order['external_user_ids']) && is_array($order['external_user_ids'])) {
+            foreach ($order['external_user_ids'] as $id) {
+                $allowedExternalIds[] = (string) $id;
+            }
+        }
+
+        $allowedPhones = [];
+        if (!empty($order['phone'])) {
+            $allowedPhones[] = preg_replace('/[^\d]/', '', (string) $order['phone']);
+        }
+        if (!empty($order['customer_phone'])) {
+            $allowedPhones[] = preg_replace('/[^\d]/', '', (string) $order['customer_phone']);
+        }
+        if (!empty($order['customer_phones']) && is_array($order['customer_phones'])) {
+            foreach ($order['customer_phones'] as $p) {
+                $allowedPhones[] = preg_replace('/[^\d]/', '', (string) $p);
+            }
+        }
+
+        $allowedEmails = [];
+        if (!empty($order['email'])) {
+            $allowedEmails[] = mb_strtolower(trim((string) $order['email']));
+        }
+        if (!empty($order['customer_email'])) {
+            $allowedEmails[] = mb_strtolower(trim((string) $order['customer_email']));
+        }
+        if (!empty($order['customer_emails']) && is_array($order['customer_emails'])) {
+            foreach ($order['customer_emails'] as $e) {
+                $allowedEmails[] = mb_strtolower(trim((string) $e));
+            }
+        }
+
+        // Fails closed if order has zero reliable ownership evidence (external ID, phone, email)
+        if (empty($allowedExternalIds) && empty($allowedPhones) && empty($allowedEmails)) {
+            return false;
+        }
+
+        // 2. Gather Conversation Customer Identifiers
+        $convExternalId = (string) ($conversation->external_user_id ?? '');
+
+        $contact = $conversation->crmContact
+            ?? CRMContact::with(['phones', 'emails'])
+                ->where('conversation_id', $conversation->id)
+                ->orWhere('external_user_id', $conversation->external_user_id)
+                ->first();
+
+        $convPhones = [];
+        if ($contact && $contact->relationLoaded('phones')) {
+            foreach ($contact->phones as $phoneObj) {
+                $digits = preg_replace('/[^\d]/', '', (string) $phoneObj->phone);
+                if ($digits !== '') {
+                    $convPhones[] = $digits;
+                }
+            }
+        } elseif ($contact) {
+            foreach ($contact->phones()->get() as $phoneObj) {
+                $digits = preg_replace('/[^\d]/', '', (string) $phoneObj->phone);
+                if ($digits !== '') {
+                    $convPhones[] = $digits;
+                }
+            }
+        }
+
+        $convEmails = [];
+        if ($contact && $contact->relationLoaded('emails')) {
+            foreach ($contact->emails as $emailObj) {
+                $emailStr = mb_strtolower(trim((string) $emailObj->email));
+                if ($emailStr !== '') {
+                    $convEmails[] = $emailStr;
+                }
+            }
+        } elseif ($contact) {
+            foreach ($contact->emails()->get() as $emailObj) {
+                $emailStr = mb_strtolower(trim((string) $emailObj->email));
+                if ($emailStr !== '') {
+                    $convEmails[] = $emailStr;
+                }
+            }
+        }
+
+        // Fails closed if conversation has zero reliable customer identity evidence
+        if ($convExternalId === '' && empty($convPhones) && empty($convEmails)) {
+            return false;
+        }
+
+        // 3. Check for matching reliable identity (external ID, verified phone, verified email)
+        // Names are never treated as unique identifiers or independent proof of ownership.
+        if ($convExternalId !== '' && in_array($convExternalId, $allowedExternalIds, true)) {
+            return true;
+        }
+
+        if (!empty(array_intersect($convPhones, array_filter($allowedPhones)))) {
+            return true;
+        }
+
+        if (!empty(array_intersect($convEmails, array_filter($allowedEmails)))) {
+            return true;
+        }
+
+        return false;
     }
 
     /**
@@ -123,7 +283,7 @@ class BusinessSourceOfTruthService
         // 1. Detect order ID mention in query (#1042 or 1042)
         if (preg_match('/#?([0-9]{4,8})/u', $query, $matches)) {
             $orderId = $matches[1];
-            $orderData = $this->lookupOrder($orderId, $workspaceId);
+            $orderData = $conversation !== null ? $this->lookupOrder($orderId, $workspaceId, $conversation) : null;
             if ($orderData !== null) {
                 $sections[] = "- Live Order #{$orderData['order_id']}:\n" .
                     "  * Status: {$orderData['status']}\n" .
@@ -132,6 +292,22 @@ class BusinessSourceOfTruthService
                     "  * Estimated Delivery: {$orderData['estimated_delivery']}\n" .
                     "  * Payment: {$orderData['payment_status']}\n" .
                     "  * Items: {$orderData['items']}";
+            } else {
+                $cleanId = ltrim((string) $orderId, '#');
+                $isTesting = app()->environment('testing');
+                $existsInFixture = $isTesting && isset(self::$mockOrderStore[$cleanId]);
+
+                if ($isTesting && !$existsInFixture) {
+                    $sections[] = "- Order #{$orderId} Inquiry Status:\n" .
+                        "  * Verification Status: Order not found.\n" .
+                        "  * Policy Notice: Order #{$orderId} was not found in our records.\n" .
+                        "  * Instruction to Assistant: Truthfully inform the customer that order #{$orderId} was not found in records. Do NOT guess, invent, or assume any status, courier, tracking code, or delivery dates. Politely ask the customer to verify their order number.";
+                } else {
+                    $sections[] = "- Order #{$orderId} Inquiry Status:\n" .
+                        "  * Verification Status: Order status could not be verified for this customer account.\n" .
+                        "  * Policy Notice: Order #{$orderId} could not be verified in live records for this customer session.\n" .
+                        "  * Instruction to Assistant: Truthfully inform the customer that order #{$orderId} cannot be verified or accessed for their account. Do NOT guess, invent, or assume any status, courier, tracking code, or delivery dates. Politely advise the customer to double-check their order number or contact support from their registered phone/email.";
+                }
             }
         }
 
@@ -179,7 +355,7 @@ class BusinessSourceOfTruthService
                         "  * Product: {$product->name}\n" .
                         "  * Category: {$product->category}\n" .
                         "  * Price: ৳{$formattedPrice}\n" .
-                        "  * Stock Status: Available in Stock";
+                        "  * Catalog Status: Active in catalog";
                     $matchedAny = true;
                 }
             }
@@ -191,7 +367,7 @@ class BusinessSourceOfTruthService
                     $priceStr = number_format((float) $prod->unit_price, 2);
                     $productListLines[] = "  * {$prod->name} ({$prod->category}) - ৳{$priceStr}";
                 }
-                $sections[] = "- Available Products in Catalog (Authoritative Truth):\n" . implode("\n", $productListLines);
+                $sections[] = "- Active Products in Catalog (Authoritative Truth):\n" . implode("\n", $productListLines);
             }
         } catch (\Throwable $e) {
             Log::warning('[BusinessSourceOfTruth] Product lookup skipped: ' . $e->getMessage());

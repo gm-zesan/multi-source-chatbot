@@ -59,6 +59,12 @@
                     <span class="nav-label">FAQs</span>
                 </a>
             </li>
+            <li class="nav-item">
+                <a href="{{ route('documents.index') }}" class="nav-link {{ in_array(Route::currentRouteName(), ['documents.index', 'documents.create']) ? 'active' : '' }}">
+                    <i class="ri-file-text-line nav-icon"></i>
+                    <span class="nav-label">Documents</span>
+                </a>
+            </li>
 
             <!-- Users & Roles Section -->
             <li class="nav-section">

@@ -10,6 +10,7 @@ use App\Enums\Permissions\MessagePermission;
 use App\Enums\Permissions\UnansweredQuestionPermission;
 use App\Enums\Permissions\UserPermission;
 use App\Enums\Permissions\WorkspaceUserPermission;
+use App\Enums\Permissions\KnowledgeDocumentPermission;
 use App\Enums\RoleEnum;
 use Illuminate\Database\Seeder;
 use Spatie\Permission\Models\Permission;
@@ -81,6 +82,11 @@ class RoleSeeder extends Seeder
             FAQPermission::CREATE->value,
             FAQPermission::UPDATE->value,
             FAQPermission::DELETE->value,
+
+            KnowledgeDocumentPermission::VIEW->value,
+            KnowledgeDocumentPermission::CREATE->value,
+            KnowledgeDocumentPermission::UPDATE->value,
+            KnowledgeDocumentPermission::DELETE->value,
 
             KnowledgeSearchLogPermission::VIEW->value,
             KnowledgeSearchLogPermission::DELETE->value,

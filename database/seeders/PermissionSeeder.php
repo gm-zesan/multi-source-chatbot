@@ -33,6 +33,7 @@ class PermissionSeeder extends Seeder
         MessagePermission::class,
         ChannelPermission::class,
         FAQPermission::class,
+        \App\Enums\Permissions\KnowledgeDocumentPermission::class,
         KnowledgeSearchLogPermission::class,
         UnansweredQuestionPermission::class,
     ];
@@ -50,7 +51,10 @@ class PermissionSeeder extends Seeder
     {
         foreach (self::PERMISSION_ENUMS as $enumClass) {
             foreach ($enumClass::seederData() as $permission) {
-                Permission::create($permission);
+                Permission::firstOrCreate(
+                    ['name' => $permission['name'], 'guard_name' => 'web'],
+                    $permission
+                );
             }
         }
 
