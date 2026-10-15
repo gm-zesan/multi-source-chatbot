@@ -189,15 +189,15 @@ class KnowledgeDocumentService
                     : pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
 
                 return KnowledgeDocument::create([
-                    'workspace_id'        => $workspaceId,
-                    'title'               => $docTitle,
-                    'original_filename'   => $file->getClientOriginalName(),
-                    'file_path'           => $relativePath,
-                    'mime_type'           => $file->getMimeType() ?: 'application/octet-stream',
-                    'file_size'           => $file->getSize(),
-                    'content_hash'        => $contentHash,
-                    'active_content_hash' => $contentHash,
-                    'lifecycle_status'    => DocumentLifecycleStatus::PENDING_INGESTION,
+                    'workspace_id'            => $workspaceId,
+                    'title'                   => $docTitle,
+                    'original_filename'       => $file->getClientOriginalName(),
+                    'file_path'               => $relativePath,
+                    'mime_type'               => $file->getMimeType() ?: 'application/octet-stream',
+                    'file_size'               => $file->getSize(),
+                    'content_hash'            => $contentHash,
+                    'active_content_hash'     => $contentHash,
+                    'lifecycle_status'        => DocumentLifecycleStatus::PENDING_INGESTION,
                     'chunk_count'         => 0,
                     'version'             => 1,
                     'is_active'           => false,
@@ -243,6 +243,7 @@ class KnowledgeDocumentService
     {
         DB::transaction(function () use ($document) {
             $document->active_content_hash = null;
+            $document->is_active = false;
             $document->save();
             $document->delete();
         });
@@ -254,7 +255,8 @@ class KnowledgeDocumentService
     public function restore(string $id): KnowledgeDocument
     {
         return DB::transaction(function () use ($id) {
-            $document = $this->workspaceQuery()->onlyTrashed()->findOrFail($id);
+            /** @var KnowledgeDocument $document */
+            $document = $this->workspaceQuery()->onlyTrashed()->lockForUpdate()->findOrFail($id);
 
             // Verify no active document with the same content exists in this workspace
             $conflict = KnowledgeDocument::where('workspace_id', $document->workspace_id)
@@ -282,3 +284,4 @@ class KnowledgeDocumentService
         });
     }
 }
+
