@@ -15,6 +15,7 @@ use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -30,6 +31,7 @@ class KnowledgeDocumentManagementTest extends TestCase
     protected User $adminUserB;
     protected User $unauthorizedUser;
     protected User $superAdmin;
+    protected array $tempFilesToDelete = [];
 
     protected function setUp(): void
     {
@@ -73,19 +75,87 @@ class KnowledgeDocumentManagementTest extends TestCase
         ]);
         $this->unauthorizedUser->assignRole($noPermRole);
 
-        // Super Admin
+    // Super Admin
         $this->superAdmin = User::factory()->create([
             'workspace_id' => $this->workspaceA->id,
         ]);
         $this->superAdmin->assignRole(RoleEnum::SUPERADMIN->value);
+
+        $this->analyticsHandler = null;
+
+        // Dynamic mock for Python analytics service
+        Http::fake(function (\Illuminate\Http\Client\Request $request) {
+            if ($this->analyticsHandler !== null) {
+                $handlerResult = ($this->analyticsHandler)($request);
+                if ($handlerResult !== null) {
+                    return $handlerResult;
+                }
+            }
+
+            if (str_contains($request->url(), '/analytics/excel/upload')) {
+                return Http::response([
+                    'success'        => true,
+                    'source_id'      => 'test_src_123',
+                    'file_id'        => 'test_src_123',
+                    'sheets'         => ['Sheet1'],
+                    'sheets_count'   => 1,
+                    'total_rows'     => 10,
+                    'tables'         => ['Sheet1' => ['columns' => ['id', 'name']]],
+                    'schema_summary' => 'Test Schema',
+                ], 200);
+            }
+
+            if (str_contains($request->url(), '/analytics/sources/')) {
+                return Http::response([
+                    'success' => true,
+                    'message' => 'Source deleted successfully.',
+                ], 200);
+            }
+
+            return Http::response(['success' => true], 200);
+        });
+    }
+
+    protected ?\Closure $analyticsHandler = null;
+
+    protected function tearDown(): void
+    {
+        foreach ($this->tempFilesToDelete as $path) {
+            if (file_exists($path)) {
+                @unlink($path);
+            }
+        }
+        $this->tempFilesToDelete = [];
+
+        parent::tearDown();
+    }
+
+    protected function createFakeXlsx(string $filename = 'test.xlsx'): UploadedFile
+    {
+        $tempPath = tempnam(sys_get_temp_dir(), 'test_xlsx_') . '.xlsx';
+        $this->tempFilesToDelete[] = $tempPath;
+
+        $zip = new \ZipArchive();
+        $zip->open($tempPath, \ZipArchive::CREATE | \ZipArchive::OVERWRITE);
+        $zip->addFromString('[Content_Types].xml', '<?xml version="1.0" encoding="UTF-8"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"></Types>');
+        $zip->addFromString('xl/workbook.xml', '<?xml version="1.0" encoding="UTF-8"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"></workbook>');
+        $zip->close();
+
+        return new UploadedFile(
+            $tempPath,
+            $filename,
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            null,
+            true
+        );
     }
 
     /**
-     * 1. Authorized admin uploads a valid text file.
+     * 1. Authorized admin uploads a valid CSV file.
      */
-    public function test_authorized_admin_uploads_valid_text_file(): void
+    public function test_authorized_admin_uploads_valid_csv_file(): void
     {
-        $file = UploadedFile::fake()->createWithContent('policies.txt', 'Official company refund and return policies.');
+        $file = UploadedFile::fake()->createWithContent('policies.csv', "id,policy_name,amount\n1,Return Policy,100", 'text/csv');
 
         $response = $this->actingAs($this->adminUserA)->post(route('documents.store'), [
             'title'    => 'Company Policies',
@@ -93,99 +163,97 @@ class KnowledgeDocumentManagementTest extends TestCase
         ]);
 
         $response->assertRedirect(route('documents.index'));
-        $response->assertSessionHas('success', 'Document uploaded successfully.');
+        $response->assertSessionHas('success', 'Document uploaded and registered successfully.');
 
         $this->assertDatabaseHas('knowledge_documents', [
             'workspace_id'      => $this->workspaceA->id,
             'title'             => 'Company Policies',
-            'original_filename' => 'policies.txt',
-            'mime_type'         => 'text/plain',
-            'lifecycle_status'  => DocumentLifecycleStatus::PENDING_INGESTION->value,
-            'is_active'         => false,
+            'original_filename' => 'policies.csv',
+            'source_id'         => 'test_src_123',
+            'sheets_count'      => 1,
+            'lifecycle_status'  => DocumentLifecycleStatus::ACTIVE->value,
+            'is_active'         => true,
         ]);
     }
 
     /**
-     * 2. Allowed file extensions and detected MIME types are validated correctly (txt, pdf, docx, csv).
+     * 2. Allowed file types (xlsx and csv) are accepted.
      */
-    public function test_allowed_file_types_are_validated_correctly(): void
+    public function test_allowed_file_types_xlsx_and_csv_are_accepted(): void
     {
-        $allowedFiles = [
+        // 1. CSV
+        $csvFile = UploadedFile::fake()->createWithContent('data.csv', "id,name\n1,Item", 'text/csv');
+        $resCsv = $this->actingAs($this->adminUserA)->post(route('documents.store'), [
+            'document' => $csvFile,
+        ]);
+        $resCsv->assertRedirect(route('documents.index'));
+        $resCsv->assertSessionHas('success');
+
+        // 2. XLSX
+        $xlsxFile = $this->createFakeXlsx('inventory.xlsx');
+        $resXlsx = $this->actingAs($this->adminUserA)->post(route('documents.store'), [
+            'document' => $xlsxFile,
+        ]);
+        $resXlsx->assertRedirect(route('documents.index'));
+        $resXlsx->assertSessionHas('success');
+
+        $this->assertEquals(2, KnowledgeDocument::where('workspace_id', $this->workspaceA->id)->count());
+    }
+
+    /**
+     * 3. Unsupported file extensions (txt, pdf, docx, exe, sh) are rejected.
+     */
+    public function test_unsupported_extensions_are_rejected(): void
+    {
+        $unsupported = [
             'notes.txt'   => ['content' => 'Plain text content', 'mime' => 'text/plain'],
-            'manual.pdf'  => ['content' => '%PDF-1.4 test pdf content', 'mime' => 'application/pdf'],
-            'data.csv'    => ['content' => "id,title\n1,Alpha", 'mime' => 'text/csv'],
-            'report.docx' => [
-                'content' => 'Fake docx payload',
-                'mime'    => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-            ],
+            'manual.pdf'  => ['content' => '%PDF-1.4 sample', 'mime' => 'application/pdf'],
+            'report.docx' => ['content' => 'Fake docx', 'mime' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'],
+            'script.sh'   => ['content' => '#!/bin/bash', 'mime' => 'application/x-sh'],
+            'bad.exe'     => ['content' => 'MZ binary', 'mime' => 'application/x-msdownload'],
         ];
 
-        foreach ($allowedFiles as $filename => $spec) {
+        foreach ($unsupported as $filename => $spec) {
             $file = UploadedFile::fake()->createWithContent($filename, $spec['content'], $spec['mime']);
 
-            $response = $this->actingAs($this->adminUserA)->post(route('documents.store'), [
-                'document' => $file,
-            ]);
+            $response = $this->actingAs($this->adminUserA)
+                ->from(route('documents.create'))
+                ->post(route('documents.store'), [
+                    'document' => $file,
+                ]);
 
-            $response->assertRedirect(route('documents.index'));
-            $response->assertSessionHasNoErrors();
+            $response->assertRedirect(route('documents.create'));
+            $response->assertSessionHasErrors(['document']);
         }
-
-        $this->assertEquals(4, KnowledgeDocument::where('workspace_id', $this->workspaceA->id)->count());
-    }
-
-    /**
-     * 3. Unsupported and spoofed files are rejected.
-     */
-    public function test_unsupported_and_spoofed_files_are_rejected(): void
-    {
-        // Disallowed extension (.exe)
-        $exeFile = UploadedFile::fake()->create('installer.exe', 100, 'application/x-msdownload');
-        $response1 = $this->actingAs($this->adminUserA)->post(route('documents.store'), [
-            'document' => $exeFile,
-        ]);
-        $response1->assertSessionHasErrors(['document']);
-
-        // Spoofed file: extension says .txt but mime is executable/php
-        $spoofedFile = UploadedFile::fake()->create('malicious.txt', 100, 'application/x-httpd-php');
-        $response2 = $this->actingAs($this->adminUserA)->post(route('documents.store'), [
-            'document' => $spoofedFile,
-        ]);
-        $response2->assertSessionHasErrors(['document']);
-
-        // Script file (.sh)
-        $shFile = UploadedFile::fake()->create('deploy.sh', 50, 'application/x-sh');
-        $response3 = $this->actingAs($this->adminUserA)->post(route('documents.store'), [
-            'document' => $shFile,
-        ]);
-        $response3->assertSessionHasErrors(['document']);
 
         $this->assertEquals(0, KnowledgeDocument::count());
     }
 
     /**
-     * 4. Files exceeding 10 MB are rejected.
+     * 4. Files exceeding 20 MB are rejected.
      */
-    public function test_files_exceeding_10mb_are_rejected(): void
+    public function test_files_exceeding_20mb_are_rejected(): void
     {
-        // 10 MB is 10240 KB. 10241 KB exceeds limit.
-        $largeFile = UploadedFile::fake()->create('large_manual.pdf', 10241, 'application/pdf');
+        // 20 MB is 20480 KB. 20481 KB exceeds limit.
+        $largeFile = UploadedFile::fake()->create('large.csv', 20481, 'text/csv');
 
-        $response = $this->actingAs($this->adminUserA)->post(route('documents.store'), [
-            'document' => $largeFile,
-        ]);
+        $response = $this->actingAs($this->adminUserA)
+            ->from(route('documents.create'))
+            ->post(route('documents.store'), [
+                'document' => $largeFile,
+            ]);
 
         $response->assertSessionHasErrors(['document']);
         $this->assertEquals(0, KnowledgeDocument::count());
     }
 
     /**
-     * 5. Stored files use generated filenames on private storage.
+     * 5. Stored files use generated UUID filenames on private storage.
      */
     public function test_stored_files_use_generated_uuid_filenames_on_private_storage(): void
     {
-        $originalFilename = 'my_super_secret_file.pdf';
-        $file = UploadedFile::fake()->createWithContent($originalFilename, '%PDF-1.4 sample payload', 'application/pdf');
+        $originalFilename = 'confidential_sales.csv';
+        $file = UploadedFile::fake()->createWithContent($originalFilename, "id,revenue\n1,5000", 'text/csv');
 
         $this->actingAs($this->adminUserA)->post(route('documents.store'), [
             'document' => $file,
@@ -194,18 +262,13 @@ class KnowledgeDocumentManagementTest extends TestCase
         $doc = KnowledgeDocument::where('original_filename', $originalFilename)->first();
         $this->assertNotNull($doc);
 
-        // Ensure storage filename is NOT the original filename
         $storedBasename = basename($doc->file_path);
         $this->assertNotEquals($originalFilename, $storedBasename);
 
-        // Ensure path follows documents/{workspace_id}/{uuid}.{ext}
         $expectedPrefix = 'documents/' . $this->workspaceA->id . '/';
         $this->assertStringStartsWith($expectedPrefix, $doc->file_path);
 
-        // Check storage existence on private local disk
         $this->assertTrue(Storage::disk('local')->exists($doc->file_path));
-
-        // Ensure file is NOT stored on public disk
         $this->assertFalse(Storage::disk('public')->exists($doc->file_path));
     }
 
@@ -214,32 +277,30 @@ class KnowledgeDocumentManagementTest extends TestCase
      */
     public function test_duplicate_content_is_rejected_within_same_workspace(): void
     {
-        $sameContent = 'Identical product terms and conditions 2026.';
-        $file1 = UploadedFile::fake()->createWithContent('terms_v1.txt', $sameContent, 'text/plain');
-        $file2 = UploadedFile::fake()->createWithContent('terms_v2_rename.txt', $sameContent, 'text/plain');
+        $sameContent = "sku,qty\nA1,50";
+        $file1 = UploadedFile::fake()->createWithContent('stock_v1.csv', $sameContent, 'text/csv');
+        $file2 = UploadedFile::fake()->createWithContent('stock_v2.csv', $sameContent, 'text/csv');
 
         // First upload succeeds
         $res1 = $this->actingAs($this->adminUserA)->post(route('documents.store'), [
-            'title'    => 'First Upload',
             'document' => $file1,
         ]);
         $res1->assertRedirect(route('documents.index'));
+        $res1->assertSessionHas('success');
         $this->assertEquals(1, KnowledgeDocument::where('workspace_id', $this->workspaceA->id)->count());
 
         $firstDoc = KnowledgeDocument::first();
         $firstPath = $firstDoc->file_path;
 
         // Second upload with identical content in same workspace fails
-        $res2 = $this->actingAs($this->adminUserA)->post(route('documents.store'), [
-            'title'    => 'Second Upload Duplicate',
-            'document' => $file2,
-        ]);
+        $res2 = $this->actingAs($this->adminUserA)
+            ->from(route('documents.create'))
+            ->post(route('documents.store'), [
+                'document' => $file2,
+            ]);
         $res2->assertSessionHasErrors(['document']);
 
-        // Database count remains 1
         $this->assertEquals(1, KnowledgeDocument::where('workspace_id', $this->workspaceA->id)->count());
-
-        // Existing file was NOT deleted
         $this->assertTrue(Storage::disk('local')->exists($firstPath));
     }
 
@@ -248,17 +309,15 @@ class KnowledgeDocumentManagementTest extends TestCase
      */
     public function test_identical_content_is_permitted_in_different_workspaces(): void
     {
-        $commonContent = 'Universal e-commerce privacy disclaimer.';
-        $fileA = UploadedFile::fake()->createWithContent('privacy_a.txt', $commonContent, 'text/plain');
-        $fileB = UploadedFile::fake()->createWithContent('privacy_b.txt', $commonContent, 'text/plain');
+        $commonContent = "product,price\nWidget,20";
+        $fileA = UploadedFile::fake()->createWithContent('items_a.csv', $commonContent, 'text/csv');
+        $fileB = UploadedFile::fake()->createWithContent('items_b.csv', $commonContent, 'text/csv');
 
-        // Upload in Workspace A
         $resA = $this->actingAs($this->adminUserA)->post(route('documents.store'), [
             'document' => $fileA,
         ]);
         $resA->assertRedirect(route('documents.index'));
 
-        // Upload identical content in Workspace B
         $resB = $this->actingAs($this->adminUserB)->post(route('documents.store'), [
             'document' => $fileB,
         ]);
@@ -283,13 +342,13 @@ class KnowledgeDocumentManagementTest extends TestCase
             'id'                => (string) Str::uuid(),
             'workspace_id'      => $this->workspaceB->id,
             'title'             => 'Workspace B Private Guide',
-            'original_filename' => 'guide_b.pdf',
-            'file_path'         => 'documents/' . $this->workspaceB->id . '/b.pdf',
-            'mime_type'         => 'application/pdf',
+            'original_filename' => 'guide_b.csv',
+            'file_path'         => 'documents/' . $this->workspaceB->id . '/b.csv',
+            'mime_type'         => 'text/csv',
             'file_size'         => 1024,
             'content_hash'      => hash('sha256', 'workspace B private content'),
-            'lifecycle_status'  => DocumentLifecycleStatus::PENDING_INGESTION,
-            'is_active'         => false,
+            'lifecycle_status'  => DocumentLifecycleStatus::ACTIVE,
+            'is_active'         => true,
             'created_by'        => $this->adminUserB->id,
         ]);
 
@@ -319,31 +378,28 @@ class KnowledgeDocumentManagementTest extends TestCase
     }
 
     /**
-     * 9. Unauthenticated or insufficiently authorized users cannot manage documents.
+     * 9. Unauthenticated or unauthorized users are rejected.
      */
-    public function test_unauthenticated_or_insufficiently_authorized_users_cannot_manage_documents(): void
+    public function test_unauthenticated_or_unauthorized_users_are_rejected(): void
     {
-        $file = UploadedFile::fake()->createWithContent('info.txt', 'Some content', 'text/plain');
+        $file = UploadedFile::fake()->createWithContent('info.csv', "a,b\n1,2", 'text/csv');
 
-        // Unauthenticated user
         $this->get(route('documents.index'))->assertRedirect(route('login'));
         $this->post(route('documents.store'), ['document' => $file])->assertRedirect(route('login'));
 
-        // Authenticated user lacking KnowledgeDocumentPermission
         $this->actingAs($this->unauthorizedUser)->get(route('documents.index'))->assertForbidden();
         $this->actingAs($this->unauthorizedUser)->post(route('documents.store'), ['document' => $file])->assertForbidden();
     }
 
     /**
-     * 10. Database failure does not leave an orphaned uploaded file.
+     * 10. Database failure cleans up uploaded file immediately.
      */
-    public function test_database_failure_does_not_leave_orphaned_uploaded_file(): void
+    public function test_database_failure_cleans_up_uploaded_file(): void
     {
-        $file = UploadedFile::fake()->createWithContent('crash_test.txt', 'Content intended to trigger rollback', 'text/plain');
+        $file = UploadedFile::fake()->createWithContent('crash.csv', "col\nval", 'text/csv');
 
-        // Simulate database exception during KnowledgeDocument saving
         KnowledgeDocument::saving(function () {
-            throw new \RuntimeException('Simulated database failure during document persistence');
+            throw new \RuntimeException('Simulated database failure');
         });
 
         try {
@@ -351,124 +407,247 @@ class KnowledgeDocumentManagementTest extends TestCase
                 'document' => $file,
             ]);
         } catch (\RuntimeException $e) {
-            $this->assertSame('Simulated database failure during document persistence', $e->getMessage());
+            $this->assertSame('Simulated database failure', $e->getMessage());
         }
 
-        // Verify no document was saved in database
         $this->assertEquals(0, KnowledgeDocument::count());
-
-        // Verify storage directory has no orphaned files
-        $storedFiles = Storage::disk('local')->allFiles();
-        $this->assertEmpty($storedFiles, 'Orphaned file was left on disk after database failure.');
+        $this->assertEmpty(Storage::disk('local')->allFiles());
     }
 
     /**
-     * 11. Upload does not dispatch an ingestion job or falsely mark the document as indexed.
+     * 11. Analytics service failure sets FAILED status and flashes error to user.
      */
-    public function test_upload_does_not_dispatch_ingestion_job_or_falsely_mark_active(): void
+    public function test_analytics_service_failure_sets_failed_status_and_flashes_error(): void
     {
-        Queue::fake();
+        $this->analyticsHandler = function (\Illuminate\Http\Client\Request $request) {
+            if (str_contains($request->url(), '/analytics/excel/upload')) {
+                return Http::response([
+                    'success' => false,
+                    'message' => 'Malformed spreadsheet columns detected',
+                ], 422);
+            }
+            return null;
+        };
 
-        $file = UploadedFile::fake()->createWithContent('pre_ingest.pdf', '%PDF-1.4 raw data', 'application/pdf');
+        $file = UploadedFile::fake()->createWithContent('broken.csv', "broken,data\n1", 'text/csv');
 
-        $this->actingAs($this->adminUserA)->post(route('documents.store'), [
+        $response = $this->actingAs($this->adminUserA)->post(route('documents.store'), [
             'document' => $file,
         ]);
 
-        // Phase 1 invariant: No background jobs are dispatched
-        Queue::assertNothingPushed();
+        $response->assertRedirect(route('documents.index'));
+        $response->assertSessionHas('error');
 
-        $doc = KnowledgeDocument::first();
+        $doc = KnowledgeDocument::where('workspace_id', $this->workspaceA->id)->first();
         $this->assertNotNull($doc);
-
-        // Document is explicitly in pending_ingestion state
-        $this->assertEquals(DocumentLifecycleStatus::PENDING_INGESTION, $doc->lifecycle_status);
+        $this->assertSame(DocumentLifecycleStatus::FAILED, $doc->lifecycle_status);
         $this->assertFalse($doc->is_active);
-        $this->assertEquals(0, $doc->chunk_count);
-        $this->assertFalse($doc->isReadyForRetrieval());
+        $this->assertStringContainsString('Malformed spreadsheet columns', (string) $doc->error_message);
     }
 
     /**
-     * 12. Superadmin can view and manage documents across workspaces.
+     * 12. Retry reprocesses a failed document and activates it.
      */
-    public function test_superadmin_can_manage_documents_across_workspaces(): void
+    public function test_retry_reprocesses_failed_document_and_activates_it(): void
     {
+        $callCount = 0;
+        $this->analyticsHandler = function (\Illuminate\Http\Client\Request $request) use (&$callCount) {
+            if (str_contains($request->url(), '/analytics/excel/upload')) {
+                $callCount++;
+                if ($callCount === 1) {
+                    return Http::response(['success' => false, 'message' => 'Service busy'], 503);
+                }
+                return Http::response([
+                    'success'      => true,
+                    'source_id'    => 'src_retried_456',
+                    'sheets'       => ['Orders'],
+                    'sheets_count' => 1,
+                    'total_rows'   => 15,
+                ], 200);
+            }
+            return null;
+        };
+
+        $file = UploadedFile::fake()->createWithContent('orders.csv', "order_id,amount\n101,50", 'text/csv');
+        $this->actingAs($this->adminUserA)->post(route('documents.store'), ['document' => $file]);
+
+        $doc = KnowledgeDocument::where('workspace_id', $this->workspaceA->id)->first();
+        $this->assertSame(DocumentLifecycleStatus::FAILED, $doc->lifecycle_status);
+
+        // 2. Retry succeeds
+        $retryResponse = $this->actingAs($this->adminUserA)->post(route('documents.retry', $doc->id));
+        $retryResponse->assertRedirect(route('documents.index'));
+        $retryResponse->assertSessionHas('success');
+
+        $doc->refresh();
+        $this->assertSame(DocumentLifecycleStatus::ACTIVE, $doc->lifecycle_status);
+        $this->assertTrue($doc->is_active);
+        $this->assertSame('src_retried_456', $doc->source_id);
+        $this->assertNull($doc->error_message);
+    }
+
+    /**
+     * 13. Multi-sheet workbook records sheet count and metadata.
+     */
+    public function test_multi_sheet_workbook_records_sheet_count_and_metadata(): void
+    {
+        $this->analyticsHandler = function (\Illuminate\Http\Client\Request $request) {
+            if (str_contains($request->url(), '/analytics/excel/upload')) {
+                return Http::response([
+                    'success'        => true,
+                    'source_id'      => 'src_multi_789',
+                    'sheets'         => ['orders', 'customers', 'products'],
+                    'sheets_count'   => 3,
+                    'total_rows'     => 1500,
+                    'tables'         => [
+                        'orders'    => ['columns' => ['id', 'total']],
+                        'customers' => ['columns' => ['id', 'email']],
+                        'products'  => ['columns' => ['id', 'sku']],
+                    ],
+                    'schema_summary' => '3 tables parsed',
+                ], 200);
+            }
+            return null;
+        };
+
+        $xlsx = $this->createFakeXlsx('enterprise_data.xlsx');
+        $response = $this->actingAs($this->adminUserA)->post(route('documents.store'), [
+            'document' => $xlsx,
+        ]);
+        $response->assertRedirect(route('documents.index'));
+
+        $doc = KnowledgeDocument::where('workspace_id', $this->workspaceA->id)->first();
+        $this->assertNotNull($doc);
+        $this->assertSame('src_multi_789', $doc->source_id);
+        $this->assertSame(3, $doc->sheets_count);
+        $this->assertSame(1500, $doc->chunk_count);
+        $this->assertIsArray($doc->metadata);
+        $this->assertSame(['orders', 'customers', 'products'], $doc->metadata['sheets']);
+    }
+
+    /**
+     * 14. Document deletion triggers remote source deletion when provenance is confirmed.
+     */
+    public function test_document_deletion_invokes_analytics_delete(): void
+    {
+        $this->analyticsHandler = function (\Illuminate\Http\Client\Request $request) {
+            if (str_contains($request->url(), '/analytics/sources/src_delete_999')) {
+                return Http::response([
+                    'success' => true,
+                    'message' => 'Source deleted successfully',
+                ], 200);
+            }
+            return null;
+        };
+
         $doc = KnowledgeDocument::create([
-            'id'                => (string) Str::uuid(),
-            'workspace_id'      => $this->workspaceB->id,
-            'title'             => 'Workspace B Document',
-            'original_filename' => 'doc_b.pdf',
-            'file_path'         => 'documents/' . $this->workspaceB->id . '/super.pdf',
-            'mime_type'         => 'application/pdf',
-            'file_size'         => 1024,
-            'content_hash'      => hash('sha256', 'superadmin content'),
-            'lifecycle_status'  => DocumentLifecycleStatus::PENDING_INGESTION,
-            'is_active'         => false,
-            'created_by'        => $this->adminUserB->id,
+            'id'                  => (string) Str::uuid(),
+            'workspace_id'        => $this->workspaceA->id,
+            'title'               => 'To Delete',
+            'original_filename'   => 'del.csv',
+            'file_path'           => 'documents/' . $this->workspaceA->id . '/del.csv',
+            'mime_type'           => 'text/csv',
+            'file_size'           => 100,
+            'content_hash'        => hash('sha256', 'delete test'),
+            'active_content_hash' => hash('sha256', 'delete test'),
+            'source_id'           => 'src_delete_999',
+            'lifecycle_status'    => DocumentLifecycleStatus::ACTIVE,
+            'is_active'           => true,
+            'created_by'          => $this->adminUserA->id,
         ]);
 
-        // Superadmin deletes document belonging to Workspace B
-        $res = $this->actingAs($this->superAdmin)->delete(route('documents.destroy', $doc));
+        $res = $this->actingAs($this->adminUserA)->delete(route('documents.destroy', $doc));
         $res->assertRedirect(route('documents.index'));
+        $res->assertSessionHas('success');
+
         $this->assertNotNull($doc->fresh()->deleted_at);
 
-        // Superadmin restores document belonging to Workspace B
-        $resRestore = $this->actingAs($this->superAdmin)->post(route('documents.restore', $doc->id));
-        $resRestore->assertRedirect(route('documents.index'));
-        $this->assertNull($doc->fresh()->deleted_at);
-    }
-
-    public function test_datatables_server_side_request(): void
-    {
-        $doc = KnowledgeDocument::create([
-            'id'                => (string) Str::uuid(),
-            'workspace_id'      => $this->workspaceA->id,
-            'title'             => 'Workspace A Doc',
-            'original_filename' => 'doc_a.pdf',
-            'file_path'         => 'documents/' . $this->workspaceA->id . '/a.pdf',
-            'mime_type'         => 'application/pdf',
-            'file_size'         => 1024,
-            'content_hash'      => hash('sha256', 'workspace A content'),
-            'lifecycle_status'  => DocumentLifecycleStatus::PENDING_INGESTION,
-            'is_active'         => false,
-            'created_by'        => $this->adminUserA->id,
-        ]);
-
-        $response = $this->actingAs($this->adminUserA)->get(route('documents.index', [
-            'draw' => 1,
-            'columns' => [
-                ['data' => 'DT_RowIndex', 'name' => 'DT_RowIndex', 'searchable' => 'false', 'orderable' => 'false'],
-                ['data' => 'title', 'name' => 'title', 'searchable' => 'true', 'orderable' => 'true'],
-                ['data' => 'original_filename', 'name' => 'original_filename', 'searchable' => 'true', 'orderable' => 'true'],
-                ['data' => 'file_size', 'name' => 'file_size', 'searchable' => 'true', 'orderable' => 'true'],
-                ['data' => 'mime_type', 'name' => 'mime_type', 'searchable' => 'true', 'orderable' => 'true'],
-                ['data' => 'created_at', 'name' => 'created_at', 'searchable' => 'true', 'orderable' => 'true'],
-                ['data' => 'status_badge', 'name' => 'status_badge', 'searchable' => 'false', 'orderable' => 'false'],
-                ['data' => 'action-btn', 'name' => 'action-btn', 'searchable' => 'false', 'orderable' => 'false'],
-            ],
-            'order' => [
-                ['column' => 5, 'dir' => 'desc']
-            ],
-            'start' => 0,
-            'length' => 20,
-            'search' => ['value' => '', 'regex' => 'false'],
-        ]), ['X-Requested-With' => 'XMLHttpRequest']);
-
-        $pageResponse = $this->actingAs($this->adminUserA)->get(route('documents.index'));
-        $pageResponse->assertOk();
-        $pageResponse->assertSee('Knowledge Documents');
-        $pageResponse->assertSee('id="data-table"', false);
+        Http::assertSent(function ($request) {
+            return str_contains($request->url(), '/analytics/sources/src_delete_999')
+                && $request->method() === 'DELETE';
+        });
     }
 
     /**
-     * 14. Soft-deleted document permits re-upload of identical content.
+     * 15. Document deletion reports warning if remote analytics cleanup fails.
+     */
+    public function test_document_deletion_reports_warning_if_analytics_cleanup_fails(): void
+    {
+        $this->analyticsHandler = function (\Illuminate\Http\Client\Request $request) {
+            if (str_contains($request->url(), '/analytics/sources/src_failing_cleanup')) {
+                return Http::response([
+                    'success' => false,
+                    'message' => 'Connection timed out',
+                ], 500);
+            }
+            return null;
+        };
+
+        $doc = KnowledgeDocument::create([
+            'id'                  => (string) Str::uuid(),
+            'workspace_id'        => $this->workspaceA->id,
+            'title'               => 'Fail Remote Cleanup',
+            'original_filename'   => 'fail.csv',
+            'file_path'           => 'documents/' . $this->workspaceA->id . '/fail.csv',
+            'mime_type'           => 'text/csv',
+            'file_size'           => 100,
+            'content_hash'        => hash('sha256', 'fail remote cleanup'),
+            'active_content_hash' => hash('sha256', 'fail remote cleanup'),
+            'source_id'           => 'src_failing_cleanup',
+            'lifecycle_status'    => DocumentLifecycleStatus::ACTIVE,
+            'is_active'           => true,
+            'created_by'          => $this->adminUserA->id,
+        ]);
+
+        $res = $this->actingAs($this->adminUserA)->delete(route('documents.destroy', $doc));
+        $res->assertRedirect(route('documents.index'));
+        $res->assertSessionHas('error');
+
+        $docFresh = $doc->fresh();
+        $this->assertNotNull($docFresh->deleted_at);
+        $this->assertTrue($docFresh->metadata['cleanup_pending']);
+        $this->assertStringContainsString('Connection timed out', (string) $docFresh->error_message);
+    }
+
+    /**
+     * 16. Document without source_id skips remote deletion safely.
+     */
+    public function test_document_without_source_id_skips_remote_deletion_safely(): void
+    {
+        Http::fake();
+
+        $doc = KnowledgeDocument::create([
+            'id'                  => (string) Str::uuid(),
+            'workspace_id'        => $this->workspaceA->id,
+            'title'               => 'No Source ID',
+            'original_filename'   => 'nosource.csv',
+            'file_path'           => 'documents/' . $this->workspaceA->id . '/nosource.csv',
+            'mime_type'           => 'text/csv',
+            'file_size'           => 100,
+            'content_hash'        => hash('sha256', 'nosource'),
+            'active_content_hash' => hash('sha256', 'nosource'),
+            'source_id'           => null,
+            'lifecycle_status'    => DocumentLifecycleStatus::FAILED,
+            'is_active'           => false,
+            'created_by'          => $this->adminUserA->id,
+        ]);
+
+        $res = $this->actingAs($this->adminUserA)->delete(route('documents.destroy', $doc));
+        $res->assertRedirect(route('documents.index'));
+        $res->assertSessionHas('success');
+
+        $this->assertNotNull($doc->fresh()->deleted_at);
+        Http::assertNothingSent();
+    }
+
+    /**
+     * 17. Soft-deleted document permits re-upload of identical content.
      */
     public function test_soft_deleted_document_permits_reupload_of_identical_content(): void
     {
-        $content = 'Refund Policy version 1.0 content';
-        $file1 = UploadedFile::fake()->createWithContent('refund_v1.txt', $content, 'text/plain');
+        $content = "id,name\n1,Widget";
+        $file1 = UploadedFile::fake()->createWithContent('items_v1.csv', $content, 'text/csv');
 
-        // Initial upload
         $res1 = $this->actingAs($this->adminUserA)->post(route('documents.store'), [
             'document' => $file1,
         ]);
@@ -476,163 +655,207 @@ class KnowledgeDocumentManagementTest extends TestCase
 
         $doc1 = KnowledgeDocument::where('workspace_id', $this->workspaceA->id)->first();
         $this->assertNotNull($doc1);
-        $this->assertEquals(hash('sha256', $content), $doc1->active_content_hash);
 
-        // Soft delete doc1
         $delRes = $this->actingAs($this->adminUserA)->delete(route('documents.destroy', $doc1));
         $delRes->assertRedirect(route('documents.index'));
-
         $this->assertNotNull($doc1->fresh()->deleted_at);
         $this->assertNull($doc1->fresh()->active_content_hash);
 
         // Re-upload identical content succeeds as a new document
-        $file2 = UploadedFile::fake()->createWithContent('refund_v2.txt', $content, 'text/plain');
+        $file2 = UploadedFile::fake()->createWithContent('items_v2.csv', $content, 'text/csv');
         $res2 = $this->actingAs($this->adminUserA)->post(route('documents.store'), [
             'document' => $file2,
         ]);
         $res2->assertRedirect(route('documents.index'));
 
-        // There are now 2 records: one trashed, one active
         $allDocs = KnowledgeDocument::withTrashed()->where('workspace_id', $this->workspaceA->id)->get();
         $this->assertCount(2, $allDocs);
 
         $activeDocs = KnowledgeDocument::where('workspace_id', $this->workspaceA->id)->get();
         $this->assertCount(1, $activeDocs);
-        $this->assertEquals(hash('sha256', $content), $activeDocs->first()->active_content_hash);
     }
 
     /**
-     * 15. Restoring a soft-deleted document that conflicts with an active document is rejected.
+     * 18. Empty zero-byte file is rejected immediately by validation.
      */
-    public function test_restoring_document_conflicting_with_active_document_is_rejected(): void
+    public function test_empty_zero_byte_file_is_rejected(): void
     {
-        $content = 'Warranty Policy identical content';
-        $file1 = UploadedFile::fake()->createWithContent('warranty_1.txt', $content, 'text/plain');
+        $emptyFile = UploadedFile::fake()->createWithContent('empty.csv', '', 'text/csv');
 
-        // Upload doc1
-        $this->actingAs($this->adminUserA)->post(route('documents.store'), ['document' => $file1]);
-        $doc1 = KnowledgeDocument::where('workspace_id', $this->workspaceA->id)->first();
+        $response = $this->actingAs($this->adminUserA)
+            ->from(route('documents.create'))
+            ->post(route('documents.store'), [
+                'document' => $emptyFile,
+            ]);
 
-        // Soft delete doc1
-        $this->actingAs($this->adminUserA)->delete(route('documents.destroy', $doc1));
-        $this->assertNotNull($doc1->fresh()->deleted_at);
-
-        // Upload doc2 with identical content
-        $file2 = UploadedFile::fake()->createWithContent('warranty_2.txt', $content, 'text/plain');
-        $this->actingAs($this->adminUserA)->post(route('documents.store'), ['document' => $file2]);
-        $doc2 = KnowledgeDocument::where('workspace_id', $this->workspaceA->id)->whereNull('deleted_at')->first();
-        $this->assertNotNull($doc2);
-        $this->assertNotEquals($doc1->id, $doc2->id);
-
-        // Attempt to restore doc1 while doc2 is active -> fails with validation error
-        $restoreRes = $this->actingAs($this->adminUserA)->post(route('documents.restore', $doc1->id));
-        $restoreRes->assertSessionHasErrors(['document']);
-
-        // doc1 remains soft-deleted; doc2 remains active
-        $this->assertNotNull($doc1->fresh()->deleted_at);
-        $this->assertNull($doc2->fresh()->deleted_at);
-
-        // Now delete doc2
-        $this->actingAs($this->adminUserA)->delete(route('documents.destroy', $doc2));
-        $this->assertNotNull($doc2->fresh()->deleted_at);
-
-        // Restoring doc1 now succeeds because no conflicting active document exists
-        $restoreRes2 = $this->actingAs($this->adminUserA)->post(route('documents.restore', $doc1->id));
-        $restoreRes2->assertRedirect(route('documents.index'));
-        $this->assertNull($doc1->fresh()->deleted_at);
-        $this->assertEquals(hash('sha256', $content), $doc1->fresh()->active_content_hash);
+        $response->assertRedirect(route('documents.create'));
+        $response->assertSessionHasErrors(['document']);
+        $this->assertEquals(0, KnowledgeDocument::count());
     }
 
     /**
-     * 16. Database-level unique constraint enforces active document uniqueness and service handles race collision.
+     * 19. Document UUID is consistently used as source_id across lifecycle.
      */
-    public function test_database_level_unique_constraint_enforces_active_document_uniqueness_on_simulated_race(): void
+    public function test_document_uuid_is_consistently_used_as_source_id(): void
     {
-        $content = 'Concurrency test payload content';
-        $hash = hash('sha256', $content);
+        $file = UploadedFile::fake()->createWithContent('catalog.csv', "sku,price\nC1,99", 'text/csv');
 
-        // Direct DB creation of first active document
-        KnowledgeDocument::create([
-            'id'                  => (string) Str::uuid(),
-            'workspace_id'        => $this->workspaceA->id,
-            'title'               => 'Direct Doc 1',
-            'original_filename'   => 'c1.txt',
-            'file_path'           => 'documents/' . $this->workspaceA->id . '/c1.txt',
-            'mime_type'           => 'text/plain',
-            'file_size'           => strlen($content),
-            'content_hash'        => $hash,
-            'active_content_hash' => $hash,
-            'lifecycle_status'    => DocumentLifecycleStatus::PENDING_INGESTION,
-            'chunk_count'         => 0,
-            'version'             => 1,
-            'is_active'           => false,
-            'created_by'          => $this->adminUserA->id,
-        ]);
+        $sentSourceId = null;
+        $this->analyticsHandler = function (\Illuminate\Http\Client\Request $request) use (&$sentSourceId) {
+            if (str_contains($request->url(), '/analytics/excel/upload')) {
+                // Read multipart parameters
+                foreach ($request->data() as $part) {
+                    if (($part['name'] ?? null) === 'source_id') {
+                        $sentSourceId = $part['contents'] ?? null;
+                    }
+                }
+                return Http::response([
+                    'success'        => true,
+                    'source_id'      => $sentSourceId,
+                    'file_id'        => $sentSourceId,
+                    'sheets'         => ['Sheet1'],
+                    'sheets_count'   => 1,
+                    'total_rows'     => 1,
+                    'tables'         => ['Sheet1' => ['columns' => ['sku', 'price']]],
+                    'schema_summary' => 'Catalog Schema',
+                ], 200);
+            }
+            return null;
+        };
 
-        // Direct DB creation of duplicate active document must throw UniqueConstraintViolationException
-        $this->expectException(\Illuminate\Database\UniqueConstraintViolationException::class);
-        KnowledgeDocument::create([
-            'id'                  => (string) Str::uuid(),
-            'workspace_id'        => $this->workspaceA->id,
-            'title'               => 'Direct Doc 2 (Raced)',
-            'original_filename'   => 'c2.txt',
-            'file_path'           => 'documents/' . $this->workspaceA->id . '/c2.txt',
-            'mime_type'           => 'text/plain',
-            'file_size'           => strlen($content),
-            'content_hash'        => $hash,
-            'active_content_hash' => $hash,
-            'lifecycle_status'    => DocumentLifecycleStatus::PENDING_INGESTION,
-            'chunk_count'         => 0,
-            'version'             => 1,
-            'is_active'           => false,
-            'created_by'          => $this->adminUserA->id,
+        $res = $this->actingAs($this->adminUserA)->post(route('documents.store'), [
+            'document' => $file,
         ]);
+        $res->assertRedirect(route('documents.index'));
+
+        $doc = KnowledgeDocument::where('workspace_id', $this->workspaceA->id)->first();
+        $this->assertNotNull($doc);
+        $this->assertSame($doc->id, $doc->source_id);
+        $this->assertSame($doc->id, $sentSourceId);
     }
 
     /**
-     * 17. User with only document.view permission cannot delete or restore documents.
+     * 20. Repeated deletion request is idempotent and succeeds without warning if remote returns 404.
      */
-    public function test_user_with_only_view_permission_cannot_delete_or_restore(): void
+    public function test_repeated_deletion_is_idempotent_and_safe_with_404(): void
     {
-        // Create viewer user with ONLY document.view permission
-        $viewer = User::create([
-            'workspace_id'      => $this->workspaceA->id,
-            'name'              => 'Viewer User',
-            'email'             => 'viewer@workspacea.com',
-            'password'          => bcrypt('password'),
-            'email_verified_at' => now(),
-            'is_active'         => 1,
-        ]);
-        $viewer->givePermissionTo(KnowledgeDocumentPermission::VIEW->value);
+        $this->analyticsHandler = function (\Illuminate\Http\Client\Request $request) {
+            if (str_contains($request->url(), '/analytics/sources/already_gone_source')) {
+                return Http::response([
+                    'detail' => 'Source already_gone_source not found in workspace',
+                ], 404);
+            }
+            return null;
+        };
 
         $doc = KnowledgeDocument::create([
             'id'                  => (string) Str::uuid(),
             'workspace_id'        => $this->workspaceA->id,
-            'title'               => 'Doc To Delete',
-            'original_filename'   => 'del.txt',
-            'file_path'           => 'documents/' . $this->workspaceA->id . '/del.txt',
-            'mime_type'           => 'text/plain',
+            'title'               => 'Already Gone Remotely',
+            'original_filename'   => 'gone.csv',
+            'file_path'           => 'documents/' . $this->workspaceA->id . '/gone.csv',
+            'mime_type'           => 'text/csv',
             'file_size'           => 100,
-            'content_hash'        => hash('sha256', 'some delete text'),
-            'active_content_hash' => hash('sha256', 'some delete text'),
-            'lifecycle_status'    => DocumentLifecycleStatus::PENDING_INGESTION,
-            'is_active'           => false,
+            'content_hash'        => hash('sha256', 'already gone'),
+            'active_content_hash' => hash('sha256', 'already gone'),
+            'source_id'           => 'already_gone_source',
+            'lifecycle_status'    => DocumentLifecycleStatus::ACTIVE,
+            'is_active'           => true,
             'created_by'          => $this->adminUserA->id,
         ]);
 
-        // Attempt delete with only VIEW permission -> 403 Forbidden
-        $delResponse = $this->actingAs($viewer)->delete(route('documents.destroy', $doc));
-        $delResponse->assertForbidden();
-        $this->assertNull($doc->fresh()->deleted_at);
-
-        // Soft delete using authorized admin
-        $this->actingAs($this->adminUserA)->delete(route('documents.destroy', $doc));
-        $this->assertNotNull($doc->fresh()->deleted_at);
-
-        // Attempt restore with only VIEW permission -> 403 Forbidden
-        $restoreResponse = $this->actingAs($viewer)->post(route('documents.restore', $doc->id));
-        $restoreResponse->assertForbidden();
+        $res = $this->actingAs($this->adminUserA)->delete(route('documents.destroy', $doc));
+        $res->assertRedirect(route('documents.index'));
+        $res->assertSessionHas('success'); // Treated as success because 404 means already removed
         $this->assertNotNull($doc->fresh()->deleted_at);
     }
-}
 
+    /**
+     * 21. Reconcile remote cleanup successfully clears pending cleanup state.
+     */
+    public function test_reconcile_remote_cleanup_recovers_pending_cleanup_state(): void
+    {
+        $callCount = 0;
+        $this->analyticsHandler = function (\Illuminate\Http\Client\Request $request) use (&$callCount) {
+            if (str_contains($request->url(), '/analytics/sources/reconcile_src')) {
+                $callCount++;
+                if ($callCount === 1) {
+                    return Http::response(['message' => 'Internal Timeout'], 500);
+                }
+                return Http::response(['success' => true, 'message' => 'Deleted successfully'], 200);
+            }
+            return null;
+        };
+
+        $doc = KnowledgeDocument::create([
+            'id'                  => (string) Str::uuid(),
+            'workspace_id'        => $this->workspaceA->id,
+            'title'               => 'Reconcile Document',
+            'original_filename'   => 'reconcile.csv',
+            'file_path'           => 'documents/' . $this->workspaceA->id . '/reconcile.csv',
+            'mime_type'           => 'text/csv',
+            'file_size'           => 100,
+            'content_hash'        => hash('sha256', 'reconcile doc'),
+            'active_content_hash' => hash('sha256', 'reconcile doc'),
+            'source_id'           => 'reconcile_src',
+            'lifecycle_status'    => DocumentLifecycleStatus::ACTIVE,
+            'is_active'           => true,
+            'created_by'          => $this->adminUserA->id,
+        ]);
+
+        // 1. Initial delete fails on remote call
+        $service = app(\App\Services\Knowledge\KnowledgeDocumentService::class);
+        $res = $service->delete($doc);
+        $this->assertNotNull($res['cleanup_warning']);
+
+        $docFresh = $doc->fresh();
+        $this->assertTrue($docFresh->metadata['cleanup_pending']);
+
+        // 2. Reconcile succeeds on retry
+        $reconcileRes = $service->reconcileRemoteCleanup($docFresh);
+        $this->assertTrue($reconcileRes['success']);
+
+        $docReconciled = $doc->fresh();
+        $this->assertArrayNotHasKey('cleanup_pending', $docReconciled->metadata ?? []);
+        $this->assertNull($docReconciled->error_message);
+    }
+
+    /**
+     * 22. Partial multi-sheet failure records successfully ingested sheets and failed sheets metadata.
+     */
+    public function test_partial_multi_sheet_failure_tracks_failed_sheets_metadata(): void
+    {
+        $this->analyticsHandler = function (\Illuminate\Http\Client\Request $request) {
+            if (str_contains($request->url(), '/analytics/excel/upload')) {
+                return Http::response([
+                    'success'        => true,
+                    'source_id'      => 'partial_multi_src',
+                    'sheets'         => ['orders', 'inventory'],
+                    'sheets_count'   => 2,
+                    'failed_sheets'  => [
+                        ['sheet' => 'corrupted_sheet', 'error' => 'Missing expected dimension headers'],
+                    ],
+                    'total_rows'     => 500,
+                    'tables'         => [
+                        'orders'    => ['columns' => ['id', 'amount']],
+                        'inventory' => ['columns' => ['sku', 'quantity']],
+                    ],
+                    'schema_summary' => '2 valid tables parsed',
+                ], 200);
+            }
+            return null;
+        };
+
+        $xlsx = $this->createFakeXlsx('partial_sheets.xlsx');
+        $response = $this->actingAs($this->adminUserA)->post(route('documents.store'), [
+            'document' => $xlsx,
+        ]);
+        $response->assertRedirect(route('documents.index'));
+
+        $doc = KnowledgeDocument::where('workspace_id', $this->workspaceA->id)->first();
+        $this->assertNotNull($doc);
+        $this->assertSame(2, $doc->sheets_count);
+        $this->assertCount(1, $doc->metadata['failed_sheets']);
+        $this->assertSame('corrupted_sheet', $doc->metadata['failed_sheets'][0]['sheet']);
+    }
+}

@@ -154,6 +154,7 @@ class AnalyticsClient
         int $workspaceId,
         ?string $conversationId = null,
         ?string $format = null,
+        ?string $sourceId = null,
     ): array {
         $url = "{$this->baseUrl()}/analytics/excel/upload";
         try {
@@ -167,6 +168,9 @@ class AnalyticsClient
             if ($format !== null) {
                 $payload['format'] = $format;
             }
+            if ($sourceId !== null && trim($sourceId) !== '') {
+                $payload['source_id'] = trim($sourceId);
+            }
 
             $response = $req->post($url, $payload);
 
@@ -174,9 +178,12 @@ class AnalyticsClient
                 return $response->json();
             }
 
+            $json = $response->json();
+            $errorMessage = $json['message'] ?? $json['detail'] ?? ('HTTP error uploading data source: ' . $response->status());
+
             return [
                 'success' => false,
-                'message' => 'HTTP error uploading data source: ' . $response->status(),
+                'message' => is_string($errorMessage) ? $errorMessage : ('HTTP error uploading data source: ' . $response->status()),
             ];
         } catch (Throwable $e) {
             Log::error('[AnalyticsClient] Failed to upload data source: ' . $e->getMessage());
@@ -195,6 +202,7 @@ class AnalyticsClient
      * @param int $workspaceId
      * @param string|null $conversationId
      * @param string|null $format
+     * @param string|null $sourceId
      * @return array<string, mixed>
      */
     public function uploadDocumentSource(
@@ -203,8 +211,9 @@ class AnalyticsClient
         int $workspaceId,
         ?string $conversationId = null,
         ?string $format = null,
+        ?string $sourceId = null,
     ): array {
-        return $this->uploadSpreadsheet($filePath, $filename, $workspaceId, $conversationId, $format);
+        return $this->uploadSpreadsheet($filePath, $filename, $workspaceId, $conversationId, $format, $sourceId);
     }
 
     /**
@@ -326,13 +335,19 @@ class AnalyticsClient
                 ->acceptJson()
                 ->delete($url, ['workspace_id' => $workspaceId]);
 
-            if ($response->successful()) {
-                return $response->json();
+            if ($response->successful() || $response->status() === 404) {
+                return [
+                    'success' => true,
+                    'message' => $response->status() === 404 ? 'Source already removed or not found remotely.' : ($response->json('message') ?? 'Source deleted successfully.'),
+                ];
             }
+
+            $json = $response->json();
+            $errorMessage = $json['message'] ?? $json['detail'] ?? "HTTP {$response->status()}";
 
             return [
                 'success' => false,
-                'message' => "HTTP {$response->status()}",
+                'message' => is_string($errorMessage) ? $errorMessage : "HTTP {$response->status()}",
             ];
         } catch (Throwable $e) {
             Log::error('[AnalyticsClient] Failed to delete source: ' . $e->getMessage());

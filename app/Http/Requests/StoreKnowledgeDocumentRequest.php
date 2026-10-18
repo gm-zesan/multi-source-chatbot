@@ -15,12 +15,10 @@ class StoreKnowledgeDocumentRequest extends FormRequest
      * Allowed MIME types for uploaded knowledge documents.
      */
     public const ALLOWED_MIME_TYPES = [
-        'text/plain',
-        'application/pdf',
-        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
         'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
         'application/zip',
         'text/csv',
+        'text/plain',
         'application/csv',
         'text/x-csv',
     ];
@@ -28,12 +26,12 @@ class StoreKnowledgeDocumentRequest extends FormRequest
     /**
      * Allowed file extensions for MIME detection matching.
      */
-    public const ALLOWED_EXTENSIONS = ['txt', 'pdf', 'docx', 'csv', 'xlsx', 'zip'];
+    public const ALLOWED_EXTENSIONS = ['xlsx', 'csv', 'zip', 'txt'];
 
     /**
      * Supported client extensions for user uploads.
      */
-    public const SUPPORTED_CLIENT_EXTENSIONS = ['txt', 'pdf', 'docx', 'csv', 'xlsx'];
+    public const SUPPORTED_CLIENT_EXTENSIONS = ['xlsx', 'csv'];
 
     /**
      * Determine if the user is authorized to make this request.
@@ -69,7 +67,7 @@ class StoreKnowledgeDocumentRequest extends FormRequest
             'document' => [
                 'required',
                 'file',
-                'max:10240', // 10MB in KB
+                'max:20480', // 20MB in KB
                 "mimes:{$allowedExtensions}",
                 "mimetypes:{$allowedMimes}",
             ],
@@ -86,8 +84,8 @@ class StoreKnowledgeDocumentRequest extends FormRequest
         return [
             'document.required'  => 'Please select a document file to upload.',
             'document.file'      => 'The uploaded file is invalid.',
-            'document.max'       => 'The document must not exceed 10 MB.',
-            'document.mimes'     => 'Only .txt, .pdf, .docx, .csv, and .xlsx files are supported.',
+            'document.max'       => 'The document must not exceed 20 MB.',
+            'document.mimes'     => 'Only .xlsx and .csv files are supported.',
             'document.mimetypes' => 'The detected file type is not supported or the file content is spoofed.',
         ];
     }
@@ -105,13 +103,19 @@ class StoreKnowledgeDocumentRequest extends FormRequest
 
             $clientExt = strtolower($file->getClientOriginalExtension());
             if (! in_array($clientExt, self::SUPPORTED_CLIENT_EXTENSIONS, true)) {
-                $validator->errors()->add('document', 'Only .txt, .pdf, .docx, .csv, and .xlsx files are supported.');
+                $validator->errors()->add('document', 'Only .xlsx and .csv files are supported.');
                 return;
             }
 
-            // Reject raw zip files masquerading as plain text, PDF, or CSV
+            // Reject zero-byte / empty files
+            if ($file->getSize() === 0) {
+                $validator->errors()->add('document', 'The uploaded file is empty.');
+                return;
+            }
+
+            // Reject raw zip files masquerading as CSV
             $detectedMime = $file->getMimeType();
-            if (in_array($clientExt, ['txt', 'pdf', 'csv'], true) && $detectedMime === 'application/zip') {
+            if ($clientExt === 'csv' && $detectedMime === 'application/zip') {
                 $validator->errors()->add('document', 'The detected file type is not supported or the file content is spoofed.');
                 return;
             }

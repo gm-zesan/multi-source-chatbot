@@ -38,11 +38,14 @@ class KnowledgeDocument extends Model
         'file_size',
         'content_hash',
         'active_content_hash',
+        'source_id',
         'lifecycle_status',
         'chunk_count',
+        'sheets_count',
         'version',
         'is_active',
         'error_message',
+        'metadata',
         'created_by',
         'updated_by',
     ];
@@ -78,7 +81,9 @@ class KnowledgeDocument extends Model
             'is_active'        => 'boolean',
             'file_size'        => 'integer',
             'chunk_count'      => 'integer',
+            'sheets_count'     => 'integer',
             'version'          => 'integer',
+            'metadata'         => 'array',
         ];
     }
 

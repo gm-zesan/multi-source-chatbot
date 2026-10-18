@@ -109,10 +109,20 @@ class Phase2C1KnowledgeDocumentContractTest extends TestCase
     }
 
     /**
-     * Test 1: Upload valid XLSX document succeeds.
+     * Test 1: Upload valid XLSX document succeeds and registers with analytics engine.
      */
     public function test_valid_xlsx_upload_is_accepted(): void
     {
+        \Illuminate\Support\Facades\Http::fake([
+            '*/analytics/excel/upload' => \Illuminate\Support\Facades\Http::response([
+                'success'      => true,
+                'source_id'    => 'src_inv_123',
+                'sheets'       => ['Sheet1'],
+                'sheets_count' => 1,
+                'total_rows'   => 42,
+            ], 200),
+        ]);
+
         $xlsx = $this->createFakeXlsx('inventory.xlsx', true);
 
         $response = $this->actingAs($this->adminA)
@@ -130,27 +140,33 @@ class Phase2C1KnowledgeDocumentContractTest extends TestCase
 
         $this->assertNotNull($doc);
         $this->assertSame('inventory.xlsx', $doc->original_filename);
-        $this->assertSame(DocumentLifecycleStatus::PENDING_INGESTION, $doc->lifecycle_status);
-        $this->assertFalse($doc->is_active);
+        $this->assertSame(DocumentLifecycleStatus::ACTIVE, $doc->lifecycle_status);
+        $this->assertTrue($doc->is_active);
+        $this->assertSame('src_inv_123', $doc->source_id);
+        $this->assertSame(1, $doc->sheets_count);
+        $this->assertSame(42, $doc->chunk_count);
     }
 
     /**
-     * Test 2: Upload existing PDF document is still accepted (regression safety).
+     * Test 2: Upload PDF document is rejected (Phase 1 contract allows only XLSX and CSV).
      */
-    public function test_existing_pdf_upload_remains_accepted(): void
+    public function test_unsupported_pdf_upload_is_rejected(): void
     {
         $pdf = UploadedFile::fake()->create('handbook.pdf', 100, 'application/pdf');
 
         $response = $this->actingAs($this->adminA)
+            ->from(route('documents.create'))
             ->post(route('documents.store'), [
                 'document' => $pdf,
                 'title'    => 'Employee Handbook',
             ]);
 
-        $response->assertRedirect(route('documents.index'));
-        $response->assertSessionHas('success');
+        $response->assertRedirect(route('documents.create'));
+        $response->assertSessionHasErrors([
+            'document' => 'Only .xlsx and .csv files are supported.',
+        ]);
 
-        $this->assertDatabaseHas('knowledge_documents', [
+        $this->assertDatabaseMissing('knowledge_documents', [
             'workspace_id'      => $this->workspaceA->id,
             'original_filename' => 'handbook.pdf',
         ]);
@@ -250,9 +266,13 @@ class Phase2C1KnowledgeDocumentContractTest extends TestCase
         $zip->addFromString('payload.bin', 'hidden zip payload');
         $zip->close();
 
-        $extensionsToTest = ['txt', 'pdf', 'csv'];
+        $extensionsToTest = [
+            'csv' => 'The detected file type is not supported or the file content is spoofed.',
+            'txt' => 'Only .xlsx and .csv files are supported.',
+            'pdf' => 'Only .xlsx and .csv files are supported.',
+        ];
 
-        foreach ($extensionsToTest as $ext) {
+        foreach ($extensionsToTest as $ext => $expectedError) {
             $uploaded = new UploadedFile(
                 $tempPath,
                 "disguised.{$ext}",
@@ -266,7 +286,7 @@ class Phase2C1KnowledgeDocumentContractTest extends TestCase
                 ->post(route('documents.store'), ['document' => $uploaded]);
 
             $response->assertSessionHasErrors([
-                'document' => 'The detected file type is not supported or the file content is spoofed.',
+                'document' => $expectedError,
             ]);
         }
     }

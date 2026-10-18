@@ -53,7 +53,7 @@
                                     <th scope="col">Title</th>
                                     <th scope="col">Original Filename</th>
                                     <th scope="col">Size</th>
-                                    <th scope="col">Type</th>
+                                    <th scope="col">Sheets</th>
                                     <th scope="col">Uploaded At</th>
                                     <th scope="col">Status</th>
                                     <th scope="col">Action</th>
@@ -137,9 +137,10 @@
                         orderable: true
                     },
                     {
-                        data: 'mime_type',
-                        name: 'mime_type',
-                        orderable: true
+                        data: 'sheets_count',
+                        name: 'sheets_count',
+                        orderable: false,
+                        searchable: false
                     },
                     {
                         data: 'created_at',
@@ -162,6 +163,14 @@
                             var btns = '<div class="action-btn d-flex align-items-center gap-1">';
 
                             if (!data.trashed) {
+                                if (data.has_failed) {
+                                    btns += '<form action="' + SITEURL + '/dashboard/documents/' + data.id +
+                                        '/retry" method="POST" style="display: inline;">' +
+                                        '@csrf' +
+                                        '<button type="submit" class="btn btn-warning" title="Retry registration" style="padding: 2px 8px; font-size: 12px;"><i class="ri-refresh-line"></i></button>' +
+                                        '</form>';
+                                }
+
                                 btns += '<form action="' + SITEURL + '/dashboard/documents/' + data.id +
                                     '" method="POST" style="display: inline;" onsubmit="return confirm(\'Are you sure to delete this document?\');">' +
                                     '@csrf' +

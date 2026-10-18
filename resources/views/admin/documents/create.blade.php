@@ -48,9 +48,9 @@
 
                             <div class="mb-3">
                                 <label for="document" class="form-label custom-label">Select File <span class="text-danger">*</span></label>
-                                <input type="file" class="form-control custom-input @error('document') is-invalid @enderror" name="document" id="document" accept=".txt,.pdf,.docx,.csv" required>
+                                <input type="file" class="form-control custom-input @error('document') is-invalid @enderror" name="document" id="document" accept=".xlsx,.csv" required>
                                 <div class="form-text mt-1 text-muted small">
-                                    Supported file formats: <strong>.txt, .pdf, .docx, .csv</strong>. Maximum upload size: <strong>10 MB</strong>.
+                                    Supported file formats: <strong>.xlsx, .csv</strong>. Maximum upload size: <strong>20 MB</strong>.
                                 </div>
                                 @error('document')
                                     <div class="error_msg text-danger mt-1 small">{{ $message }}</div>
@@ -75,12 +75,12 @@
                                 </p>
                             </div>
 
-                            <div class="mb-3 p-3" style="background-color: #fefce8; border: 1px solid #fef08a; border-radius: 6px;">
-                                <div class="d-flex align-items-center mb-1 text-warning-emphasis fw-bold small">
-                                    <i class="ri-time-line me-1"></i> Pre-Ingestion Status
+                            <div class="mb-3 p-3" style="background-color: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 6px;">
+                                <div class="d-flex align-items-center mb-1 text-success fw-bold small">
+                                    <i class="ri-database-2-line me-1"></i> Analytics Virtual Database
                                 </div>
                                 <p class="text-muted mb-0" style="font-size: 11px; line-height: 1.4;">
-                                    Newly uploaded documents are registered with a truthful <code>pending_ingestion</code> status. They remain inactive until chunking, embeddings, and vector indexing are executed.
+                                    Uploaded spreadsheets are automatically registered into an isolated analytical SQLite virtual database. All sheets and tabular columns become queryable through the chatbot.
                                 </p>
                             </div>
 

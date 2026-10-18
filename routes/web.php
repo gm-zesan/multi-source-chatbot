@@ -147,6 +147,9 @@ Route::middleware('auth')->prefix('dashboard')->group(function () {
         ->name('documents.restore')
         ->withTrashed()
         ->middleware('permission:' . KnowledgeDocumentPermission::UPDATE->value);
+    Route::post('/documents/{id}/retry', [KnowledgeDocumentController::class, 'retry'])
+        ->name('documents.retry')
+        ->middleware('permission:' . KnowledgeDocumentPermission::UPDATE->value);
 });
 
 require __DIR__.'/auth.php';

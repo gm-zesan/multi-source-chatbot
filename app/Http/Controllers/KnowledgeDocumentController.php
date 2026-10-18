@@ -54,10 +54,15 @@ class KnowledgeDocumentController extends Controller
         $file = $request->file('document');
         $title = $request->input('title');
 
-        $this->documentService->store($file, $title);
+        $document = $this->documentService->store($file, $title);
+
+        if ($document->hasFailed()) {
+            return redirect()->route('documents.index')
+                ->with('error', 'Document uploaded, but analytics registration failed: ' . ($document->error_message ?? 'Unknown error.'));
+        }
 
         return redirect()->route('documents.index')
-            ->with('success', 'Document uploaded successfully.');
+            ->with('success', 'Document uploaded and registered successfully.');
     }
 
     /**
@@ -68,10 +73,15 @@ class KnowledgeDocumentController extends Controller
         $this->authorizeAction(KnowledgeDocumentPermission::DELETE->value);
         $this->authorizeWorkspace($document);
 
-        $this->documentService->delete($document);
+        $result = $this->documentService->delete($document);
+
+        if (! empty($result['cleanup_warning'])) {
+            return redirect()->route('documents.index')
+                ->with('error', 'Document moved to trash, but ' . $result['cleanup_warning']);
+        }
 
         return redirect()->route('documents.index')
-            ->with('success', 'Document moved to trash.');
+            ->with('success', 'Document deleted successfully.');
     }
 
     /**
@@ -85,6 +95,24 @@ class KnowledgeDocumentController extends Controller
 
         return redirect()->route('documents.index')
             ->with('success', 'Document restored successfully.');
+    }
+
+    /**
+     * Retry registration for a failed document.
+     */
+    public function retry(string $id): RedirectResponse
+    {
+        $this->authorizeAction(KnowledgeDocumentPermission::UPDATE->value);
+
+        $document = $this->documentService->retry($id);
+
+        if ($document->hasFailed()) {
+            return redirect()->route('documents.index')
+                ->with('error', 'Retry failed: ' . ($document->error_message ?? 'Unknown error.'));
+        }
+
+        return redirect()->route('documents.index')
+            ->with('success', 'Document reprocessed and registered successfully.');
     }
 
     /**
