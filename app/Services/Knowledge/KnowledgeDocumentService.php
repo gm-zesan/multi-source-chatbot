@@ -130,10 +130,21 @@ class KnowledgeDocumentService
             })
             ->addColumn('action-btn', function (KnowledgeDocument $doc) {
                 return [
-                    'id'         => $doc->id,
-                    'trashed'    => $doc->trashed(),
-                    'has_failed' => $doc->hasFailed(),
-                    'error'      => $doc->error_message,
+                    'id'             => $doc->id,
+                    'title'          => $doc->title,
+                    'filename'       => $doc->original_filename,
+                    'source_id'      => $doc->source_id ?: (string) $doc->id,
+                    'file_size'      => $doc->formattedFileSize(),
+                    'trashed'        => $doc->trashed(),
+                    'has_failed'     => $doc->hasFailed(),
+                    'error'          => $doc->error_message,
+                    'status_label'   => $doc->lifecycle_status?->label() ?? 'Unknown',
+                    'status_badge'   => $doc->lifecycle_status?->badgeClass() ?? 'bg-secondary',
+                    'sheets'         => $doc->metadata['sheets'] ?? [],
+                    'sheets_count'   => (int) ($doc->sheets_count ?: 1),
+                    'total_rows'     => (int) ($doc->chunk_count ?: 0),
+                    'schema_summary' => $doc->metadata['schema_summary'] ?? null,
+                    'tables'         => $doc->metadata['tables'] ?? [],
                 ];
             })
             ->rawColumns(['mime_type', 'sheets_count', 'status_badge'])

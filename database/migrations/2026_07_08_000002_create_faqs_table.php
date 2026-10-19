@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
@@ -15,10 +17,13 @@ return new class extends Migration
             $table->uuid('id')->primary();
             $table->foreignId('workspace_id')->constrained()->cascadeOnDelete();
             $table->foreignUuid('category_id')->nullable()->constrained('faq_categories')->nullOnDelete();
+            $table->string('document_type', 64)->default('faq');
             $table->string('question');
             $table->text('answer');
             $table->text('searchable_text')->nullable();
             $table->boolean('is_active')->default(true);
+            $table->string('lifecycle_status', 32)->default('active');
+            $table->text('sync_error')->nullable();
             $table->unsignedMediumInteger('priority')->default(0);
             $table->unsignedBigInteger('hit_count')->default(0);
             $table->timestamp('last_used_at')->nullable();
@@ -29,6 +34,8 @@ return new class extends Migration
 
             $table->index(['workspace_id', 'is_active', 'priority']);
             $table->index(['workspace_id', 'category_id']);
+            $table->index(['workspace_id', 'document_type']);
+            $table->index(['workspace_id', 'lifecycle_status']);
 
             // Fulltext index — MySQL only (SQLite/test drivers don't support it)
             if (Schema::getConnection()->getDriverName() === 'mysql') {

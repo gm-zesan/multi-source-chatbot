@@ -43,6 +43,7 @@ Route::middleware('auth')->prefix('dashboard')->group(function () {
     Route::post('/simulator/clear', [ChatSimulatorController::class, 'clear'])->name('simulator.clear');
     Route::post('/simulator/upload-excel', [ChatSimulatorController::class, 'uploadExcel'])->name('simulator.upload_excel');
     Route::post('/simulator/clear-excel', [ChatSimulatorController::class, 'clearExcel'])->name('simulator.clear_excel');
+    Route::post('/simulator/select-source', [ChatSimulatorController::class, 'selectSource'])->name('simulator.select_source');
 
     // Export Routes (Excel, CSV, PDF)
     Route::get('/export/simulator/{format}', [\App\Http\Controllers\ExportController::class, 'exportSimulator'])->name('export.simulator');

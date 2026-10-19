@@ -438,5 +438,73 @@ class AnalyticsSourceSelectionRegressionTest extends TestCase
         $this->assertStringNotContainsString('৳9,600', $reply);
         $this->assertStringNotContainsString('৳1,600', $reply);
     }
+
+    /**
+     * Case 17: Explicit document comparison notice (success=true, is_cross_source_unsupported=true)
+     * propagates clarification_options to suggestions without being lost on early return.
+     */
+    public function test_17_explicit_document_early_return_propagates_clarification_options(): void
+    {
+        $conversation = $this->createConversation();
+
+        $this->excelToolMock->shouldReceive('execute')
+            ->once()
+            ->with('Compare sales.xlsx and expenses.xlsx', $this->workspace->id, null, Mockery::type('array'))
+            ->andReturn([
+                'success' => true,
+                'is_cross_source_unsupported' => true,
+                'report' => 'ℹ️ Multi-Source Comparison Notice',
+                'clarification_options' => [
+                    'sales.xlsx-এর তথ্য দেখাও',
+                    'expenses.xlsx-এর তথ্য দেখাও',
+                ],
+            ]);
+
+        $res = $this->service->handleQuery(
+            query: 'Compare sales.xlsx and expenses.xlsx',
+            workspaceId: $this->workspace->id,
+            conversation: $conversation,
+        );
+
+        $this->assertStringContainsString('Multi-Source Comparison Notice', $res['reply']);
+        $this->assertEquals([
+            'sales.xlsx-এর তথ্য দেখাও',
+            'expenses.xlsx-এর তথ্য দেখাও',
+        ], $res['suggestions']);
+    }
+
+    /**
+     * Case 18: Ambiguous document query propagates clarification_options to suggestions.
+     */
+    public function test_18_ambiguous_document_propagates_clarification_options(): void
+    {
+        $conversation = $this->createConversation();
+
+        $this->excelToolMock->shouldReceive('execute')
+            ->once()
+            ->with('Show data from this file', $this->workspace->id, null, Mockery::type('array'))
+            ->andReturn([
+                'success' => false,
+                'is_ambiguous' => true,
+                'report' => '🤔 Ambiguous Source Context',
+                'clarification_options' => [
+                    'file1.xlsx থেকে দেখাও',
+                    'file2.xlsx থেকে দেখাও',
+                ],
+            ]);
+
+        $res = $this->service->handleQuery(
+            query: 'Show data from this file',
+            workspaceId: $this->workspace->id,
+            conversation: $conversation,
+        );
+
+        $this->assertStringContainsString('Ambiguous Source Context', $res['reply']);
+        $this->assertEquals([
+            'file1.xlsx থেকে দেখাও',
+            'file2.xlsx থেকে দেখাও',
+        ], $res['suggestions']);
+    }
 }
+
 

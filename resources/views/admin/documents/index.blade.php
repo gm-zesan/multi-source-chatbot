@@ -67,6 +67,91 @@
             </div>
         </div>
     </div>
+
+    <!-- Document Schema & Metadata Details Modal -->
+    <div class="modal fade" id="documentDetailsModal" tabindex="-1" aria-labelledby="documentDetailsModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content border-0 shadow">
+                <div class="modal-header bg-light border-bottom">
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="ri-file-excel-2-fill text-success fs-4"></i>
+                        <div>
+                            <h5 class="modal-title fw-bold text-dark mb-0" id="documentDetailsModalLabel">Document Schema & Metadata</h5>
+                            <small class="text-muted" id="modalDocFilename"></small>
+                        </div>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <!-- Top Summary Card -->
+                    <div class="card border bg-light mb-3">
+                        <div class="card-body p-3">
+                            <div class="row g-2 align-items-center">
+                                <div class="col-sm-6">
+                                    <div class="text-muted small">Title</div>
+                                    <div class="fw-bold text-dark text-truncate" id="modalDocTitle">-</div>
+                                </div>
+                                <div class="col-sm-3">
+                                    <div class="text-muted small">Status</div>
+                                    <div id="modalDocStatus">-</div>
+                                </div>
+                                <div class="col-sm-3">
+                                    <div class="text-muted small">Size / Total Rows</div>
+                                    <div class="fw-semibold text-dark" id="modalDocRows">-</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Ingestion Error Alert (if failed) -->
+                    <div id="modalErrorSection" class="alert alert-danger d-none mb-3">
+                        <div class="d-flex align-items-center justify-content-between">
+                            <div>
+                                <i class="ri-error-warning-fill me-1"></i>
+                                <strong>Ingestion Failure Notice:</strong>
+                                <div class="small mt-1" id="modalErrorMsg"></div>
+                            </div>
+                            <form id="modalRetryForm" method="POST" class="ms-3">
+                                @csrf
+                                <button type="submit" class="btn btn-sm btn-danger d-flex align-items-center gap-1">
+                                    <i class="ri-refresh-line"></i> Retry Ingestion
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- Sheets & Tables Breakdown -->
+                    <div class="mb-3">
+                        <h6 class="fw-bold text-dark d-flex align-items-center gap-1 mb-2">
+                            <i class="ri-table-line text-primary"></i> Virtual Tables & Sheets
+                        </h6>
+                        <div id="modalSheetsList" class="d-flex flex-wrap gap-2">
+                            <!-- Populated dynamically -->
+                        </div>
+                    </div>
+
+                    <!-- Schema Catalog Markdown / Text Preview -->
+                    <div>
+                        <h6 class="fw-bold text-dark d-flex align-items-center gap-1 mb-2">
+                            <i class="ri-database-2-line text-info"></i> Column Schema Catalog
+                        </h6>
+                        <div class="p-3 bg-white border rounded" style="max-height: 280px; overflow-y: auto;">
+                            <pre id="modalSchemaSummary" class="mb-0 text-dark font-monospace" style="white-space: pre-wrap; font-size: 12px;"></pre>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light border-top d-flex justify-content-between">
+                    <span class="text-muted small" id="modalSourceIdText"></span>
+                    <div class="d-flex gap-2">
+                        <a href="{{ route('simulator.index') }}" class="btn btn-primary d-flex align-items-center gap-1" id="modalAskSimulatorBtn">
+                            <i class="ri-chat-smile-2-line"></i> Ask in Simulator
+                        </a>
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 @endsection
 
 @push('custom-scripts')
@@ -93,6 +178,50 @@
 
     <script type="text/javascript">
         var listUrl = SITEURL + '/dashboard/documents';
+
+        function openDocumentDetails(doc) {
+            if (!doc) return;
+
+            $('#modalDocTitle').text(doc.title || '-');
+            $('#modalDocFilename').text(doc.filename || '');
+            $('#modalDocRows').text((doc.file_size || '') + (doc.total_rows ? ' • ' + doc.total_rows + ' rows' : ''));
+            $('#modalSourceIdText').text(doc.source_id ? 'Source ID: ' + doc.source_id : '');
+
+            var statusBadge = doc.has_failed
+                ? '<span class="badge bg-danger"><i class="ri-close-circle-line me-1"></i>Failed</span>'
+                : (doc.trashed ? '<span class="badge bg-secondary">Deleted</span>' : '<span class="badge bg-success"><i class="ri-checkbox-circle-line me-1"></i>Active</span>');
+            $('#modalDocStatus').html(statusBadge);
+
+            if (doc.has_failed) {
+                $('#modalErrorSection').removeClass('d-none');
+                $('#modalErrorMsg').text(doc.error || 'Ingestion failed during analytics registration.');
+                $('#modalRetryForm').attr('action', SITEURL + '/dashboard/documents/' + doc.id + '/retry');
+                $('#modalAskSimulatorBtn').addClass('d-none');
+            } else {
+                $('#modalErrorSection').addClass('d-none');
+                var targetId = doc.source_id || doc.id;
+                $('#modalAskSimulatorBtn').removeClass('d-none').attr('href', SITEURL + '/dashboard/simulator?file_id=' + encodeURIComponent(targetId));
+            }
+
+            var sheetsContainer = $('#modalSheetsList');
+            sheetsContainer.empty();
+            if (doc.sheets && Array.isArray(doc.sheets) && doc.sheets.length > 0) {
+                doc.sheets.forEach(function(s) {
+                    sheetsContainer.append('<span class="badge bg-primary px-3 py-2 fs-6"><i class="ri-file-table-line me-1"></i>' + s + '</span>');
+                });
+            } else {
+                sheetsContainer.append('<span class="badge bg-light text-dark border px-3 py-2">1 Sheet</span>');
+            }
+
+            var summaryText = doc.schema_summary || 'No schema catalog recorded for this document.';
+            $('#modalSchemaSummary').text(summaryText);
+
+            var modalEl = document.getElementById('documentDetailsModal');
+            if (modalEl) {
+                var modal = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
+                modal.show();
+            }
+        }
 
         $(document).ready(function() {
             var table = $('#data-table').DataTable({
@@ -161,6 +290,10 @@
                         render: function(data) {
                             if (!data) return '';
                             var btns = '<div class="action-btn d-flex align-items-center gap-1">';
+
+                            // Schema / Details Button
+                            var safeDataStr = JSON.stringify(data).replace(/"/g, '&quot;');
+                            btns += '<button type="button" class="btn btn-info text-white" title="View Schema & Metadata" onclick=\'openDocumentDetails(' + safeDataStr + ')\' style="padding: 2px 8px; font-size: 12px;"><i class="ri-file-list-3-line"></i></button>';
 
                             if (!data.trashed) {
                                 if (data.has_failed) {

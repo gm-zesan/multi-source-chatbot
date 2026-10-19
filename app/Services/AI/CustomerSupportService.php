@@ -43,6 +43,8 @@ class CustomerSupportService
     private readonly \App\AI\Tools\ExcelAnalyticsTool $excelAnalyticsTool;
     private ?\Laravel\Ai\Responses\Data\Usage $lastLlmUsage = null;
     private ?\App\Services\AI\DTOs\FollowUpDecision $lastFollowUpDecision = null;
+    /** @var array<int, string> */
+    private array $lastAnalyticsClarificationOptions = [];
 
     public function __construct(
         private readonly FAQSearch $faqSearch,
@@ -170,8 +172,12 @@ class CustomerSupportService
                 contextResult: $contextResult,
             );
 
+            $effectiveBusinessQuery = ($contextResult !== null && $contextResult->isResolved() && !empty($contextResult->resolvedQuery))
+                ? $contextResult->resolvedQuery
+                : $query;
+
             $businessContext = $this->businessService->buildBusinessContext(
-                query: $query,
+                query: $effectiveBusinessQuery,
                 conversation: $conversation,
                 workspaceId: $effectiveWorkspaceId,
             );
@@ -340,6 +346,7 @@ class CustomerSupportService
     public function handleQuery(string $query, int $workspaceId, ?Conversation $conversation = null): array
     {
         $this->lastLlmUsage = null;
+        $this->lastAnalyticsClarificationOptions = [];
         $t_start = microtime(true);
 
         // ── 0. Pending Action Resolution (Turn N+1 Two-Phase Confirmation) ──
@@ -573,8 +580,12 @@ class CustomerSupportService
             $memoryRetrievalMs = round((microtime(true) - $t_memory_start) * 1000, 2);
 
             $t_business_start = microtime(true);
+            $effectiveBusinessQuery = ($contextResult !== null && $contextResult->isResolved() && !empty($contextResult->resolvedQuery))
+                ? $contextResult->resolvedQuery
+                : $query;
+
             $businessContext = $this->businessService->buildBusinessContext(
-                query: $query,
+                query: $effectiveBusinessQuery,
                 conversation: $conversation,
                 workspaceId: $workspaceId,
             );
@@ -675,11 +686,13 @@ class CustomerSupportService
 
         $totalE2eMs = round((microtime(true) - $t_start) * 1000, 2);
 
-        $suggestions = $routingResult->isUncertain() || ($answerabilityDecision !== null && $answerabilityDecision->isAmbiguous())
-            ? $this->getClarificationSuggestions($query)
-            : ($routingResult->isAction() && str_contains($replyText ?? '', 'মেইলটি পাঠাবো?')
-                ? ['হ্যাঁ, পাঠান', 'না, বাতিল করুন']
-                : []);
+        $suggestions = !empty($this->lastAnalyticsClarificationOptions)
+            ? $this->lastAnalyticsClarificationOptions
+            : ($routingResult->isUncertain() || ($answerabilityDecision !== null && $answerabilityDecision->isAmbiguous())
+                ? $this->getClarificationSuggestions($query)
+                : ($routingResult->isAction() && str_contains($replyText ?? '', 'মেইলটি পাঠাবো?')
+                    ? ['হ্যাঁ, পাঠান', 'না, বাতিল করুন']
+                    : []));
         $sources = $routingResult->isKnowledge() ? $this->formatGroundedSources($groundedHits, $query) : [];
         $isHandoff = (!empty($conversation?->metadata['handoff_to_human'])) ||
             (stripos($replyText ?? '', 'team member will contact you') !== false);
@@ -1124,6 +1137,10 @@ PROMPT;
                     history: $history,
                 );
 
+                if (!empty($excelResult['clarification_options']) && is_array($excelResult['clarification_options'])) {
+                    $this->lastAnalyticsClarificationOptions = $excelResult['clarification_options'];
+                }
+
                 if (!empty($excelResult['success']) && !empty($excelResult['report'])) {
                     if (!empty($excelResult['source_id']) && $conversation->exists) {
                         $metadata = $conversation->metadata ?? [];
@@ -1154,6 +1171,10 @@ PROMPT;
                     fileId: (string) $activeFileId,
                     history: $history,
                 );
+
+                if (!empty($excelResult['clarification_options']) && is_array($excelResult['clarification_options'])) {
+                    $this->lastAnalyticsClarificationOptions = $excelResult['clarification_options'];
+                }
 
                 if (!empty($excelResult['success']) && !empty($excelResult['report'])) {
                     return $excelResult['report'];

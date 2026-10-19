@@ -339,7 +339,7 @@ class BusinessSourceOfTruthService
             }
         }
 
-        // 3. Attach authoritative Product Catalog data if product mentioned in query
+        // 3. Attach authoritative Product Catalog data if product mentioned in query or in conversation context
         try {
             $matchingProducts = \App\Models\AnalyticsProduct::where('workspace_id', $workspaceId)
                 ->where('is_active', true)
@@ -347,6 +347,8 @@ class BusinessSourceOfTruthService
 
             $qLower = mb_strtolower($query);
             $matchedAny = false;
+            $matchedProduct = null;
+
             foreach ($matchingProducts as $product) {
                 $pNameLower = mb_strtolower($product->name);
                 if (str_contains($qLower, $pNameLower) || str_contains($qLower, str_replace(' ', '', $pNameLower))) {
@@ -357,11 +359,59 @@ class BusinessSourceOfTruthService
                         "  * Price: ৳{$formattedPrice}\n" .
                         "  * Catalog Status: Active in catalog";
                     $matchedAny = true;
+                    $matchedProduct = $product;
+                }
+            }
+
+            // If a specific product was matched in this turn, persist it as the active product in conversation metadata
+            if ($matchedAny && $matchedProduct !== null && $conversation !== null && $conversation->exists) {
+                $metadata = $conversation->metadata ?? [];
+                $metadata['active_product'] = [
+                    'id'         => $matchedProduct->id,
+                    'name'       => $matchedProduct->name,
+                    'category'   => $matchedProduct->category,
+                    'unit_price' => (float) $matchedProduct->unit_price,
+                    'updated_at' => now()->toIso8601String(),
+                ];
+                $conversation->metadata = $metadata;
+                $conversation->save();
+            }
+
+            // Retrieve active product from context if no product was explicitly matched in the current turn
+            $activeProduct = $conversation?->metadata['active_product'] ?? null;
+
+            // Check if query is an order placement or purchasing inquiry (e.g. "kivabe order korbo?", "order korte chai", "how to order?")
+            $isOrderPlacement = (bool) preg_match('/(kivabe\s*order|order\s*kivabe|order\s*korte\s*chai|kivabe\s*kinbo|kivabe\s*pabo|order\s*korbo|কিভাবে\s*অর্ডার|অর্ডার\s*করব|অর্ডার\s*করবো|অর্ডার\s*কীভাবে|অর্ডার\s*করতে\s*চাই|অর্ডার\s*দিতে\s*চাই|কিনতে\s*চাই|নিতে\s*চাই|অর্ডার\s*প্রক্রিয়া|অর্ডার\s*করার\s*নিয়ম|how\s*(to|can\s*i)\s*(order|buy|purchase)|order\s*process)/ui', $query);
+
+            if ($isOrderPlacement) {
+                if ($activeProduct && !empty($activeProduct['name'])) {
+                    $formattedPrice = number_format((float) ($activeProduct['unit_price'] ?? 0), 2);
+                    $sections[] = "- Active Product in Discussion (Authoritative Truth):\n" .
+                        "  * Product: {$activeProduct['name']}\n" .
+                        "  * Category: " . ($activeProduct['category'] ?? 'General') . "\n" .
+                        "  * Price: ৳{$formattedPrice}\n" .
+                        "- Authoritative Order Placement Process:\n" .
+                        "  * The customer is asking how to place an order for the active product ({$activeProduct['name']}).\n" .
+                        "  * Instruct the customer to provide their Name, Mobile Phone Number, and complete Delivery Address here in the chat to confirm the order.\n" .
+                        "  * Mention that our customer support team will verify and process the order promptly.";
+                } else {
+                    $sections[] = "- Authoritative Order Placement Process:\n" .
+                        "  * To place an order, instruct the customer to provide the name of the desired product, their Name, Mobile Phone Number, and complete Delivery Address in the chat.";
+                }
+            } elseif (!$matchedAny && $activeProduct && !empty($activeProduct['name'])) {
+                // If query is an elliptical inquiry about price or availability of the active product
+                if (preg_match('/(দাম\s*কত|কত\s*দাম|dam\s*koto|price\s*koto|how\s*much|স্টকে\s*আছে|available\s*ache|stock\s*ache)/ui', $query)) {
+                    $formattedPrice = number_format((float) ($activeProduct['unit_price'] ?? 0), 2);
+                    $sections[] = "- Live Product Catalog Record for Active Discussion ({$activeProduct['name']}):\n" .
+                        "  * Product: {$activeProduct['name']}\n" .
+                        "  * Category: " . ($activeProduct['category'] ?? 'General') . "\n" .
+                        "  * Price: ৳{$formattedPrice}\n" .
+                        "  * Catalog Status: Active in catalog";
                 }
             }
 
             // If general product list/catalog inquiry (e.g. "ki ki product ache?", "কি কি প্রোডাক্ট আছে")
-            if (!$matchedAny && preg_match('/(product|প্রোডাক্ট|পণ্য|আইটেম|item|list|তালিকা|কালেকশন|collection)/ui', $query) && $matchingProducts->isNotEmpty()) {
+            if (!$matchedAny && !$isOrderPlacement && preg_match('/(product|প্রোডাক্ট|পণ্য|আইটেম|item|list|তালিকা|কালেকশন|collection)/ui', $query) && $matchingProducts->isNotEmpty()) {
                 $productListLines = [];
                 foreach ($matchingProducts->take(10) as $prod) {
                     $priceStr = number_format((float) $prod->unit_price, 2);

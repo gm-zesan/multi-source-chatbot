@@ -14,27 +14,30 @@
 /// @param {string} $gap - gap between items
 /// @param {string} $flex-direction - row or column
 /// @param {bool} $flex-wrap - wrap flex items
-@mixin flex-box(
-    $display: flex,
+@mixin flex-box($display: flex,
     $align-items: null,
     $justify-content: null,
     $gap: null,
     $flex-direction: null,
-    $flex-wrap: null
-) {
+    $flex-wrap: null) {
     display: $display;
+
     @if $flex-direction {
         flex-direction: $flex-direction;
     }
+
     @if $align-items {
         align-items: $align-items;
     }
+
     @if $justify-content {
         justify-content: $justify-content;
     }
+
     @if $gap {
         gap: $gap;
     }
+
     @if $flex-wrap {
         flex-wrap: $flex-wrap;
     }
@@ -45,6 +48,7 @@
     display: grid;
     grid-template-columns: repeat($columns, 1fr);
     gap: $gap;
+
     @if $auto-flow {
         grid-auto-flow: $auto-flow;
     }
@@ -107,24 +111,35 @@
     font-size: $size;
     font-weight: $weight;
     line-height: $line-height;
-    @if $letter-spacing != 0 {
+
+    @if $letter-spacing !=0 {
         letter-spacing: $letter-spacing;
     }
 }
 
 /// Heading styles
 @mixin heading($level: 1) {
-    @if $level == 1 {
+    @if $level ==1 {
         @include text($text-4xl, $font-bold, $line-tight);
-    } @else if $level == 2 {
+    }
+
+    @else if $level ==2 {
         @include text($text-3xl, $font-bold, $line-tight);
-    } @else if $level == 3 {
+    }
+
+    @else if $level ==3 {
         @include text($text-2xl, $font-semibold, $line-snug);
-    } @else if $level == 4 {
+    }
+
+    @else if $level ==4 {
         @include text($text-xl, $font-semibold, $line-snug);
-    } @else if $level == 5 {
+    }
+
+    @else if $level ==5 {
         @include text($text-lg, $font-semibold, $line-normal);
-    } @else if $level == 6 {
+    }
+
+    @else if $level ==6 {
         @include text($text-base, $font-semibold, $line-normal);
     }
 }
@@ -160,7 +175,7 @@
 @mixin focus-ring($color: $primary, $width: 2px) {
     outline: none !important;
     box-shadow: none !important;
-    
+
     &:focus-visible {
         outline: none !important;
         box-shadow: none !important;
@@ -172,21 +187,35 @@
 /// Shadow elevation mixin
 /// @param {number} $level - shadow level (xs, sm, md, lg, xl, 2xl)
 @mixin shadow($level: md) {
-    @if $level == none {
+    @if $level ==none {
         box-shadow: $shadow-none;
-    } @else if $level == xs {
+    }
+
+    @else if $level ==xs {
         box-shadow: $shadow-xs;
-    } @else if $level == sm {
+    }
+
+    @else if $level ==sm {
         box-shadow: $shadow-sm;
-    } @else if $level == md {
+    }
+
+    @else if $level ==md {
         box-shadow: $shadow-md;
-    } @else if $level == lg {
+    }
+
+    @else if $level ==lg {
         box-shadow: $shadow-lg;
-    } @else if $level == xl {
+    }
+
+    @else if $level ==xl {
         box-shadow: $shadow-xl;
-    } @else if $level == 2xl {
+    }
+
+    @else if $level ==2xl {
         box-shadow: $shadow-2xl;
-    } @else {
+    }
+
+    @else {
         box-shadow: $level;
     }
 }
@@ -194,7 +223,7 @@
 /// Hover elevation effect
 @mixin elevation-hover {
     transition: $transition-base;
-    
+
     &:hover {
         box-shadow: $shadow-hover;
         transform: translateY(-2px);
@@ -216,7 +245,7 @@
 /// @param {number} $opacity - opacity value
 @mixin overlay($color: rgba(0, 0, 0, 0.5)) {
     position: relative;
-    
+
     &::before {
         content: '';
         position: absolute;
@@ -242,7 +271,7 @@
 /// Smooth hover transition
 @mixin hover-transition {
     @include transition(all, $transition-base);
-    
+
     &:hover {
         transition: all $transition-base;
     }
@@ -477,7 +506,7 @@
 
 /// Modal dialog
 @mixin modal-dialog {
-    background-color: $surface-primary;
+    // background-color: $surface-primary;
     border-radius: $radius-modal;
     box-shadow: $shadow-2xl;
     max-width: 95vw;
@@ -491,31 +520,43 @@
 /// Media query helper
 /// @param {number} $breakpoint - breakpoint value
 @mixin respond-to($breakpoint) {
-    @if $breakpoint == xs {
+    @if $breakpoint ==xs {
         @media (min-width: $breakpoint-xs) {
             @content;
         }
-    } @else if $breakpoint == sm {
+    }
+
+    @else if $breakpoint ==sm {
         @media (min-width: $breakpoint-sm) {
             @content;
         }
-    } @else if $breakpoint == md {
+    }
+
+    @else if $breakpoint ==md {
         @media (min-width: $breakpoint-md) {
             @content;
         }
-    } @else if $breakpoint == lg {
+    }
+
+    @else if $breakpoint ==lg {
         @media (min-width: $breakpoint-lg) {
             @content;
         }
-    } @else if $breakpoint == xl {
+    }
+
+    @else if $breakpoint ==xl {
         @media (min-width: $breakpoint-xl) {
             @content;
         }
-    } @else if $breakpoint == 2xl {
+    }
+
+    @else if $breakpoint ==2xl {
         @media (min-width: $breakpoint-2xl) {
             @content;
         }
-    } @else {
+    }
+
+    @else {
         @media (min-width: $breakpoint) {
             @content;
         }
@@ -622,7 +663,7 @@
     height: 0;
     overflow: hidden;
 
-    > * {
+    >* {
         position: absolute;
         top: 0;
         left: 0;

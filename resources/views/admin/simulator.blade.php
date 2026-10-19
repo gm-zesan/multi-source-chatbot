@@ -668,23 +668,47 @@
 
                     <!-- Input area -->
                     <div class="chat-input-area">
-                        <!-- Active Spreadsheet Badge / Upload Bar -->
-                        <div id="activeSpreadsheetBar" class="mb-2 {{ !empty($activeSpreadsheet['file_id']) ? '' : 'd-none' }}">
-                            <div class="d-flex align-items-center justify-content-between p-2 rounded-3 bg-light border border-success border-opacity-50">
-                                <div class="d-flex align-items-center gap-2 overflow-hidden">
-                                    <span class="badge bg-success d-flex align-items-center gap-1 py-1 px-2">
-                                        <i class="ri-file-excel-2-fill"></i> Excel Virtual DB
-                                    </span>
-                                    <span id="activeSpreadsheetName" class="fw-semibold text-truncate small text-dark" style="max-width: 260px;">
-                                        {{ $activeSpreadsheet['filename'] ?? '' }}
-                                    </span>
-                                    <span id="activeSpreadsheetSheets" class="badge bg-secondary-subtle text-secondary small py-1 px-2">
-                                        {{ count($activeSpreadsheet['sheets'] ?? []) }} sheets
-                                    </span>
+                        <!-- Multi-Source Selection & Active Spreadsheet Bar -->
+                        <div class="simulator-source-control mb-2 p-2 rounded-3 bg-light border">
+                            <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
+                                <div class="d-flex align-items-center gap-2 flex-grow-1" style="min-width: 280px;">
+                                    <label for="simulatorSourceSelect" class="small fw-bold text-muted mb-0 d-flex align-items-center gap-1 text-nowrap">
+                                        <i class="ri-database-2-line text-primary"></i> Target Source:
+                                    </label>
+                                    <select id="simulatorSourceSelect" class="form-select form-select-sm border bg-white shadow-none" style="font-size: 13px; max-width: 320px;" onchange="onSourceSelectionChange(this.value)">
+                                        <option value="">🌐 Auto-resolve (All Documents)</option>
+                                        @if(isset($availableDocuments) && $availableDocuments->isNotEmpty())
+                                            <optgroup label="Workspace Uploaded Documents">
+                                                @foreach($availableDocuments as $doc)
+                                                    <option value="{{ $doc->source_id ?: $doc->id }}" 
+                                                        {{ (!empty($activeSpreadsheet['file_id']) && ($activeSpreadsheet['file_id'] == $doc->source_id || $activeSpreadsheet['file_id'] == $doc->id)) ? 'selected' : '' }}>
+                                                        📄 {{ $doc->original_filename ?: $doc->title }} ({{ $doc->sheets_count ?: 1 }} {{ \Illuminate\Support\Str::plural('sheet', $doc->sheets_count ?: 1) }})
+                                                    </option>
+                                                @endforeach
+                                            </optgroup>
+                                        @endif
+                                    </select>
                                 </div>
-                                <button type="button" class="btn btn-sm btn-outline-danger py-0 px-2 rounded-pill" onclick="clearUploadedExcel()" title="Remove active spreadsheet">
-                                    <i class="ri-close-line"></i> Clear
-                                </button>
+
+                                <div class="d-flex align-items-center gap-2">
+                                    <div id="activeSpreadsheetBar" class="{{ !empty($activeSpreadsheet['file_id']) ? '' : 'd-none' }}">
+                                        <div class="d-flex align-items-center gap-1">
+                                            <span class="badge bg-success-subtle text-success border border-success-subtle d-flex align-items-center gap-1 py-1 px-2">
+                                                <i class="ri-file-excel-2-fill"></i> <span id="activeSpreadsheetName" class="text-truncate" style="max-width: 140px;">{{ $activeSpreadsheet['filename'] ?? '' }}</span>
+                                            </span>
+                                            <span id="activeSpreadsheetSheets" class="badge bg-secondary-subtle text-secondary small py-1 px-2">
+                                                {{ count($activeSpreadsheet['sheets'] ?? []) }} sheets
+                                            </span>
+                                            <button type="button" class="btn btn-sm btn-outline-danger py-0 px-1 rounded-circle" onclick="clearUploadedExcel()" title="Clear active document">
+                                                <i class="ri-close-line"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <a href="{{ route('documents.index') }}" class="btn btn-sm btn-outline-secondary d-flex align-items-center gap-1 px-2 py-1" style="font-size: 12px;" title="View Documents Catalog & Schema">
+                                        <i class="ri-file-list-3-line"></i>
+                                        <span class="d-none d-sm-inline">Catalog</span>
+                                    </a>
+                                </div>
                             </div>
                         </div>
 
@@ -2099,15 +2123,13 @@
                 const data = await response.json();
 
                 if (data.success) {
-                    // Update active bar UI
-                    const bar = document.getElementById('activeSpreadsheetBar');
-                    const nameEl = document.getElementById('activeSpreadsheetName');
-                    const sheetsEl = document.getElementById('activeSpreadsheetSheets');
-                    if (bar && nameEl && sheetsEl) {
-                        nameEl.innerText = data.filename || file.name;
-                        sheetsEl.innerText = `${(data.sheets || []).length} sheets`;
-                        bar.classList.remove('d-none');
-                    }
+                    // Update active bar and selector UI
+                    updateActiveSpreadsheetUI({
+                        file_id: data.file_id,
+                        filename: data.filename || file.name,
+                        sheets: data.sheets || [],
+                        total_rows: data.total_rows || 0
+                    });
 
                     // Append system message in chat
                     appendMessage(`📎 **Uploaded:** ${file.name} (${(data.sheets || []).length} sheets, ${data.total_rows || 0} rows)`, 'user');
@@ -2129,6 +2151,74 @@
             }
         }
 
+        function updateActiveSpreadsheetUI(activeSpreadsheet) {
+            const bar = document.getElementById('activeSpreadsheetBar');
+            const nameEl = document.getElementById('activeSpreadsheetName');
+            const sheetsEl = document.getElementById('activeSpreadsheetSheets');
+            const selectEl = document.getElementById('simulatorSourceSelect');
+
+            if (activeSpreadsheet && activeSpreadsheet.file_id) {
+                if (nameEl) nameEl.innerText = activeSpreadsheet.filename || activeSpreadsheet.file_id;
+                if (sheetsEl) {
+                    const sheetCount = (activeSpreadsheet.sheets || []).length;
+                    sheetsEl.innerText = `${sheetCount} ${sheetCount === 1 ? 'sheet' : 'sheets'}`;
+                }
+                if (bar) bar.classList.remove('d-none');
+
+                if (selectEl) {
+                    let exists = false;
+                    for (let i = 0; i < selectEl.options.length; i++) {
+                        if (selectEl.options[i].value === activeSpreadsheet.file_id) {
+                            selectEl.selectedIndex = i;
+                            exists = true;
+                            break;
+                        }
+                    }
+                    if (!exists && activeSpreadsheet.filename) {
+                        const newOpt = document.createElement('option');
+                        newOpt.value = activeSpreadsheet.file_id;
+                        newOpt.textContent = `📄 ${activeSpreadsheet.filename} (${(activeSpreadsheet.sheets || []).length} sheets)`;
+                        selectEl.appendChild(newOpt);
+                        selectEl.value = activeSpreadsheet.file_id;
+                    }
+                }
+            } else {
+                if (bar) bar.classList.add('d-none');
+                if (selectEl) selectEl.value = '';
+            }
+        }
+
+        async function onSourceSelectionChange(fileId) {
+            try {
+                const response = await fetch("{{ route('simulator.select_source') }}", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "X-CSRF-TOKEN": "{{ csrf_token() }}"
+                    },
+                    body: JSON.stringify({ file_id: fileId || null })
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    updateActiveSpreadsheetUI(data.active_spreadsheet);
+                    if (data.active_spreadsheet && data.active_spreadsheet.filename) {
+                        appendMessage(`📌 Focused document set to: **${data.active_spreadsheet.filename}** (${(data.active_spreadsheet.sheets || []).length} sheets, ${data.active_spreadsheet.total_rows || 0} rows)`, 'bot', {
+                            route: 'analytics',
+                            confidence: 100
+                        });
+                    } else {
+                        appendMessage(`🌐 Context cleared. Questions will automatically resolve across all available workspace documents.`, 'bot', {
+                            route: 'analytics',
+                            confidence: 100
+                        });
+                    }
+                }
+            } catch (err) {
+                console.error("Select source error:", err);
+            }
+        }
+
         async function clearUploadedExcel() {
             if (!confirm("Are you sure you want to remove the active spreadsheet from this simulator session?")) return;
 
@@ -2143,9 +2233,8 @@
 
                 const data = await response.json();
                 if (data.success) {
-                    const bar = document.getElementById('activeSpreadsheetBar');
-                    if (bar) bar.classList.add('d-none');
-                    appendMessage("🗑️ Active spreadsheet removed. Queries will now target general business databases.", 'bot', {
+                    updateActiveSpreadsheetUI(null);
+                    appendMessage("🗑️ Active spreadsheet removed. Queries will now auto-resolve across all workspace data sources.", 'bot', {
                         route: 'analytics',
                         confidence: 100
                     });
@@ -2155,7 +2244,26 @@
             }
         }
 
-        function setQueryAndSend(text) {
+        function setQueryAndSend(text, sourceId = null) {
+            let targetSourceId = sourceId;
+            const selectEl = document.getElementById('simulatorSourceSelect');
+            if (!targetSourceId && selectEl) {
+                // If text explicitly mentions one of our available documents, align the selector
+                for (let i = 0; i < selectEl.options.length; i++) {
+                    const opt = selectEl.options[i];
+                    if (opt.value && opt.text) {
+                        const rawName = opt.text.replace(/^[^\w]+/, '').split(' (')[0].trim().toLowerCase();
+                        if (rawName.length > 2 && text.toLowerCase().includes(rawName)) {
+                            targetSourceId = opt.value;
+                            break;
+                        }
+                    }
+                }
+            }
+            if (targetSourceId && selectEl) {
+                selectEl.value = targetSourceId;
+                window.currentSelectedSourceId = targetSourceId;
+            }
             document.getElementById('userInput').value = text;
             const fakeEvent = { preventDefault: () => { } };
             handleSend(fakeEvent);
@@ -2170,6 +2278,11 @@
 
             if (!text) return;
 
+            // Target source ID if chosen
+            const selectEl = document.getElementById('simulatorSourceSelect');
+            const selectedDocId = window.currentSelectedSourceId || (selectEl ? selectEl.value : null);
+            window.currentSelectedSourceId = null;
+
             // Append user message
             appendMessage(text, 'user');
             input.value = '';
@@ -2179,13 +2292,18 @@
             const typingId = appendTypingIndicator();
 
             try {
+                const requestPayload = { message: text };
+                if (selectedDocId) {
+                    requestPayload.file_id = selectedDocId;
+                }
+
                 const response = await fetch("{{ route('simulator.send') }}", {
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json",
                         "X-CSRF-TOKEN": "{{ csrf_token() }}"
                     },
-                    body: JSON.stringify({ message: text })
+                    body: JSON.stringify(requestPayload)
                 });
 
                 const data = await response.json();
@@ -2216,6 +2334,10 @@
 
                 if (data.success) {
                     data.userQuery = text;
+                    // Sync active spreadsheet if returned
+                    if (data.active_spreadsheet) {
+                        updateActiveSpreadsheetUI(data.active_spreadsheet);
+                    }
                     // Append bot reply with route-aware cards
                     appendMessage(data.reply, 'bot', data);
                     // Update turn decision trace
@@ -2262,25 +2384,27 @@
                     headerBadgeHtml = `<div class="mb-2"><span class="route-pill action"><i class="ri-user-shared-line"></i> Support Specialist Transfer</span></div>`;
                 }
 
-                // 2. Interactive Suggestions & Action Confirmation Buttons
+                // 2. Interactive Suggestions & Ambiguous Clarification Buttons
                 if (Array.isArray(data.suggestions) && data.suggestions.length > 0) {
                     const isActionConfirm = route === 'action' || content.includes('মেইলটি পাঠাবো?');
                     const chipsHtml = data.suggestions.map(s => {
-                        const isYes = s.toLowerCase().includes('হ্যাঁ') || s.toLowerCase().includes('yes') || s.toLowerCase().includes('পাঠান');
-                        const isNo = s.toLowerCase().includes('না') || s.toLowerCase().includes('no') || s.toLowerCase().includes('বাতিল');
+                        const sText = typeof s === 'string' ? s : (s.text || s.label || s.title || String(s));
+                        const sFileId = (typeof s === 'object' && s.source_id) ? s.source_id : '';
+                        const isYes = sText.toLowerCase().includes('হ্যাঁ') || sText.toLowerCase().includes('yes') || sText.toLowerCase().includes('পাঠান');
+                        const isNo = sText.toLowerCase().includes('না') || sText.toLowerCase().includes('no') || sText.toLowerCase().includes('বাতিল');
                         
                         if (isActionConfirm) {
                             if (isYes) {
-                                return `<button type="button" class="btn-action-confirm" onclick="setQueryAndSend('হ্যাঁ')"><i class="ri-checkbox-circle-line me-1"></i> ${escapeHtml(s)}</button>`;
+                                return `<button type="button" class="btn-action-confirm" onclick="setQueryAndSend('হ্যাঁ')"><i class="ri-checkbox-circle-line me-1"></i> ${escapeHtml(sText)}</button>`;
                             }
                             if (isNo) {
-                                return `<button type="button" class="btn-action-cancel" onclick="setQueryAndSend('না')"><i class="ri-close-circle-line me-1"></i> ${escapeHtml(s)}</button>`;
+                                return `<button type="button" class="btn-action-cancel" onclick="setQueryAndSend('না')"><i class="ri-close-circle-line me-1"></i> ${escapeHtml(sText)}</button>`;
                             }
                         }
                         
                         return `
-                            <button type="button" class="suggestion-chip" onclick="setQueryAndSend('${escapeJs(s)}')">
-                                <i class="ri-arrow-right-s-line text-warning"></i> ${escapeHtml(s)}
+                            <button type="button" class="suggestion-chip" onclick="setQueryAndSend('${escapeJs(sText)}', '${escapeJs(sFileId)}')">
+                                <i class="ri-arrow-right-s-line text-warning"></i> ${escapeHtml(sText)}
                             </button>
                         `;
                     }).join('');

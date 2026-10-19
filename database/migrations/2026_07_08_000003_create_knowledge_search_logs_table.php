@@ -14,8 +14,8 @@ return new class extends Migration
         Schema::create('knowledge_search_logs', function (Blueprint $table) {
             $table->id();
             $table->foreignId('workspace_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('conversation_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('message_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('conversation_id')->nullable()->constrained('conversations')->nullOnDelete();
+            $table->foreignId('message_id')->nullable()->constrained('messages')->nullOnDelete();
             $table->text('customer_query');
             $table->foreignUuid('matched_faq_id')->nullable()->constrained('faqs')->nullOnDelete();
             $table->decimal('keyword_score', 5, 4)->default(0);

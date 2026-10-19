@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('unanswered_questions', function (Blueprint $table) {
             $table->id();
             $table->foreignId('workspace_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('conversation_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('conversation_id')->nullable()->constrained('conversations')->nullOnDelete();
             $table->text('original_question');
             $table->text('normalized_question')->nullable();
             $table->unsignedInteger('occurrence_count')->default(1);

@@ -278,8 +278,23 @@ class ContextualQueryBuilder
         }
 
         // 5. Subject-less Elliptical / Topic Continuation Queries
-        // E.g., "কতদিন লাগবে?", "চার্জ কত?", "koto din lagbe?", "how much is the fee?"
+        // E.g., "কতদিন লাগবে?", "চার্জ কত?", "koto din lagbe?", "how much is the fee?", "kivabe order korbo?"
         if ($this->isSubjectlessShortQuery($cleanQuery)) {
+            $activeProductMeta = $conversation?->metadata['active_product'] ?? null;
+            $activeProductName = !empty($activeProductMeta['name']) ? (string) $activeProductMeta['name'] : (!empty($localRawEntities) ? $localRawEntities[0] : null);
+
+            if ($activeProductName !== null && preg_match('/(order|অর্ডার|কিন|kin|দাম|dam|price|নিতে|nite|পাব|pabo)/ui', $cleanQuery)) {
+                return new ContextualResolutionResult(
+                    rawQuery: $cleanQuery,
+                    resolvedQuery: "{$activeProductName} {$cleanQuery}",
+                    activeTopic: 'Order_Placement',
+                    resolvedEntity: ['type' => 'Product', 'name' => $activeProductName],
+                    confidence: 0.95,
+                    status: 'resolved',
+                    source: 'active_product_context'
+                );
+            }
+
             if ($activeTopic !== null) {
                 $resolved = $this->resolveTopicContinuationQuery($cleanQuery, $activeTopic);
                 return new ContextualResolutionResult(
@@ -630,6 +645,9 @@ class ContextualQueryBuilder
             '/^(ট্র্যাক\s*করব\s*কীভাবে\??|ট্র্যাকিং\s*কীভাবে\??|track\s*kivabe\??|tracking\s*kivabe\??)$/ui',
             '/^(দাম\s*কত\??|কত\s*দাম\??|dam\s*koto\??|price\s*koto\??|how\s+much\??)$/ui',
             '/^(সাইজ\s*(কি\s*)?আছে\??|size\s*ache\??|available\s*size\??)$/ui',
+            '/^((কীভাবে|কিভাবে)\s*অর্ডার\s*(করব|করবো|করা\s*যায়|করতে\s*হবে)\??)$/ui',
+            '/^(kivabe\s*order\s*(korbo|kora\s*jay|korte\s*hobe)?\??|order\s*kivabe\??|how\s*(to|can\s*i)\s*order\??)$/ui',
+            '/^(অর্ডার\s*(করতে|দিতে)\s*চাই\??|order\s*korte\s*chai\??|নিতে\s*চাই\??|nite\s*chai\??|কিনতে\s*চাই\??|kinte\s*chai\??)$/ui',
             '/^((আমার\s+)?(পার্সেল|অর্ডার|প্যাকেজ|ডেলিভারি)\s*(কই|কোথায়|কোথাই|কখন\s*আসবে|কবে\s*পাব|কোন\s*পর্যায়ে)\??)$/ui',
             '/^((amar\s+)?(parcel|order|package|delivery)\s*(kothay|koi|kotay|kokhon\s*ashbe|kobe\s*pabo|status)\??)$/ui',
             '/^((where\s+is\s+(my\s+)?(parcel|order|package|delivery))\??)$/ui',

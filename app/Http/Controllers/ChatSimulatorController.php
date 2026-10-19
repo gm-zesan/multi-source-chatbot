@@ -8,6 +8,7 @@ use App\Models\Channel;
 use App\Models\ChannelAccount;
 use App\Models\Conversation;
 use App\Models\Message;
+use App\Models\KnowledgeDocument;
 use App\Models\Workspace;
 use App\Services\AI\CustomerSupportService;
 use App\Services\CRM\CRMService;
@@ -44,12 +45,37 @@ class ChatSimulatorController extends Controller
             return $total > 0;
         }));
 
+        $fileId = $request->query('file_id');
+        if (!empty($fileId)) {
+            $doc = KnowledgeDocument::where('workspace_id', $workspaceId)
+                ->where(function ($q) use ($fileId) {
+                    $q->where('source_id', $fileId)->orWhere('id', $fileId);
+                })
+                ->first();
+
+            if ($doc) {
+                $effectiveFileId = (string) ($doc->source_id ?? $doc->id);
+                $metadata = $conversation->metadata ?? [];
+                $metadata['active_file_id'] = $effectiveFileId;
+                $metadata['active_filename'] = $doc->original_filename ?: $doc->title;
+                $metadata['active_file_sheets'] = $doc->metadata['sheets'] ?? $doc->sheets ?? [];
+                $metadata['active_file_rows'] = (int) ($doc->chunk_count ?? $doc->total_rows ?? 0);
+                $conversation->metadata = $metadata;
+                $conversation->save();
+            }
+        }
+
         $activeSpreadsheet = [
             'file_id' => $conversation->metadata['active_file_id'] ?? null,
             'filename' => $conversation->metadata['active_filename'] ?? null,
             'sheets' => $conversation->metadata['active_file_sheets'] ?? [],
             'total_rows' => $conversation->metadata['active_file_rows'] ?? 0,
         ];
+
+        $availableDocuments = KnowledgeDocument::where('workspace_id', $workspaceId)
+            ->where('lifecycle_status', \App\Enums\DocumentLifecycleStatus::ACTIVE)
+            ->orderBy('created_at', 'desc')
+            ->get(['id', 'title', 'original_filename', 'source_id', 'sheets_count', 'chunk_count', 'metadata']);
 
         $storedMessages = $messages->map(function ($msg) {
             $meta = $msg->metadata ?? [];
@@ -67,7 +93,7 @@ class ChatSimulatorController extends Controller
             ];
         })->values()->all();
 
-        return view('admin.simulator', compact('messages', 'storedMessages', 'llmUsageHistory', 'activeSpreadsheet'));
+        return view('admin.simulator', compact('messages', 'storedMessages', 'llmUsageHistory', 'activeSpreadsheet', 'availableDocuments'));
     }
 
     /**
@@ -80,15 +106,37 @@ class ChatSimulatorController extends Controller
     {
         $request->validate([
             'message' => 'required|string|max:1000',
+            'file_id' => 'nullable|string',
         ]);
 
         $query = (string) $request->input('message');
+        $fileId = $request->input('file_id');
         $workspaceId = $this->resolveWorkspaceId();
         $startTime = microtime(true);
         @set_time_limit(120);
 
         // ── 0. Resolve Multi-Turn Simulator Conversation ───────────────
         $conversation = $this->resolveSimulatorConversation($request, $workspaceId);
+
+        // If file_id is explicitly passed, associate active document with conversation context
+        if (!empty($fileId)) {
+            $metadata = $conversation->metadata ?? [];
+            if (($metadata['active_file_id'] ?? null) !== $fileId) {
+                $doc = KnowledgeDocument::where('workspace_id', $workspaceId)
+                    ->where(function ($q) use ($fileId) {
+                        $q->where('source_id', $fileId)->orWhere('id', $fileId);
+                    })
+                    ->first();
+                if ($doc) {
+                    $metadata['active_file_id'] = (string) ($doc->source_id ?? $doc->id);
+                    $metadata['active_filename'] = $doc->original_filename;
+                    $metadata['active_file_sheets'] = $doc->metadata['sheets'] ?? [];
+                    $metadata['active_file_rows'] = $doc->chunk_count ?? 0;
+                    $conversation->metadata = $metadata;
+                    $conversation->save();
+                }
+            }
+        }
 
         // Save incoming user message to conversation history
         Message::create([
@@ -251,6 +299,12 @@ class ChatSimulatorController extends Controller
             'route' => $supportResult['route'],
             'suggestions' => $supportResult['suggestions'] ?? [],
             'sources' => $supportResult['sources'] ?? [],
+            'active_spreadsheet' => [
+                'file_id' => $conversation->metadata['active_file_id'] ?? null,
+                'filename' => $conversation->metadata['active_filename'] ?? null,
+                'sheets' => $conversation->metadata['active_file_sheets'] ?? [],
+                'total_rows' => $conversation->metadata['active_file_rows'] ?? 0,
+            ],
             'is_handoff' => $supportResult['is_handoff'] ?? false,
             'answered' => $supportResult['answered'],
             'decision_trace' => $decisionTrace,
@@ -475,6 +529,102 @@ class ChatSimulatorController extends Controller
             'success' => true,
             'message' => 'Active data sources removed from simulator session.',
         ]);
+    }
+
+    /**
+     * Select or clear active data source context in simulator session.
+     */
+    public function selectSource(Request $request): JsonResponse
+    {
+        $request->validate([
+            'file_id' => 'nullable|string',
+        ]);
+
+        $workspaceId = $this->resolveWorkspaceId();
+        $conversation = $this->resolveSimulatorConversation($request, $workspaceId);
+        $fileId = $request->input('file_id');
+
+        $metadata = $conversation->metadata ?? [];
+
+        if (empty($fileId)) {
+            unset($metadata['active_file_id'], $metadata['active_filename'], $metadata['active_file_sheets'], $metadata['active_file_rows']);
+            $conversation->metadata = $metadata;
+            $conversation->save();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Active document context cleared. Queries will auto-resolve across all workspace sources.',
+                'active_spreadsheet' => null,
+            ]);
+        }
+
+        // Verify document belongs to workspace
+        $doc = KnowledgeDocument::where('workspace_id', $workspaceId)
+            ->where(function ($q) use ($fileId) {
+                $q->where('source_id', $fileId)->orWhere('id', $fileId);
+            })
+            ->first();
+
+        if ($doc) {
+            $effectiveFileId = (string) ($doc->source_id ?? $doc->id);
+            $effectiveSheets = $doc->metadata['sheets'] ?? $doc->sheets ?? [];
+            $effectiveRows = (int) ($doc->chunk_count ?? $doc->total_rows ?? 0);
+
+            $metadata['active_file_id'] = $effectiveFileId;
+            $metadata['active_filename'] = $doc->original_filename ?: $doc->title;
+            $metadata['active_file_sheets'] = $effectiveSheets;
+            $metadata['active_file_rows'] = $effectiveRows;
+
+            $uploadedSources = $metadata['uploaded_sources'] ?? [];
+            $uploadedSources[$effectiveFileId] = [
+                'file_id' => $effectiveFileId,
+                'filename' => $doc->original_filename ?: $doc->title,
+                'sheets' => $effectiveSheets,
+                'total_rows' => $effectiveRows,
+            ];
+            $metadata['uploaded_sources'] = $uploadedSources;
+            $conversation->metadata = $metadata;
+            $conversation->save();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Active document set to ' . ($doc->original_filename ?: $doc->title),
+                'active_spreadsheet' => [
+                    'file_id' => $effectiveFileId,
+                    'filename' => $doc->original_filename ?: $doc->title,
+                    'sheets' => $effectiveSheets,
+                    'total_rows' => $effectiveRows,
+                ],
+            ]);
+        }
+
+        // If not found in KnowledgeDocument, check uploaded_sources in conversation metadata
+        $uploadedSources = $metadata['uploaded_sources'] ?? [];
+        if (isset($uploadedSources[$fileId])) {
+            $src = $uploadedSources[$fileId];
+            $metadata['active_file_id'] = $fileId;
+            $metadata['active_filename'] = $src['filename'] ?? $fileId;
+            $metadata['active_file_sheets'] = $src['sheets'] ?? [];
+            $metadata['active_file_rows'] = $src['total_rows'] ?? 0;
+            $conversation->metadata = $metadata;
+            $conversation->save();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Active document set to ' . ($src['filename'] ?? $fileId),
+                'active_spreadsheet' => [
+                    'file_id' => $fileId,
+                    'filename' => $src['filename'] ?? $fileId,
+                    'sheets' => $src['sheets'] ?? [],
+                    'total_rows' => $src['total_rows'] ?? 0,
+                ],
+            ]);
+        }
+
+        return response()->json([
+            'success' => false,
+            'message' => 'Document not found in workspace.',
+        ], 404);
     }
 }
 

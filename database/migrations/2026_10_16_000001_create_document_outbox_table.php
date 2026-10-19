@@ -13,19 +13,6 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('knowledge_documents', function (Blueprint $table) {
-            $table->string('requested_generation_id', 36)->nullable()->after('version');
-            $table->string('active_generation_id', 36)->nullable()->after('requested_generation_id');
-            $table->string('lease_attempt_uuid', 36)->nullable()->after('active_generation_id');
-            $table->string('active_attempt_uuid', 36)->nullable()->after('lease_attempt_uuid');
-            $table->dateTime('heartbeat_at')->nullable()->after('error_message');
-            $table->unsignedSmallInteger('retry_count')->default(0)->after('heartbeat_at');
-            $table->dateTime('next_retry_at')->nullable()->after('retry_count');
-
-            $table->index(['workspace_id', 'requested_generation_id'], 'knowledge_docs_ws_req_gen_idx');
-            $table->index(['workspace_id', 'active_generation_id'], 'knowledge_docs_ws_act_gen_idx');
-        });
-
         Schema::create('document_outbox', function (Blueprint $table) {
             $table->bigIncrements('id');
             $table->string('event_uuid', 36)->unique();
@@ -53,20 +40,5 @@ return new class extends Migration
     public function down(): void
     {
         Schema::dropIfExists('document_outbox');
-
-        Schema::table('knowledge_documents', function (Blueprint $table) {
-            $table->dropIndex('knowledge_docs_ws_req_gen_idx');
-            $table->dropIndex('knowledge_docs_ws_act_gen_idx');
-
-            $table->dropColumn([
-                'requested_generation_id',
-                'active_generation_id',
-                'lease_attempt_uuid',
-                'active_attempt_uuid',
-                'heartbeat_at',
-                'retry_count',
-                'next_retry_at',
-            ]);
-        });
     }
 };
