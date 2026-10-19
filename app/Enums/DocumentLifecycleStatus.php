@@ -8,6 +8,7 @@ enum DocumentLifecycleStatus: string
 {
     case PENDING_INGESTION = 'pending_ingestion';
     case INDEXING = 'indexing';
+    case REQUIRES_MAPPING = 'requires_mapping';
     case ACTIVE = 'active';
     case FAILED = 'failed';
 
@@ -19,6 +20,7 @@ enum DocumentLifecycleStatus: string
         return match ($this) {
             self::PENDING_INGESTION => 'Pending Ingestion',
             self::INDEXING          => 'Indexing Chunks',
+            self::REQUIRES_MAPPING  => 'Requires Column Mapping',
             self::ACTIVE            => 'Active & Searchable',
             self::FAILED            => 'Ingestion Failed',
         };
@@ -32,6 +34,7 @@ enum DocumentLifecycleStatus: string
         return match ($this) {
             self::PENDING_INGESTION => 'bg-warning text-dark',
             self::INDEXING          => 'bg-info text-white',
+            self::REQUIRES_MAPPING  => 'bg-warning text-dark',
             self::ACTIVE            => 'bg-success',
             self::FAILED            => 'bg-danger',
         };
@@ -45,6 +48,7 @@ enum DocumentLifecycleStatus: string
         return match ($this) {
             self::PENDING_INGESTION => 'ri-time-line',
             self::INDEXING          => 'ri-refresh-line ri-spin',
+            self::REQUIRES_MAPPING  => 'ri-layout-column-line',
             self::ACTIVE            => 'ri-checkbox-circle-line',
             self::FAILED            => 'ri-close-circle-line',
         };
@@ -72,5 +76,13 @@ enum DocumentLifecycleStatus: string
     public function isPending(): bool
     {
         return $this === self::PENDING_INGESTION;
+    }
+
+    /**
+     * Whether the document requires column mapping confirmation before ingestion can proceed.
+     */
+    public function requiresMapping(): bool
+    {
+        return $this === self::REQUIRES_MAPPING;
     }
 }

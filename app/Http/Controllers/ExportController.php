@@ -26,24 +26,6 @@ class ExportController extends Controller
     }
 
     /**
-     * Export current simulator conversation to CSV, XLSX, or PDF.
-     */
-    public function exportSimulator(Request $request, string $format = 'pdf'): Response|StreamedResponse
-    {
-        $workspaceId = (int) (Auth::user()?->workspace_id ?? 1);
-        $sessionId = $request->hasSession() ? $request->session()->getId() : 'default_sim_session';
-        $sessionKey = 'simulator_conv_' . ($sessionId ?: 'default');
-
-        $conversation = Conversation::where('external_user_id', $sessionKey)->first();
-
-        if (!$conversation) {
-            abort(404, 'No active simulator conversation found to export.');
-        }
-
-        return $this->exportService->exportConversation($conversation, $format);
-    }
-
-    /**
      * Export structured analytics data (sent via POST from frontend table/charts).
      */
     public function exportAnalytics(Request $request): Response|StreamedResponse

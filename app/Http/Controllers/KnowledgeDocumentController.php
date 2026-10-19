@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
-use App\Enums\RoleEnum;
 use App\Enums\Permissions\KnowledgeDocumentPermission;
+use App\Enums\RoleEnum;
 use App\Http\Requests\StoreKnowledgeDocumentRequest;
 use App\Models\KnowledgeDocument;
 use App\Models\User;
@@ -51,18 +51,49 @@ class KnowledgeDocumentController extends Controller
      */
     public function store(StoreKnowledgeDocumentRequest $request): RedirectResponse
     {
-        $file = $request->file('document');
-        $title = $request->input('title');
+        $purposeVal = $request->input('purpose') ?? $request->input('ingestion_purpose');
+        $purpose = $purposeVal ? \App\Enums\IngestionPurpose::resolve((string) $purposeVal) : null;
 
-        $document = $this->documentService->store($file, $title);
+        if ($purpose === \App\Enums\IngestionPurpose::KNOWLEDGE_BASE) {
+            $title = (string) $request->input('title');
+            $content = (string) $request->input('content');
+            $document = $this->documentService->storeText($title, $content, $purpose);
+        } else {
+            $file = $request->file('document');
+            $title = $request->input('title');
+            $document = $this->documentService->store($file, $title, $purpose);
+        }
 
         if ($document->hasFailed()) {
             return redirect()->route('documents.index')
-                ->with('error', 'Document uploaded, but analytics registration failed: ' . ($document->error_message ?? 'Unknown error.'));
+                ->with('error', 'Document uploaded, but registration failed: ' . ($document->error_message ?? 'Unknown error.'));
         }
 
         return redirect()->route('documents.index')
             ->with('success', 'Document uploaded and registered successfully.');
+    }
+
+    /**
+     * Update document purpose.
+     */
+    public function updatePurpose(Request $request, KnowledgeDocument $document): JsonResponse
+    {
+        $this->authorizeAction(KnowledgeDocumentPermission::UPDATE->value);
+        $this->authorizeWorkspace($document);
+
+        $validated = $request->validate([
+            'purpose' => ['required', 'string'],
+        ]);
+
+        $purpose = \App\Enums\IngestionPurpose::resolve($validated['purpose']);
+        $this->documentService->updatePurpose($document, $purpose);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Document purpose updated to ' . $purpose->label() . '.',
+            'purpose' => $purpose->value,
+            'label'   => $purpose->label(),
+        ]);
     }
 
     /**

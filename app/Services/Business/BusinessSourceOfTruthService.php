@@ -341,8 +341,8 @@ class BusinessSourceOfTruthService
 
         // 3. Attach authoritative Product Catalog data if product mentioned in query or in conversation context
         try {
-            $matchingProducts = \App\Models\AnalyticsProduct::where('workspace_id', $workspaceId)
-                ->where('is_active', true)
+            $matchingProducts = \App\Models\AnalyticsProduct::activeCatalog()
+                ->where('workspace_id', $workspaceId)
                 ->get();
 
             $qLower = mb_strtolower($query);

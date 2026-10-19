@@ -12,8 +12,11 @@ use App\AI\Routing\HybridRouter;
 use App\AI\Routing\RouteType;
 use App\AI\Routing\RoutingResult;
 use App\Models\Conversation;
+use App\Models\KnowledgeDocument;
 use App\Models\Message;
 use App\Models\Workspace;
+use App\Enums\DocumentLifecycleStatus;
+use App\Enums\IngestionPurpose;
 use App\Services\Business\BusinessSourceOfTruthService;
 use App\Services\Chat\ConversationService;
 use App\Services\FAQ\FAQSearch;
@@ -1107,6 +1110,7 @@ PROMPT;
         $activeFileId = $conversation->metadata['active_file_id'] ?? null;
         $isExplicitDb = $this->hasExplicitDatabaseIntent($query);
         $isExplicitDoc = $this->hasExplicitDocumentIntent($query);
+        $isSpreadsheetIntent = $this->hasSpreadsheetIntent($query);
 
         // Rule 1 & 2: Explicit DB request clears active file context and routes directly to Production MySQL
         if ($isExplicitDb) {
@@ -1127,8 +1131,8 @@ PROMPT;
             return $analyticsResult['report'] ?? $this->defaultFallbackText();
         }
 
-        // Rule 1 & 3: Explicit Document request takes priority and establishes/updates file context
-        if ($isExplicitDoc) {
+        // Rule 1 & 3: Explicit Document request with active file context takes priority
+        if ($isExplicitDoc && $activeFileId !== null) {
             try {
                 $excelResult = $this->excelAnalyticsTool->execute(
                     question: $query,
@@ -1156,6 +1160,10 @@ PROMPT;
 
                 if (!empty($excelResult['is_ambiguous']) || !empty($excelResult['is_cross_source_unsupported'])) {
                     return $excelResult['report'] ?? 'Please specify which file or sheet you would like to analyze.';
+                }
+
+                if ($activeFileId !== null && !empty($excelResult['report'])) {
+                    return $excelResult['report'];
                 }
             } catch (\Throwable $e) {
                 Log::warning('[CustomerSupportService] Explicit document analytics query fallback: ' . $e->getMessage());
@@ -1185,6 +1193,82 @@ PROMPT;
                 }
             } catch (\Throwable $e) {
                 Log::warning('[CustomerSupportService] Excel analytics query fallback: ' . $e->getMessage());
+            }
+        }
+
+        // Rule 4b: No explicit source and NO active file context -> Automatic Source Detection for Generic Analytics
+        if (!$isExplicitDb && $activeFileId === null) {
+            try {
+                $activeGenericDocs = KnowledgeDocument::where('workspace_id', $workspaceId)
+                    ->where('lifecycle_status', DocumentLifecycleStatus::ACTIVE)
+                    ->where('is_active', true)
+                    ->whereNotNull('source_id')
+                    ->get()
+                    ->filter(fn ($d) => $d->getIngestionPurpose() === IngestionPurpose::DATA_ANALYTICS);
+
+                if ($activeGenericDocs->isNotEmpty()) {
+                    $resolveResult = $this->analyticsClient->resolveSource($query, $workspaceId);
+
+                    if (!empty($resolveResult['status'])) {
+                        if ($resolveResult['status'] === 'resolved' && !empty($resolveResult['source_id'])) {
+                            $resolvedSourceId = (string) $resolveResult['source_id'];
+                            // Validate against authoritative Laravel DB record (tenant, active, generic analytics)
+                            $matchedDoc = $activeGenericDocs->first(function ($d) use ($resolvedSourceId) {
+                                return (string) $d->source_id === $resolvedSourceId
+                                    || (string) $d->id === $resolvedSourceId;
+                            });
+
+                            if ($matchedDoc !== null) {
+                                $excelResult = $this->excelAnalyticsTool->execute(
+                                    question: $query,
+                                    workspaceId: $workspaceId,
+                                    fileId: (string) $matchedDoc->source_id,
+                                    history: $history,
+                                );
+
+                                if (!empty($excelResult['clarification_options']) && is_array($excelResult['clarification_options'])) {
+                                    $this->lastAnalyticsClarificationOptions = $excelResult['clarification_options'];
+                                }
+
+                                if (!empty($excelResult['success']) && !empty($excelResult['report'])) {
+                                    if ($conversation->exists) {
+                                        $metadata = $conversation->metadata ?? [];
+                                        $metadata['active_file_id'] = (string) $matchedDoc->source_id;
+                                        $metadata['active_filename'] = (string) ($matchedDoc->original_filename ?: $matchedDoc->title);
+                                        $metadata['active_file_sheets'] = $matchedDoc->metadata['sheets'] ?? [];
+                                        $metadata['active_file_rows'] = (int) ($matchedDoc->chunk_count ?? 0);
+                                        $metadata['auto_resolved'] = true;
+                                        $conversation->metadata = $metadata;
+                                        $conversation->save();
+                                    }
+                                    return $excelResult['report'];
+                                }
+
+                                if (!empty($excelResult['is_ambiguous']) || !empty($excelResult['is_cross_source_unsupported'])) {
+                                    return $excelResult['report'] ?? 'Please specify which file or sheet you would like to analyze.';
+                                }
+
+                                if ($isSpreadsheetIntent) {
+                                    return $excelResult['report'] ?? 'দুঃখিত, স্প্রেডশিট ডেটা বিশ্লেষণ করা সম্ভব হয়নি।';
+                                }
+                            }
+                        } elseif ($resolveResult['status'] === 'ambiguous') {
+                            if (!empty($resolveResult['clarification_options']) && is_array($resolveResult['clarification_options'])) {
+                                $this->lastAnalyticsClarificationOptions = $resolveResult['clarification_options'];
+                            }
+                            return $resolveResult['clarification_message'] ?? 'Multiple spreadsheets matched your question. Please specify which file you want to analyze.';
+                        }
+                    }
+                }
+            } catch (\Throwable $e) {
+                Log::warning('[CustomerSupportService] Automatic source resolution failed: ' . $e->getMessage());
+            }
+
+            // Guard against silent fallthrough to Production MySQL:
+            // If the query specifically targeted spreadsheets/tabular files or spreadsheet domains (e.g. payroll, salary, attendance, sheet)
+            // and no reliable generic analytics document could be resolved or matched, DO NOT fall through to Production MySQL.
+            if ($isSpreadsheetIntent) {
+                return 'দুঃখিত, আপনার প্রশ্নের সাথে সম্পর্কিত কোনো সক্রিয় স্প্রেডশিট বা ডেটাসেট পাওয়া যায়নি। অনুগ্রহ করে সঠিক ফাইলটি আপলোড করুন অথবা ফাইলের নাম স্পষ্টভাবে উল্লেখ করুন।';
             }
         }
 
@@ -1241,6 +1325,30 @@ PROMPT;
                 return true;
             }
         }
+        return false;
+    }
+
+    /**
+     * Detect spreadsheet or custom tabular dataset intent in query.
+     */
+    private function hasSpreadsheetIntent(string $query): bool
+    {
+        if ($this->hasExplicitDocumentIntent($query)) {
+            return true;
+        }
+
+        $q = mb_strtolower($query, 'UTF-8');
+        $patterns = [
+            '/\b(payroll|salary|salaries|wage|wages|employee|employees|staff|attendance|bonus|overtime)\b/i',
+            '/(বেতন|বেতনভাতা|কর্মচারী|কর্মচারীদের|কর্মী|কর্মীদের|হাজিরা|উপস্থিতি|ওভারটাইম|বোনাস)/u',
+        ];
+
+        foreach ($patterns as $pattern) {
+            if (preg_match($pattern, $q)) {
+                return true;
+            }
+        }
+
         return false;
     }
 

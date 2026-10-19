@@ -1,0 +1,1114 @@
+/* ==========================================================================
+   Chat Simulator & Infrastructure Pipeline Tester Stylesheet
+   Path: public/assets/css/simulator.css
+   ========================================================================== */
+
+/* ── 1. Main Simulator Layout ── */
+.simulator-container {
+    height: calc(100vh - 100px);
+}
+
+.chat-card {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+}
+
+/* ── 2. Visual Data Chart & Analytics Card ── */
+.analytics-chart-card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 14px;
+    margin-top: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+}
+
+.analytics-chart-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.analytics-chart-title {
+    font-size: 12.5px;
+    font-weight: 700;
+    color: #1e293b;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.chart-toggle-group {
+    display: flex;
+    gap: 4px;
+    background: #f1f5f9;
+    padding: 2px;
+    border-radius: 6px;
+}
+
+.chart-toggle-btn {
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 4px;
+    border: none;
+    background: transparent;
+    color: #64748b;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.15s ease;
+}
+
+.chart-toggle-btn.active {
+    background: #ffffff;
+    color: #2563eb;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.chart-canvas-wrapper {
+    position: relative;
+    height: 180px;
+    width: 100%;
+}
+
+/* ── 3. Chat Messages & Header ── */
+.chat-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid #f3f4f6;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: #fafafa;
+    border-top-left-radius: 12px;
+    border-top-right-radius: 12px;
+}
+
+.chat-messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    background: #f8fafc;
+}
+
+.message-bubble {
+    max-width: 80%;
+    padding: 12px 16px;
+    border-radius: 16px;
+    font-size: 14px;
+    line-height: 1.5;
+    position: relative;
+    animation: fadeIn 0.2s ease-in-out;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(6px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.message-user {
+    align-self: flex-end;
+    background: linear-gradient(135deg, #3b82f6, #2563eb);
+    color: #ffffff;
+    border-bottom-right-radius: 4px;
+}
+
+.message-bot {
+    align-self: flex-start;
+    background: #ffffff;
+    color: #1e293b;
+    border: 1px solid #e2e8f0;
+    border-bottom-left-radius: 4px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+}
+
+/* ── 4. Formatted Message Typography & Markdown ── */
+.msg-content {
+    font-size: 14px;
+    line-height: 1.65;
+    word-break: break-word;
+}
+
+.msg-content strong {
+    font-weight: 650;
+    color: inherit;
+}
+
+.message-bot .msg-content strong {
+    color: #0f172a;
+}
+
+.msg-heading {
+    font-weight: 700;
+    font-size: 14.5px;
+    margin-top: 10px;
+    margin-bottom: 6px;
+    color: #0f172a;
+    letter-spacing: -0.2px;
+}
+
+.message-user .msg-heading {
+    color: #ffffff;
+}
+
+.msg-paragraph {
+    margin-bottom: 8px;
+}
+
+.msg-paragraph:last-child {
+    margin-bottom: 0;
+}
+
+.msg-list-item {
+    display: flex;
+    align-items: flex-start;
+    margin-bottom: 4px;
+    padding-left: 2px;
+    line-height: 1.55;
+}
+
+.msg-list-item .bullet {
+    margin-right: 8px;
+    color: #3b82f6;
+    font-weight: bold;
+    font-size: 15px;
+    line-height: 1.3;
+    user-select: none;
+}
+
+.message-user .msg-list-item .bullet {
+    color: #dbeafe;
+}
+
+.msg-list-item .num {
+    margin-right: 6px;
+    font-weight: 650;
+    color: #2563eb;
+    font-size: 13.5px;
+    min-width: 20px;
+}
+
+.message-user .msg-list-item .num {
+    color: #bfdbfe;
+}
+
+.msg-code {
+    background-color: #f1f5f9;
+    color: #0f172a;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 12.5px;
+    border: 1px solid #e2e8f0;
+}
+
+.msg-code-block {
+    background-color: #0f172a;
+    color: #f8fafc;
+    padding: 10px 14px;
+    border-radius: 8px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 12.5px;
+    overflow-x: auto;
+    margin: 8px 0;
+    line-height: 1.45;
+    border: 1px solid #1e293b;
+}
+
+.msg-code-block code {
+    color: #f8fafc;
+    background: transparent;
+    padding: 0;
+    border: 0;
+    font-family: inherit;
+}
+
+.msg-list-item .list-text {
+    flex: 1;
+}
+
+.message-user .msg-code {
+    background-color: rgba(255, 255, 255, 0.2);
+    color: #ffffff;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.msg-divider {
+    border: 0;
+    height: 1px;
+    background: #e2e8f0;
+    margin: 10px 0;
+}
+
+.message-user .msg-divider {
+    background: rgba(255, 255, 255, 0.25);
+}
+
+.message-meta {
+    font-size: 11px;
+    margin-top: 6px;
+    opacity: 0.8;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.chat-input-area {
+    padding: 16px;
+    border-top: 1px solid #f1f5f9;
+    background: #ffffff;
+    border-bottom-left-radius: 12px;
+    border-bottom-right-radius: 12px;
+}
+
+.quick-prompts {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    padding-bottom: 10px;
+    margin-bottom: 10px;
+}
+
+.quick-prompt-btn {
+    font-size: 12px;
+    padding: 6px 12px;
+    border-radius: 20px;
+    background: #eff6ff;
+    color: #2563eb;
+    border: 1px solid #bfdbfe;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.quick-prompt-btn:hover {
+    background: #dbeafe;
+    color: #1d4ed8;
+}
+
+/* ── 5. Diagnostics Panel ── */
+.diag-card {
+    height: 100%;
+    border: 1px solid #e2e8f0;
+    background: #ffffff;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+}
+
+.diag-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid #f1f5f9;
+    background: #0f172a;
+    color: #ffffff;
+}
+
+.diag-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.diag-section {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 14px;
+}
+
+.diag-title {
+    font-size: 13px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.status-badge {
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-weight: 600;
+}
+
+.status-ok {
+    background: #dcfce7;
+    color: #166534;
+}
+
+.status-degraded {
+    background: #fef9c3;
+    color: #854d0e;
+}
+
+.status-failed {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+.status-none {
+    background: #f1f5f9;
+    color: #64748b;
+}
+
+.score-progress {
+    height: 8px;
+    border-radius: 4px;
+    background: #e2e8f0;
+    overflow: hidden;
+    margin-top: 4px;
+}
+
+.score-bar {
+    height: 100%;
+    background: linear-gradient(90deg, #10b981, #059669);
+    transition: width 0.3s ease;
+}
+
+.entity-tag {
+    display: inline-block;
+    font-size: 12px;
+    padding: 3px 8px;
+    border-radius: 4px;
+    background: #ede9fe;
+    color: #5b21b6;
+    margin-right: 4px;
+    margin-bottom: 4px;
+}
+
+/* ── 6. Route Badges & Pills ── */
+.route-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 2px 8px;
+    border-radius: 12px;
+}
+
+.route-pill.chat {
+    background: #ede9fe;
+    color: #6d28d9;
+    border: 1px solid #ddd6fe;
+}
+
+.route-pill.knowledge {
+    background: #dcfce7;
+    color: #15803d;
+    border: 1px solid #bbf7d0;
+}
+
+.route-pill.ood {
+    background: #f1f5f9;
+    color: #475569;
+    border: 1px solid #cbd5e1;
+}
+
+.route-pill.uncertain {
+    background: #fef3c7;
+    color: #b45309;
+    border: 1px solid #fde68a;
+}
+
+.route-pill.action {
+    background: #e0f2fe;
+    color: #0369a1;
+    border: 1px solid #bae6fd;
+}
+
+.route-pill.analytics {
+    background: #ede9fe;
+    color: #7c3aed;
+    border: 1px solid #c4b5fd;
+}
+
+/* ── 7. Suggestions & Sources ── */
+.suggestions-container {
+    margin-top: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.suggestion-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: #64748b;
+    margin-bottom: 2px;
+}
+
+.suggestion-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border-radius: 8px;
+    background: #ffffff;
+    border: 1.5px solid #d97706;
+    color: #92400e;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease-in-out;
+    text-align: left;
+    box-shadow: 0 1px 3px rgba(217, 119, 6, 0.08);
+}
+
+.suggestion-chip:hover {
+    background: #fef3c7;
+    color: #78350f;
+    transform: translateY(-1px);
+    box-shadow: 0 3px 6px rgba(217, 119, 6, 0.15);
+}
+
+.sources-container {
+    margin-top: 10px;
+    padding-top: 8px;
+    border-top: 1px dashed #e2e8f0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    align-items: center;
+}
+
+.source-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    font-weight: 500;
+    padding: 3px 8px;
+    border-radius: 6px;
+    background: #f0fdf4;
+    color: #166534;
+    border: 1px solid #bbf7d0;
+}
+
+.handoff-alert-card {
+    margin-top: 8px;
+    padding: 10px 14px;
+    border-radius: 8px;
+    background: #f0f9ff;
+    border: 1.5px solid #7dd3fc;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.handoff-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: #0284c7;
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+}
+
+.action-confirmation-box {
+    background: #fffbeb;
+    border: 1.5px solid #fcd34d;
+    padding: 12px 16px;
+    border-radius: 8px;
+    margin-top: 10px;
+}
+
+.btn-action-confirm {
+    background: #10b981;
+    color: #ffffff;
+    border: 1px solid #059669;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 6px 14px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+}
+
+.btn-action-confirm:hover {
+    background: #059669;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(16, 185, 129, 0.25);
+}
+
+.btn-action-cancel {
+    background: #f87171;
+    color: #ffffff;
+    border: 1px solid #ef4444;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 6px 14px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+}
+
+.btn-action-cancel:hover {
+    background: #dc2626;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(239, 68, 68, 0.25);
+}
+
+/* ==========================================================================
+   LLM Usage Wizard Modal Styles
+   ========================================================================== */
+
+.usage-wizard-dialog {
+    max-width: 1120px;
+    background: transparent;
+}
+
+.usage-wizard-modal {
+    border: 0 !important;
+    border-radius: 18px !important;
+    overflow: hidden !important;
+    background: #f8fafc !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    box-shadow:
+        0 30px 80px rgba(15, 23, 42, 0.25),
+        0 10px 30px rgba(15, 23, 42, 0.12);
+}
+
+/* ── Usage Wizard Header ── */
+.usage-wizard-header {
+    min-height: 76px;
+    padding: 16px 22px !important;
+    margin: 0 !important;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: linear-gradient(135deg, #0f172a 0%, #172554 100%);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.usage-wizard-icon {
+    width: 42px;
+    height: 42px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    color: #38bdf8;
+    font-size: 21px;
+}
+
+.usage-wizard-subtitle {
+    margin-top: 3px;
+    font-size: 11px;
+    color: #94a3b8;
+}
+
+.usage-wizard-close {
+    width: 34px;
+    height: 34px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 0;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.06);
+    color: #cbd5e1;
+    font-size: 19px;
+    transition: 0.2s ease;
+}
+
+.usage-wizard-close:hover {
+    background: rgba(255, 255, 255, 0.12);
+    color: #fff;
+}
+
+/* ── Usage Wizard Body ── */
+.usage-wizard-body {
+    padding: 20px;
+    background: #f8fafc;
+    max-height: calc(100vh - 150px);
+    overflow-y: auto;
+}
+
+/* ── Usage Cost Summary ── */
+.usage-cost-card {
+    display: grid;
+    grid-template-columns: 240px 1.2fr 1fr;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow: 0 2px 6px rgba(15, 23, 42, 0.04);
+}
+
+.usage-cost-rates {
+    padding: 18px 20px;
+    background: #fafafa;
+    border-right: 1px solid #e2e8f0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    font-size: 11px;
+}
+
+.usage-rate-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 4px 0;
+}
+
+.usage-cost-main {
+    padding: 22px 24px;
+}
+
+.usage-label {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1.2px;
+    color: #64748b;
+}
+
+.usage-total-cost {
+    margin-top: 4px;
+    font-size: 38px;
+    line-height: 1.1;
+    font-weight: 800;
+    color: #2563eb;
+}
+
+.usage-cost-meta {
+    margin-top: 9px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 11px;
+    color: #64748b;
+}
+
+.usage-cost-meta i {
+    color: #3b82f6;
+}
+
+.usage-dot {
+    width: 3px;
+    height: 3px;
+    border-radius: 50%;
+    background: #94a3b8;
+}
+
+/* ── Usage Cost Breakdown ── */
+.usage-cost-breakdown {
+    padding: 18px 20px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 9px;
+    background: #f8fafc;
+    border-left: 1px solid #e2e8f0;
+}
+
+.usage-cost-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 12px;
+    border-radius: 9px;
+    font-size: 12px;
+}
+
+.usage-cost-row > div {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+}
+
+.usage-cost-row.input {
+    color: #15803d;
+    background: #f0fdf4;
+    border: 1px solid #bbf7d0;
+}
+
+.usage-cost-row.output {
+    color: #be123c;
+    background: #fff1f2;
+    border: 1px solid #fecdd3;
+}
+
+/* ── Usage Stats Grid ── */
+.usage-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-top: 14px;
+}
+
+.usage-stat-card {
+    min-height: 82px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.03);
+    transition: 0.2s ease;
+}
+
+.usage-stat-card:hover {
+    transform: translateY(-1px);
+    border-color: #cbd5e1;
+    box-shadow: 0 5px 15px rgba(15, 23, 42, 0.06);
+}
+
+.usage-stat-icon {
+    width: 34px;
+    height: 34px;
+    flex: 0 0 34px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 9px;
+    font-size: 16px;
+}
+
+.usage-stat-icon.blue {
+    color: #2563eb;
+    background: #eff6ff;
+}
+
+.usage-stat-icon.amber {
+    color: #d97706;
+    background: #fffbeb;
+}
+
+.usage-stat-icon.green {
+    color: #16a34a;
+    background: #f0fdf4;
+}
+
+.usage-stat-icon.purple {
+    color: #7c3aed;
+    background: #f5f3ff;
+}
+
+.usage-stat-label {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: .8px;
+    color: #94a3b8;
+}
+
+.usage-stat-value {
+    margin-top: 2px;
+    font-size: 20px;
+    line-height: 1.2;
+    font-weight: 750;
+    color: #0f172a;
+}
+
+/* ── Usage Main Grid & Panels ── */
+.usage-main-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 14px;
+    margin-top: 14px;
+}
+
+.usage-panel {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.03);
+}
+
+.usage-panel-header {
+    min-height: 62px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 15px;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.usage-panel-title {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 11px;
+    font-weight: 750;
+    color: #334155;
+    letter-spacing: .7px;
+    text-transform: uppercase;
+}
+
+.usage-panel-title i {
+    color: #64748b;
+}
+
+.usage-panel-description {
+    margin-top: 3px;
+    font-size: 10px;
+    color: #94a3b8;
+}
+
+/* ── Usage Pricing Fields ── */
+.usage-panel-body {
+    padding: 15px;
+}
+
+.usage-field {
+    margin-bottom: 16px;
+}
+
+.usage-field:last-of-type {
+    margin-bottom: 14px;
+}
+
+.usage-field-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+}
+
+.usage-field-header label {
+    margin: 0;
+    font-size: 11px;
+    font-weight: 600;
+    color: #475569;
+}
+
+.usage-currency {
+    padding: 3px 7px;
+    border-radius: 5px;
+    background: #f1f5f9;
+    border: 1px solid #e2e8f0;
+    font-size: 9px;
+    font-weight: 700;
+    color: #64748b;
+}
+
+.usage-input {
+    height: 36px;
+    display: flex;
+    align-items: center;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    background: #ffffff;
+    overflow: hidden;
+    transition: .2s ease;
+}
+
+.usage-input:focus-within {
+    border-color: #60a5fa;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, .08);
+}
+
+.usage-input i {
+    padding-left: 10px;
+    color: #94a3b8;
+}
+
+.usage-input input {
+    width: 100%;
+    height: 100%;
+    padding: 0 10px;
+    border: 0;
+    outline: 0;
+    background: transparent;
+    font-size: 12px;
+    font-weight: 600;
+    color: #334155;
+}
+
+.usage-pricing-note {
+    display: flex;
+    align-items: flex-start;
+    gap: 7px;
+    padding: 9px;
+    border-radius: 8px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    font-size: 9px;
+    line-height: 1.5;
+    color: #64748b;
+}
+
+.usage-pricing-note i {
+    color: #3b82f6;
+    font-size: 13px;
+}
+
+/* ── Usage Request Breakdown Table ── */
+.usage-average-badge {
+    padding: 5px 9px;
+    border-radius: 20px;
+    background: #fff1f2;
+    border: 1px solid #fecdd3;
+    color: #e11d48;
+    font-size: 9px;
+    white-space: nowrap;
+}
+
+.usage-average-badge strong {
+    font-weight: 750;
+}
+
+.usage-table-wrapper {
+    max-height: 240px;
+    overflow: auto;
+}
+
+.usage-table {
+    width: 100%;
+    margin: 0;
+    border-collapse: collapse;
+    font-size: 11px;
+}
+
+.usage-table thead {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    background: #f8fafc;
+}
+
+.usage-table th {
+    padding: 9px 10px;
+    border-bottom: 1px solid #e2e8f0;
+    color: #64748b;
+    font-size: 9px;
+    font-weight: 750;
+    letter-spacing: .5px;
+}
+
+.usage-table td {
+    padding: 9px 10px;
+    border-bottom: 1px solid #f1f5f9;
+    color: #475569;
+}
+
+.usage-table tbody tr:hover {
+    background: #f8fafc;
+}
+
+/* ── Empty State ── */
+.usage-empty-state {
+    min-height: 150px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: #94a3b8;
+}
+
+.usage-empty-icon {
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 8px;
+    border-radius: 10px;
+    background: #f1f5f9;
+    color: #94a3b8;
+    font-size: 18px;
+}
+
+.usage-empty-title {
+    font-size: 11px;
+    font-weight: 650;
+    color: #64748b;
+}
+
+.usage-empty-text {
+    margin-top: 3px;
+    font-size: 10px;
+    color: #94a3b8;
+}
+
+/* ── Custom Scrollbars ── */
+.usage-wizard-body::-webkit-scrollbar,
+.usage-table-wrapper::-webkit-scrollbar {
+    width: 5px;
+    height: 5px;
+}
+
+.usage-wizard-body::-webkit-scrollbar-thumb,
+.usage-table-wrapper::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 10px;
+}
+
+.usage-wizard-body::-webkit-scrollbar-track,
+.usage-table-wrapper::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+/* ── Responsive Queries ── */
+@media (max-width: 900px) {
+    .usage-cost-card {
+        grid-template-columns: 1fr;
+    }
+
+    .usage-cost-breakdown {
+        border-left: 0;
+        border-top: 1px solid #e2e8f0;
+    }
+
+    .usage-stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .usage-main-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 576px) {
+    .usage-wizard-body {
+        padding: 12px;
+    }
+
+    .usage-wizard-header {
+        padding: 14px;
+    }
+
+    .usage-total-cost {
+        font-size: 32px;
+    }
+
+    .usage-stats-grid {
+        grid-template-columns: 1fr;
+    }
+}

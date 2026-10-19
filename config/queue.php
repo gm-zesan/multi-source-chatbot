@@ -62,6 +62,15 @@ return [
             'after_commit' => true,
         ],
 
+        'documents' => [
+            'driver' => 'database',
+            'connection' => env('DB_QUEUE_CONNECTION'),
+            'table' => env('DB_QUEUE_TABLE', 'jobs'),
+            'queue' => 'documents',
+            'retry_after' => 360,
+            'after_commit' => true,
+        ],
+
         'faq' => [
             'driver' => 'database',
             'connection' => env('DB_QUEUE_CONNECTION'),

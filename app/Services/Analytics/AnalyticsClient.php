@@ -357,6 +357,49 @@ class AnalyticsClient
             ];
         }
     }
+
+    /**
+     * Resolve the most relevant generic analytics source for a query using Typesense and schema matching.
+     *
+     * @param string $query
+     * @param int $workspaceId
+     * @param string|null $explicitSourceId
+     * @return array<string, mixed>
+     */
+    public function resolveSource(string $query, int $workspaceId, ?string $explicitSourceId = null): array
+    {
+        $url = "{$this->baseUrl()}/analytics/sources/resolve";
+        try {
+            $payload = [
+                'query'        => $query,
+                'workspace_id' => $workspaceId,
+            ];
+            if ($explicitSourceId !== null && trim($explicitSourceId) !== '') {
+                $payload['explicit_source_id'] = trim($explicitSourceId);
+            }
+
+            $response = Http::timeout($this->timeout())
+                ->acceptJson()
+                ->post($url, $payload);
+
+            if ($response->successful()) {
+                return $response->json();
+            }
+
+            return [
+                'success' => false,
+                'status'  => 'error',
+                'message' => "HTTP {$response->status()}",
+            ];
+        } catch (Throwable $e) {
+            Log::warning('[AnalyticsClient] Source resolution request failed: ' . $e->getMessage());
+            return [
+                'success' => false,
+                'status'  => 'error',
+                'message' => $e->getMessage(),
+            ];
+        }
+    }
 }
 
 

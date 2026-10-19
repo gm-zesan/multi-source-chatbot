@@ -41,12 +41,10 @@ Route::middleware('auth')->prefix('dashboard')->group(function () {
     Route::get('/simulator', [ChatSimulatorController::class, 'index'])->name('simulator.index');
     Route::post('/simulator/send', [ChatSimulatorController::class, 'send'])->middleware('throttle:60,1')->name('simulator.send');
     Route::post('/simulator/clear', [ChatSimulatorController::class, 'clear'])->name('simulator.clear');
-    Route::post('/simulator/upload-excel', [ChatSimulatorController::class, 'uploadExcel'])->name('simulator.upload_excel');
     Route::post('/simulator/clear-excel', [ChatSimulatorController::class, 'clearExcel'])->name('simulator.clear_excel');
     Route::post('/simulator/select-source', [ChatSimulatorController::class, 'selectSource'])->name('simulator.select_source');
 
     // Export Routes (Excel, CSV, PDF)
-    Route::get('/export/simulator/{format}', [\App\Http\Controllers\ExportController::class, 'exportSimulator'])->name('export.simulator');
     Route::get('/export/conversation/{conversation}/{format}', [\App\Http\Controllers\ExportController::class, 'exportConversation'])->name('export.conversation');
     Route::post('/export/analytics', [\App\Http\Controllers\ExportController::class, 'exportAnalytics'])->name('export.analytics');
 
@@ -151,6 +149,11 @@ Route::middleware('auth')->prefix('dashboard')->group(function () {
     Route::post('/documents/{id}/retry', [KnowledgeDocumentController::class, 'retry'])
         ->name('documents.retry')
         ->middleware('permission:' . KnowledgeDocumentPermission::UPDATE->value);
+    Route::post('/documents/{document}/update-purpose', [KnowledgeDocumentController::class, 'updatePurpose'])
+        ->name('documents.update-purpose')
+        ->middleware('permission:' . KnowledgeDocumentPermission::UPDATE->value);
+
+
 });
 
 require __DIR__.'/auth.php';

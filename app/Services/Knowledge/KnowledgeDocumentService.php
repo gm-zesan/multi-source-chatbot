@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Services\Knowledge;
 
 use App\Enums\DocumentLifecycleStatus;
+use App\Enums\IngestionPurpose;
+use App\Enums\Permissions\KnowledgeDocumentPermission;
 use App\Enums\RoleEnum;
 use App\Models\KnowledgeDocument;
 use App\Models\User;
@@ -48,7 +50,7 @@ class KnowledgeDocumentService
         /** @var User|null $user */
         $user = Auth::user();
 
-        if ($user && $user->hasRole(RoleEnum::SUPERADMIN->value)) {
+        if (app()->runningInConsole() || ($user && $user->hasRole(RoleEnum::SUPERADMIN->value))) {
             return KnowledgeDocument::query();
         }
 
@@ -85,6 +87,13 @@ class KnowledgeDocumentService
             ->addColumn('original_filename', function (KnowledgeDocument $doc) {
                 return e($doc->original_filename);
             })
+            ->addColumn('purpose_badge', function (KnowledgeDocument $doc) {
+                $purpose = $doc->getIngestionPurpose();
+                return match ($purpose) {
+                    IngestionPurpose::DATA_ANALYTICS => '<span class="badge bg-primary text-white" style="font-size: 11px;"><i class="ri-bar-chart-2-line me-1"></i>Data & Analytics</span>',
+                    IngestionPurpose::KNOWLEDGE_BASE => '<span class="badge bg-secondary text-white" style="font-size: 11px;"><i class="ri-book-read-line me-1"></i>Knowledge Base</span>',
+                };
+            })
             ->addColumn('file_size', function (KnowledgeDocument $doc) {
                 return $doc->formattedFileSize();
             })
@@ -109,6 +118,18 @@ class KnowledgeDocumentService
                 }
 
                 $status = $doc->lifecycle_status;
+                $isReindexing = ! empty($doc->active_generation_id) && in_array($status, [
+                    DocumentLifecycleStatus::PENDING_INGESTION,
+                    DocumentLifecycleStatus::INDEXING,
+                ], true);
+
+                if ($isReindexing) {
+                    return '<div class="d-flex flex-column gap-1">' .
+                        '<span class="badge bg-success" style="font-size: 10px;"><i class="ri-checkbox-circle-line me-1"></i>Active Catalog Live</span>' .
+                        '<span class="badge bg-info text-white" style="font-size: 10px;"><i class="ri-refresh-line ri-spin me-1"></i>Re-indexing New Version</span>' .
+                        '</div>';
+                }
+
                 $badgeClass = $status?->badgeClass() ?? 'bg-secondary';
                 $icon = $status?->icon() ?? 'ri-file-line';
                 $label = $status?->label() ?? 'Unknown';
@@ -129,25 +150,60 @@ class KnowledgeDocumentService
                 );
             })
             ->addColumn('action-btn', function (KnowledgeDocument $doc) {
+                /** @var User|null $user */
+                $user = Auth::user();
+                $isSuperAdmin = $user && $user->hasRole(RoleEnum::SUPERADMIN->value);
+                $canUpdate = $isSuperAdmin || ($user && $user->can(KnowledgeDocumentPermission::UPDATE->value));
+                $canDelete = $isSuperAdmin || ($user && $user->can(KnowledgeDocumentPermission::DELETE->value));
+
+                $status = $doc->lifecycle_status;
+                $isReindexing = ! empty($doc->active_generation_id) && in_array($status, [
+                    DocumentLifecycleStatus::PENDING_INGESTION,
+                    DocumentLifecycleStatus::INDEXING,
+                ], true);
+
+                $extension = strtolower(pathinfo($doc->original_filename, PATHINFO_EXTENSION));
+                $isSpreadsheet = in_array($extension, ['csv', 'xlsx'], true);
+
+                $purpose = $doc->getIngestionPurpose();
+                $isDataAnalytics = $purpose === IngestionPurpose::DATA_ANALYTICS;
+
                 return [
-                    'id'             => $doc->id,
-                    'title'          => $doc->title,
-                    'filename'       => $doc->original_filename,
-                    'source_id'      => $doc->source_id ?: (string) $doc->id,
-                    'file_size'      => $doc->formattedFileSize(),
-                    'trashed'        => $doc->trashed(),
-                    'has_failed'     => $doc->hasFailed(),
-                    'error'          => $doc->error_message,
-                    'status_label'   => $doc->lifecycle_status?->label() ?? 'Unknown',
-                    'status_badge'   => $doc->lifecycle_status?->badgeClass() ?? 'bg-secondary',
-                    'sheets'         => $doc->metadata['sheets'] ?? [],
-                    'sheets_count'   => (int) ($doc->sheets_count ?: 1),
-                    'total_rows'     => (int) ($doc->chunk_count ?: 0),
-                    'schema_summary' => $doc->metadata['schema_summary'] ?? null,
-                    'tables'         => $doc->metadata['tables'] ?? [],
+                    'id'                    => (string) $doc->id,
+                    'title'                 => $doc->title,
+                    'filename'              => $doc->original_filename,
+                    'purpose'               => $purpose->value,
+                    'purpose_label'         => $purpose->label(),
+                    'is_data_analytics'     => $isDataAnalytics,
+                    'is_generic_analytics'  => $isDataAnalytics,
+                    'is_product_catalog'    => false,
+                    'source_id'             => $doc->source_id ?: (string) $doc->id,
+                    'file_size'             => $doc->formattedFileSize(),
+                    'trashed'               => $doc->trashed(),
+                    'lifecycle_status'      => $status?->value ?? 'unknown',
+                    'has_failed'            => $doc->hasFailed(),
+                    'is_active'             => $status === DocumentLifecycleStatus::ACTIVE,
+                    'has_active_catalog'    => ! empty($doc->active_generation_id),
+                    'is_reindexing'         => $isReindexing,
+                    'is_indexing'           => $status === DocumentLifecycleStatus::INDEXING,
+                    'is_pending'            => $status === DocumentLifecycleStatus::PENDING_INGESTION,
+                    'requires_mapping'      => $status === DocumentLifecycleStatus::REQUIRES_MAPPING,
+                    'is_spreadsheet'        => $isSpreadsheet,
+                    'can_update'            => $canUpdate,
+                    'can_delete'            => $canDelete,
+                    'error'                 => $doc->error_message,
+                    'status_label'          => $status?->label() ?? 'Unknown',
+                    'status_badge'          => $status?->badgeClass() ?? 'bg-secondary',
+                    'status_icon'           => $status?->icon() ?? 'ri-file-line',
+                    'sheets'                => $doc->metadata['sheets'] ?? [],
+                    'sheets_count'          => (int) ($doc->sheets_count ?: 1),
+                    'total_rows'            => (int) ($doc->chunk_count ?: 0),
+                    'staged_rows'           => (int) ($doc->metadata['checkpoint']['staged_rows_count'] ?? 0),
+                    'schema_summary'        => $doc->metadata['schema_summary'] ?? null,
+                    'tables'                => $doc->metadata['tables'] ?? [],
                 ];
             })
-            ->rawColumns(['mime_type', 'sheets_count', 'status_badge'])
+            ->rawColumns(['mime_type', 'sheets_count', 'status_badge', 'purpose_badge'])
             ->make(true);
     }
 
@@ -165,7 +221,7 @@ class KnowledgeDocumentService
      *
      * @throws ValidationException
      */
-    public function store(UploadedFile $file, ?string $title = null): KnowledgeDocument
+    public function store(UploadedFile $file, ?string $title = null, ?\App\Enums\IngestionPurpose $purpose = null): KnowledgeDocument
     {
         $workspaceId = $this->getWorkspaceId();
 
@@ -223,9 +279,15 @@ class KnowledgeDocumentService
             throw new \RuntimeException('Failed to write file to private storage.');
         }
 
+        $resolvedPurpose = $purpose ?? \App\Enums\IngestionPurpose::resolve(
+            value: null,
+            document: null,
+            filename: $file->getClientOriginalName()
+        );
+
         // 5. Database persistence with engine-level uniqueness
         try {
-            $document = DB::transaction(function () use ($file, $title, $workspaceId, $relativePath, $contentHash, $fileUuid) {
+            $document = DB::transaction(function () use ($file, $title, $workspaceId, $relativePath, $contentHash, $fileUuid, $resolvedPurpose) {
                 $docTitle = ! empty(trim((string) $title))
                     ? trim((string) $title)
                     : pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
@@ -240,18 +302,21 @@ class KnowledgeDocumentService
                     'content_hash'            => $contentHash,
                     'active_content_hash'     => $contentHash,
                     'lifecycle_status'        => DocumentLifecycleStatus::PENDING_INGESTION,
+                    'purpose'                 => $resolvedPurpose,
                     'chunk_count'             => 0,
                     'sheets_count'            => 1,
                     'version'                 => 1,
                     'is_active'               => false,
                     'error_message'           => null,
+                    'metadata'                => [
+                        'ingestion_purpose' => $resolvedPurpose->value,
+                    ],
                     'created_by'              => Auth::id(),
                     'updated_by'              => Auth::id(),
                 ]);
                 $doc->id = $fileUuid;
                 $doc->source_id = $fileUuid;
                 $doc->save();
-
                 return $doc;
             });
         } catch (\Illuminate\Database\UniqueConstraintViolationException $e) {
@@ -264,8 +329,84 @@ class KnowledgeDocumentService
             throw $e;
         }
 
-        // 6. Connect to Python Analytics Source Registration
-        $this->processAnalyticsRegistration($document);
+        // 6. Connect to Python Analytics Source Registration if purpose is data analytics
+        if ($resolvedPurpose === \App\Enums\IngestionPurpose::DATA_ANALYTICS) {
+            $this->processAnalyticsRegistration($document);
+        } else {
+            $document->update([
+                'lifecycle_status' => DocumentLifecycleStatus::ACTIVE,
+                'is_active'        => true,
+            ]);
+        }
+
+        return $document;
+    }
+
+    /**
+     * Store and persist a text-based knowledge document (FAQ / Policy / Text).
+     */
+    public function storeText(string $title, string $textContent, ?IngestionPurpose $purpose = null): KnowledgeDocument
+    {
+        /** @var User|null $user */
+        $user = Auth::user();
+        $workspaceId = (int) ($user?->workspace_id ?? 1);
+
+        $fileUuid = (string) Str::uuid();
+        $storageFilename = "{$fileUuid}.txt";
+        $relativeDir = "documents/{$workspaceId}";
+        $relativePath = "{$relativeDir}/{$storageFilename}";
+
+        // Save raw text to private local storage
+        $written = Storage::disk('local')->put($relativePath, $textContent);
+        if (! $written) {
+            throw new \RuntimeException('Failed to write text document to private storage.');
+        }
+
+        $contentHash = hash('sha256', $textContent);
+        $resolvedPurpose = $purpose ?? IngestionPurpose::KNOWLEDGE_BASE;
+
+        // Check for active duplicate in workspace
+        $existing = KnowledgeDocument::where('workspace_id', $workspaceId)
+            ->where('active_content_hash', $contentHash)
+            ->whereNull('deleted_at')
+            ->first();
+
+        if ($existing) {
+            $this->safeDeleteFile($relativePath);
+            throw ValidationException::withMessages([
+                'content' => 'An active knowledge document with identical content already exists in this workspace.',
+            ]);
+        }
+
+        $document = DB::transaction(function () use ($title, $textContent, $workspaceId, $relativePath, $contentHash, $fileUuid, $resolvedPurpose) {
+            $doc = new KnowledgeDocument([
+                'workspace_id'        => $workspaceId,
+                'title'               => trim($title),
+                'original_filename'   => Str::slug($title) . '.txt',
+                'file_path'           => $relativePath,
+                'mime_type'           => 'text/plain',
+                'file_size'           => strlen($textContent),
+                'content_hash'        => $contentHash,
+                'active_content_hash' => $contentHash,
+                'lifecycle_status'    => DocumentLifecycleStatus::ACTIVE,
+                'purpose'             => $resolvedPurpose,
+                'chunk_count'         => 1,
+                'sheets_count'        => 1,
+                'version'             => 1,
+                'is_active'           => true,
+                'error_message'       => null,
+                'metadata'            => [
+                    'ingestion_purpose' => $resolvedPurpose->value,
+                    'raw_text'          => $textContent,
+                ],
+                'created_by'          => Auth::id(),
+                'updated_by'          => Auth::id(),
+            ]);
+            $doc->id = $fileUuid;
+            $doc->source_id = $fileUuid;
+            $doc->save();
+            return $doc;
+        });
 
         return $document;
     }
@@ -273,7 +414,7 @@ class KnowledgeDocumentService
     /**
      * Dispatch spreadsheet ingestion to Python analytics service and update document status.
      */
-    protected function processAnalyticsRegistration(KnowledgeDocument $document): void
+    public function processAnalyticsRegistration(KnowledgeDocument $document): void
     {
         $realStoredPath = Storage::disk('local')->path($document->file_path);
         if (! file_exists($realStoredPath)) {
@@ -304,6 +445,19 @@ class KnowledgeDocumentService
             $totalRows = (int) ($analyticsResponse['total_rows'] ?? 0);
             $schemaSummary = (string) ($analyticsResponse['schema_summary'] ?? '');
 
+            $existingMetadata = is_array($document->metadata) ? $document->metadata : [];
+            $newMetadata = array_merge($existingMetadata, [
+                'source_id'          => $sourceId,
+                'sheets'             => $sheets,
+                'sheets_count'       => $sheetsCount,
+                'failed_sheets'      => $failedSheets,
+                'total_rows'         => $totalRows,
+                'tables'             => $analyticsResponse['tables'] ?? [],
+                'schema_summary'     => $schemaSummary,
+                'searchable_catalog' => $analyticsResponse['metadata_catalog'] ?? null,
+                'ingestion_purpose'  => $existingMetadata['ingestion_purpose'] ?? \App\Enums\IngestionPurpose::DATA_ANALYTICS->value,
+            ]);
+
             $document->update([
                 'source_id'        => $sourceId,
                 'sheets_count'     => max(1, $sheetsCount),
@@ -311,15 +465,7 @@ class KnowledgeDocumentService
                 'lifecycle_status' => DocumentLifecycleStatus::ACTIVE,
                 'is_active'        => true,
                 'error_message'    => null,
-                'metadata'         => [
-                    'source_id'      => $sourceId,
-                    'sheets'         => $sheets,
-                    'sheets_count'   => $sheetsCount,
-                    'failed_sheets'  => $failedSheets,
-                    'total_rows'     => $totalRows,
-                    'tables'         => $analyticsResponse['tables'] ?? [],
-                    'schema_summary' => $schemaSummary,
-                ],
+                'metadata'         => $newMetadata,
             ]);
         } else {
             $errorMsg = (string) ($analyticsResponse['message'] ?? 'Failed to register analytical data source in analytics engine.');
@@ -348,7 +494,14 @@ class KnowledgeDocumentService
             'error_message'    => null,
         ]);
 
-        $this->processAnalyticsRegistration($document);
+        if ($document->getIngestionPurpose() === IngestionPurpose::DATA_ANALYTICS) {
+            $this->processAnalyticsRegistration($document);
+        } else {
+            $document->update([
+                'lifecycle_status' => DocumentLifecycleStatus::ACTIVE,
+                'is_active'        => true,
+            ]);
+        }
 
         return $document;
     }
@@ -463,7 +616,7 @@ class KnowledgeDocumentService
      */
     public function restore(string $id): KnowledgeDocument
     {
-        return DB::transaction(function () use ($id) {
+        $document = DB::transaction(function () use ($id) {
             /** @var KnowledgeDocument $document */
             $document = $this->workspaceQuery()->onlyTrashed()->lockForUpdate()->findOrFail($id);
 
@@ -491,5 +644,45 @@ class KnowledgeDocumentService
 
             return $document;
         });
+
+        if ($document->getIngestionPurpose() === \App\Enums\IngestionPurpose::DATA_ANALYTICS) {
+            $this->processAnalyticsRegistration($document);
+        }
+
+        return $document;
+    }
+
+    /**
+     * Update the purpose of an existing document and synchronize analytical vs semantic engines.
+     */
+    public function updatePurpose(KnowledgeDocument $document, IngestionPurpose $newPurpose): KnowledgeDocument
+    {
+        $oldPurpose = $document->getIngestionPurpose();
+        if ($oldPurpose === $newPurpose) {
+            return $document;
+        }
+
+        $document->purpose = $newPurpose;
+        $meta = $document->metadata ?? [];
+        $meta['ingestion_purpose'] = $newPurpose->value;
+        $document->metadata = $meta;
+
+        if ($newPurpose === IngestionPurpose::DATA_ANALYTICS) {
+            $document->save();
+            $this->processAnalyticsRegistration($document);
+        } else {
+            if ($document->source_id) {
+                try {
+                    $this->analyticsClient->deleteSource($document->source_id, (int) $document->workspace_id);
+                } catch (\Throwable $e) {
+                    \Illuminate\Support\Facades\Log::warning("[KnowledgeDocumentService] Failed to unregister analytics source: " . $e->getMessage());
+                }
+            }
+            $document->lifecycle_status = DocumentLifecycleStatus::ACTIVE;
+            $document->is_active = true;
+            $document->save();
+        }
+
+        return $document;
     }
 }

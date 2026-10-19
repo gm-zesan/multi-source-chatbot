@@ -40,6 +40,7 @@ class KnowledgeDocument extends Model
         'active_content_hash',
         'source_id',
         'lifecycle_status',
+        'purpose',
         'chunk_count',
         'sheets_count',
         'version',
@@ -78,6 +79,7 @@ class KnowledgeDocument extends Model
     {
         return [
             'lifecycle_status' => DocumentLifecycleStatus::class,
+            'purpose'          => \App\Enums\IngestionPurpose::class,
             'is_active'        => 'boolean',
             'file_size'        => 'integer',
             'chunk_count'      => 'integer',
@@ -144,5 +146,17 @@ class KnowledgeDocument extends Model
     public function isPending(): bool
     {
         return $this->lifecycle_status?->isPending() ?? true;
+    }
+
+    /**
+     * Get the explicit ingestion purpose of this document.
+     */
+    public function getIngestionPurpose(): \App\Enums\IngestionPurpose
+    {
+        return \App\Enums\IngestionPurpose::resolve(
+            value: null,
+            document: $this,
+            filename: $this->original_filename
+        );
     }
 }

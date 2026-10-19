@@ -62,10 +62,24 @@ class StoreKnowledgeDocumentRequest extends FormRequest
         $allowedMimes = implode(',', self::ALLOWED_MIME_TYPES);
         $allowedExtensions = implode(',', self::ALLOWED_EXTENSIONS);
 
+        $purposeVal = $this->input('purpose') ?? $this->input('ingestion_purpose');
+        $resolvedPurpose = $purposeVal ? \App\Enums\IngestionPurpose::resolve($purposeVal) : null;
+        $isKnowledge = $resolvedPurpose === \App\Enums\IngestionPurpose::KNOWLEDGE_BASE;
+
+        $validPurposes = [
+            \App\Enums\IngestionPurpose::DATA_ANALYTICS->value,
+            \App\Enums\IngestionPurpose::KNOWLEDGE_BASE->value,
+            'generic_analytics',
+            'semantic_knowledge',
+        ];
+
         return [
-            'title' => ['nullable', 'string', 'max:255'],
-            'document' => [
-                'required',
+            'purpose'           => ['nullable', 'string', \Illuminate\Validation\Rule::in($validPurposes)],
+            'ingestion_purpose' => ['nullable', 'string', \Illuminate\Validation\Rule::in($validPurposes)],
+            'title'             => [$isKnowledge ? 'required' : 'nullable', 'string', 'max:255'],
+            'content'           => [$isKnowledge ? 'required' : 'nullable', 'string', 'min:5'],
+            'document'          => [
+                $isKnowledge ? 'nullable' : 'required',
                 'file',
                 'max:20480', // 20MB in KB
                 "mimes:{$allowedExtensions}",
@@ -82,7 +96,9 @@ class StoreKnowledgeDocumentRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'document.required'  => 'Please select a document file to upload.',
+            'title.required'     => 'Please provide a title for the knowledge article.',
+            'content.required'   => 'Please enter the text content for the FAQ / Knowledge article.',
+            'document.required'  => 'Please select a spreadsheet file to upload for Data & Analytics.',
             'document.file'      => 'The uploaded file is invalid.',
             'document.max'       => 'The document must not exceed 20 MB.',
             'document.mimes'     => 'Only .xlsx and .csv files are supported.',
