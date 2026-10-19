@@ -50,7 +50,15 @@ class KnowledgeDocumentService
         /** @var User|null $user */
         $user = Auth::user();
 
-        if (app()->runningInConsole() || ($user && $user->hasRole(RoleEnum::SUPERADMIN->value))) {
+        if ($user && $user->hasRole(RoleEnum::SUPERADMIN->value)) {
+            return KnowledgeDocument::query();
+        }
+
+        if ($user) {
+            return KnowledgeDocument::where('workspace_id', $this->getWorkspaceId());
+        }
+
+        if (app()->runningInConsole()) {
             return KnowledgeDocument::query();
         }
 
