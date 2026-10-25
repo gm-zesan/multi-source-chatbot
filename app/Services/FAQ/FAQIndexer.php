@@ -14,7 +14,8 @@ class FAQIndexer
      */
     public function dispatchIndex(FAQ $faq, string $action = 'index'): void
     {
-        FAQIndexJob::dispatch($faq, $action);
+        $dispatchedAt = now()->toIso8601String();
+        FAQIndexJob::dispatch($faq, $action, $dispatchedAt);
     }
 
     /**
@@ -22,8 +23,9 @@ class FAQIndexer
      */
     public function dispatchBatch(iterable $faqs, string $action = 'index'): void
     {
+        $dispatchedAt = now()->toIso8601String();
         foreach ($faqs as $faq) {
-            FAQIndexJob::dispatch($faq, $action);
+            FAQIndexJob::dispatch($faq, $action, $dispatchedAt);
         }
     }
 }

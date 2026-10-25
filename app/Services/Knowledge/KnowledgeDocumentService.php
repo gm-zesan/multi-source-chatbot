@@ -38,6 +38,64 @@ class KnowledgeDocumentService
     }
 
     /**
+     * Resolve and validate the authorized workspace ID for the current user context.
+     * Fails closed when tenant context is missing or invalid.
+     * Never silently defaults to workspace 1 or infers an arbitrary workspace.
+     *
+     * @throws ValidationException
+     */
+    public function resolveAuthorizedWorkspaceId(?int $explicitWorkspaceId = null): int
+    {
+        /** @var User|null $user */
+        $user = Auth::user();
+
+        if (! $user) {
+            throw ValidationException::withMessages([
+                'workspace' => 'Unauthenticated user context.',
+            ]);
+        }
+
+        $isSuperAdmin = $user->hasRole(RoleEnum::SUPERADMIN->value);
+
+        if ($isSuperAdmin) {
+            if ($explicitWorkspaceId !== null && $explicitWorkspaceId > 0) {
+                $exists = \App\Models\Workspace::where('id', $explicitWorkspaceId)->exists();
+                if (! $exists) {
+                    throw ValidationException::withMessages([
+                        'workspace' => 'The selected workspace does not exist.',
+                    ]);
+                }
+
+                return $explicitWorkspaceId;
+            }
+
+            if ($user->workspace_id !== null && (int) $user->workspace_id > 0) {
+                return (int) $user->workspace_id;
+            }
+
+            throw ValidationException::withMessages([
+                'workspace' => 'No active workspace selected or found for superadmin context.',
+            ]);
+        }
+
+        // Regular tenant user
+        $userWorkspaceId = $user->workspace_id !== null ? (int) $user->workspace_id : 0;
+        if ($userWorkspaceId <= 0) {
+            throw ValidationException::withMessages([
+                'workspace' => 'No active workspace found for this user context.',
+            ]);
+        }
+
+        if ($explicitWorkspaceId !== null && $explicitWorkspaceId > 0 && $explicitWorkspaceId !== $userWorkspaceId) {
+            throw ValidationException::withMessages([
+                'workspace' => 'Unauthorized workspace selection. Users may only target their assigned workspace.',
+            ]);
+        }
+
+        return $userWorkspaceId;
+    }
+
+    /**
      * Return a query scoped to the current authorized workspace.
      *
      * Superadmin sees all records across all workspaces.
@@ -229,24 +287,13 @@ class KnowledgeDocumentService
      *
      * @throws ValidationException
      */
-    public function store(UploadedFile $file, ?string $title = null, ?\App\Enums\IngestionPurpose $purpose = null): KnowledgeDocument
-    {
-        $workspaceId = $this->getWorkspaceId();
-
-        if (! $workspaceId) {
-            /** @var User|null $user */
-            $user = Auth::user();
-            if ($user && $user->hasRole(RoleEnum::SUPERADMIN->value)) {
-                // For superadmins, fallback to their own workspace or first available workspace
-                $workspaceId = $user->workspace_id ?? \App\Models\Workspace::first()?->id;
-            }
-        }
-
-        if (! $workspaceId) {
-            throw ValidationException::withMessages([
-                'workspace' => 'No active workspace found for this user context.',
-            ]);
-        }
+    public function store(
+        UploadedFile $file,
+        ?string $title = null,
+        ?\App\Enums\IngestionPurpose $purpose = null,
+        ?int $explicitWorkspaceId = null
+    ): KnowledgeDocument {
+        $workspaceId = $this->resolveAuthorizedWorkspaceId($explicitWorkspaceId);
 
         // 1. Calculate SHA-256 hash from uploaded file stream
         $contentHash = hash_file('sha256', $file->getRealPath());
@@ -353,11 +400,13 @@ class KnowledgeDocumentService
     /**
      * Store and persist a text-based knowledge document (FAQ / Policy / Text).
      */
-    public function storeText(string $title, string $textContent, ?IngestionPurpose $purpose = null): KnowledgeDocument
-    {
-        /** @var User|null $user */
-        $user = Auth::user();
-        $workspaceId = (int) ($user?->workspace_id ?? 1);
+    public function storeText(
+        string $title,
+        string $textContent,
+        ?IngestionPurpose $purpose = null,
+        ?int $explicitWorkspaceId = null
+    ): KnowledgeDocument {
+        $workspaceId = $this->resolveAuthorizedWorkspaceId($explicitWorkspaceId);
 
         $fileUuid = (string) Str::uuid();
         $storageFilename = "{$fileUuid}.txt";

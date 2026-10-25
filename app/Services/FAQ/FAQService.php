@@ -13,6 +13,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Yajra\DataTables\DataTables;
 
 class FAQService
@@ -169,7 +170,23 @@ class FAQService
         });
 
         if ($faq->lifecycle_status === \App\Enums\FaqLifecycleStatus::SYNCING) {
-            $this->indexer->dispatchIndex($faq, 'index');
+            try {
+                $this->indexer->dispatchIndex($faq, 'index');
+            } catch (\Throwable $e) {
+                FAQ::where('id', $faq->id)
+                    ->where('updated_at', $faq->updated_at)
+                    ->where('lifecycle_status', \App\Enums\FaqLifecycleStatus::SYNCING->value)
+                    ->update([
+                        'lifecycle_status' => \App\Enums\FaqLifecycleStatus::SYNC_FAILED->value,
+                        'is_active'        => false,
+                        'sync_error'       => 'Queue dispatch failed: ' . $e->getMessage(),
+                    ]);
+                $faq->refresh();
+                Log::error('[FAQService] Queue dispatch failed on create', [
+                    'faq_id' => $faq->id,
+                    'error'  => $e->getMessage(),
+                ]);
+            }
         }
 
         return $faq;
@@ -204,9 +221,32 @@ class FAQService
         });
 
         if ($faq->lifecycle_status === \App\Enums\FaqLifecycleStatus::SYNCING) {
-            $this->indexer->dispatchIndex($faq, 'update');
+            try {
+                $this->indexer->dispatchIndex($faq, 'update');
+            } catch (\Throwable $e) {
+                FAQ::where('id', $faq->id)
+                    ->where('updated_at', $faq->updated_at)
+                    ->where('lifecycle_status', \App\Enums\FaqLifecycleStatus::SYNCING->value)
+                    ->update([
+                        'lifecycle_status' => \App\Enums\FaqLifecycleStatus::SYNC_FAILED->value,
+                        'is_active'        => false,
+                        'sync_error'       => 'Queue dispatch failed: ' . $e->getMessage(),
+                    ]);
+                $faq->refresh();
+                Log::error('[FAQService] Queue dispatch failed on update', [
+                    'faq_id' => $faq->id,
+                    'error'  => $e->getMessage(),
+                ]);
+            }
         } else {
-            $this->indexer->dispatchIndex($faq, 'delete');
+            try {
+                $this->indexer->dispatchIndex($faq, 'delete');
+            } catch (\Throwable $e) {
+                Log::error('[FAQService] Queue dispatch failed on delete sync', [
+                    'faq_id' => $faq->id,
+                    'error'  => $e->getMessage(),
+                ]);
+            }
         }
 
         return $faq;

@@ -74,6 +74,7 @@ class StoreKnowledgeDocumentRequest extends FormRequest
         ];
 
         return [
+            'workspace_id'      => ['nullable', 'integer', 'exists:workspaces,id'],
             'purpose'           => ['nullable', 'string', \Illuminate\Validation\Rule::in($validPurposes)],
             'ingestion_purpose' => ['nullable', 'string', \Illuminate\Validation\Rule::in($validPurposes)],
             'title'             => [$isKnowledge ? 'required' : 'nullable', 'string', 'max:255'],
@@ -112,6 +113,16 @@ class StoreKnowledgeDocumentRequest extends FormRequest
     public function withValidator(\Illuminate\Contracts\Validation\Validator $validator): void
     {
         $validator->after(function ($validator) {
+            /** @var User|null $user */
+            $user = $this->user();
+            if ($user && ! $user->hasRole(RoleEnum::SUPERADMIN->value) && $this->filled('workspace_id')) {
+                $requestedWsId = (int) $this->input('workspace_id');
+                if ($requestedWsId !== (int) $user->workspace_id) {
+                    $validator->errors()->add('workspace', 'Unauthorized workspace selection. Users may only target their assigned workspace.');
+                    return;
+                }
+            }
+
             $file = $this->file('document');
             if (! $file || ! $file->isValid()) {
                 return;

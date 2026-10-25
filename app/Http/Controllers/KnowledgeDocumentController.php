@@ -53,15 +53,16 @@ class KnowledgeDocumentController extends Controller
     {
         $purposeVal = $request->input('purpose') ?? $request->input('ingestion_purpose');
         $purpose = $purposeVal ? \App\Enums\IngestionPurpose::resolve((string) $purposeVal) : null;
+        $explicitWorkspaceId = $request->filled('workspace_id') ? (int) $request->input('workspace_id') : null;
 
         if ($purpose === \App\Enums\IngestionPurpose::KNOWLEDGE_BASE) {
             $title = (string) $request->input('title');
             $content = (string) $request->input('content');
-            $document = $this->documentService->storeText($title, $content, $purpose);
+            $document = $this->documentService->storeText($title, $content, $purpose, $explicitWorkspaceId);
         } else {
             $file = $request->file('document');
             $title = $request->input('title');
-            $document = $this->documentService->store($file, $title, $purpose);
+            $document = $this->documentService->store($file, $title, $purpose, $explicitWorkspaceId);
         }
 
         if ($document->hasFailed()) {
