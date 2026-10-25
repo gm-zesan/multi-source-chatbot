@@ -25,10 +25,10 @@
                                 </ol>
                             </nav>
                         </div>
-                        @role(\App\Enums\RoleEnum::SUPERADMIN->value)
+                        @can(\App\Enums\Permissions\FAQPermission::CREATE->value)
                             <a href="{{ route('faq-categories.create') }}" class="add-new">Create Category<i
                                     class="ms-1 ri-add-line"></i></a>
-                        @endrole
+                        @endcan
                     </div>
                     <div class="card-body" style="overflow-x: auto">
                         <table class="table dataTable w-100" id="data-table" style="min-width: 800px;">

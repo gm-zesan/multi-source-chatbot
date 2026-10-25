@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Enums\RoleEnum;
 use App\Http\Requests\StoreFAQCategoryRequest;
 use App\Http\Requests\UpdateFAQCategoryRequest;
 use App\Models\FAQCategory;
+use App\Models\User;
 use App\Services\FAQ\FAQCategoryService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -118,10 +120,18 @@ class FAQCategoryController extends Controller
 
     /**
      * Ensure the category belongs to the user's workspace.
+     * Superadmins are allowed to manage categories across all workspaces.
      */
     private function authorizeWorkspace(FAQCategory $category): void
     {
-        if ($category->workspace_id !== Auth::user()->workspace_id) {
+        /** @var User|null $user */
+        $user = Auth::user();
+
+        if ($user && $user->hasRole(RoleEnum::SUPERADMIN->value)) {
+            return;
+        }
+
+        if ($category->workspace_id !== $user?->workspace_id) {
             abort(403);
         }
     }
