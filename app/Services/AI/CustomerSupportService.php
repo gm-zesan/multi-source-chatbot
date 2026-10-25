@@ -1455,7 +1455,7 @@ PROMPT;
     private function hasExplicitDocumentIntent(string $query): bool
     {
         $q = mb_strtolower($query, 'UTF-8');
-        if (preg_match('/\b[a-zA-Z0-9_\-\.]+\.(xlsx|xls|csv|pdf)\b/i', $q)) {
+        if (preg_match('/\b[a-zA-Z0-9_\-\.]+\.(xlsx|xls|csv)\b/i', $q)) {
             return true;
         }
         $patterns = [

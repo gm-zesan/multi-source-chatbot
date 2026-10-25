@@ -97,6 +97,30 @@ class KnowledgeDocumentController extends Controller
     }
 
     /**
+     * Preview document contents (Interactive Spreadsheet Grid, Text viewer, or raw stream).
+     */
+    public function preview(Request $request, KnowledgeDocument $document): JsonResponse|\Symfony\Component\HttpFoundation\BinaryFileResponse
+    {
+        $this->authorizeAction(KnowledgeDocumentPermission::VIEW->value);
+        $this->authorizeWorkspace($document);
+
+        if ($request->boolean('stream')) {
+            return $this->documentService->getDocumentFileStream($document);
+        }
+
+        $sheetName = $request->query('sheet');
+        $maxRows = min((int) ($request->query('max_rows', 100)), 500);
+
+        $previewData = $this->documentService->getDocumentPreview(
+            document: $document,
+            sheetName: $sheetName ? (string) $sheetName : null,
+            maxRows: $maxRows > 0 ? $maxRows : 100
+        );
+
+        return response()->json($previewData);
+    }
+
+    /**
      * Soft delete the specified document.
      */
     public function destroy(KnowledgeDocument $document): RedirectResponse

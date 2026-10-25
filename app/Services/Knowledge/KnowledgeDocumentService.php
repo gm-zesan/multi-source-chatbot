@@ -693,4 +693,217 @@ class KnowledgeDocumentService
 
         return $document;
     }
+
+    /**
+     * Get preview data for a knowledge document.
+     * Supports spreadsheet (Excel, CSV), Text, and Markdown.
+     *
+     * @return array<string, mixed>
+     */
+    public function getDocumentPreview(KnowledgeDocument $document, ?string $sheetName = null, int $maxRows = 100): array
+    {
+        $filePath = $document->file_path;
+        if (! $filePath || ! Storage::disk('local')->exists($filePath)) {
+            return [
+                'success'  => false,
+                'type'     => 'missing',
+                'message'  => 'The physical file is not available on local storage.',
+                'filename' => $document->original_filename,
+            ];
+        }
+
+        $absolutePath = Storage::disk('local')->path($filePath);
+        $extension = strtolower(pathinfo($document->original_filename, PATHINFO_EXTENSION));
+
+        // 1. Text / Markdown / JSON / Logs
+        if (in_array($extension, ['txt', 'md', 'json', 'log'], true)) {
+            $content = Storage::disk('local')->get($filePath) ?? '';
+            $isTruncated = strlen($content) > 51200;
+            $previewText = $isTruncated ? substr($content, 0, 51200) . "\n\n... [Content truncated for preview. Download file to view completely] ..." : $content;
+
+            return [
+                'success'      => true,
+                'type'         => 'text',
+                'filename'     => $document->original_filename,
+                'content'      => $previewText,
+                'is_truncated' => $isTruncated,
+                'stream_url'   => route('documents.preview', ['document' => $document->id, 'stream' => 1]),
+            ];
+        }
+
+        // 3. Spreadsheets (XLSX, XLS, CSV)
+        if (in_array($extension, ['xlsx', 'xls', 'csv'], true)) {
+            try {
+                $preview = $this->extractSpreadsheetPreview($absolutePath, $document->original_filename, $extension, $sheetName, $maxRows);
+
+                // Self-healing: Ensure DB sheets_count & metadata match physical spreadsheet
+                if (! empty($preview['sheets']) && is_array($preview['sheets'])) {
+                    $physicalCount = count($preview['sheets']);
+                    if ((int) $document->sheets_count !== $physicalCount) {
+                        $meta = $document->metadata ?? [];
+                        $meta['sheets'] = $preview['sheets'];
+                        $document->update([
+                            'sheets_count' => $physicalCount,
+                            'metadata'     => $meta,
+                        ]);
+                    }
+                }
+
+                return $preview;
+            } catch (\Throwable $e) {
+                Log::warning('[KnowledgeDocumentService] Failed to parse spreadsheet for preview: ' . $e->getMessage(), [
+                    'document_id' => $document->id,
+                ]);
+
+                return [
+                    'success'    => false,
+                    'type'       => 'error',
+                    'message'    => 'Could not parse spreadsheet data: ' . $e->getMessage(),
+                    'filename'   => $document->original_filename,
+                    'stream_url' => route('documents.preview', ['document' => $document->id, 'stream' => 1]),
+                ];
+            }
+        }
+
+        // 4. Default / Other files
+        return [
+            'success'    => true,
+            'type'       => 'unsupported',
+            'filename'   => $document->original_filename,
+            'extension'  => $extension,
+            'message'    => 'Inline preview is not directly supported for .' . $extension . ' files. You can download the file below or query it in the simulator.',
+            'stream_url' => route('documents.preview', ['document' => $document->id, 'stream' => 1]),
+        ];
+    }
+
+    /**
+     * Parse spreadsheet sheets, headers, and rows for UI preview.
+     *
+     * @return array<string, mixed>
+     */
+    private function extractSpreadsheetPreview(string $absolutePath, string $filename, string $extension, ?string $sheetName = null, int $maxRows = 100): array
+    {
+        // CSV Parsing
+        if ($extension === 'csv') {
+            $rows = [];
+            if (($handle = fopen($absolutePath, 'r')) !== false) {
+                $rowCount = 0;
+                while (($data = fgetcsv($handle, 0, ',', '"', '\\')) !== false && $rowCount < $maxRows + 1) {
+                    $rows[] = array_map(fn ($val) => is_string($val) ? trim($val) : $val, $data);
+                    $rowCount++;
+                }
+                fclose($handle);
+            }
+
+            $headers = ! empty($rows) ? array_shift($rows) : [];
+            $rows = array_values(array_filter($rows, fn ($r) => ! empty(array_filter($r, fn ($c) => $c !== '' && $c !== null))));
+
+            return [
+                'success'           => true,
+                'type'              => 'spreadsheet',
+                'filename'          => $filename,
+                'extension'         => $extension,
+                'sheets'            => ['Default'],
+                'active_sheet'      => 'Default',
+                'headers'           => $headers,
+                'rows'              => $rows,
+                'loaded_rows_count' => count($rows),
+                'total_rows'        => count($rows),
+                'is_truncated'      => count($rows) >= $maxRows,
+            ];
+        }
+
+        // Excel Parsing (XLSX, XLS)
+        $reader = \PhpOffice\PhpSpreadsheet\IOFactory::createReaderForFile($absolutePath);
+        $reader->setReadDataOnly(true);
+
+        $sheetNames = $reader->listWorksheetNames($absolutePath);
+        if (empty($sheetNames)) {
+            $sheetNames = ['Sheet1'];
+        }
+
+        $targetSheet = ($sheetName !== null && in_array($sheetName, $sheetNames, true))
+            ? $sheetName
+            : $sheetNames[0];
+
+        $reader->setLoadSheetsOnly([$targetSheet]);
+        $spreadsheet = $reader->load($absolutePath);
+        $worksheet = $spreadsheet->getSheetByName($targetSheet) ?? $spreadsheet->getActiveSheet();
+
+        $highestRow = min((int) $worksheet->getHighestRow(), $maxRows + 1);
+        $highestColumn = $worksheet->getHighestColumn();
+
+        // Convert range to array
+        $sheetData = $worksheet->rangeToArray("A1:{$highestColumn}{$highestRow}", null, true, true, false);
+
+        $headers = [];
+        $rows = [];
+
+        if (! empty($sheetData)) {
+            $rawHeader = array_shift($sheetData);
+            foreach ($rawHeader as $idx => $headerVal) {
+                $colName = trim((string) $headerVal);
+                $headers[] = $colName !== '' ? $colName : 'Column ' . ($idx + 1);
+            }
+
+            foreach ($sheetData as $row) {
+                $hasData = false;
+                $formattedRow = [];
+                foreach ($row as $cell) {
+                    $cellStr = is_scalar($cell) ? (string) $cell : '';
+                    if (trim($cellStr) !== '') {
+                        $hasData = true;
+                    }
+                    $formattedRow[] = $cellStr;
+                }
+                if ($hasData) {
+                    $rows[] = $formattedRow;
+                }
+            }
+        }
+
+        $totalEstimatedRows = (int) $worksheet->getHighestRow();
+
+        return [
+            'success'            => true,
+            'type'               => 'spreadsheet',
+            'filename'           => $filename,
+            'extension'          => $extension,
+            'sheets'             => $sheetNames,
+            'active_sheet'       => $targetSheet,
+            'headers'            => $headers,
+            'rows'               => $rows,
+            'loaded_rows_count'  => count($rows),
+            'total_rows'         => max(0, $totalEstimatedRows - 1),
+            'is_truncated'       => $totalEstimatedRows > $maxRows,
+        ];
+    }
+
+    /**
+     * Get binary response for streaming or downloading the raw file.
+     */
+    public function getDocumentFileStream(KnowledgeDocument $document): \Symfony\Component\HttpFoundation\BinaryFileResponse
+    {
+        $filePath = $document->file_path;
+        if (! $filePath || ! Storage::disk('local')->exists($filePath)) {
+            abort(404, 'File not found on storage disk.');
+        }
+
+        $absolutePath = Storage::disk('local')->path($filePath);
+        $extension = strtolower(pathinfo($document->original_filename, PATHINFO_EXTENSION));
+
+        $mimeType = match ($extension) {
+            'csv' => 'text/csv; charset=UTF-8',
+            'txt', 'log' => 'text/plain; charset=UTF-8',
+            'json' => 'application/json',
+            'xlsx' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'xls' => 'application/vnd.ms-excel',
+            default => $document->mime_type ?: 'application/octet-stream',
+        };
+
+        return response()->file($absolutePath, [
+            'Content-Type'        => $mimeType,
+            'Content-Disposition' => 'inline; filename="' . addslashes($document->original_filename) . '"',
+        ]);
+    }
 }

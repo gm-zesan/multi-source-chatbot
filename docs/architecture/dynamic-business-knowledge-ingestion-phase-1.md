@@ -18,7 +18,7 @@
 - **Truthful Lifecycle Status**: Initialize uploaded documents with `lifecycle_status = 'pending_ingestion'` and `is_active = false`.
 
 ### Explicit Non-Goals (Reserved for Phase 2)
-- **NO Document Parsing or Text Extraction**: No PDF, DOCX, or CSV text extractors are invoked in Phase 1.
+- **NO Document Parsing or Text Extraction**: No DOCX or CSV text extractors are invoked in Phase 1.
 - **NO Document Chunking**: No text chunking, sliding windows, or tokenizers are executed.
 - **NO Embeddings Generation**: No calls to embedding models (local or OpenAI/FastEmbed).
 - **NO Typesense Indexing**: No records or vector collections are pushed to Typesense.
@@ -71,9 +71,9 @@ In MySQL and standard SQL engines:
 ## 3. Upload Validation, Storage & Duplicate Prevention
 
 ### Validation Rules (`StoreKnowledgeDocumentRequest`)
-- **Allowed Extensions**: `txt`, `pdf`, `docx`, `csv`.
-- **Allowed MIME Types**: `text/plain`, `application/pdf`, `application/vnd.openxmlformats-officedocument.wordprocessingml.document`, `text/csv`, `application/csv`, `text/x-csv`.
-- **Maximum File Size**: 10 MB (`max:10240` in kilobytes).
+- **Allowed Extensions**: `xlsx`, `csv`, `txt`.
+- **Allowed MIME Types**: `application/vnd.openxmlformats-officedocument.spreadsheetml.sheet`, `text/plain`, `text/csv`, `application/csv`, `text/x-csv`.
+- **Maximum File Size**: 20 MB.
 - **Dual Validation**: Enforces both `mimes` and `mimetypes` rules so file extensions cannot be spoofed to bypass validation.
 
 ### Secure Storage Pipeline
@@ -154,13 +154,13 @@ Assigned to the `admin` role in `database/seeders/RoleSeeder.php`.
 | `app/Enums/Permissions/KnowledgeDocumentPermission.php` | Defines `document.view`, `create`, `update`, `delete` permission enum. |
 | `app/Enums/DocumentLifecycleStatus.php` | Defines lifecycle states: `pending_ingestion`, `indexing`, `active`, `failed` with UI badge helpers. |
 | `app/Models/KnowledgeDocument.php` | Eloquent model with UUID keys, soft deletes, type casts, and `booted()` event hooks for `active_content_hash`. |
-| `app/Http/Requests/StoreKnowledgeDocumentRequest.php` | Validates file presence, extensions (`txt,pdf,docx,csv`), MIME types, and 10 MB size cap. |
+| `app/Http/Requests/StoreKnowledgeDocumentRequest.php` | Validates file presence, extensions (`xlsx,csv,txt`), MIME types, and 20 MB size cap. |
 | `app/Services/Knowledge/KnowledgeDocumentService.php` | Business logic for hashing, storage, deduplication, DataTables query, deletion, and restoration. |
 | `app/Http/Controllers/KnowledgeDocumentController.php` | HTTP layer orchestrating views, requests, service delegation, and RBAC authorization. |
 | `database/migrations/2026_10_14_000001_create_knowledge_documents_table.php` | Base schema creating `knowledge_documents` table. |
 | `database/migrations/2026_10_14_000002_add_active_content_hash_to_knowledge_documents_table.php` | Schema update adding `active_content_hash` and unique index. |
 | `database/factories/KnowledgeDocumentFactory.php` | Testing factory with realistic test file payloads and lifecycle states. |
-| `database/seeders/KnowledgeDocumentSeeder.php` | Seeds 4 realistic business documents (`.txt`, `.pdf`, `.docx`, `.csv`) with persisted private files. |
+| `database/seeders/KnowledgeDocumentSeeder.php` | Seeds realistic business documents (`.xlsx`, `.csv`, `.txt`) with persisted private files. |
 | `resources/views/admin/documents/index.blade.php` | DataTables server-side listing view. |
 | `resources/views/admin/documents/create.blade.php` | File upload form view. |
 | `tests/Feature/KnowledgeDocumentManagementTest.php` | 17 comprehensive feature tests covering validation, storage, deduplication, isolation, and permissions. |
@@ -176,7 +176,7 @@ All tests executed via PHPUnit on Laravel 12:
 php artisan test tests/Feature/KnowledgeDocumentManagementTest.php
 ```
 - **Passed**: 17 tests, 111 assertions (Duration: 1.30s)
-  - Authorized upload of text, pdf, docx, csv
+  - Authorized upload of text, xlsx, csv
   - Rejection of spoofed and unsupported types
   - Size cap rejection (>10 MB)
   - Randomized UUID file storage on private disk
@@ -232,7 +232,7 @@ If duplicate groups are returned, an operator must inspect and resolve them befo
 Single-threaded PHP CLI tests confirm that database unique constraint violations trigger proper rollback and file cleanup. Multi-process concurrency load tests (using tools like `k6`) should be conducted in staging to evaluate database lock wait times under high contention.
 
 ### Phase 2 Prerequisites (Handoff Checklist)
-1. **Extraction Service Integration**: Implement background jobs calling the Python retrieval service to extract text from PDF, DOCX, TXT, and CSV files.
+1. **Extraction Service Integration**: Implement background jobs calling the Python retrieval service to extract text from TXT, CSV, and XLSX files.
 2. **Chunking Pipeline**: Define chunk sizes and overlaps for extracted text.
 3. **Embedding Generation & Typesense Sync**: Create the Typesense collection schema for business documents and batch push vector embeddings.
 4. **Lifecycle Transitions**: Transition document status from `pending_ingestion` -> `indexing` -> `active` (or `failed`).

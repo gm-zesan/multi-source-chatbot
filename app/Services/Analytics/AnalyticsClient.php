@@ -139,13 +139,13 @@ class AnalyticsClient
     }
 
     /**
-     * Upload a Document or Spreadsheet (Excel/CSV/PDF) to the Python Analytics Virtual Database Engine.
+     * Upload a Document or Spreadsheet (Excel/CSV) to the Python Analytics Virtual Database Engine.
      *
      * @param string $filePath Full path to local temporary/stored file
      * @param string $filename Original filename
      * @param int $workspaceId
      * @param string|null $conversationId
-     * @param string|null $format Optional source format override (e.g. 'xlsx', 'csv', 'pdf')
+     * @param string|null $format Optional source format override (e.g. 'xlsx', 'csv')
      * @return array<string, mixed>
      */
     public function uploadSpreadsheet(

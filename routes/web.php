@@ -153,6 +153,9 @@ Route::middleware('auth')->prefix('dashboard')->group(function () {
     Route::post('/documents/{document}/update-purpose', [KnowledgeDocumentController::class, 'updatePurpose'])
         ->name('documents.update-purpose')
         ->middleware('permission:' . KnowledgeDocumentPermission::UPDATE->value);
+    Route::get('/documents/{document}/preview', [KnowledgeDocumentController::class, 'preview'])
+        ->name('documents.preview')
+        ->middleware('permission:' . KnowledgeDocumentPermission::VIEW->value);
 
 
 });
