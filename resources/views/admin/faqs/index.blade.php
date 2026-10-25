@@ -43,7 +43,6 @@
                                 <tr>
                                     <th scope="col">SL NO</th>
                                     <th scope="col">Question</th>
-                                    <th scope="col">Category</th>
                                     <th scope="col">Policy Type</th>
                                     <th scope="col">Priority</th>
                                     <th scope="col">Hits</th>
@@ -116,7 +115,6 @@
                     url: listUrl,
                     type: 'GET',
                     data: function(d) {
-                        d.category_id = $('#category-filter').val();
                         d.status = $('#status-filter').val();
                     }
                 },
@@ -134,11 +132,6 @@
                             return '<div class="faq-question-cell" title="' + $('<div>').text(data)
                                 .html() + '">' + $('<div>').text(data).html() + '</div>';
                         }
-                    },
-                    {
-                        data: 'category',
-                        name: 'category',
-                        orderable: true
                     },
                     {
                         data: 'document_type',
@@ -201,7 +194,7 @@
                 ]
             });
 
-            $('#category-filter, #status-filter').on('change', function() {
+            $('#status-filter').on('change', function() {
                 table.ajax.reload();
             });
         });

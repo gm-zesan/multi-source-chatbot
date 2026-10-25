@@ -143,6 +143,35 @@ class KnowledgeDocumentService
             $query->withTrashed();
         }
 
+        $purpose = $request?->input('purpose');
+        $hasPurpose = KnowledgeDocument::hasPurposeColumn();
+
+        if ($purpose === 'data_analytics' || $purpose === 'generic_analytics') {
+            $query->where(function ($q) use ($hasPurpose) {
+                if ($hasPurpose) {
+                    $q->where('purpose', \App\Enums\IngestionPurpose::DATA_ANALYTICS->value)
+                      ->orWhere('original_filename', 'LIKE', '%.xlsx')
+                      ->orWhere('original_filename', 'LIKE', '%.csv');
+                } else {
+                    $q->where('original_filename', 'LIKE', '%.xlsx')
+                      ->orWhere('original_filename', 'LIKE', '%.csv');
+                }
+            });
+        } elseif ($purpose === 'knowledge_base' || $purpose === 'semantic_knowledge') {
+            $query->where(function ($q) use ($hasPurpose) {
+                if ($hasPurpose) {
+                    $q->where('purpose', \App\Enums\IngestionPurpose::KNOWLEDGE_BASE->value)
+                      ->orWhere(function ($sub) {
+                          $sub->where('original_filename', 'NOT LIKE', '%.xlsx')
+                              ->where('original_filename', 'NOT LIKE', '%.csv');
+                      });
+                } else {
+                    $q->where('original_filename', 'NOT LIKE', '%.xlsx')
+                      ->where('original_filename', 'NOT LIKE', '%.csv');
+                }
+            });
+        }
+
         $documents = $query->latest()->get();
 
         return DataTables::of($documents)

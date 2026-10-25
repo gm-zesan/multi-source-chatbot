@@ -62,12 +62,36 @@ class KnowledgeDocument extends Model
             }
         });
 
+        static::saving(function (KnowledgeDocument $doc) {
+            if (! static::hasPurposeColumn()) {
+                unset($doc->attributes['purpose']);
+            }
+        });
+
         static::deleting(function (KnowledgeDocument $doc) {
             if (! $doc->isForceDeleting() && $doc->active_content_hash !== null) {
                 $doc->active_content_hash = null;
                 $doc->saveQuietly();
             }
         });
+    }
+
+    /**
+     * Determine if the purpose column physically exists in the database table.
+     */
+    public static function hasPurposeColumn(): bool
+    {
+        static $hasPurpose = null;
+
+        if ($hasPurpose === null) {
+            try {
+                $hasPurpose = \Illuminate\Support\Facades\Schema::hasColumn('knowledge_documents', 'purpose');
+            } catch (\Throwable) {
+                $hasPurpose = false;
+            }
+        }
+
+        return $hasPurpose;
     }
 
     /**

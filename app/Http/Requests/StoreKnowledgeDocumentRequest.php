@@ -78,7 +78,7 @@ class StoreKnowledgeDocumentRequest extends FormRequest
             'purpose'           => ['nullable', 'string', \Illuminate\Validation\Rule::in($validPurposes)],
             'ingestion_purpose' => ['nullable', 'string', \Illuminate\Validation\Rule::in($validPurposes)],
             'title'             => [$isKnowledge ? 'required' : 'nullable', 'string', 'max:255'],
-            'content'           => [$isKnowledge ? 'required' : 'nullable', 'string', 'min:5'],
+            'content'           => [$isKnowledge ? 'required' : 'nullable', 'string', 'min:5', 'max:5000', new \App\Rules\MaxWords(250)],
             'document'          => [
                 $isKnowledge ? 'nullable' : 'required',
                 'file',

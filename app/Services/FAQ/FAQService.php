@@ -55,7 +55,7 @@ class FAQService
      */
     public function getDataTables(?Request $request = null): JsonResponse
     {
-        $query = $this->workspaceQuery()->with(['category']);
+        $query = $this->workspaceQuery();
 
         $status = $request?->input('status');
         if ($status === 'trashed') {
@@ -68,9 +68,22 @@ class FAQService
             $query->withTrashed();
         }
 
-        $categoryId = $request?->input('category_id');
-        if ($categoryId) {
-            $query->where('category_id', $categoryId);
+        $typeGroup = $request?->input('type_group');
+        if ($typeGroup === 'faq') {
+            $query->where('document_type', 'faq');
+        } elseif ($typeGroup === 'policy') {
+            $query->whereIn('document_type', [
+                'refund_policy', 'return_policy', 'exchange_policy', 'delivery_policy',
+                'payment_policy', 'cancellation_policy', 'warranty_policy', 'terms',
+                'privacy_policy', 'social_media_policy',
+            ]);
+        } elseif ($typeGroup === 'business_info') {
+            $query->whereIn('document_type', ['about_us', 'contact', 'customer_support']);
+        }
+
+        $documentType = $request?->input('document_type');
+        if ($documentType && ! $typeGroup) {
+            $query->where('document_type', $documentType);
         }
 
         $faqs = $query->get();

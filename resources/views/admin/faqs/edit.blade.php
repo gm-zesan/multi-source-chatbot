@@ -40,6 +40,14 @@
                             <div class="mb-3">
                                 <label for="answer" class="form-label custom-label">Answer <span class="text-danger">*</span></label>
                                 <textarea class="form-control custom-input @error('answer') is-invalid @enderror" name="answer" id="answer" rows="8" placeholder="Enter the FAQ answer">{{ old('answer', $faq->answer) }}</textarea>
+                                <div class="d-flex justify-content-between align-items-center mt-1 flex-wrap gap-1">
+                                    <div class="small text-muted" style="font-size: 11.5px;">
+                                        <i class="ri-information-line text-primary me-1"></i>Limit: ১–২ প্যারাগ্রাফ (Max 250 words)। বড় পলিসি হলে আলাদা টপিকে ভাগ করুন।
+                                    </div>
+                                    <div class="small text-muted" id="answerWordCountBadge" style="font-size: 11.5px; font-weight: 600;">
+                                        <span id="answerWordCount">0</span> / 250 words
+                                    </div>
+                                </div>
                                 @error('answer')
                                     <div class="error_msg">{{ $message }}</div>
                                 @enderror
@@ -127,7 +135,7 @@
                 <div class="col-md-4 col-12">
                     <div class="card table-card">
                         <div class="card-header table-header">
-                            <div class="table-title">Category & Settings</div>
+                            <div class="table-title">Classification & Settings</div>
                         </div>
                         <div class="card-body custom-form">
                             <div class="mb-3">
@@ -153,20 +161,6 @@
                                 @enderror
                             </div>
 
-                            <div class="mb-3">
-                                <label for="category_id" class="form-label custom-label">Category</label>
-                                <select name="category_id" id="category_id" class="form-control custom-input single-select2">
-                                    <option value="">No Category</option>
-                                    @foreach ($categories as $category)
-                                        <option value="{{ $category->id }}" {{ old('category_id', $faq->category_id) == $category->id ? 'selected' : '' }}>
-                                            {{ $category->name }}
-                                        </option>
-                                    @endforeach
-                                </select>
-                                @error('category_id')
-                                    <div class="error_msg">{{ $message }}</div>
-                                @enderror
-                            </div>
 
                             <div class="mb-3">
                                 <label for="priority" class="form-label custom-label">Priority</label>
@@ -253,5 +247,25 @@
                 }
             });
         }
+
+        function updateWordCount() {
+            var val = $('#answer').val() || '';
+            var words = val.trim().split(/\s+/).filter(Boolean);
+            var count = words.length;
+            $('#answerWordCount').text(count.toLocaleString());
+            var badge = $('#answerWordCountBadge');
+            if (count > 250) {
+                badge.removeClass('text-muted text-warning').addClass('text-danger fw-bold');
+            } else if (count > 200) {
+                badge.removeClass('text-muted text-danger').addClass('text-warning fw-bold');
+            } else {
+                badge.removeClass('text-danger text-warning').addClass('text-muted');
+            }
+        }
+
+        $(document).ready(function () {
+            $('#answer').on('input propertychange', updateWordCount);
+            updateWordCount();
+        });
     </script>
 @endpush

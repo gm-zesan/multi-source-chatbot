@@ -24,10 +24,9 @@ class UpdateFAQRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'category_id'   => 'nullable|exists:faq_categories,id',
             'document_type' => 'nullable|string|max:100',
             'question'      => 'required|string|max:500',
-            'answer'        => 'required|string',
+            'answer'        => ['required', 'string', 'max:5000', new \App\Rules\MaxWords(250)],
             'priority'      => 'nullable|integer|min:0|max:999999',
             'is_active'     => 'nullable|boolean',
         ];
@@ -44,7 +43,6 @@ class UpdateFAQRequest extends FormRequest
             'question.required' => 'The FAQ question is required.',
             'question.max'      => 'The question must not exceed 500 characters.',
             'answer.required'   => 'The FAQ answer is required.',
-            'category_id.exists'=> 'The selected category does not exist.',
             'priority.integer'  => 'Priority must be a valid number.',
         ];
     }

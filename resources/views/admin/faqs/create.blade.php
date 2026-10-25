@@ -39,6 +39,14 @@
                             <div class="mb-3">
                                 <label for="answer" class="form-label custom-label">Answer <span class="text-danger">*</span></label>
                                 <textarea class="form-control custom-input @error('answer') is-invalid @enderror" name="answer" id="answer" rows="8" placeholder="Enter the FAQ answer">{{ old('answer') }}</textarea>
+                                <div class="d-flex justify-content-between align-items-center mt-1 flex-wrap gap-1">
+                                    <div class="small text-muted" style="font-size: 11.5px;">
+                                        <i class="ri-information-line text-primary me-1"></i>Limit: ১–২ প্যারাগ্রাফ (Max 250 words)। বড় পলিসি হলে আলাদা টপিকে ভাগ করুন।
+                                    </div>
+                                    <div class="small text-muted" id="answerWordCountBadge" style="font-size: 11.5px; font-weight: 600;">
+                                        <span id="answerWordCount">0</span> / 250 words
+                                    </div>
+                                </div>
                                 @error('answer')
                                     <div class="error_msg">{{ $message }}</div>
                                 @enderror
@@ -50,7 +58,7 @@
                 <div class="col-md-4 col-12">
                     <div class="card table-card">
                         <div class="card-header table-header">
-                            <div class="table-title">Category & Settings</div>
+                            <div class="table-title">Classification & Settings</div>
                         </div>
                         <div class="card-body custom-form">
                             <div class="mb-3">
@@ -76,20 +84,6 @@
                                 @enderror
                             </div>
 
-                            <div class="mb-3">
-                                <label for="category_id" class="form-label custom-label">Category</label>
-                                <select name="category_id" id="category_id" class="form-control custom-input single-select2">
-                                    <option value="">No Category</option>
-                                    @foreach ($categories as $category)
-                                        <option value="{{ $category->id }}" {{ old('category_id') == $category->id ? 'selected' : '' }}>
-                                            {{ $category->name }}
-                                        </option>
-                                    @endforeach
-                                </select>
-                                @error('category_id')
-                                    <div class="error_msg">{{ $message }}</div>
-                                @enderror
-                            </div>
 
                             <div class="mb-3">
                                 <label for="priority" class="form-label custom-label">Priority</label>
@@ -107,13 +101,18 @@
                                 </div>
                             </div>
 
-                            <div class="mb-3 p-3" style="background-color: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 6px;">
+                            <div class="mb-3 p-3" style="background-color: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px;">
                                 <div class="d-flex align-items-center mb-1 text-success fw-bold small">
-                                    <i class="ri-sparkling-fill me-1"></i> AI Vector Search Ingestion
+                                    <i class="ri-sparkling-fill me-1"></i> MPNet AI Model Guidance
                                 </div>
-                                <p class="text-muted mb-0" style="font-size: 11px; line-height: 1.4;">
-                                    Upon saving, our background pipeline will automatically compute 768-dimensional multilingual embeddings and index this FAQ in Typesense for instant semantic search.
+                                <p class="text-muted mb-2" style="font-size: 11px; line-height: 1.4;">
+                                    Optimized for <strong>paraphrase-multilingual-mpnet-base-v2</strong>. Real business model best practices:
                                 </p>
+                                <ul class="text-muted ps-3 mb-0" style="font-size: 11px; line-height: 1.4;">
+                                    <li class="mb-1"><strong>সাধারণ FAQs:</strong> ১–২ প্যারাগ্রাফের স্পেসিফিক সরাসরি উত্তর দিন (Max 250 words)।</li>
+                                    <li class="mb-1"><strong>পলিসি (Policies):</strong> পুরো হ্যান্ডবুক একসাথে না দিয়ে ক্যাটাগরিভিত্তিক (রিফান্ড, ডেলিভারি, ওয়ারেন্টি) আলাদা এন্ট্রি হিসেবে দিন।</li>
+                                    <li><strong>বিজনেস ইনফো:</strong> About Us, Contact Desk, ব্রাঞ্চ ও হেল্পলাইন স্পষ্টভাবে আলাদা এন্ট্রি হিসেবে দিন।</li>
+                                </ul>
                             </div>
 
                             <div class="form-actions">
@@ -145,4 +144,25 @@
             });
         </script>
     @endif
+
+    <script>
+        function updateWordCount() {
+            var val = $('#answer').val() || '';
+            var words = val.trim().split(/\s+/).filter(Boolean);
+            var count = words.length;
+            $('#answerWordCount').text(count.toLocaleString());
+            var badge = $('#answerWordCountBadge');
+            if (count > 250) {
+                badge.removeClass('text-muted text-warning').addClass('text-danger fw-bold');
+            } else if (count > 200) {
+                badge.removeClass('text-muted text-danger').addClass('text-warning fw-bold');
+            } else {
+                badge.removeClass('text-danger text-warning').addClass('text-muted');
+            }
+        }
+        $(document).ready(function () {
+            $('#answer').on('input propertychange', updateWordCount);
+            updateWordCount();
+        });
+    </script>
 @endpush

@@ -48,21 +48,9 @@
                 <span class="nav-section-title">Knowledge Base</span>
             </li>
             <li class="nav-item">
-                <a href="{{ route('faq-categories.index') }}" class="nav-link {{ in_array(Route::currentRouteName(), ['faq-categories.index', 'faq-categories.create', 'faq-categories.edit']) ? 'active' : '' }}">
-                    <i class="ri-folders-line nav-icon"></i>
-                    <span class="nav-label">FAQ Categories</span>
-                </a>
-            </li>
-            <li class="nav-item">
-                <a href="{{ route('faqs.index') }}" class="nav-link {{ in_array(Route::currentRouteName(), ['faqs.index', 'faqs.create', 'faqs.edit']) ? 'active' : '' }}">
-                    <i class="ri-question-answer-line nav-icon"></i>
-                    <span class="nav-label">FAQs</span>
-                </a>
-            </li>
-            <li class="nav-item">
-                <a href="{{ route('documents.index') }}" class="nav-link {{ in_array(Route::currentRouteName(), ['documents.index', 'documents.create']) ? 'active' : '' }}">
-                    <i class="ri-file-text-line nav-icon"></i>
-                    <span class="nav-label">Documents</span>
+                <a href="{{ route('knowledge-base.index') }}" class="nav-link {{ in_array(Route::currentRouteName(), ['knowledge-base.index', 'faqs.index', 'faqs.create', 'faqs.edit', 'documents.index', 'documents.create']) ? 'active' : '' }}">
+                    <i class="ri-book-read-line nav-icon"></i>
+                    <span class="nav-label">Knowledge Base</span>
                 </a>
             </li>
 

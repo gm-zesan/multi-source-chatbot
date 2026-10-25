@@ -27,13 +27,11 @@ class FAQController extends Controller
      */
     public function index(Request $request): View|JsonResponse
     {
-        if ($request->ajax()) {
+        if ($request->ajax() || $request->wantsJson() || $request->has('draw')) {
             return $this->faqService->getDataTables($request);
         }
 
-        return view('admin.faqs.index', [
-            'categories' => $this->faqService->getCategories(),
-        ]);
+        return view('admin.faqs.index');
     }
 
     /**
@@ -41,9 +39,7 @@ class FAQController extends Controller
      */
     public function create(): View
     {
-        return view('admin.faqs.create', [
-            'categories' => $this->faqService->getCategories(),
-        ]);
+        return view('admin.faqs.create');
     }
 
     /**
@@ -65,8 +61,7 @@ class FAQController extends Controller
         $this->authorizeWorkspace($faq);
 
         return view('admin.faqs.edit', [
-            'faq'        => $faq,
-            'categories' => $this->faqService->getCategories(),
+            'faq' => $faq,
         ]);
     }
 

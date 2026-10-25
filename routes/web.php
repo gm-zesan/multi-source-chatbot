@@ -14,6 +14,7 @@ use App\Http\Controllers\HealthController;
 use App\Http\Controllers\ObservabilityController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ConversationController;
+use App\Http\Controllers\KnowledgeBaseController;
 use App\Http\Controllers\KnowledgeDocumentController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\UserController;
@@ -30,8 +31,9 @@ Route::get('/health', HealthController::class)->name('health');
 
 Route::match(['GET', 'POST'], '/webhook', [WebhookController::class, 'handle']);
 
-// Simulator Route: Redirect to Canonical /dashboard/simulator
+// Canonical Redirects
 Route::get('/simulator', fn () => redirect()->route('simulator.index'))->middleware('auth');
+Route::get('/knowledge-base', fn () => redirect()->route('knowledge-base.index'))->middleware('auth');
 
 Route::middleware('auth')->prefix('dashboard')->group(function () {
     Route::get('/', [DashboardController::class, 'dashboard'])->name('dashboard');
@@ -97,6 +99,14 @@ Route::middleware('auth')->prefix('dashboard')->group(function () {
         ->middleware('permission:' . MessagePermission::VIEW->value);
     Route::get('/message/delete/{id}', [ContactFormController::class,'delete'])->name('message.delete')
         ->middleware('permission:' . MessagePermission::DELETE->value);
+
+    // ── Unified Knowledge Base Hub ─────────────────────────────────────
+    Route::get('/knowledge-base', [KnowledgeBaseController::class, 'index'])
+        ->name('knowledge-base.index')
+        ->middleware('permission:' . implode('|', [
+            \App\Enums\Permissions\FAQPermission::VIEW->value,
+            KnowledgeDocumentPermission::VIEW->value,
+        ]));
 
     // ── FAQ Categories ─────────────────────────────────────────────────
     Route::resource('/faq-categories', FAQCategoryController::class)->except(['show'])
