@@ -19,11 +19,31 @@
                 <div class="chat-card">
                     <!-- Chat Header -->
                     <div class="chat-header">
-                        <div>
-                            <h5 class="mb-0 fw-bold d-flex align-items-center gap-2" style="color: #0f172a;">
-                                <i class="ri-robot-2-line text-primary"></i> AI Assistant
-                            </h5>
-                            <small class="text-muted" style="font-size: 11px;">Interactive test environment</small>
+                        <div class="d-flex align-items-center gap-3">
+                            <div>
+                                <h5 class="mb-0 fw-bold d-flex align-items-center gap-2" style="color: #0f172a;">
+                                    <i class="ri-robot-2-line text-primary"></i> AI Assistant
+                                </h5>
+                                <small class="text-muted" style="font-size: 11px;">Interactive test environment</small>
+                            </div>
+
+                            @if(isset($allWorkspaces) && $allWorkspaces->isNotEmpty())
+                                <div class="d-flex align-items-center gap-1 bg-white border border-primary-subtle px-2 py-1 rounded-2 shadow-sm" style="font-size: 12px;">
+                                    <i class="ri-building-4-line text-primary fs-6"></i>
+                                    <label for="simulatorWorkspaceSelect" class="small fw-bold text-muted mb-0 d-none d-md-inline">Workspace:</label>
+                                    <select id="simulatorWorkspaceSelect" class="form-select form-select-sm border-0 bg-transparent py-0 ps-1 pe-4 fw-semibold text-primary shadow-none" style="font-size: 12px; cursor: pointer; min-width: 150px;" onchange="onSimulatorWorkspaceChange(this.value)">
+                                        @foreach($allWorkspaces as $ws)
+                                            <option value="{{ $ws->id }}" {{ (isset($workspaceId) && $workspaceId == $ws->id) ? 'selected' : '' }}>
+                                                🏢 {{ $ws->name }} (#{{ $ws->id }})
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                            @elseif(isset($currentWorkspace))
+                                <span class="badge bg-light text-secondary border d-flex align-items-center gap-1 py-1 px-2" style="font-size: 11px;">
+                                    <i class="ri-building-4-line text-primary"></i> {{ $currentWorkspace->name }}
+                                </span>
+                            @endif
                         </div>
                         <div class="d-flex align-items-center gap-2">
 
@@ -694,11 +714,21 @@
                 send: @json(route('simulator.send')),
                 clear: @json(route('simulator.clear')),
                 exportAnalytics: @json(route('export.analytics')),
+                switchWorkspace: @json(route('simulator.switch_workspace')),
             },
+            workspaceId: @json($workspaceId ?? 1),
             csrfToken: @json(csrf_token()),
             llmUsageHistory: @json($llmUsageHistory ?? []),
             storedMessages: @json($storedMessages ?? []),
         };
+
+        function onSimulatorWorkspaceChange(newWsId) {
+            if (!newWsId) return;
+            const url = new URL(window.location.href);
+            url.searchParams.set('workspace_id', newWsId);
+            url.searchParams.delete('file_id');
+            window.location.href = url.toString();
+        }
     </script>
     <script src="{{ asset('assets/js/simulator.js') }}"></script>
 @endpush

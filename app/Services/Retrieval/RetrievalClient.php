@@ -36,7 +36,16 @@ class RetrievalClient
      */
     public function baseUrl(): string
     {
-        return rtrim($this->baseUrl ?? (string) config('retrieval.base_url', 'http://127.0.0.1:8002'), '/');
+        if ($this->baseUrl !== null && trim($this->baseUrl) !== '') {
+            return rtrim($this->baseUrl, '/');
+        }
+
+        $configured = (string) config('retrieval.base_url');
+        if (trim($configured) !== '') {
+            return rtrim($configured, '/');
+        }
+
+        return 'http://127.0.0.1:8001';
     }
 
     /**
@@ -295,12 +304,19 @@ class RetrievalClient
      */
     private function fallbackDatabaseSearch(string $query, ?int $workspaceId, int $topK): Collection
     {
+        if ($workspaceId === null || $workspaceId <= 0) {
+            Log::warning('[RetrievalClient] Database fallback aborted: missing or invalid workspace_id for tenant isolation', [
+                'workspace_id' => $workspaceId,
+                'query'        => mb_substr($query, 0, 80),
+            ]);
+
+            return new Collection();
+        }
+
         $words = array_filter(explode(' ', $query), fn ($w) => mb_strlen(trim($w)) > 2);
 
-        $dbQuery = FAQ::where('is_active', true);
-        if ($workspaceId !== null) {
-            $dbQuery->where('workspace_id', $workspaceId);
-        }
+        $dbQuery = FAQ::where('is_active', true)
+            ->where('workspace_id', $workspaceId);
 
         if (! empty($words)) {
             $dbQuery->where(function ($q) use ($words) {

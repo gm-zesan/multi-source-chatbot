@@ -140,4 +140,131 @@ class RetrievalClientTest extends TestCase
         $this->assertNull($health['error']);
         $this->assertGreaterThanOrEqual(0, $health['latency_ms']);
     }
+
+    public function test_base_url_resolves_from_config_and_defaults_to_port_8001(): void
+    {
+        // 1. Default config fallback
+        config(['retrieval.base_url' => null]);
+        $defaultClient = new RetrievalClient();
+        $this->assertSame('http://127.0.0.1:8001', $defaultClient->baseUrl());
+
+        // 2. Config override (simulating .env PYTHON_RETRIEVAL_URL)
+        config(['retrieval.base_url' => 'http://ai-service-cluster.local:8001/']);
+        $customClient = new RetrievalClient();
+        $this->assertSame('http://ai-service-cluster.local:8001', $customClient->baseUrl());
+
+        // 3. Constructor explicit override
+        $explicitClient = new RetrievalClient('http://manual-host:9000/');
+        $this->assertSame('http://manual-host:9000', $explicitClient->baseUrl());
+    }
+
+    public function test_fallback_with_null_workspace_fails_closed_without_unscoped_query(): void
+    {
+        Http::fake([
+            'http://127.0.0.1:8002/api/v1/search' => Http::response('Server Error', 500),
+        ]);
+
+        $ws1 = \App\Models\Workspace::create(['name' => 'Tenant 1', 'slug' => 'tenant-1']);
+        $ws2 = \App\Models\Workspace::create(['name' => 'Tenant 2', 'slug' => 'tenant-2']);
+
+        FAQ::create([
+            'workspace_id' => $ws1->id,
+            'question'     => 'What is the refund timeline?',
+            'answer'       => 'Tenant 1 refund is 7 days.',
+            'is_active'    => true,
+        ]);
+
+        FAQ::create([
+            'workspace_id' => $ws2->id,
+            'question'     => 'What is the refund timeline?',
+            'answer'       => 'Tenant 2 refund is 14 days.',
+            'is_active'    => true,
+        ]);
+
+        $client = new RetrievalClient('http://127.0.0.1:8002');
+        $results = $client->search('refund timeline', workspaceId: null);
+
+        $this->assertTrue($results->isEmpty(), 'Fallback with null workspaceId must fail closed and return empty.');
+    }
+
+    public function test_fallback_with_invalid_or_non_positive_workspace_fails_safely(): void
+    {
+        Http::fake([
+            'http://127.0.0.1:8002/api/v1/search' => Http::response('Server Error', 500),
+        ]);
+
+        $ws = \App\Models\Workspace::create(['name' => 'Tenant Valid', 'slug' => 'tenant-valid']);
+        FAQ::create([
+            'workspace_id' => $ws->id,
+            'question'     => 'How to reset password?',
+            'answer'       => 'Click forgot password.',
+            'is_active'    => true,
+        ]);
+
+        $client = new RetrievalClient('http://127.0.0.1:8002');
+
+        $resZero = $client->search('reset password', workspaceId: 0);
+        $this->assertTrue($resZero->isEmpty(), 'Workspace ID 0 must fail closed.');
+
+        $resNegative = $client->search('reset password', workspaceId: -5);
+        $this->assertTrue($resNegative->isEmpty(), 'Negative Workspace ID must fail closed.');
+    }
+
+    public function test_fallback_with_valid_workspace_strictly_restricts_results_to_that_workspace(): void
+    {
+        Http::fake([
+            'http://127.0.0.1:8002/api/v1/search' => Http::response('Service Unavailable', 503),
+        ]);
+
+        $ws1 = \App\Models\Workspace::create(['name' => 'Tenant Alpha', 'slug' => 'tenant-alpha']);
+        $ws2 = \App\Models\Workspace::create(['name' => 'Tenant Beta', 'slug' => 'tenant-beta']);
+
+        $faq1 = FAQ::create([
+            'workspace_id' => $ws1->id,
+            'question'     => 'Where is my order parcel?',
+            'answer'       => 'Alpha delivery portal.',
+            'is_active'    => true,
+        ]);
+
+        FAQ::create([
+            'workspace_id' => $ws2->id,
+            'question'     => 'Where is my order parcel?',
+            'answer'       => 'Beta confidential courier desk.',
+            'is_active'    => true,
+        ]);
+
+        $client = new RetrievalClient('http://127.0.0.1:8002');
+        $results = $client->search('order parcel', workspaceId: $ws1->id);
+
+        $this->assertCount(1, $results);
+        $this->assertSame($faq1->id, $results->first()->faq->id);
+        $this->assertSame($ws1->id, $results->first()->faq->workspace_id);
+        $this->assertSame('Alpha delivery portal.', $results->first()->faq->answer);
+        $this->assertSame('keyword_fallback', $results->first()->matchType);
+    }
+
+    public function test_downstream_python_http_error_cannot_bypass_tenant_isolation_through_fallback(): void
+    {
+        // Simulate Python rejecting missing workspace with HTTP 400
+        Http::fake([
+            'http://127.0.0.1:8002/api/v1/search' => Http::response([
+                'detail' => 'workspace_id is required to ensure multi-tenant data isolation.'
+            ], 400),
+        ]);
+
+        $ws = \App\Models\Workspace::create(['name' => 'Tenant Secret', 'slug' => 'tenant-secret']);
+        FAQ::create([
+            'workspace_id' => $ws->id,
+            'question'     => 'Company confidential secret hotline',
+            'answer'       => 'Direct executive line',
+            'is_active'    => true,
+        ]);
+
+        $client = new RetrievalClient('http://127.0.0.1:8002');
+        // When workspaceId is null, Python throws 400; fallback must NOT leak the secret FAQ
+        $results = $client->search('secret hotline', workspaceId: null);
+
+        $this->assertTrue($results->isEmpty(), 'Downstream HTTP 400 on null workspace must not leak FAQs via fallback.');
+    }
 }
+

@@ -43,6 +43,7 @@ Route::middleware('auth')->prefix('dashboard')->group(function () {
     Route::post('/simulator/clear', [ChatSimulatorController::class, 'clear'])->name('simulator.clear');
     Route::post('/simulator/clear-excel', [ChatSimulatorController::class, 'clearExcel'])->name('simulator.clear_excel');
     Route::post('/simulator/select-source', [ChatSimulatorController::class, 'selectSource'])->name('simulator.select_source');
+    Route::post('/simulator/switch-workspace', [ChatSimulatorController::class, 'switchWorkspace'])->name('simulator.switch_workspace');
 
     // Export Routes (Excel, CSV, PDF)
     Route::get('/export/conversation/{conversation}/{format}', [\App\Http\Controllers\ExportController::class, 'exportConversation'])->name('export.conversation');

@@ -31,7 +31,12 @@ class ChatSimulatorController extends Controller
 
     public function index(Request $request): View
     {
-        $workspaceId = $this->resolveWorkspaceId();
+        $workspaceId = $this->resolveWorkspaceId($request);
+        $user = Auth::user();
+        $isSuperAdmin = $this->isSuperAdmin($user);
+        $allWorkspaces = $isSuperAdmin ? Workspace::orderBy('id', 'asc')->get() : collect();
+        $currentWorkspace = Workspace::find($workspaceId);
+
         $conversation = $this->resolveSimulatorConversation($request, $workspaceId);
         $messages = $conversation->messages()->orderBy('created_at', 'asc')->get();
         $rawHistory = $conversation->metadata['llm_usage_history'] ?? [];
@@ -94,7 +99,17 @@ class ChatSimulatorController extends Controller
             ];
         })->values()->all();
 
-        return view('admin.simulator', compact('messages', 'storedMessages', 'llmUsageHistory', 'activeSpreadsheet', 'availableDocuments'));
+        return view('admin.simulator', compact(
+            'messages',
+            'storedMessages',
+            'llmUsageHistory',
+            'activeSpreadsheet',
+            'availableDocuments',
+            'allWorkspaces',
+            'workspaceId',
+            'currentWorkspace',
+            'isSuperAdmin'
+        ));
     }
 
     /**
@@ -112,7 +127,7 @@ class ChatSimulatorController extends Controller
 
         $query = (string) $request->input('message');
         $fileId = $request->input('file_id');
-        $workspaceId = $this->resolveWorkspaceId();
+        $workspaceId = $this->resolveWorkspaceId($request);
         $startTime = microtime(true);
         @set_time_limit(120);
 
@@ -361,13 +376,77 @@ class ChatSimulatorController extends Controller
     }
 
     /**
+     * Determine whether the authenticated user has superadmin privileges.
+     */
+    private function isSuperAdmin(?\App\Models\User $user): bool
+    {
+        if (!$user) {
+            return false;
+        }
+
+        try {
+            if (class_exists(\App\Enums\RoleEnum::class) && $user->hasRole(\App\Enums\RoleEnum::SUPERADMIN->value)) {
+                return true;
+            }
+
+            $superRoles = [
+                'superadmin',
+                'super-admin',
+                'super_admin',
+                'Super Admin',
+                'SuperAdmin',
+            ];
+            if ($user->hasAnyRole($superRoles) || $user->can('access all workspaces')) {
+                return true;
+            }
+        } catch (\Throwable) {
+            // Ignore if role system is not configured
+        }
+
+        return false;
+    }
+
+    /**
      * Resolve effective workspace ID.
      */
-    private function resolveWorkspaceId(): int
+    private function resolveWorkspaceId(?Request $request = null): int
     {
+        $request = $request ?? request();
         $user = Auth::user();
+        $isSuperAdmin = $this->isSuperAdmin($user);
 
-        return (int) ($user?->workspace_id ?? \App\Models\Workspace::first()?->id ?? 1);
+        // 1. Explicitly requested workspace via query string or body (allowed for superadmin)
+        if ($isSuperAdmin && $request && $request->filled('workspace_id')) {
+            $requestedWsId = (int) $request->input('workspace_id');
+            if (Workspace::where('id', $requestedWsId)->exists()) {
+                session(['active_simulator_workspace_id' => $requestedWsId]);
+                return $requestedWsId;
+            }
+        }
+
+        // 2. Previously selected workspace in session for superadmin
+        if ($isSuperAdmin && session()->has('active_simulator_workspace_id')) {
+            $sessionWsId = (int) session('active_simulator_workspace_id');
+            if (Workspace::where('id', $sessionWsId)->exists()) {
+                return $sessionWsId;
+            }
+        }
+
+        // 3. User's explicitly assigned workspace_id
+        if ($user && $user->workspace_id) {
+            return (int) $user->workspace_id;
+        }
+
+        // 4. Superadmin fallback to the first active workspace
+        if ($isSuperAdmin) {
+            $firstWs = Workspace::first();
+            if ($firstWs) {
+                session(['active_simulator_workspace_id' => (int) $firstWs->id]);
+                return (int) $firstWs->id;
+            }
+        }
+
+        abort(403, 'Unauthorized: User is not associated with an active workspace context.');
     }
 
     /**
@@ -428,7 +507,7 @@ class ChatSimulatorController extends Controller
      */
     public function clear(Request $request): JsonResponse
     {
-        $workspaceId = $this->resolveWorkspaceId();
+        $workspaceId = $this->resolveWorkspaceId($request);
         $conversation = $this->resolveSimulatorConversation($request, $workspaceId);
         $conversation->messages()->delete();
         $conversation->update(['metadata' => []]);
@@ -442,7 +521,7 @@ class ChatSimulatorController extends Controller
      */
     public function clearExcel(Request $request): JsonResponse
     {
-        $workspaceId = $this->resolveWorkspaceId();
+        $workspaceId = $this->resolveWorkspaceId($request);
         $conversation = $this->resolveSimulatorConversation($request, $workspaceId);
 
         $metadata = $conversation->metadata ?? [];
@@ -465,7 +544,7 @@ class ChatSimulatorController extends Controller
             'file_id' => 'nullable|string',
         ]);
 
-        $workspaceId = $this->resolveWorkspaceId();
+        $workspaceId = $this->resolveWorkspaceId($request);
         $conversation = $this->resolveSimulatorConversation($request, $workspaceId);
         $fileId = $request->input('file_id');
 
@@ -550,6 +629,30 @@ class ChatSimulatorController extends Controller
             'success' => false,
             'message' => 'Document not found in workspace.',
         ], 404);
+    }
+
+    /**
+     * Switch active simulator workspace (superadmin only).
+     */
+    public function switchWorkspace(Request $request): JsonResponse
+    {
+        $request->validate([
+            'workspace_id' => 'required|integer|exists:workspaces,id',
+        ]);
+
+        $user = Auth::user();
+        if (!$this->isSuperAdmin($user)) {
+            abort(403, 'Unauthorized: Only superadmins can switch workspace context.');
+        }
+
+        $workspaceId = (int) $request->input('workspace_id');
+        session(['active_simulator_workspace_id' => $workspaceId]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Active simulator workspace switched successfully.',
+            'workspace_id' => $workspaceId,
+        ]);
     }
 }
 

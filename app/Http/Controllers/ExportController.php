@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\AuthorizesConversationAccess;
 use App\Models\Conversation;
 use App\Services\Export\ExportService;
 use Illuminate\Http\Request;
@@ -13,6 +14,8 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ExportController extends Controller
 {
+    use AuthorizesConversationAccess;
+
     public function __construct(
         private readonly ExportService $exportService,
     ) {}
@@ -22,6 +25,8 @@ class ExportController extends Controller
      */
     public function exportConversation(Request $request, Conversation $conversation, string $format = 'pdf'): Response|StreamedResponse
     {
+        $this->authorizeConversation($conversation);
+
         return $this->exportService->exportConversation($conversation, $format);
     }
 

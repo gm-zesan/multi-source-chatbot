@@ -28,14 +28,14 @@ class SimulateChat extends Command
     {
         $this->info("Starting End-to-End Chat Simulation...");
         
-        $workspaceId = 1; // Assuming default workspace
-        
         // Mock a channel account and conversation
         $channelAccount = \App\Models\ChannelAccount::first();
-        if (!$channelAccount) {
-            $this->error("No ChannelAccount found. Please seed the database first.");
-            return;
+        if (!$channelAccount || !$channelAccount->workspace_id || (int) $channelAccount->workspace_id <= 0) {
+            $this->error("No valid ChannelAccount with an associated workspace found. Please seed the database first.");
+            return 1;
         }
+
+        $workspaceId = (int) $channelAccount->workspace_id;
 
         $conversation = \App\Models\Conversation::firstOrCreate(
             ['channel_account_id' => $channelAccount->id, 'external_user_id' => 'sim_user_' . time()],

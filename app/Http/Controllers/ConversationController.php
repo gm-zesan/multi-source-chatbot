@@ -4,18 +4,24 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Enums\RoleEnum;
 use App\Http\Requests\SendMessageRequest;
 use App\Models\Conversation;
+use App\Models\User;
 use App\Services\AI\CustomerSupportService;
 use App\Services\Chat\ConversationService;
 use App\Services\FAQ\FAQSearch;
 use App\Support\ChannelManager;
+use App\Http\Controllers\Concerns\AuthorizesConversationAccess;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Illuminate\View\View;
 
 class ConversationController extends Controller
 {
+    use AuthorizesConversationAccess;
+
     public function __construct(
         protected ConversationService $conversationService,
         protected FAQSearch $faqSearch,
@@ -27,7 +33,14 @@ class ConversationController extends Controller
      */
     public function index(): View
     {
-        $conversations = Conversation::with(['channelAccount.channel'])->latest('last_message_at')->paginate(20);
+        $user = Auth::user();
+        $query = Conversation::with(['channelAccount.channel'])->latest('last_message_at');
+
+        if ($user && ! $user->hasRole(RoleEnum::SUPERADMIN->value)) {
+            $query->whereHas('channelAccount', fn ($q) => $q->where('workspace_id', (int) $user->workspace_id));
+        }
+
+        $conversations = $query->paginate(20);
 
         return view('admin.conversations.index', compact('conversations'));
     }
@@ -37,9 +50,15 @@ class ConversationController extends Controller
      */
     public function show(Conversation $conversation): View
     {
-        $conversations = Conversation::with(['channelAccount.channel'])->latest('last_message_at')->paginate(20);
-
         $conversation->load(['messages', 'channelAccount.channel']);
+        $this->authorizeConversation($conversation);
+
+        $user = Auth::user();
+        $query = Conversation::with(['channelAccount.channel'])->latest('last_message_at');
+        if ($user && ! $user->hasRole(RoleEnum::SUPERADMIN->value)) {
+            $query->whereHas('channelAccount', fn ($q) => $q->where('workspace_id', (int) $user->workspace_id));
+        }
+        $conversations = $query->paginate(20);
 
         return view('admin.conversations.show', compact('conversations', 'conversation'));
     }
@@ -51,6 +70,7 @@ class ConversationController extends Controller
     {
         // Load relationships (if not already loaded)
         $conversation->load('channelAccount.channel');
+        $this->authorizeConversation($conversation);
 
         $message = $request->validated()['message'];
 
@@ -76,11 +96,25 @@ class ConversationController extends Controller
      */
     public function aiReply(Conversation $conversation): RedirectResponse
     {
-        $conversation->load('channelAccount.channel');
+        $conversation->loadMissing('channelAccount.channel');
+
+        $workspaceId = ($conversation->channelAccount?->workspace_id !== null && (int) $conversation->channelAccount->workspace_id > 0)
+            ? (int) $conversation->channelAccount->workspace_id
+            : null;
+
+        if ($workspaceId === null) {
+            Log::error('[ConversationController] Cannot generate AI reply: missing or invalid workspace association', [
+                'conversation_id'    => $conversation->id,
+                'channel_account_id' => $conversation->channel_account_id,
+            ]);
+
+            return redirect()->back()->with('error', 'Cannot generate AI response: conversation has no valid workspace association.');
+        }
+
+        $this->authorizeWorkspace($workspaceId);
 
         $lastInbound = $conversation->messages()->where('direction', 'inbound')->latest('id')->first();
         $prompt = $lastInbound?->body ?? 'Hello, how can I help you today?';
-        $workspaceId = (int) ($conversation->channelAccount?->workspace_id ?? 1);
 
         $supportResult = $this->customerSupportService->handleQuery(
             query: $prompt,

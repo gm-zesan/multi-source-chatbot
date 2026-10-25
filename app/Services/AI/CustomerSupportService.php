@@ -91,10 +91,38 @@ class CustomerSupportService
         string $query,
         ?int $workspaceId = null,
     ): string {
-        $effectiveWorkspaceId = $workspaceId
-            ?? $conversation->channelAccount?->workspace_id
-            ?? Workspace::first()?->id
-            ?? 1;
+        $channelAccount = $conversation->channelAccount;
+        if ($channelAccount === null && $conversation->channel_account_id !== null) {
+            $channelAccount = \App\Models\ChannelAccount::find($conversation->channel_account_id);
+        }
+
+        $accountWorkspaceId = ($channelAccount?->workspace_id !== null && (int) $channelAccount->workspace_id > 0)
+            ? (int) $channelAccount->workspace_id
+            : null;
+
+        if ($accountWorkspaceId === null) {
+            Log::error('[CustomerSupportService] Tenant resolution failed: conversation has no valid associated channel account workspace', [
+                'conversation_id'       => $conversation->id,
+                'channel_account_id'    => $conversation->channel_account_id,
+                'supplied_workspace_id' => $workspaceId,
+            ]);
+
+            return $this->defaultFallbackText();
+        }
+
+        // Associated channel account exists: enforce strict consistency
+        if ($workspaceId !== null && (int) $workspaceId !== $accountWorkspaceId) {
+            Log::warning('[CustomerSupportService] Tenant mismatch rejected: supplied workspace_id does not match conversation channel_account workspace_id', [
+                'conversation_id'          => $conversation->id,
+                'channel_account_id'       => $conversation->channel_account_id,
+                'channel_workspace_id'     => $accountWorkspaceId,
+                'supplied_workspace_id'    => $workspaceId,
+            ]);
+
+            return $this->defaultFallbackText();
+        }
+
+        $effectiveWorkspaceId = $accountWorkspaceId;
 
         $t_start = microtime(true);
 
@@ -267,7 +295,24 @@ class CustomerSupportService
         Message $message,
         array $deliveryResponse = [],
     ): ?Message {
-        $workspaceId = $conversation->channelAccount?->workspace_id ?? (int) (\App\Models\Workspace::first()?->id ?? 1);
+        $channelAccount = $conversation->channelAccount;
+        if ($channelAccount === null && $conversation->channel_account_id !== null) {
+            $channelAccount = \App\Models\ChannelAccount::find($conversation->channel_account_id);
+        }
+
+        $workspaceId = ($channelAccount?->workspace_id !== null && (int) $channelAccount->workspace_id > 0)
+            ? (int) $channelAccount->workspace_id
+            : null;
+
+        if ($workspaceId === null) {
+            Log::error('[CustomerSupportService] Cannot handle conversation: missing or invalid workspace_id', [
+                'conversation_id'    => $conversation->id,
+                'channel_account_id' => $conversation->channel_account_id,
+            ]);
+
+            return null;
+        }
+
         $result = $this->handleQuery(
             query: $message->body,
             workspaceId: $workspaceId,
@@ -351,6 +396,106 @@ class CustomerSupportService
         $this->lastLlmUsage = null;
         $this->lastAnalyticsClarificationOptions = [];
         $t_start = microtime(true);
+
+        // Fail closed on invalid workspace ID
+        if ($workspaceId <= 0) {
+            Log::error('[CustomerSupportService] handleQuery called with invalid workspace_id', [
+                'workspace_id' => $workspaceId,
+            ]);
+            $replyText = $this->defaultFallbackText();
+            $totalE2eMs = round((microtime(true) - $t_start) * 1000, 2);
+
+            return [
+                'reply' => $replyText,
+                'route' => 'fallback',
+                'confidence' => 0.0,
+                'suggestions' => [],
+                'sources' => [],
+                'is_handoff' => false,
+                'memory_context' => null,
+                'business_context' => null,
+                'retrieval_hits' => new \Illuminate\Database\Eloquent\Collection(),
+                'top_hit' => null,
+                'answered' => false,
+                'answerability_decision' => null,
+                'follow_up_decision' => null,
+                'raw_llm_response' => [
+                    'provider' => config('ai.default', 'deepseek'),
+                    'model' => config('ai.default_model', 'deepseek-chat'),
+                    'raw_reply_text' => $replyText,
+                    'prompt_tokens' => 0,
+                    'completion_tokens' => 0,
+                    'total_tokens' => 0,
+                    'router_tokens' => [],
+                    'agent_tokens' => [],
+                    'grounded_documents_count' => 0,
+                    'grounded_faq_questions' => [],
+                ],
+                'routing_telemetry' => [
+                    'route' => 'fallback',
+                    'confidence' => 0.0,
+                    'intent' => 'invalid_workspace_id',
+                    'total_e2e_ms' => $totalE2eMs,
+                ],
+            ];
+        }
+
+        // Defense in depth: Verify tenant consistency between $workspaceId and $conversation
+        if ($conversation !== null) {
+            $channelAccount = $conversation->channelAccount;
+            if ($channelAccount === null && $conversation->channel_account_id !== null) {
+                $channelAccount = \App\Models\ChannelAccount::find($conversation->channel_account_id);
+            }
+
+            $convWsId = ($channelAccount?->workspace_id !== null && (int) $channelAccount->workspace_id > 0)
+                ? (int) $channelAccount->workspace_id
+                : null;
+
+            if ($convWsId !== null && $convWsId !== $workspaceId) {
+                Log::warning('[CustomerSupportService] handleQuery tenant mismatch rejected: conversation channel account workspace does not match supplied workspace ID', [
+                    'conversation_id' => $conversation->id,
+                    'channel_account_workspace_id' => $convWsId,
+                    'supplied_workspace_id' => $workspaceId,
+                ]);
+
+                $replyText = $this->defaultFallbackText();
+                $totalE2eMs = round((microtime(true) - $t_start) * 1000, 2);
+
+                return [
+                    'reply' => $replyText,
+                    'route' => 'fallback',
+                    'confidence' => 0.0,
+                    'suggestions' => [],
+                    'sources' => [],
+                    'is_handoff' => false,
+                    'memory_context' => null,
+                    'business_context' => null,
+                    'retrieval_hits' => new \Illuminate\Database\Eloquent\Collection(),
+                    'top_hit' => null,
+                    'answered' => false,
+                    'answerability_decision' => null,
+                    'follow_up_decision' => null,
+                    'raw_llm_response' => [
+                        'provider' => config('ai.default', 'deepseek'),
+                        'model' => config('ai.default_model', 'deepseek-chat'),
+                        'raw_reply_text' => $replyText,
+                        'prompt_tokens' => 0,
+                        'completion_tokens' => 0,
+                        'total_tokens' => 0,
+                        'router_tokens' => [],
+                        'agent_tokens' => [],
+                        'grounded_documents_count' => 0,
+                        'grounded_faq_questions' => [],
+                    ],
+                    'routing_telemetry' => [
+                        'route' => 'fallback',
+                        'confidence' => 0.0,
+                        'intent' => 'tenant_mismatch',
+                        'total_e2e_ms' => $totalE2eMs,
+                    ],
+                ];
+            }
+        }
 
         // ── 0. Pending Action Resolution (Turn N+1 Two-Phase Confirmation) ──
         if ($conversation !== null && $conversation->exists) {
