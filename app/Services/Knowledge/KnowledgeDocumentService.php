@@ -172,9 +172,12 @@ class KnowledgeDocumentService
             });
         }
 
-        $documents = $query->latest()->get();
+        $user = Auth::user();
+        if ($user && $user->hasRole(RoleEnum::SUPERADMIN->value) && $request?->filled('workspace_id')) {
+            $query->where('workspace_id', (int) $request->input('workspace_id'));
+        }
 
-        return DataTables::of($documents)
+        return DataTables::of($query->latest())
             ->addIndexColumn()
             ->addColumn('title', function (KnowledgeDocument $doc) {
                 return e($doc->title);

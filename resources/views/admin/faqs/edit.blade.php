@@ -8,6 +8,7 @@
         <form action="{{ route('faqs.update', $faq->id) }}" method="POST" autocomplete="off">
             @csrf
             @method('PUT')
+            <input type="hidden" name="redirect_to" value="hub">
             <div class="row">
                 <div class="col-md-8 col-12">
                     <div class="card table-card">
@@ -20,13 +21,13 @@
                                             <a href="{{ route('dashboard') }}">Dashboard</a>
                                         </li>
                                         <li class="breadcrumb-item">
-                                            <a href="{{ route('faqs.index') }}">FAQs</a>
+                                            <a href="{{ route('knowledge-base.index', ['tab' => 'faqs']) }}">Knowledge Base</a>
                                         </li>
                                         <li class="breadcrumb-item active" aria-current="page">Edit FAQ</li>
                                     </ol>
                                 </nav>
                             </div>
-                            <a href="{{ route('faqs.index') }}" class="add-new">FAQ List<i class="ms-1 ri-list-ordered-2"></i></a>
+                            <a href="{{ route('knowledge-base.index', ['tab' => 'faqs']) }}" class="add-new">Knowledge Base<i class="ms-1 ri-list-ordered-2"></i></a>
                         </div>
                         <div class="card-body custom-form">
                             <div class="mb-3">
@@ -198,7 +199,7 @@
                                         </button>
                                     </div>
                                     <div class="col-6">
-                                        <a href="{{ route('faqs.index') }}" class="btn cancel-button">Cancel</a>
+                                        <a href="{{ route('knowledge-base.index', ['tab' => 'faqs']) }}" class="btn cancel-button">Cancel</a>
                                     </div>
                                 </div>
                             </div>

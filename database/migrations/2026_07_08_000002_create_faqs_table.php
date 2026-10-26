@@ -16,7 +16,6 @@ return new class extends Migration
         Schema::create('faqs', function (Blueprint $table) {
             $table->uuid('id')->primary();
             $table->foreignId('workspace_id')->constrained()->cascadeOnDelete();
-            $table->foreignUuid('category_id')->nullable()->constrained('faq_categories')->nullOnDelete();
             $table->string('document_type', 64)->default('faq');
             $table->string('question');
             $table->text('answer');
@@ -33,7 +32,6 @@ return new class extends Migration
             $table->softDeletes();
 
             $table->index(['workspace_id', 'is_active', 'priority']);
-            $table->index(['workspace_id', 'category_id']);
             $table->index(['workspace_id', 'document_type']);
             $table->index(['workspace_id', 'lifecycle_status']);
 

@@ -7,7 +7,6 @@ namespace Tests\Feature;
 use App\Enums\Permissions\FAQPermission;
 use App\Enums\RoleEnum;
 use App\Models\FAQ;
-use App\Models\FAQCategory;
 use App\Models\Role;
 use App\Models\User;
 use App\Models\Workspace;
@@ -26,7 +25,6 @@ class FAQTenantAndManagementTest extends TestCase
     protected User $tenantAdminA;
     protected User $tenantAdminB;
     protected User $superAdmin;
-    protected FAQCategory $categoryA;
     protected FAQ $faqA;
 
     protected function setUp(): void
@@ -80,18 +78,8 @@ class FAQTenantAndManagementTest extends TestCase
         $this->superAdmin = User::factory()->create(['workspace_id' => null]);
         $this->superAdmin->assignRole($superRole);
 
-        // Fixtures in Workspace A
-        $this->categoryA = FAQCategory::create([
-            'workspace_id' => $this->workspaceA->id,
-            'name'         => 'Category Alpha',
-            'slug'         => 'category-alpha',
-            'order_column' => 1,
-            'is_active'    => true,
-        ]);
-
         $this->faqA = FAQ::create([
             'workspace_id'     => $this->workspaceA->id,
-            'category_id'      => $this->categoryA->id,
             'question'         => 'Alpha Question 1?',
             'answer'           => 'Alpha Answer 1',
             'document_type'    => 'faq',
@@ -120,25 +108,10 @@ class FAQTenantAndManagementTest extends TestCase
         $response->assertOk();
     }
 
-    public function test_cross_workspace_user_is_forbidden_from_editing_category(): void
-    {
-        $response = $this->actingAs($this->tenantAdminB)->get(route('faq-categories.edit', $this->categoryA));
-        $response->assertStatus(403);
-    }
-
-    public function test_superadmin_can_access_category_across_workspaces(): void
-    {
-        $response = $this->actingAs($this->superAdmin)->get(route('faq-categories.edit', $this->categoryA));
-        $response->assertOk();
-    }
-
     public function test_cross_workspace_toggle_active_is_forbidden(): void
     {
         $response = $this->actingAs($this->tenantAdminB)->post(route('faqs.toggle-active', $this->faqA));
         $response->assertStatus(403);
-
-        $responseCat = $this->actingAs($this->tenantAdminB)->post(route('faq-categories.toggle-active', $this->categoryA));
-        $responseCat->assertStatus(403);
     }
 
     public function test_faq_datatables_only_returns_own_workspace_records_for_tenant_admin(): void
@@ -162,26 +135,5 @@ class FAQTenantAndManagementTest extends TestCase
         $questions = array_column($json['data'] ?? [], 'question');
         $this->assertContains('Alpha Question 1?', $questions);
         $this->assertNotContains('Beta Question 2?', $questions);
-    }
-
-    public function test_faq_category_datatables_only_returns_own_workspace_records(): void
-    {
-        FAQCategory::create([
-            'workspace_id' => $this->workspaceB->id,
-            'name'         => 'Category Beta',
-            'slug'         => 'category-beta',
-            'order_column' => 1,
-            'is_active'    => true,
-        ]);
-
-        $response = $this->actingAs($this->tenantAdminA)->getJson(route('faq-categories.index'), [
-            'HTTP_X-Requested-With' => 'XMLHttpRequest',
-        ]);
-
-        $response->assertOk();
-        $json = $response->json();
-        $names = array_column($json['data'] ?? [], 'name');
-        $this->assertContains('Category Alpha', $names);
-        $this->assertNotContains('Category Beta', $names);
     }
 }

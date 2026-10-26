@@ -27,37 +27,6 @@ class KnowledgeBaseController extends Controller
      */
     public function index(Request $request): View|JsonResponse
     {
-        $this->authorizeHubAccess();
-
-        if ($request->ajax() || $request->wantsJson() || $request->has('draw')) {
-            $source = $request->input('source');
-            if ($source === 'documents' || $request->has('purpose')) {
-                return $this->documentService->getDataTables($request);
-            }
-
-            return $this->faqService->getDataTables($request);
-        }
-
-        $activeTab = $request->input('tab', 'faqs');
-        if ($activeTab === 'documents') {
-            $activeTab = 'data_sources';
-        }
-
-        $validTabs = ['faqs', 'policies', 'business_info', 'data_sources'];
-        if (! in_array($activeTab, $validTabs, true)) {
-            $activeTab = 'faqs';
-        }
-
-        return view('admin.knowledge-base.index', [
-            'activeTab' => $activeTab,
-        ]);
-    }
-
-    /**
-     * Authorize user access to the Knowledge Base hub.
-     */
-    private function authorizeHubAccess(): void
-    {
         /** @var User|null $user */
         $user = Auth::user();
 
@@ -65,15 +34,57 @@ class KnowledgeBaseController extends Controller
             abort(401);
         }
 
-        if ($user->hasRole(RoleEnum::SUPERADMIN->value)) {
-            return;
-        }
-
-        $canViewFaqs = $user->can(FAQPermission::VIEW->value);
-        $canViewDocs = $user->can(KnowledgeDocumentPermission::VIEW->value);
+        $isSuperAdmin = $user->hasRole(RoleEnum::SUPERADMIN->value);
+        $canViewFaqs = $isSuperAdmin || $user->can(FAQPermission::VIEW->value);
+        $canViewDocs = $isSuperAdmin || $user->can(KnowledgeDocumentPermission::VIEW->value);
 
         if (! $canViewFaqs && ! $canViewDocs) {
             abort(403, 'Unauthorized action.');
         }
+
+        if ($request->ajax() || $request->wantsJson() || $request->has('draw')) {
+            $source = $request->input('source');
+            if ($source === 'documents' || $request->has('purpose')) {
+                if (! $canViewDocs) {
+                    abort(403, 'Unauthorized to access knowledge documents.');
+                }
+                return $this->documentService->getDataTables($request);
+            }
+
+            if (! $canViewFaqs) {
+                abort(403, 'Unauthorized to access FAQs and policies.');
+            }
+            return $this->faqService->getDataTables($request);
+        }
+
+        $requestedTab = $request->input('tab');
+        if ($requestedTab === 'documents') {
+            $requestedTab = 'data_sources';
+        }
+
+        $activeTab = $requestedTab;
+
+        if ($canViewFaqs && $canViewDocs) {
+            $validTabs = ['faqs', 'policies', 'business_info', 'data_sources'];
+            if (! in_array($activeTab, $validTabs, true)) {
+                $activeTab = 'faqs';
+            }
+        } elseif ($canViewFaqs) {
+            $validTabs = ['faqs', 'policies', 'business_info'];
+            if (! in_array($activeTab, $validTabs, true)) {
+                $activeTab = 'faqs';
+            }
+        } else {
+            // Document-only permission
+            $activeTab = 'data_sources';
+        }
+
+        return view('admin.knowledge-base.index', [
+            'activeTab'    => $activeTab,
+            'canViewFaqs'  => $canViewFaqs,
+            'canViewDocs'  => $canViewDocs,
+            'isSuperAdmin' => $isSuperAdmin,
+            'workspaces'   => $isSuperAdmin ? \App\Models\Workspace::orderBy('name')->get(['id', 'name']) : collect(),
+        ]);
     }
 }

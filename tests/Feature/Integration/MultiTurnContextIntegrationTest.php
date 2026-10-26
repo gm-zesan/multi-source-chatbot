@@ -11,7 +11,6 @@ use App\Models\Channel;
 use App\Models\ChannelAccount;
 use App\Models\Conversation;
 use App\Models\FAQ;
-use App\Models\FAQCategory;
 use App\Models\Message;
 use App\Models\Workspace;
 use App\Services\AI\CustomerSupportService;
@@ -148,16 +147,8 @@ class MultiTurnContextIntegrationTest extends TestCase
         // Turn 2 switches domain to Knowledge FAQ
         $this->mockRouterRoute(RouteType::KNOWLEDGE, 'office_location');
 
-        $category = FAQCategory::create([
-            'workspace_id' => $this->workspace->id,
-            'name'         => 'General',
-            'slug'         => 'general-' . uniqid(),
-            'is_active'    => true,
-        ]);
-
         $faq = FAQ::create([
             'workspace_id' => $this->workspace->id,
-            'category_id'  => $category->id,
             'question'     => 'আপনাদের অফিস কোথায়?',
             'answer'       => 'আমাদের প্রধান অফিস বনানী, ঢাকা-তে অবস্থিত।',
             'is_active'    => true,

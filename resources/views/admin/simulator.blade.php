@@ -108,7 +108,7 @@
                                             </button>
                                         </div>
                                     </div>
-                                    <a href="{{ route('documents.index') }}" class="btn btn-sm btn-outline-secondary d-flex align-items-center gap-1 px-2 py-1" style="font-size: 12px;" title="View Documents Catalog & Schema">
+                                    <a href="{{ route('knowledge-base.index', ['tab' => 'data_sources']) }}" class="btn btn-sm btn-outline-secondary d-flex align-items-center gap-1 px-2 py-1" style="font-size: 12px;" title="View Documents Catalog & Schema">
                                         <i class="ri-file-list-3-line"></i>
                                         <span class="d-none d-sm-inline">Catalog</span>
                                     </a>

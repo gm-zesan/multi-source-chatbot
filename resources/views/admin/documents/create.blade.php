@@ -43,6 +43,7 @@
             @csrf
             {{-- Analytics Data Source purpose --}}
             <input type="hidden" name="purpose" value="data_analytics">
+            <input type="hidden" name="redirect_to" value="hub">
 
             <div class="row">
                 <div class="col-md-8 col-12">

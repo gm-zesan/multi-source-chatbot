@@ -191,12 +191,14 @@ class KnowledgeDocumentUIContractTest extends TestCase
         $this->actingAs($this->adminUser);
 
         $response = $this->get('/dashboard/documents');
-        $response->assertStatus(200);
-        $response->assertSee('Knowledge Documents');
-        $response->assertSee('documentDetailsModal');
-        $response->assertSee('modalDocPurpose');
-        $response->assertSee('modalAskSimulatorBtn');
-        $response->assertSee('data-table');
+        $response->assertRedirect(route('knowledge-base.index', ['tab' => 'data_sources']));
+
+        $hubResponse = $this->get(route('knowledge-base.index', ['tab' => 'data_sources']));
+        $hubResponse->assertStatus(200);
+        $hubResponse->assertSee('Knowledge Base');
+        $hubResponse->assertSee('documentDetailsModal');
+        $hubResponse->assertSee('modalDocPurpose');
+        $hubResponse->assertSee('modalAskSimulatorBtn');
     }
 
     public function test_document_soft_delete_and_restore_workflow(): void
@@ -232,10 +234,9 @@ class KnowledgeDocumentUIContractTest extends TestCase
 
         $response = $this->get('/dashboard/documents/create');
         $response->assertStatus(200);
-        $response->assertSee('Data & Analytics Report', false);
-        $response->assertSee('FAQ & Knowledge Base', false);
-        $response->assertSee('card_data_analytics');
-        $response->assertSee('card_knowledge_base');
+        $response->assertSee('Upload Analytics Data Source', false);
+        $response->assertSee('data_analytics');
+        $response->assertSee('uploadDocumentForm');
     }
 
     public function test_purpose_update_endpoint_switches_document_purpose(): void

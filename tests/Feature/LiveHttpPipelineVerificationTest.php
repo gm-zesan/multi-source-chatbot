@@ -11,7 +11,6 @@ use App\Models\Channel;
 use App\Models\ChannelAccount;
 use App\Models\Conversation;
 use App\Models\FAQ;
-use App\Models\FAQCategory;
 use App\Models\User;
 use App\Models\Workspace;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -25,7 +24,6 @@ class LiveHttpPipelineVerificationTest extends TestCase
 
     private User $admin;
     private Workspace $workspace;
-    private FAQCategory $category;
 
     protected function setUp(): void
     {
@@ -40,13 +38,6 @@ class LiveHttpPipelineVerificationTest extends TestCase
             'workspace_id' => $this->workspace->id,
         ]);
         $this->admin->assignRole('superadmin');
-
-        $this->category = FAQCategory::create([
-            'workspace_id' => $this->workspace->id,
-            'name'         => 'Order & Delivery',
-            'slug'         => 'order-delivery',
-            'is_active'    => true,
-        ]);
     }
 
     /**
@@ -57,7 +48,6 @@ class LiveHttpPipelineVerificationTest extends TestCase
         // Create FAQs in different lifecycle states
         FAQ::create([
             'workspace_id'     => $this->workspace->id,
-            'category_id'      => $this->category->id,
             'question'         => 'What is the standard return window?',
             'answer'           => 'Items can be returned within 7 days with receipt.',
             'lifecycle_status' => FaqLifecycleStatus::ACTIVE,
@@ -66,7 +56,6 @@ class LiveHttpPipelineVerificationTest extends TestCase
 
         FAQ::create([
             'workspace_id'     => $this->workspace->id,
-            'category_id'      => $this->category->id,
             'question'         => 'Failed sync policy test question?',
             'answer'           => 'This item failed vector sync.',
             'lifecycle_status' => FaqLifecycleStatus::SYNC_FAILED,
@@ -74,14 +63,15 @@ class LiveHttpPipelineVerificationTest extends TestCase
             'sync_error'       => 'Connection to Typesense host failed',
         ]);
 
-        // 1. Initial Page Load
+        // 1. Initial Page Load redirects to Knowledge Base Hub
         $response = $this->actingAs($this->admin)->get('/dashboard/faqs');
+        $response->assertRedirect(route('knowledge-base.index', ['tab' => 'faqs']));
 
-        $response->assertOk()
-            ->assertViewIs('admin.faqs.index')
+        $hubResponse = $this->actingAs($this->admin)->get(route('knowledge-base.index', ['tab' => 'faqs']));
+        $hubResponse->assertOk()
+            ->assertViewIs('admin.knowledge-base.index')
             ->assertSee('table-card', false)
-            ->assertSee('data-table', false)
-            ->assertSee('FAQs', false);
+            ->assertSee('Knowledge Base', false);
 
         // 2. DataTables AJAX Load
         $ajaxResponse = $this->actingAs($this->admin)->getJson('/dashboard/faqs', [

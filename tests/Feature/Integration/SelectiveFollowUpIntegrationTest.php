@@ -10,7 +10,6 @@ use App\AI\Routing\RoutingResult;
 use App\Models\ChannelAccount;
 use App\Models\Conversation;
 use App\Models\FAQ;
-use App\Models\FAQCategory;
 use App\Models\Message;
 use App\Models\Workspace;
 use App\Services\AI\CustomerSupportService;
@@ -31,7 +30,6 @@ class SelectiveFollowUpIntegrationTest extends TestCase
     private Workspace $workspace;
     private ChannelAccount $channelAccount;
     private Conversation $conversation;
-    private FAQCategory $category;
     private $routerMock;
     private $faqSearchMock;
     private CustomerSupportService $service;
@@ -56,11 +54,6 @@ class SelectiveFollowUpIntegrationTest extends TestCase
             'status'             => 'active',
             'last_direction'     => 'inbound',
             'metadata'           => [],
-        ]);
-        $this->category = FAQCategory::create([
-            'workspace_id' => $this->workspace->id,
-            'name'         => 'Products',
-            'slug'         => 'products',
         ]);
 
         $this->routerMock = Mockery::mock(HybridRouter::class);
@@ -97,7 +90,6 @@ class SelectiveFollowUpIntegrationTest extends TestCase
     {
         $faq = FAQ::create([
             'workspace_id'    => $this->workspace->id,
-            'faq_category_id' => $this->category->id,
             'question'        => 'Royal Silk Panjabi দাম কত?',
             'answer'          => 'Royal Silk Panjabi ৩,৫০০ টাকা।',
             'is_published'    => true,

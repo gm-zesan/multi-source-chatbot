@@ -3,7 +3,6 @@
 namespace Database\Seeders;
 
 use App\Models\FAQ;
-use App\Models\FAQCategory;
 use App\Models\Workspace;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
@@ -24,7 +23,6 @@ class FAQSeeder extends Seeder
             return;
         }
 
-        $categories = FAQCategory::where('workspace_id', $workspace->id)->get()->keyBy('slug');
 
         $faqs = [
             // Getting Started
@@ -189,13 +187,9 @@ class FAQSeeder extends Seeder
         ];
 
         foreach ($faqs as $data) {
-            $categorySlug = $data['category_slug'];
             unset($data['category_slug']);
 
             $data['workspace_id'] = $workspace->id;
-            $data['category_id'] = $categories->has($categorySlug)
-                ? $categories[$categorySlug]->id
-                : null;
             $data['is_active'] = true;
             $data['hit_count'] = rand(0, 5000);
             $data['last_used_at'] = (rand(1, 10) <= 8) ? now()->subDays(rand(1, 180)) : null;

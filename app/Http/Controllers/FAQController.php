@@ -25,13 +25,13 @@ class FAQController extends Controller
     /**
      * Display a listing of FAQs.
      */
-    public function index(Request $request): View|JsonResponse
+    public function index(Request $request): View|JsonResponse|RedirectResponse
     {
         if ($request->ajax() || $request->wantsJson() || $request->has('draw')) {
             return $this->faqService->getDataTables($request);
         }
 
-        return view('admin.faqs.index');
+        return redirect()->route('knowledge-base.index', ['tab' => 'faqs']);
     }
 
     /**
@@ -39,7 +39,14 @@ class FAQController extends Controller
      */
     public function create(): View
     {
-        return view('admin.faqs.create');
+        /** @var User|null $user */
+        $user = Auth::user();
+        $isSuperAdmin = $user && $user->hasRole(RoleEnum::SUPERADMIN->value);
+
+        return view('admin.faqs.create', [
+            'isSuperAdmin' => $isSuperAdmin,
+            'workspaces'   => $isSuperAdmin ? \App\Models\Workspace::orderBy('name')->get(['id', 'name']) : collect(),
+        ]);
     }
 
     /**
@@ -49,7 +56,11 @@ class FAQController extends Controller
     {
         $this->faqService->create($request->validated());
 
-        return redirect()->route('faqs.index')
+        $targetRoute = ($request->input('redirect_to') === 'hub' || str_contains((string) $request->header('referer'), 'knowledge-base'))
+            ? route('knowledge-base.index', ['tab' => 'faqs'])
+            : route('faqs.index');
+
+        return redirect($targetRoute)
             ->with('success', 'FAQ created successfully.');
     }
 
@@ -74,7 +85,11 @@ class FAQController extends Controller
 
         $this->faqService->update($faq, $request->validated());
 
-        return redirect()->route('faqs.index')
+        $targetRoute = ($request->input('redirect_to') === 'hub' || str_contains((string) $request->header('referer'), 'knowledge-base'))
+            ? route('knowledge-base.index', ['tab' => 'faqs'])
+            : route('faqs.index');
+
+        return redirect($targetRoute)
             ->with('success', 'FAQ updated successfully.');
     }
 
@@ -87,7 +102,11 @@ class FAQController extends Controller
 
         $this->faqService->delete($faq);
 
-        return redirect()->route('faqs.index')
+        $targetRoute = (request()->input('redirect_to') === 'hub' || str_contains((string) request()->header('referer'), 'knowledge-base'))
+            ? route('knowledge-base.index', ['tab' => 'faqs'])
+            : route('faqs.index');
+
+        return redirect($targetRoute)
             ->with('success', 'FAQ moved to trash.');
     }
 
@@ -98,7 +117,11 @@ class FAQController extends Controller
     {
         $this->faqService->restore($id);
 
-        return redirect()->route('faqs.index')
+        $targetRoute = (request()->input('redirect_to') === 'hub' || str_contains((string) request()->header('referer'), 'knowledge-base'))
+            ? route('knowledge-base.index', ['tab' => 'faqs'])
+            : route('faqs.index');
+
+        return redirect($targetRoute)
             ->with('success', 'FAQ restored successfully.');
     }
 

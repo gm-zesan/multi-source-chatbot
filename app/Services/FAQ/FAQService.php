@@ -6,7 +6,6 @@ namespace App\Services\FAQ;
 
 use App\Enums\RoleEnum;
 use App\Models\FAQ;
-use App\Models\FAQCategory;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\JsonResponse;
@@ -14,6 +13,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\ValidationException;
 use Yajra\DataTables\DataTables;
 
 class FAQService
@@ -28,6 +28,62 @@ class FAQService
     private function getWorkspaceId(): ?int
     {
         return Auth::user()?->workspace_id;
+    }
+
+    /**
+     * Resolve and validate the authorized workspace ID for FAQ mutations.
+     *
+     * @throws ValidationException
+     */
+    public function resolveAuthorizedWorkspaceId(?int $explicitWorkspaceId = null): int
+    {
+        /** @var User|null $user */
+        $user = Auth::user();
+
+        if (! $user) {
+            throw ValidationException::withMessages([
+                'workspace' => 'Unauthenticated user context.',
+            ]);
+        }
+
+        $isSuperAdmin = $user->hasRole(RoleEnum::SUPERADMIN->value);
+
+        if ($isSuperAdmin) {
+            if ($explicitWorkspaceId !== null && $explicitWorkspaceId > 0) {
+                $exists = \App\Models\Workspace::where('id', $explicitWorkspaceId)->exists();
+                if (! $exists) {
+                    throw ValidationException::withMessages([
+                        'workspace_id' => 'The selected workspace does not exist.',
+                    ]);
+                }
+
+                return $explicitWorkspaceId;
+            }
+
+            if ($user->workspace_id !== null && (int) $user->workspace_id > 0) {
+                return (int) $user->workspace_id;
+            }
+
+            throw ValidationException::withMessages([
+                'workspace_id' => 'No active workspace selected or found for superadmin context.',
+            ]);
+        }
+
+        // Regular tenant user
+        $userWorkspaceId = $user->workspace_id !== null ? (int) $user->workspace_id : 0;
+        if ($userWorkspaceId <= 0) {
+            throw ValidationException::withMessages([
+                'workspace_id' => 'No active workspace found for this user context.',
+            ]);
+        }
+
+        if ($explicitWorkspaceId !== null && $explicitWorkspaceId > 0 && $explicitWorkspaceId !== $userWorkspaceId) {
+            throw ValidationException::withMessages([
+                'workspace_id' => 'Unauthorized workspace selection. Users may only target their assigned workspace.',
+            ]);
+        }
+
+        return $userWorkspaceId;
     }
 
     /**
@@ -57,6 +113,12 @@ class FAQService
     {
         $query = $this->workspaceQuery();
 
+        /** @var User|null $user */
+        $user = Auth::user();
+        if ($user && $user->hasRole(RoleEnum::SUPERADMIN->value) && $request?->filled('workspace_id')) {
+            $query->where('workspace_id', (int) $request->input('workspace_id'));
+        }
+
         $status = $request?->input('status');
         if ($status === 'trashed') {
             $query->onlyTrashed();
@@ -70,7 +132,11 @@ class FAQService
 
         $typeGroup = $request?->input('type_group');
         if ($typeGroup === 'faq') {
-            $query->where('document_type', 'faq');
+            $query->where(function ($q) {
+                $q->where('document_type', 'faq')
+                  ->orWhereNull('document_type')
+                  ->orWhere('document_type', '');
+            });
         } elseif ($typeGroup === 'policy') {
             $query->whereIn('document_type', [
                 'refund_policy', 'return_policy', 'exchange_policy', 'delivery_policy',
@@ -86,15 +152,10 @@ class FAQService
             $query->where('document_type', $documentType);
         }
 
-        $faqs = $query->get();
-
-        return DataTables::of($faqs)
+        return DataTables::of($query)
             ->addIndexColumn()
             ->addColumn('question', function (FAQ $faq) {
                 return $faq->question;
-            })
-            ->addColumn('category', function (FAQ $faq) {
-                return $faq->category?->name ?? '<span class="text-muted">Uncategorized</span>';
             })
             ->addColumn('document_type', function (FAQ $faq) {
                 $label = $faq->documentTypeLabel();
@@ -137,26 +198,8 @@ class FAQService
                     'error'      => $faq->sync_error,
                 ];
             })
-            ->rawColumns(['category', 'document_type', 'hit_count', 'status_badge'])
+            ->rawColumns(['document_type', 'hit_count', 'status_badge'])
             ->make(true);
-    }
-
-    /**
-     * Get all active categories for the current workspace (for filters/dropdowns).
-     */
-    public function getCategories(): Collection
-    {
-        /** @var User|null $user */
-        $user = Auth::user();
-
-        $query = FAQCategory::where('is_active', true)->orderBy('order_column');
-
-        // Superadmin sees all categories; regular users scope by workspace
-        if (! $user || ! $user->hasRole(RoleEnum::SUPERADMIN->value)) {
-            $query->where('workspace_id', $this->getWorkspaceId());
-        }
-
-        return $query->get();
     }
 
     /**
@@ -164,8 +207,11 @@ class FAQService
      */
     public function create(array $data): FAQ
     {
-        $faq = DB::transaction(function () use ($data) {
-            $data['workspace_id'] = $this->getWorkspaceId();
+        $explicitWsId = isset($data['workspace_id']) && $data['workspace_id'] !== '' ? (int) $data['workspace_id'] : null;
+        $authorizedWsId = $this->resolveAuthorizedWorkspaceId($explicitWsId);
+
+        $faq = DB::transaction(function () use ($data, $authorizedWsId) {
+            $data['workspace_id'] = $authorizedWsId;
             $data['searchable_text'] = strip_tags(($data['question'] ?? '') . ' ' . ($data['answer'] ?? ''));
             $data['created_by'] = Auth::id();
 

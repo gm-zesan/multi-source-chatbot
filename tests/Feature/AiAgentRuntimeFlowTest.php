@@ -7,7 +7,6 @@ namespace Tests\Feature;
 use App\AI\Agents\KnowledgeSupportAgent;
 use App\AI\Tools\KnowledgeRetrievalTool;
 use App\Models\FAQ;
-use App\Models\FAQCategory;
 use App\Models\User;
 use App\Models\Workspace;
 use App\Services\FAQ\FAQSearch;
@@ -43,16 +42,8 @@ class AiAgentRuntimeFlowTest extends TestCase
         ]);
         $this->admin->assignRole('superadmin');
 
-        $category = FAQCategory::create([
-            'workspace_id' => $this->workspace->id,
-            'name' => 'Account & Billing',
-            'slug' => 'account-billing',
-            'is_active' => true,
-        ]);
-
         $this->faq = FAQ::create([
             'workspace_id' => $this->workspace->id,
-            'faq_category_id' => $category->id,
             'question' => 'How do I update my payment method?',
             'answer' => 'Go to Settings > Billing > Payment Methods. You can add a new credit card or PayPal account.',
             'priority' => 100,

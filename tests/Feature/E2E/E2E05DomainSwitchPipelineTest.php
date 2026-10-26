@@ -11,7 +11,6 @@ use App\Models\Channel;
 use App\Models\ChannelAccount;
 use App\Models\Conversation;
 use App\Models\FAQ;
-use App\Models\FAQCategory;
 use App\Models\Message;
 use App\Models\Workspace;
 use App\Services\AI\CustomerSupportService;
@@ -58,16 +57,8 @@ class E2E05DomainSwitchPipelineTest extends TestCase
             'last_direction'     => 'inbound',
         ]);
 
-        $category = FAQCategory::create([
-            'workspace_id' => $this->workspace->id,
-            'name'         => 'Refunds',
-            'slug'         => 'refunds-' . uniqid(),
-            'is_active'    => true,
-        ]);
-
         $this->faq = FAQ::create([
             'workspace_id' => $this->workspace->id,
-            'category_id'  => $category->id,
             'question'     => 'Return policy কী?',
             'answer'       => 'পণ্য হাতে পাওয়ার ৭ দিনের মধ্যে অক্ষত অবস্থায় রিটার্ন করতে পারবেন।',
             'is_active'    => true,

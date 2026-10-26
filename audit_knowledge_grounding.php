@@ -26,7 +26,6 @@ use App\AI\Agents\KnowledgeSupportAgent;
 use App\Models\ChannelAccount;
 use App\Models\Conversation;
 use App\Models\FAQ;
-use App\Models\FAQCategory;
 use App\Models\User;
 use App\Models\Workspace;
 use App\Services\AI\CustomerSupportService;
@@ -75,10 +74,9 @@ $accBeta = ChannelAccount::firstOrCreate(
 );
 
 // Seed Tenant Beta Private Knowledge
-$catBeta = FAQCategory::firstOrCreate(['workspace_id' => $wsBeta->id, 'name' => 'Beta Secret Policies'], ['slug' => 'beta-secret']);
 $ws2Faq = FAQ::firstOrCreate(
     ['workspace_id' => $wsBeta->id, 'question' => 'What is the private VIP direct line for Tenant Beta?'],
-    ['answer' => 'The private VIP direct phone line for Tenant Beta is +1-888-BETA-VIP-009. Strictly confidential.', 'category_id' => $catBeta->id, 'priority' => 100, 'is_active' => true]
+    ['answer' => 'The private VIP direct phone line for Tenant Beta is +1-888-BETA-VIP-009. Strictly confidential.', 'priority' => 100, 'is_active' => true]
 );
 $retrievalClient->syncFaq($ws2Faq);
 

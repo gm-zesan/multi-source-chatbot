@@ -30,7 +30,6 @@ class FAQ extends Model
      */
     protected $fillable = [
         'workspace_id',
-        'category_id',
         'document_type',
         'question',
         'answer',
@@ -53,8 +52,17 @@ class FAQ extends Model
         return in_array($this->document_type, [
             'terms', 'privacy_policy', 'refund_policy', 'return_policy',
             'exchange_policy', 'delivery_policy', 'payment_policy',
-            'cancellation_policy', 'warranty_policy', 'customer_support',
-            'social_media_policy',
+            'cancellation_policy', 'warranty_policy', 'social_media_policy',
+        ], true);
+    }
+
+    /**
+     * Determine if this record represents business information.
+     */
+    public function isBusinessInfo(): bool
+    {
+        return in_array($this->document_type, [
+            'about_us', 'contact', 'customer_support',
         ], true);
     }
 
@@ -75,7 +83,7 @@ class FAQ extends Model
             'cancellation_policy' => 'Cancellation Policy',
             'warranty_policy'     => 'Warranty Policy',
             'contact'             => 'Contact Information',
-            'customer_support'    => 'Customer Support Policy',
+            'customer_support'    => 'Customer Support Desk',
             'social_media_policy' => 'F-Commerce & Social Policy',
             default               => 'FAQ',
         };
@@ -102,10 +110,6 @@ class FAQ extends Model
         return $this->belongsTo(Workspace::class);
     }
 
-    public function category(): BelongsTo
-    {
-        return $this->belongsTo(FAQCategory::class, 'category_id');
-    }
 
     public function createdBy(): BelongsTo
     {

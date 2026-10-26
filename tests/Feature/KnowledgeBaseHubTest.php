@@ -137,12 +137,21 @@ class KnowledgeBaseHubTest extends TestCase
     }
 
     /**
-     * Requirement 7: Backward compatibility - existing routes remain accessible.
+     * Requirement 7: Legacy standalone page routes redirect to Hub while JSON endpoints remain accessible.
      */
-    public function test_backward_compatibility_existing_routes_remain_accessible(): void
+    public function test_legacy_standalone_page_routes_redirect_to_hub_and_no_longer_render_legacy_pages(): void
     {
-        $this->actingAs($this->userA)->get('/dashboard/faqs')->assertOk();
-        $this->actingAs($this->userA)->get('/dashboard/documents')->assertOk();
+        // 1. Browser GET /dashboard/faqs redirects to Hub faqs tab
+        $faqResponse = $this->actingAs($this->userA)->get('/dashboard/faqs');
+        $faqResponse->assertRedirect(route('knowledge-base.index', ['tab' => 'faqs']));
+
+        // 2. Browser GET /dashboard/documents redirects to Hub data_sources tab
+        $docResponse = $this->actingAs($this->userA)->get('/dashboard/documents');
+        $docResponse->assertRedirect(route('knowledge-base.index', ['tab' => 'data_sources']));
+
+        // 3. DataTables AJAX requests on legacy endpoints remain functional for backward compatibility
+        $this->actingAs($this->userA)->getJson('/dashboard/faqs')->assertOk();
+        $this->actingAs($this->userA)->getJson('/dashboard/documents')->assertOk();
     }
 
     /**
@@ -304,5 +313,360 @@ class KnowledgeBaseHubTest extends TestCase
         $dataB = $responseB->json('data');
         $this->assertCount(1, $dataB);
         $this->assertEquals('Tenant B Secret FAQ', $dataB[0]['question']);
+    }
+
+    /**
+     * Requirement A.1 & A.5: faq.view only -> FAQ data allowed; document data denied without leaking data.
+     */
+    public function test_user_with_only_faq_view_can_access_faqs_but_is_forbidden_from_documents(): void
+    {
+        $roleFaqOnly = Role::create([
+            'name'         => 'faq-only',
+            'guard_name'   => 'web',
+            'workspace_id' => $this->workspaceA->id,
+        ]);
+        $roleFaqOnly->givePermissionTo([FAQPermission::VIEW->value]);
+        $userFaqOnly = User::factory()->create([
+            'workspace_id' => $this->workspaceA->id,
+        ]);
+        $userFaqOnly->assignRole($roleFaqOnly);
+
+        FAQ::create([
+            'workspace_id'  => $this->workspaceA->id,
+            'question'      => 'FAQ Question Allowed',
+            'answer'        => 'Answer here',
+            'document_type' => 'faq',
+            'is_active'     => true,
+        ]);
+
+        KnowledgeDocument::create([
+            'workspace_id'      => $this->workspaceA->id,
+            'title'             => 'Secret Analytics Doc',
+            'original_filename' => 'doc.xlsx',
+            'file_path'         => 'documents/dummy.xlsx',
+            'mime_type'         => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'file_size'         => 1024,
+            'content_hash'      => 'hash-secret-doc',
+            'purpose'           => IngestionPurpose::DATA_ANALYTICS,
+            'lifecycle_status'  => \App\Enums\DocumentLifecycleStatus::ACTIVE,
+            'is_active'         => true,
+        ]);
+
+        // 1. Hub page access allowed; defaults to faqs; displays FAQ tabs but hides Data Sources tab
+        $pageResponse = $this->actingAs($userFaqOnly)->get('/dashboard/knowledge-base');
+        $pageResponse->assertOk();
+        $pageResponse->assertViewHas('activeTab', 'faqs');
+        $pageResponse->assertSee('FAQs (Q&A)', false);
+        $pageResponse->assertDontSee('Analytics Data Sources');
+
+        // 2. FAQ AJAX endpoint allowed and returns FAQ record
+        $faqResponse = $this->actingAs($userFaqOnly)->getJson('/dashboard/knowledge-base?source=faqs');
+        $faqResponse->assertOk();
+        $faqData = $faqResponse->json('data');
+        $this->assertNotEmpty($faqData);
+        $this->assertEquals('FAQ Question Allowed', $faqData[0]['question']);
+
+        // 3. Document AJAX endpoint returns 403 Forbidden without leaking documents
+        $docResponse = $this->actingAs($userFaqOnly)->getJson('/dashboard/knowledge-base?source=documents');
+        $docResponse->assertForbidden();
+        $this->assertStringNotContainsString('Secret Analytics Doc', $docResponse->getContent());
+    }
+
+    /**
+     * Requirement A.2 & A.5: knowledge_document.view only -> document data allowed; FAQ data denied without leaking data.
+     */
+    public function test_user_with_only_document_view_can_access_documents_but_is_forbidden_from_faqs(): void
+    {
+        $roleDocOnly = Role::create([
+            'name'         => 'doc-only',
+            'guard_name'   => 'web',
+            'workspace_id' => $this->workspaceA->id,
+        ]);
+        $roleDocOnly->givePermissionTo([KnowledgeDocumentPermission::VIEW->value]);
+        $userDocOnly = User::factory()->create([
+            'workspace_id' => $this->workspaceA->id,
+        ]);
+        $userDocOnly->assignRole($roleDocOnly);
+
+        FAQ::create([
+            'workspace_id'  => $this->workspaceA->id,
+            'question'      => 'Secret FAQ Item',
+            'answer'        => 'Answer here',
+            'document_type' => 'faq',
+            'is_active'     => true,
+        ]);
+
+        KnowledgeDocument::create([
+            'workspace_id'      => $this->workspaceA->id,
+            'title'             => 'Allowed Data Source',
+            'original_filename' => 'allowed.xlsx',
+            'file_path'         => 'documents/allowed.xlsx',
+            'mime_type'         => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'file_size'         => 1024,
+            'content_hash'      => 'hash-allowed-doc',
+            'purpose'           => IngestionPurpose::DATA_ANALYTICS,
+            'lifecycle_status'  => \App\Enums\DocumentLifecycleStatus::ACTIVE,
+            'is_active'         => true,
+        ]);
+
+        // 1. Hub page access allowed; defaults automatically to data_sources tab; hides FAQ tabs
+        $pageResponse = $this->actingAs($userDocOnly)->get('/dashboard/knowledge-base');
+        $pageResponse->assertOk();
+        $pageResponse->assertViewHas('activeTab', 'data_sources');
+        $pageResponse->assertSee('Analytics Data Sources');
+        $pageResponse->assertDontSee('FAQs (Q&A)');
+
+        // 2. Document AJAX endpoint allowed and returns document record
+        $docResponse = $this->actingAs($userDocOnly)->getJson('/dashboard/knowledge-base?source=documents');
+        $docResponse->assertOk();
+        $docData = $docResponse->json('data');
+        $this->assertNotEmpty($docData);
+        $this->assertEquals('Allowed Data Source', $docData[0]['title']);
+
+        // 3. FAQ AJAX endpoint returns 403 Forbidden without leaking FAQs
+        $faqResponse = $this->actingAs($userDocOnly)->getJson('/dashboard/knowledge-base?source=faqs');
+        $faqResponse->assertForbidden();
+        $this->assertStringNotContainsString('Secret FAQ Item', $faqResponse->getContent());
+    }
+
+    /**
+     * Requirement A.4 & C: Superadmin explicit workspace filtering in Hub DataTables.
+     */
+    public function test_superadmin_workspace_filtering_in_hub(): void
+    {
+        FAQ::create([
+            'workspace_id'  => $this->workspaceA->id,
+            'question'      => 'FAQ Workspace A',
+            'answer'        => 'Answer A',
+            'document_type' => 'faq',
+            'is_active'     => true,
+        ]);
+
+        FAQ::create([
+            'workspace_id'  => $this->workspaceB->id,
+            'question'      => 'FAQ Workspace B',
+            'answer'        => 'Answer B',
+            'document_type' => 'faq',
+            'is_active'     => true,
+        ]);
+
+        KnowledgeDocument::create([
+            'workspace_id'      => $this->workspaceA->id,
+            'title'             => 'Document Workspace A',
+            'original_filename' => 'doc_a.xlsx',
+            'file_path'         => 'documents/doc_a.xlsx',
+            'mime_type'         => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'file_size'         => 1024,
+            'content_hash'      => 'hash-doc-a',
+            'purpose'           => IngestionPurpose::DATA_ANALYTICS,
+            'lifecycle_status'  => \App\Enums\DocumentLifecycleStatus::ACTIVE,
+            'is_active'         => true,
+        ]);
+
+        KnowledgeDocument::create([
+            'workspace_id'      => $this->workspaceB->id,
+            'title'             => 'Document Workspace B',
+            'original_filename' => 'doc_b.xlsx',
+            'file_path'         => 'documents/doc_b.xlsx',
+            'mime_type'         => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'file_size'         => 1024,
+            'content_hash'      => 'hash-doc-b',
+            'purpose'           => IngestionPurpose::DATA_ANALYTICS,
+            'lifecycle_status'  => \App\Enums\DocumentLifecycleStatus::ACTIVE,
+            'is_active'         => true,
+        ]);
+
+        // 1. Superadmin without workspace_id filter sees all records
+        $allFaqs = $this->actingAs($this->superAdmin)->getJson('/dashboard/knowledge-base?source=faqs');
+        $allFaqs->assertOk();
+        $this->assertCount(2, $allFaqs->json('data'));
+
+        // 2. Superadmin filtering by workspace A receives only workspace A FAQs
+        $wsAFaqs = $this->actingAs($this->superAdmin)->getJson('/dashboard/knowledge-base?source=faqs&workspace_id=' . $this->workspaceA->id);
+        $wsAFaqs->assertOk();
+        $this->assertCount(1, $wsAFaqs->json('data'));
+        $this->assertEquals('FAQ Workspace A', $wsAFaqs->json('data.0.question'));
+
+        // 3. Superadmin filtering by workspace A receives only workspace A Documents
+        $wsADocs = $this->actingAs($this->superAdmin)->getJson('/dashboard/knowledge-base?source=documents&workspace_id=' . $this->workspaceA->id);
+        $wsADocs->assertOk();
+        $this->assertCount(1, $wsADocs->json('data'));
+        $this->assertEquals('Document Workspace A', $wsADocs->json('data.0.title'));
+    }
+
+    /**
+     * Requirement B: Missing workspace on Superadmin FAQ creation fails with validation error.
+     */
+    public function test_superadmin_creating_faq_without_workspace_fails_with_validation_error(): void
+    {
+        $response = $this->actingAs($this->superAdmin)->postJson('/dashboard/faqs', [
+            'question'      => 'Superadmin Question without workspace',
+            'answer'        => 'Some answer',
+            'document_type' => 'faq',
+            'priority'      => 0,
+            'is_active'     => 1,
+        ]);
+
+        $response->assertStatus(422);
+        $response->assertJsonValidationErrors(['workspace_id']);
+        $this->assertDatabaseMissing('faqs', [
+            'question' => 'Superadmin Question without workspace',
+        ]);
+    }
+
+    /**
+     * Requirement B: Invalid workspace on Superadmin FAQ creation fails with validation error.
+     */
+    public function test_superadmin_creating_faq_with_invalid_workspace_fails_validation(): void
+    {
+        $response = $this->actingAs($this->superAdmin)->postJson('/dashboard/faqs', [
+            'workspace_id'  => 999999,
+            'question'      => 'Superadmin Question with invalid workspace',
+            'answer'        => 'Some answer',
+            'document_type' => 'faq',
+            'priority'      => 0,
+            'is_active'     => 1,
+        ]);
+
+        $response->assertStatus(422);
+        $response->assertJsonValidationErrors(['workspace_id']);
+        $this->assertDatabaseMissing('faqs', [
+            'question' => 'Superadmin Question with invalid workspace',
+        ]);
+    }
+
+    /**
+     * Requirement B: Valid Superadmin workspace selection creates FAQ successfully.
+     */
+    public function test_superadmin_creating_faq_with_valid_workspace_succeeds(): void
+    {
+        $response = $this->actingAs($this->superAdmin)->post('/dashboard/faqs', [
+            'workspace_id'  => $this->workspaceA->id,
+            'question'      => 'Superadmin Valid FAQ',
+            'answer'        => 'Some valid answer',
+            'document_type' => 'faq',
+            'priority'      => 1,
+            'is_active'     => 1,
+        ]);
+
+        $response->assertSessionHasNoErrors();
+        $this->assertDatabaseHas('faqs', [
+            'workspace_id' => $this->workspaceA->id,
+            'question'     => 'Superadmin Valid FAQ',
+        ]);
+    }
+
+    /**
+     * Requirement B: Regular user cannot override their assigned workspace_id.
+     */
+    public function test_regular_user_cannot_override_workspace_id_on_faq_creation(): void
+    {
+        $response = $this->actingAs($this->userA)->postJson('/dashboard/faqs', [
+            'workspace_id'  => $this->workspaceB->id,
+            'question'      => 'Attacker attempt to override workspace',
+            'answer'        => 'Exploit attempt',
+            'document_type' => 'faq',
+            'priority'      => 0,
+            'is_active'     => 1,
+        ]);
+
+        $response->assertStatus(422);
+        $response->assertJsonValidationErrors(['workspace_id']);
+        $this->assertDatabaseMissing('faqs', [
+            'question' => 'Attacker attempt to override workspace',
+        ]);
+    }
+
+    /**
+     * Requirement D: Legacy FAQs whose document_type is NULL or empty remain visible under FAQs tab.
+     */
+    public function test_legacy_faq_with_null_or_empty_document_type_is_visible_under_faqs_tab(): void
+    {
+        FAQ::create([
+            'workspace_id'  => $this->workspaceA->id,
+            'question'      => 'Legacy FAQ With Empty Document Type',
+            'answer'        => 'Legacy answer 2',
+            'document_type' => '',
+            'is_active'     => true,
+        ]);
+
+        FAQ::create([
+            'workspace_id'  => $this->workspaceA->id,
+            'question'      => 'Valid Policy Question',
+            'answer'        => 'Policy answer',
+            'document_type' => 'return_policy',
+            'is_active'     => true,
+        ]);
+
+        // 1. FAQs tab query (type_group=faq) returns empty document_type legacy record
+        $faqResponse = $this->actingAs($this->userA)->getJson('/dashboard/faqs?type_group=faq');
+        $faqResponse->assertOk();
+        $faqData = $faqResponse->json('data');
+        $questions = array_column($faqData, 'question');
+        $this->assertContains('Legacy FAQ With Empty Document Type', $questions);
+        $this->assertNotContains('Valid Policy Question', $questions);
+
+        // 2. Policies tab does NOT include the legacy empty FAQs
+        $policyResponse = $this->actingAs($this->userA)->getJson('/dashboard/faqs?type_group=policy');
+        $policyResponse->assertOk();
+        $policyQuestions = array_column($policyResponse->json('data'), 'question');
+        $this->assertNotContains('Legacy FAQ With Empty Document Type', $policyQuestions);
+        $this->assertContains('Valid Policy Question', $policyQuestions);
+
+        // 3. Business Info tab does NOT include the legacy empty FAQs
+        $bizResponse = $this->actingAs($this->userA)->getJson('/dashboard/faqs?type_group=business_info');
+        $bizResponse->assertOk();
+        $bizQuestions = array_column($bizResponse->json('data'), 'question');
+        $this->assertNotContains('Legacy FAQ With Empty Document Type', $bizQuestions);
+    }
+
+    /**
+     * Requirement D: Customer support classification / badge consistency.
+     */
+    public function test_customer_support_document_type_classified_as_business_info_consistently(): void
+    {
+        $csFaq = FAQ::create([
+            'workspace_id'  => $this->workspaceA->id,
+            'question'      => 'Support Desk Details',
+            'answer'        => 'Reach out anytime',
+            'document_type' => 'customer_support',
+            'is_active'     => true,
+        ]);
+
+        $this->assertFalse($csFaq->isPolicy());
+        $this->assertTrue($csFaq->isBusinessInfo());
+        $this->assertEquals('Customer Support Desk', $csFaq->documentTypeLabel());
+
+        $bizResponse = $this->actingAs($this->userA)->getJson('/dashboard/faqs?type_group=business_info');
+        $bizResponse->assertOk();
+        $bizQuestions = array_column($bizResponse->json('data'), 'question');
+        $this->assertContains('Support Desk Details', $bizQuestions);
+    }
+
+    /**
+     * Requirement D: Post-action redirect flow to Hub tab while preserving legacy routes.
+     */
+    public function test_faq_post_action_redirects_to_hub_when_specified_and_preserves_legacy_route(): void
+    {
+        // 1. With redirect_to = hub -> redirects to knowledge-base hub
+        $hubResponse = $this->actingAs($this->userA)->post('/dashboard/faqs', [
+            'question'      => 'Redirect to Hub Test',
+            'answer'        => 'Some answer',
+            'document_type' => 'faq',
+            'priority'      => 0,
+            'is_active'     => 1,
+            'redirect_to'   => 'hub',
+        ]);
+        $hubResponse->assertRedirect(route('knowledge-base.index', ['tab' => 'faqs']));
+
+        // 2. Without redirect_to (legacy API / form) -> preserves route('faqs.index')
+        $legacyResponse = $this->actingAs($this->userA)->post('/dashboard/faqs', [
+            'question'      => 'Legacy Redirect Test',
+            'answer'        => 'Some answer',
+            'document_type' => 'faq',
+            'priority'      => 0,
+            'is_active'     => 1,
+        ]);
+        $legacyResponse->assertRedirect(route('faqs.index'));
     }
 }

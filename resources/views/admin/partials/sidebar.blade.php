@@ -44,6 +44,7 @@
             </li>
 
             <!-- Knowledge Base Section -->
+            @canany([\App\Enums\Permissions\FAQPermission::VIEW->value, \App\Enums\Permissions\KnowledgeDocumentPermission::VIEW->value])
             <li class="nav-section">
                 <span class="nav-section-title">Knowledge Base</span>
             </li>
@@ -53,6 +54,7 @@
                     <span class="nav-label">Knowledge Base</span>
                 </a>
             </li>
+            @endcanany
 
             <!-- Users & Roles Section -->
             <li class="nav-section">

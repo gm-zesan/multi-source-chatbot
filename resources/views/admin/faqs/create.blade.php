@@ -7,6 +7,7 @@
     <div class="container-fluid">
         <form action="{{ route('faqs.store') }}" method="POST" autocomplete="off">
             @csrf
+            <input type="hidden" name="redirect_to" value="hub">
             <div class="row">
                 <div class="col-md-8 col-12">
                     <div class="card table-card">
@@ -19,13 +20,13 @@
                                             <a href="{{ route('dashboard') }}">Dashboard</a>
                                         </li>
                                         <li class="breadcrumb-item">
-                                            <a href="{{ route('faqs.index') }}">FAQs</a>
+                                            <a href="{{ route('knowledge-base.index', ['tab' => 'faqs']) }}">Knowledge Base</a>
                                         </li>
                                         <li class="breadcrumb-item active" aria-current="page">Create FAQ</li>
                                     </ol>
                                 </nav>
                             </div>
-                            <a href="{{ route('faqs.index') }}" class="add-new">FAQ List<i class="ms-1 ri-list-ordered-2"></i></a>
+                            <a href="{{ route('knowledge-base.index', ['tab' => 'faqs']) }}" class="add-new">FAQ List<i class="ms-1 ri-list-ordered-2"></i></a>
                         </div>
                         <div class="card-body custom-form">
                             <div class="mb-3">
@@ -61,6 +62,26 @@
                             <div class="table-title">Classification & Settings</div>
                         </div>
                         <div class="card-body custom-form">
+                            @if (!empty($isSuperAdmin) && isset($workspaces) && count($workspaces) > 0)
+                                <div class="mb-3">
+                                    <label for="workspace_id" class="form-label custom-label">Target Workspace <span class="text-danger">*</span></label>
+                                    <select name="workspace_id" id="workspace_id" class="form-control custom-input single-select2 @error('workspace_id') is-invalid @enderror @error('workspace') is-invalid @enderror">
+                                        <option value="">Select Workspace</option>
+                                        @foreach ($workspaces as $ws)
+                                            <option value="{{ $ws->id }}" {{ old('workspace_id') == $ws->id ? 'selected' : '' }}>
+                                                {{ $ws->name }}
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                    @error('workspace_id')
+                                        <div class="error_msg">{{ $message }}</div>
+                                    @enderror
+                                    @error('workspace')
+                                        <div class="error_msg">{{ $message }}</div>
+                                    @enderror
+                                </div>
+                            @endif
+
                             <div class="mb-3">
                                 <label for="document_type" class="form-label custom-label">Policy / Document Type <span class="text-danger">*</span></label>
                                 <select name="document_type" id="document_type" class="form-control custom-input single-select2 @error('document_type') is-invalid @enderror">
@@ -123,7 +144,7 @@
                                         </button>
                                     </div>
                                     <div class="col-6">
-                                        <a href="{{ route('faqs.index') }}" class="btn cancel-button">Cancel</a>
+                                        <a href="{{ route('knowledge-base.index', ['tab' => 'faqs']) }}" class="btn cancel-button">Cancel</a>
                                     </div>
                                 </div>
                             </div>

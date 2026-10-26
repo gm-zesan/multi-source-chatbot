@@ -13,7 +13,6 @@ use App\Models\Channel;
 use App\Models\ChannelAccount;
 use App\Models\Conversation;
 use App\Models\FAQ;
-use App\Models\FAQCategory;
 use App\Models\Message;
 use App\Models\Workspace;
 use App\Services\FAQ\FAQSearch;
@@ -63,30 +62,16 @@ class ProductionMessagingPipelineTest extends TestCase
         ]);
 
         // Setup FAQs
-        $catA = FAQCategory::create([
-            'workspace_id' => $this->workspaceA->id,
-            'name' => 'Orders A',
-            'slug' => 'orders-a',
-            'is_active' => true,
-        ]);
         $this->faqA = FAQ::create([
             'workspace_id' => $this->workspaceA->id,
-            'faq_category_id' => $catA->id,
             'question' => 'What is the return policy for Store A?',
             'answer' => 'Store A allows 30-day returns with receipt.',
             'is_active' => true,
             'is_searchable' => true,
         ]);
 
-        $catB = FAQCategory::create([
-            'workspace_id' => $this->workspaceB->id,
-            'name' => 'Orders B',
-            'slug' => 'orders-b',
-            'is_active' => true,
-        ]);
         $this->faqB = FAQ::create([
             'workspace_id' => $this->workspaceB->id,
-            'faq_category_id' => $catB->id,
             'question' => 'What is the return policy for Store B?',
             'answer' => 'Store B has a strict all-sales-final policy.',
             'is_active' => true,

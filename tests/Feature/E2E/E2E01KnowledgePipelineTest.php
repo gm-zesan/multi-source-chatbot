@@ -11,7 +11,6 @@ use App\Models\Channel;
 use App\Models\ChannelAccount;
 use App\Models\Conversation;
 use App\Models\FAQ;
-use App\Models\FAQCategory;
 use App\Models\Workspace;
 use App\Services\AI\CustomerSupportService;
 use App\Services\FAQ\FAQSearch;
@@ -57,16 +56,8 @@ class E2E01KnowledgePipelineTest extends TestCase
             'last_direction'     => 'inbound',
         ]);
 
-        $category = FAQCategory::create([
-            'workspace_id' => $this->workspace->id,
-            'name'         => 'Delivery',
-            'slug'         => 'delivery-' . uniqid(),
-            'is_active'    => true,
-        ]);
-
         $this->faq = FAQ::create([
             'workspace_id' => $this->workspace->id,
-            'category_id'  => $category->id,
             'question'     => 'ডেলিভারি চার্জ কত?',
             'answer'       => 'ঢাকার ভেতরে ডেলিভারি চার্জ ৬০ টাকা এবং ঢাকার বাইরে ১২০ টাকা।',
             'is_active'    => true,

@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Tests\Feature\Live;
 
 use App\Models\FAQ;
-use App\Models\FAQCategory;
 use App\Models\Workspace;
 use App\Services\AI\CustomerSupportService;
 use Dotenv\Dotenv;
@@ -64,16 +63,9 @@ class LiveCustomerSupportSmokeTest extends BaseLiveTestCase
             ['name' => 'Entrepreneurs Automation', 'is_active' => true]
         );
 
-        // Seed basic FAQ fixture for knowledge retrieval resolution in test DB
-        $category = FAQCategory::firstOrCreate(
-            ['slug' => 'policy', 'workspace_id' => $this->workspace->id],
-            ['name' => 'Policy', 'is_active' => true]
-        );
-
         FAQ::firstOrCreate(
             ['workspace_id' => $this->workspace->id, 'question' => 'রিটার্ন পলিসি কি?'],
             [
-                'category_id' => $category->id,
                 'answer'      => 'আমাদের রিটার্ন পলিসি অনুযায়ী, ডেলিভারির ৭ দিনের মধ্যে পণ্য রিটার্ন করা যায়।',
                 'is_active'   => true,
             ]

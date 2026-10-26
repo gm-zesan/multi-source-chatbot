@@ -7,7 +7,6 @@ namespace Tests\Feature;
 use App\AI\Agents\KnowledgeSupportAgent;
 use App\Enums\FaqLifecycleStatus;
 use App\Models\FAQ;
-use App\Models\FAQCategory;
 use App\Models\User;
 use App\Models\Workspace;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -20,7 +19,6 @@ class ChatSimulatorTest extends TestCase
 
     private User $admin;
     private Workspace $workspace;
-    private FAQCategory $category;
 
     protected function setUp(): void
     {
@@ -35,13 +33,6 @@ class ChatSimulatorTest extends TestCase
             'workspace_id' => $this->workspace->id,
         ]);
         $this->admin->assignRole('superadmin');
-
-        $this->category = FAQCategory::create([
-            'workspace_id' => $this->workspace->id,
-            'name'         => 'General Support',
-            'slug'         => 'general-support',
-            'is_active'    => true,
-        ]);
 
         $routerMock = \Mockery::mock(\App\AI\Routing\HybridRouter::class);
         $routerMock->shouldReceive('route')
@@ -63,7 +54,6 @@ class ChatSimulatorTest extends TestCase
     {
         FAQ::create([
             'workspace_id'     => $this->workspace->id,
-            'category_id'      => $this->category->id,
             'question'         => 'How long is delivery?',
             'answer'           => 'Our standard delivery time is 3-5 business days.',
             'lifecycle_status' => FaqLifecycleStatus::ACTIVE,

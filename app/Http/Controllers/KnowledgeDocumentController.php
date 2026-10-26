@@ -25,7 +25,7 @@ class KnowledgeDocumentController extends Controller
     /**
      * Display a listing of knowledge documents.
      */
-    public function index(Request $request): View|JsonResponse
+    public function index(Request $request): View|JsonResponse|RedirectResponse
     {
         $this->authorizeAction(KnowledgeDocumentPermission::VIEW->value);
 
@@ -33,7 +33,7 @@ class KnowledgeDocumentController extends Controller
             return $this->documentService->getDataTables($request);
         }
 
-        return view('admin.documents.index');
+        return redirect()->route('knowledge-base.index', ['tab' => 'data_sources']);
     }
 
     /**
@@ -65,12 +65,16 @@ class KnowledgeDocumentController extends Controller
             $document = $this->documentService->store($file, $title, $purpose, $explicitWorkspaceId);
         }
 
+        $targetRoute = ($request->input('redirect_to') === 'hub' || str_contains((string) $request->header('referer'), 'knowledge-base'))
+            ? route('knowledge-base.index', ['tab' => 'data_sources'])
+            : route('documents.index');
+
         if ($document->hasFailed()) {
-            return redirect()->route('documents.index')
+            return redirect($targetRoute)
                 ->with('error', 'Document uploaded, but registration failed: ' . ($document->error_message ?? 'Unknown error.'));
         }
 
-        return redirect()->route('documents.index')
+        return redirect($targetRoute)
             ->with('success', 'Document uploaded and registered successfully.');
     }
 
@@ -131,12 +135,16 @@ class KnowledgeDocumentController extends Controller
 
         $result = $this->documentService->delete($document);
 
+        $targetRoute = (request()->input('redirect_to') === 'hub' || str_contains((string) request()->header('referer'), 'knowledge-base'))
+            ? route('knowledge-base.index', ['tab' => 'data_sources'])
+            : route('documents.index');
+
         if (! empty($result['cleanup_warning'])) {
-            return redirect()->route('documents.index')
+            return redirect($targetRoute)
                 ->with('error', 'Document moved to trash, but ' . $result['cleanup_warning']);
         }
 
-        return redirect()->route('documents.index')
+        return redirect($targetRoute)
             ->with('success', 'Document deleted successfully.');
     }
 
@@ -149,7 +157,11 @@ class KnowledgeDocumentController extends Controller
 
         $this->documentService->restore($id);
 
-        return redirect()->route('documents.index')
+        $targetRoute = (request()->input('redirect_to') === 'hub' || str_contains((string) request()->header('referer'), 'knowledge-base'))
+            ? route('knowledge-base.index', ['tab' => 'data_sources'])
+            : route('documents.index');
+
+        return redirect($targetRoute)
             ->with('success', 'Document restored successfully.');
     }
 
@@ -162,12 +174,16 @@ class KnowledgeDocumentController extends Controller
 
         $document = $this->documentService->retry($id);
 
+        $targetRoute = (request()->input('redirect_to') === 'hub' || str_contains((string) request()->header('referer'), 'knowledge-base'))
+            ? route('knowledge-base.index', ['tab' => 'data_sources'])
+            : route('documents.index');
+
         if ($document->hasFailed()) {
-            return redirect()->route('documents.index')
+            return redirect($targetRoute)
                 ->with('error', 'Retry failed: ' . ($document->error_message ?? 'Unknown error.'));
         }
 
-        return redirect()->route('documents.index')
+        return redirect($targetRoute)
             ->with('success', 'Document reprocessed and registered successfully.');
     }
 

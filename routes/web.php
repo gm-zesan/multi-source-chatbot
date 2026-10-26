@@ -8,7 +8,6 @@ use App\Http\Controllers\AssignRoleController;
 use App\Http\Controllers\ChatSimulatorController;
 use App\Http\Controllers\ContactFormController;
 use App\Http\Controllers\DashboardController;
-use App\Http\Controllers\FAQCategoryController;
 use App\Http\Controllers\FAQController;
 use App\Http\Controllers\HealthController;
 use App\Http\Controllers\ObservabilityController;
@@ -108,21 +107,6 @@ Route::middleware('auth')->prefix('dashboard')->group(function () {
             KnowledgeDocumentPermission::VIEW->value,
         ]));
 
-    // ── FAQ Categories ─────────────────────────────────────────────────
-    Route::resource('/faq-categories', FAQCategoryController::class)->except(['show'])
-        ->middleware('permission:' . implode('|', [
-            \App\Enums\Permissions\FAQPermission::VIEW->value,
-            \App\Enums\Permissions\FAQPermission::CREATE->value,
-            \App\Enums\Permissions\FAQPermission::UPDATE->value,
-            \App\Enums\Permissions\FAQPermission::DELETE->value,
-        ]));
-    Route::post('/faq-categories/{faqCategory}/toggle-active', [FAQCategoryController::class, 'toggleActive'])
-        ->name('faq-categories.toggle-active')
-        ->middleware('permission:' . \App\Enums\Permissions\FAQPermission::UPDATE->value);
-    Route::post('/faq-categories/{id}/restore', [FAQCategoryController::class, 'restore'])
-        ->name('faq-categories.restore')
-        ->withTrashed()
-        ->middleware('permission:' . \App\Enums\Permissions\FAQPermission::UPDATE->value);
 
     // ── FAQs ────────────────────────────────────────────────────────────
     Route::resource('/faqs', FAQController::class)->except(['show'])

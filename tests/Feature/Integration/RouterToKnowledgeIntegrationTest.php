@@ -12,7 +12,6 @@ use App\Models\Channel;
 use App\Models\ChannelAccount;
 use App\Models\Conversation;
 use App\Models\FAQ;
-use App\Models\FAQCategory;
 use App\Models\Workspace;
 use App\Services\AI\CustomerSupportService;
 use App\Services\AI\SemanticAnswerabilityGate;
@@ -29,7 +28,6 @@ class RouterToKnowledgeIntegrationTest extends TestCase
     private ChannelAccount $channelAccount;
     private Conversation $conversation;
     private CustomerSupportService $supportService;
-    private FAQCategory $category;
 
     protected function setUp(): void
     {
@@ -61,13 +59,6 @@ class RouterToKnowledgeIntegrationTest extends TestCase
             'last_direction'     => 'inbound',
         ]);
 
-        $this->category = FAQCategory::create([
-            'workspace_id' => $this->workspace->id,
-            'name'         => 'Policies',
-            'slug'         => 'policies',
-            'is_active'    => true,
-        ]);
-
         $this->supportService = app(CustomerSupportService::class);
     }
 
@@ -95,7 +86,6 @@ class RouterToKnowledgeIntegrationTest extends TestCase
 
         $faq = FAQ::create([
             'workspace_id' => $this->workspace->id,
-            'category_id'  => $this->category->id,
             'question'     => 'আপনাদের রিটার্ন পলিসি কি?',
             'answer'       => 'পণ্য হাতে পাওয়ার ৭ দিনের মধ্যে অক্ষত অবস্থায় রিটার্ন করতে পারবেন।',
             'is_active'    => true,

@@ -105,28 +105,43 @@
                     <div class="card-body">
                         {{-- Content Type Navigation Pills --}}
                         <div class="kb-pill-tabs">
-                            <button type="button" class="kb-pill-btn {{ $activeTab === 'faqs' ? 'active' : '' }}"
-                                id="tab-btn-faqs" onclick="switchTab('faqs')">
-                                <i class="ri-question-answer-line me-1"></i>FAQs (Q&A)
-                            </button>
-                            <button type="button" class="kb-pill-btn {{ $activeTab === 'policies' ? 'active' : '' }}"
-                                id="tab-btn-policies" onclick="switchTab('policies')">
-                                <i class="ri-shield-check-line me-1"></i>Policies
-                            </button>
-                            <button type="button" class="kb-pill-btn {{ $activeTab === 'business_info' ? 'active' : '' }}"
-                                id="tab-btn-business_info" onclick="switchTab('business_info')">
-                                <i class="ri-building-line me-1"></i>Business Information
-                            </button>
-                            <button type="button" class="kb-pill-btn {{ $activeTab === 'data_sources' ? 'active' : '' }}"
-                                id="tab-btn-data_sources" onclick="switchTab('data_sources')">
-                                <i class="ri-bar-chart-2-line me-1"></i>Analytics Data Sources
-                            </button>
+                            @if ($canViewFaqs)
+                                <button type="button" class="kb-pill-btn {{ $activeTab === 'faqs' ? 'active' : '' }}"
+                                    id="tab-btn-faqs" onclick="switchTab('faqs')">
+                                    <i class="ri-question-answer-line me-1"></i>FAQs (Q&A)
+                                </button>
+                                <button type="button" class="kb-pill-btn {{ $activeTab === 'policies' ? 'active' : '' }}"
+                                    id="tab-btn-policies" onclick="switchTab('policies')">
+                                    <i class="ri-shield-check-line me-1"></i>Policies
+                                </button>
+                                <button type="button" class="kb-pill-btn {{ $activeTab === 'business_info' ? 'active' : '' }}"
+                                    id="tab-btn-business_info" onclick="switchTab('business_info')">
+                                    <i class="ri-building-line me-1"></i>Business Information
+                                </button>
+                            @endif
+                            @if ($canViewDocs)
+                                <button type="button" class="kb-pill-btn {{ $activeTab === 'data_sources' ? 'active' : '' }}"
+                                    id="tab-btn-data_sources" onclick="switchTab('data_sources')">
+                                    <i class="ri-bar-chart-2-line me-1"></i>Analytics Data Sources
+                                </button>
+                            @endif
                         </div>
 
                         {{-- Section 1: FAQ, Policies, and Business Information Table --}}
                         <div id="faq-table-container"
                             class="{{ in_array($activeTab, ['faqs', 'policies', 'business_info']) ? '' : 'd-none' }}">
                             <div class="row g-2 mb-3">
+                                @if (!empty($isSuperAdmin) && isset($workspaces) && count($workspaces) > 0)
+                                    <div class="col-md-3 col-sm-6">
+                                        <select id="faq-workspace-filter" class="form-select form-select-sm hub-workspace-select"
+                                            onchange="reloadTablesOnWorkspaceChange(this.value)">
+                                            <option value="">All Workspaces</option>
+                                            @foreach ($workspaces as $ws)
+                                                <option value="{{ $ws->id }}">{{ $ws->name }}</option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+                                @endif
                                 <div class="col-md-3 col-sm-6">
                                     <select id="faq-status-filter" class="form-select form-select-sm"
                                         onchange="reloadFaqTable()">
@@ -160,6 +175,17 @@
                         <div id="doc-table-container"
                             class="{{ in_array($activeTab, ['data_sources', 'documents']) ? '' : 'd-none' }}">
                             <div class="row g-2 mb-3">
+                                @if (!empty($isSuperAdmin) && isset($workspaces) && count($workspaces) > 0)
+                                    <div class="col-md-3 col-sm-6">
+                                        <select id="doc-workspace-filter" class="form-select form-select-sm hub-workspace-select"
+                                            onchange="reloadTablesOnWorkspaceChange(this.value)">
+                                            <option value="">All Workspaces</option>
+                                            @foreach ($workspaces as $ws)
+                                                <option value="{{ $ws->id }}">{{ $ws->name }}</option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+                                @endif
                                 <div class="col-md-3 col-sm-6">
                                     <select id="doc-status-filter" class="form-select form-select-sm"
                                         onchange="reloadDocTable()">
@@ -451,6 +477,12 @@
                 }
             }
 
+            function reloadTablesOnWorkspaceChange(val) {
+                $('.hub-workspace-select').val(val);
+                reloadFaqTable();
+                reloadDocTable();
+            }
+
             function triggerResync(faqId) {
                 swal({
                     title: "Re-sync to Vector Engine?",
@@ -459,7 +491,7 @@
                     buttons: ["Cancel", "Sync Now"],
                 }).then((willSync) => {
                     if (willSync) {
-                        fetch(`/dashboard/faqs/${faqId}/resync`, {
+                        fetch(`${SITEURL}/dashboard/faqs/${faqId}/resync`, {
                             method: 'POST',
                             headers: {
                                 'X-CSRF-TOKEN': '{{ csrf_token() }}',
@@ -479,6 +511,7 @@
             }
 
             document.addEventListener('DOMContentLoaded', function () {
+                @if ($canViewFaqs)
                 // 1. Initialize FAQ & Policies DataTable
                 faqDataTable = $('#faq-data-table').DataTable({
                     processing: true,
@@ -495,6 +528,7 @@
                                 d.type_group = 'faq';
                             }
                             d.status = $('#faq-status-filter').val();
+                            d.workspace_id = $('#faq-workspace-filter').length ? $('#faq-workspace-filter').val() : '';
                         },
                         error: function (xhr, error, code) {
                             console.error('FAQ DataTable Error:', error, code, xhr);
@@ -542,7 +576,7 @@
                                 if (trashed) {
                                     return `
                                             <div class="d-flex align-items-center">
-                                                <form action="/dashboard/faqs/${id}/restore" method="POST" style="display:inline-block;">
+                                                <form action="${SITEURL}/dashboard/faqs/${id}/restore" method="POST" style="display:inline-block;">
                                                     @csrf
                                                     <button type="submit" class="btn btn-sm btn-outline-success me-1" title="Restore FAQ">
                                                         <i class="ri-refresh-line"></i> Restore
@@ -555,10 +589,10 @@
                                 return `
                                         <div class="d-flex align-items-center">
                                             ${resyncBtn}
-                                            <a href="/dashboard/faqs/${id}/edit" class="btn btn-sm btn-outline-primary me-1" title="Edit">
+                                            <a href="${SITEURL}/dashboard/faqs/${id}/edit" class="btn btn-sm btn-outline-primary me-1" title="Edit">
                                                 <i class="ri-pencil-line"></i>
                                             </a>
-                                            <form action="/dashboard/faqs/${id}" method="POST" onsubmit="return confirm('Are you sure you want to delete this FAQ?');" style="display:inline-block;">
+                                            <form action="${SITEURL}/dashboard/faqs/${id}" method="POST" onsubmit="return confirm('Are you sure you want to delete this FAQ?');" style="display:inline-block;">
                                                 @csrf
                                                 @method('DELETE')
                                                 <button type="submit" class="btn btn-sm btn-outline-danger" title="Delete">
@@ -571,7 +605,9 @@
                         }
                     ]
                 });
+                @endif
 
+                @if ($canViewDocs)
                 // 2. Initialize Documents & Data Sources DataTable
                 docDataTable = $('#doc-data-table').DataTable({
                     processing: true,
@@ -582,6 +618,7 @@
                             d.source = 'documents';
                             d.purpose = 'data_analytics';
                             d.status = $('#doc-status-filter').val();
+                            d.workspace_id = $('#doc-workspace-filter').length ? $('#doc-workspace-filter').val() : '';
                         },
                         error: function (xhr, error, code) {
                             console.error('Doc DataTable Error:', error, code, xhr);
@@ -675,6 +712,7 @@
                         }
                     ]
                 });
+                @endif
 
                 // Delegate click on view buttons and title links to open the document details modal
                 $(document).on('click', '.btn-view-doc', function (e) {

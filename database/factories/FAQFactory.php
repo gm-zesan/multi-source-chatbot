@@ -3,7 +3,6 @@
 namespace Database\Factories;
 
 use App\Models\FAQ;
-use App\Models\FAQCategory;
 use App\Models\Workspace;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
@@ -77,7 +76,6 @@ class FAQFactory extends Factory
         return [
             'workspace_id' => fn () => Workspace::inRandomOrder()->first()?->id
                 ?? Workspace::create(['name' => 'Default', 'slug' => 'default'])->id,
-            'category_id' => null,
             'question' => $faq['question'],
             'answer' => $faq['answer'],
             'searchable_text' => null,
@@ -88,15 +86,6 @@ class FAQFactory extends Factory
         ];
     }
 
-    /**
-     * Assign this FAQ to a specific category.
-     */
-    public function inCategory(FAQCategory $category): static
-    {
-        return $this->state(fn (array $attributes) => [
-            'category_id' => $category->id,
-        ]);
-    }
 
     /**
      * Mark the FAQ as inactive.
