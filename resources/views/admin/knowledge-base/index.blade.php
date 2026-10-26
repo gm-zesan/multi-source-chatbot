@@ -67,6 +67,40 @@
             font-size: 12px;
             color: #64748b;
         }
+
+        /* Ensure dataTables_wrapper does NOT scroll horizontally so search and pagination stay 100% width */
+        .dataTables_wrapper {
+            width: 100% !important;
+            overflow-x: visible !important;
+            position: relative;
+        }
+
+        /* Scroll strictly on the .dataTable element itself on the x-axis, NOT on dataTables_wrapper */
+        table.dataTable {
+            display: block !important;
+            width: 100% !important;
+            overflow-x: auto !important;
+            -webkit-overflow-scrolling: touch;
+            border-collapse: collapse;
+        }
+
+        table.dataTable thead,
+        table.dataTable tbody,
+        table.dataTable tfoot {
+            display: table;
+            width: 100%;
+            table-layout: fixed;
+        }
+
+        table.dataTable thead tr,
+        table.dataTable tbody tr {
+            display: table-row;
+        }
+
+        table.dataTable th,
+        table.dataTable td {
+            display: table-cell;
+        }
     </style>
 @endpush
 
@@ -88,6 +122,12 @@
                             </nav>
                         </div>
                         <div class="d-flex align-items-center gap-2">
+                            @can(\App\Enums\Permissions\FAQPermission::UPDATE->value)
+                                <button type="button" class="btn btn-outline-primary btn-sm d-inline-flex align-items-center" id="btn-reindex-all" onclick="triggerReindexAll()" style="font-weight: 500; height: 38px; border-radius: 6px; padding: 0 14px;">
+                                    <i class="ri-refresh-line me-1" id="reindex-btn-icon"></i>
+                                    <span id="reindex-btn-text">Reindex Knowledge Base</span>
+                                </button>
+                            @endcan
                             @can(\App\Enums\Permissions\FAQPermission::CREATE->value)
                                 <a href="{{ route('faqs.create') }}" class="add-new">
                                     <i class="ri-add-line me-1"></i>New FAQ / Policy
@@ -153,7 +193,7 @@
                                 </div>
                             </div>
 
-                            <div style="overflow-x: auto;">
+                            <div class="table-container">
                                 <table class="table dataTable w-100" id="faq-data-table" style="min-width: 850px;">
                                     <thead>
                                         <tr>
@@ -198,7 +238,7 @@
                                 </div>
                             </div>
 
-                            <div style="overflow-x: auto;">
+                            <div class="table-container">
                                 <table class="table dataTable w-100" id="doc-data-table" style="min-width: 850px;">
                                     <thead>
                                         <tr>
@@ -506,6 +546,69 @@
                             .catch(err => {
                                 swal("Error", "Failed to trigger re-sync.", "error");
                             });
+                    }
+                });
+            }
+
+            function triggerReindexAll() {
+                var selectedWorkspace = $('#faq-workspace-filter').length ? $('#faq-workspace-filter').val() : '';
+                var confirmMsg = selectedWorkspace 
+                    ? "This will regenerate vector embeddings and re-sync all active FAQs in the selected workspace directly to Typesense."
+                    : "This will regenerate vector embeddings and re-sync all active FAQs in the knowledge base directly to Typesense.";
+
+                swal({
+                    title: "Reindex Knowledge Base?",
+                    text: confirmMsg,
+                    icon: "info",
+                    buttons: {
+                        cancel: "Cancel",
+                        confirm: {
+                            text: "Yes, Reindex Now",
+                            value: true,
+                            className: "btn-primary",
+                        }
+                    },
+                    dangerMode: false,
+                }).then((willReindex) => {
+                    if (willReindex) {
+                        var btn = $('#btn-reindex-all');
+                        var icon = $('#reindex-btn-icon');
+                        var text = $('#reindex-btn-text');
+
+                        btn.prop('disabled', true);
+                        icon.addClass('ri-spin');
+                        text.text('Reindexing...');
+
+                        fetch('{{ route("knowledge-base.reindex") }}', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                                'Accept': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                workspace_id: selectedWorkspace
+                            })
+                        })
+                        .then(res => res.json())
+                        .then(data => {
+                            btn.prop('disabled', false);
+                            icon.removeClass('ri-spin');
+                            text.text('Reindex Knowledge Base');
+
+                            if (data.success) {
+                                swal("Reindex Complete!", data.message || `Successfully synced ${data.synced} FAQs.`, "success");
+                                reloadFaqTable();
+                            } else {
+                                swal("Reindex Failed", data.message || "Failed to complete reindexing.", "error");
+                            }
+                        })
+                        .catch(err => {
+                            btn.prop('disabled', false);
+                            icon.removeClass('ri-spin');
+                            text.text('Reindex Knowledge Base');
+                            swal("Error", "Network or server error during re-index.", "error");
+                        });
                     }
                 });
             }

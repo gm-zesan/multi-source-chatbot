@@ -107,6 +107,13 @@ Route::middleware('auth')->prefix('dashboard')->group(function () {
             KnowledgeDocumentPermission::VIEW->value,
         ]));
 
+    Route::post('/knowledge-base/reindex', [KnowledgeBaseController::class, 'reindex'])
+        ->name('knowledge-base.reindex')
+        ->middleware('permission:' . implode('|', [
+            \App\Enums\Permissions\FAQPermission::UPDATE->value,
+            \App\Enums\Permissions\FAQPermission::CREATE->value,
+        ]));
+
 
     // ── FAQs ────────────────────────────────────────────────────────────
     Route::resource('/faqs', FAQController::class)->except(['show'])

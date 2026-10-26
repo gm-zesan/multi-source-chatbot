@@ -87,4 +87,39 @@ class KnowledgeBaseController extends Controller
             'workspaces'   => $isSuperAdmin ? \App\Models\Workspace::orderBy('name')->get(['id', 'name']) : collect(),
         ]);
     }
+
+    /**
+     * Trigger a complete re-index of active FAQs / Knowledge Base to Typesense.
+     */
+    public function reindex(Request $request): JsonResponse
+    {
+        /** @var User|null $user */
+        $user = Auth::user();
+
+        if (! $user) {
+            abort(401);
+        }
+
+        $isSuperAdmin = $user->hasRole(RoleEnum::SUPERADMIN->value);
+        $canUpdate = $isSuperAdmin || $user->can(FAQPermission::UPDATE->value) || $user->can(FAQPermission::CREATE->value);
+
+        if (! $canUpdate) {
+            abort(403, 'Unauthorized to trigger re-index.');
+        }
+
+        $explicitWsId = null;
+        if ($isSuperAdmin && $request->filled('workspace_id')) {
+            $explicitWsId = (int) $request->input('workspace_id');
+        }
+
+        $result = $this->faqService->reindexAll($explicitWsId);
+
+        return response()->json([
+            'success' => true,
+            'message' => "Successfully re-indexed {$result['synced']} FAQ(s) into vector search engine." . ($result['failed'] > 0 ? " ({$result['failed']} failed)" : ''),
+            'total'   => $result['total'],
+            'synced'  => $result['synced'],
+            'failed'  => $result['failed'],
+        ]);
+    }
 }

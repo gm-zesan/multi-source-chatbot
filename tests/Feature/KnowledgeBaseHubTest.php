@@ -669,4 +669,49 @@ class KnowledgeBaseHubTest extends TestCase
         ]);
         $legacyResponse->assertRedirect(route('faqs.index'));
     }
+
+    /**
+     * Requirement: Button for FAQ / Knowledge Base reindex without terminal command dependency.
+     */
+    public function test_authorized_user_can_trigger_knowledge_base_reindex(): void
+    {
+        // Mock retrieval client to return true for syncFaq
+        $retrievalMock = $this->createMock(\App\Services\Retrieval\RetrievalClient::class);
+        $retrievalMock->expects($this->atLeastOnce())
+            ->method('syncFaq')
+            ->willReturn(true);
+        $this->app->instance(\App\Services\Retrieval\RetrievalClient::class, $retrievalMock);
+
+        FAQ::create([
+            'workspace_id'  => $this->workspaceA->id,
+            'question'      => 'Reindex Test FAQ 1',
+            'answer'        => 'Answer 1',
+            'document_type' => 'faq',
+            'is_active'     => true,
+        ]);
+
+        FAQ::create([
+            'workspace_id'  => $this->workspaceA->id,
+            'question'      => 'Reindex Test FAQ 2',
+            'answer'        => 'Answer 2',
+            'document_type' => 'company_info',
+            'is_active'     => true,
+        ]);
+
+        $response = $this->actingAs($this->userA)->postJson('/dashboard/knowledge-base/reindex');
+        $response->assertOk();
+        $response->assertJson([
+            'success' => true,
+            'total'   => 2,
+            'synced'  => 2,
+            'failed'  => 0,
+        ]);
+    }
+
+    public function test_unauthorized_user_cannot_trigger_knowledge_base_reindex(): void
+    {
+        // User with no update permission
+        $response = $this->actingAs($this->restrictedUser)->postJson('/dashboard/knowledge-base/reindex');
+        $response->assertForbidden();
+    }
 }

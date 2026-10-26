@@ -26,4 +26,4 @@ User Query ──► Semantic Intent ──► Route Capability ──► Approp
 ## Production vs. Research Routers
 
 - **Production Control Router**: `App\AI\Routing\HybridRouter` (Fast LLM Semantic Router v2.2 with DeepSeek JSON output).
-- **Frozen Research / Benchmark Adapter**: `App\AI\Routing\LangChainRouter` (Offline benchmark harness against LangGraph Python service).
+- **Archived Research / Benchmark**: Concluded Phase L1/L2 LangGraph research; production standardized on Native HybridRouter.

@@ -14,7 +14,7 @@ class BenchmarkFastLLMRouterCommand extends Command
     /**
      * The name and signature of the console command.
      */
-    protected $signature = 'router:benchmark-llm {--router=native : The router implementation to use (native, langgraph)}';
+    protected $signature = 'router:benchmark-llm';
 
     /**
      * The console command description.
@@ -27,14 +27,8 @@ class BenchmarkFastLLMRouterCommand extends Command
         $this->info("   FAST LLM SEMANTIC ROUTER BENCHMARK SUITE");
         $this->info("===============================================================================\n");
 
-        $routerType = $this->option('router');
-        if ($routerType === 'langgraph') {
-            $router = app(\App\AI\Routing\LangChainRouter::class);
-            $this->info("Router:     LangGraph (Python 8003)");
-        } else {
-            $router = app(\App\AI\Routing\HybridRouter::class);
-            $this->info("Router:     Native v2.2 (PHP)");
-        }
+        $router = app(\App\AI\Routing\HybridRouter::class);
+        $this->info("Router:     Native v2.2 (PHP)");
 
         // Freeze research parameters
         $providerName = config('ai.default', 'deepseek');

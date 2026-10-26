@@ -7,7 +7,6 @@ namespace App\Services\FAQ;
 use App\Enums\RoleEnum;
 use App\Models\FAQ;
 use App\Models\User;
-use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -20,6 +19,7 @@ class FAQService
 {
     public function __construct(
         private readonly FAQIndexer $indexer,
+        private readonly ?\App\Services\Retrieval\RetrievalClient $retrievalClient = null,
     ) {}
 
     /**
@@ -384,5 +384,73 @@ class FAQService
         ]);
 
         $this->indexer->dispatchIndex($faq, 'index');
+    }
+
+    /**
+     * Re-index active FAQs to the vector search engine (Python AI service & Typesense).
+     *
+     * Directly synchronizes each active FAQ, updates its lifecycle status to ACTIVE,
+     * and clears any existing sync errors without depending on background queue workers.
+     *
+     * @return array{total: int, synced: int, failed: int}
+     */
+    public function reindexAll(?int $workspaceId = null): array
+    {
+        $retrievalClient = $this->retrievalClient ?? app(\App\Services\Retrieval\RetrievalClient::class);
+
+        $query = FAQ::query()->where('is_active', true);
+
+        if ($workspaceId !== null && $workspaceId > 0) {
+            $query->where('workspace_id', $workspaceId);
+        } else {
+            /** @var User|null $user */
+            $user = Auth::user();
+            if ($user && ! $user->hasRole(RoleEnum::SUPERADMIN->value)) {
+                $query->where('workspace_id', $user->workspace_id);
+            }
+        }
+
+        $faqs = $query->get();
+        $total = $faqs->count();
+        $synced = 0;
+        $failed = 0;
+
+        foreach ($faqs as $faq) {
+            try {
+                $faq->update([
+                    'lifecycle_status' => \App\Enums\FaqLifecycleStatus::SYNCING,
+                    'sync_error'       => null,
+                ]);
+
+                $success = $retrievalClient->syncFaq($faq);
+
+                if ($success) {
+                    $faq->update([
+                        'lifecycle_status' => \App\Enums\FaqLifecycleStatus::ACTIVE,
+                        'is_active'        => true,
+                        'sync_error'       => null,
+                    ]);
+                    $synced++;
+                } else {
+                    $faq->update([
+                        'lifecycle_status' => \App\Enums\FaqLifecycleStatus::SYNC_FAILED,
+                        'sync_error'       => 'Vector sync returned non-200 from retrieval engine',
+                    ]);
+                    $failed++;
+                }
+            } catch (\Throwable $e) {
+                $faq->update([
+                    'lifecycle_status' => \App\Enums\FaqLifecycleStatus::SYNC_FAILED,
+                    'sync_error'       => $e->getMessage(),
+                ]);
+                $failed++;
+            }
+        }
+
+        return [
+            'total'  => $total,
+            'synced' => $synced,
+            'failed' => $failed,
+        ];
     }
 }
