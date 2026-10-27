@@ -10,9 +10,9 @@
 
 | Phase | Milestone Description | Status | Evidence / Verification Test |
 | :--- | :--- | :--- | :--- |
-| **Phase 1** | **Multi-Tenant Foundation & RBAC** | `COMPLETED` | `UserPermission`, `RolePermission`, `WorkspaceSeeder`, Spatie migrations. |
-| **Phase 2** | **Unified Knowledge Base Hub & Lifecycle** | `COMPLETED` | `KnowledgeBaseHubTest` (22 passed), `KnowledgeDocumentTenantIsolationTest` (5 passed), `FAQJobRaceConditionTest` (19 passed). |
-| **Phase 3** | **Semantic Intent Routing Engine** | `COMPLETED` | `HybridRouter.php` (v2.2), `ContextualQueryBuilderTest`, `AiAgentRuntimeFlowTest`. |
+| **Phase 1** | **Multi-Tenant Foundation, RBAC & API Security** | `COMPLETED` | `UserPermission`, `RolePermission`, `WorkspaceSeeder`, Spatie migrations, `IMP-SEC-002` (Python analytics API auth verification). |
+| **Phase 2** | **Unified Knowledge Base Hub & Document Ingestion Lifecycle** | `COMPLETED` | `KnowledgeBaseHubTest` (22 passed), `KnowledgeDocumentTenantIsolationTest` (5 passed), `FAQJobRaceConditionTest` (19 passed), `KnowledgeDocumentRetrievalPipelineTest` (full generation-scoped blue-green ingestion, atomic CAS publication, crash recovery, 89 passed). |
+| **Phase 3** | **Semantic Intent Routing Engine & Action Safety** | `COMPLETED` | `HybridRouter.php` (v2.2), `ContextualQueryBuilderTest`, `AiAgentRuntimeFlowTest`, `IMP-SAFE-001` (Action safety drift prevention & topic invalidation). |
 | **Phase 4** | **Hybrid Retrieval & Vector Search** | `COMPLETED` | `python-ai-service` (768-d embeddings, Typesense 29.0), `FAQIndexingPipelineTest`, `StaticKnowledge200BenchmarkTest`. |
 | **Phase 5** | **Business Analytics & Spreadsheet Query** | `COMPLETED` | `AnalyticsClient.php`, `python-ai-service/app/analytics`, `ChatSimulatorExcelFeatureTest`. |
 | **Phase 6** | **Conversation Graph Memory** | `COMPLETED` | `python-memory-service` (Port 8002, Neo4j 5), `ConversationMemoryPipelineTest`, `M1PersistentMemoryCharacterizationTest`. |
@@ -28,18 +28,26 @@
   - Workspace resolution via `resolveAuthorizedWorkspaceId`.
   - Zero-implicit-tenant invariant (reject missing/invalid workspace on creation).
   - Spatie permission enforcement on routes and DataTables dispatchers (`403 Forbidden` on unauthorized access).
+  - **`IMP-SEC-002` Hardened Analytics Auth**: Port 8001 `/analytics/*` endpoints strictly protected with `verify_api_key` dependency; Laravel `AnalyticsClient.php` passes configured API key headers.
 
-- [x] **M2: Unified Knowledge Base Hub (KB Hub)**
+- [x] **M2: Unified Knowledge Base Hub & Ingestion Lifecycle (KB Hub)**
   - Single canonical hub interface (`/dashboard/knowledge-base`) with 4 distinct tabs: `faqs`, `policies`, `business_info`, `data_sources`.
   - Deprecated separate standalone index pages via smart redirects to Hub tab.
   - In-place UI reindexing (`POST /dashboard/knowledge-base/reindex`) directly syncing active FAQs to Typesense.
   - Race condition prevention with per-record locking and lifecycle status tracking (`active`, `syncing`, `sync_failed`).
   - Document ingestion and modal previews for CSV, XLSX, XLS spreadsheets.
+  - **`IMP-ING-001` Knowledge Document Indexing & Retrieval Hardening**:
+    - Automatic ingestion upon store, restore, and purpose change (`KnowledgeDocumentService`).
+    - Blue-Green zero-downtime indexing using generation-scoped chunk IDs (`doc_{id}_{genId}_{idx}`).
+    - Database-level atomic Compare-And-Swap (CAS) publication fencing with version validation (`version = version + 1`).
+    - Stale indexing prevention, crash recovery, and orphaned chunk rollback detection.
+    - Full test suite verified (`tests/Feature/KnowledgeDocumentRetrievalPipelineTest.php`).
 
-- [x] **M3: Fast LLM Semantic Router (v2.2)**
+- [x] **M3: Fast LLM Semantic Router (v2.2) & Action Safety**
   - 6 distinct routing capabilities: `KNOWLEDGE`, `ANALYTICS`, `CONVERSATIONAL`, `ACTION`, `UNCERTAIN`, `OOD`.
   - DeepSeek and OpenRouter LLM driver integrations with strict JSON schema parsing.
   - Two-phase action safety mechanism (SHA-256 fingerprinting on seller notifications).
+  - **`IMP-SAFE-001` Action Drift Invalidation**: Stale action confirmations invalidated when incoming queries drift into knowledge or analytics topics.
   - Clarification chip generator for ambiguous customer queries.
 
 - [x] **M4: Hybrid Vector & Relational Retrieval Engine**

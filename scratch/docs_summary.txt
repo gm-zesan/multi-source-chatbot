@@ -1,0 +1,269 @@
+==================================================
+DOC TOPIC: Overview
+==================================================
+  [h1] Overview and getting started
+  [h2] What Central AI does
+  [h2] The agents
+  [h2] Give your data once
+  [h2] Set up in this order
+  [h2] All documentation
+  [h2] Words used in these pages
+
+Sample Paragraphs:
+  * (Overview and getting started): What Central AI does, and the order to set it up in....
+  * (What Central AI does): Central AI gives your business an AI agent that talks to your customers. You teach it about your business once, and it answers questions, ca...
+
+==================================================
+DOC TOPIC: Chat Agent
+==================================================
+  [h1] Chat agent
+  [h2] What it does
+  [h2] Turn it on
+  [h2] Configure
+  [h2] What the customer sees
+  [h2] Credits and limits
+  [h2] Troubleshooting
+
+Sample Paragraphs:
+  * (Chat agent): The chat agent is the heart of Central AI: an AI assistant that answers your customers on your website, on Messenger, Instagram and WhatsApp...
+
+==================================================
+DOC TOPIC: Sales Agent
+==================================================
+  [h1] AI Sales Agent
+  [h2] What the AI Sales Agent is
+  [h2] What the Sales Agent does for your customers
+  [h2] What you do: set it up once
+  [h2] 1. Company type
+  [h2] 2. What you offer
+  [h2] 3. How customers complete
+  [h3] On our page: where its setting is
+  [h2] Try it in the Playground
+  [h2] 4. Where the agent sells
+
+Sample Paragraphs:
+  * (AI Sales Agent): Configure how your Sales agent sells, where customers complete, and what it may do....
+  * (AI Sales Agent): On this page: What it is · What it does · Set it up · Company type · What you offer · How customers complete · Playground · Channels · Rules...
+
+==================================================
+DOC TOPIC: Lead Agent
+==================================================
+  [h1] Smart Lead Agent
+  [h2] What it does
+  [h2] Turn it on
+  [h2] Configure
+  [h2] What the customer sees
+  [h2] Credits and limits
+  [h2] Troubleshooting
+
+Sample Paragraphs:
+  * (Smart Lead Agent): Turns your chat conversations into summarised, categorised leads every day....
+  * (Smart Lead Agent): The Smart Lead Agent reads your chat conversations once a day, writes a short summary of each, sorts it into the lead categories you define,...
+
+==================================================
+DOC TOPIC: Lead Capture
+==================================================
+  [h1] Auto Lead Capture
+  [h2] Set up
+  [h2] What it records
+  [h2] Consent
+  [h2] Identify a visitor
+  [h2] The score
+
+Sample Paragraphs:
+  * (Auto Lead Capture): See which anonymous visitors are ready to buy, and turn them into leads....
+  * (Auto Lead Capture): Auto Lead Capture watches how anonymous visitors use your website (pages, time, scrolling, forms), scores their interest, and when a visitor...
+
+==================================================
+DOC TOPIC: Lead Engagement
+==================================================
+  [h1] AI Lead Engagement
+  [h2] Set up
+  [h2] Modes
+  [h2] Where you work
+
+Sample Paragraphs:
+  * (AI Lead Engagement): The add-on that follows up with your leads by email....
+  * (AI Lead Engagement): AI Lead Engagement Agent is a paid add-on that works your leads by email: it sends the first follow-up, writes the next ones from your follo...
+
+==================================================
+DOC TOPIC: Support Agent
+==================================================
+  [h1] Support Ticket Agent
+  [h2] What it does
+  [h2] Turn it on
+  [h2] Configure
+  [h2] What the customer sees
+  [h2] Credits and limits
+  [h2] Troubleshooting
+
+Sample Paragraphs:
+  * (Support Ticket Agent): Raises support tickets from the chat when a customer needs a person....
+  * (Support Ticket Agent): The Support Ticket Agent notices when a customer in the chat needs a person, for example a payment problem, a damaged order or a complaint, ...
+
+==================================================
+DOC TOPIC: Knowledge Base
+==================================================
+  [h1] Knowledge base
+  [h2] Ways to teach your agent
+  [h2] Upload a document
+  [h2] Upload a CSV file
+  [h3] FAQ CSV
+  [h3] Add one FAQ by hand
+  [h2] Train on your website
+  [h2] Knowledge credits
+  [h2] Troubleshooting
+
+Sample Paragraphs:
+  * (Knowledge base): Teach your agents from documents, CSV files, FAQs and your website....
+  * (Knowledge base): On this page: Ways to teach · Documents · CSV files · FAQ CSV · Web training · Credits · Troubleshooting...
+
+==================================================
+DOC TOPIC: Knowledge Sync API
+==================================================
+  [h1] Knowledge Sync API
+  [h2] Basics
+  [h2] Knowledge records
+  [h2] The 202 answer
+  [h2] Deletes
+  [h2] Credits and limits
+  [h2] Offerings feed ("type": "offering")
+  [h3] Fields
+  [h3] How the feed behaves
+  [h2] Your original fields are kept
+
+Sample Paragraphs:
+  * (Knowledge Sync API): Push FAQs, documents, rows and offerings from your own system....
+  * (Knowledge Sync API): On this page: Basics · Knowledge records · The 202 answer · Deletes · Credits · Offerings feed · Your original fields · Errors...
+
+==================================================
+DOC TOPIC: Offerings
+==================================================
+  [h1] Offerings (What you sell)
+  [h2] What an offering is
+  [h2] Kinds
+  [h2] Four ways to add offerings
+  [h2] The offering form
+  [h2] CSV import
+  [h2] Synced offerings are read-only
+  [h2] Offering limit
+  [h2] Troubleshooting
+
+Sample Paragraphs:
+  * (Offerings (What you sell)): The products, services, courses, bookings and plans your Sales agent can sell....
+  * (Offerings (What you sell)): On this page: What an offering is · Kinds · Four ways to add them · The form · CSV import · Synced offerings · Offering limit · Troubleshoot...
+
+==================================================
+DOC TOPIC: Find What I Sell
+==================================================
+  [h1] Find what I sell
+  [h2] What it does
+  [h2] What it reads
+  [h2] Every value is word for word from your text
+  [h2] Run a scan
+  [h2] Review the suggestions
+  [h2] How the page link on an offering is chosen
+  [h2] Limits
+  [h2] Troubleshooting
+
+Sample Paragraphs:
+  * (Find what I sell): Let Central AI read your knowledge and suggest offerings for you to review....
+  * (Find what I sell): On this page: What it does · What it reads · Word for word · Run a scan · Review · The page link · Limits · Troubleshooting...
+
+==================================================
+DOC TOPIC: Chat Widget
+==================================================
+  [h1] Website chat widget
+  [h2] Set up
+  [h2] The snippet
+  [h2] Allowed domains
+  [h2] Widget key or external API key?
+  [h2] What the widget can answer
+  [h2] Troubleshooting
+
+Sample Paragraphs:
+  * (Website chat widget): Put the chat agent on your website with one snippet....
+  * (Website chat widget): On this page: Set up · The snippet · Allowed domains · Which key · Errors · Troubleshooting...
+
+==================================================
+DOC TOPIC: Social Channels
+==================================================
+  [h1] Messenger, Instagram and WhatsApp
+  [h2] Plans
+  [h2] Connect a channel
+  [h3] Messenger or Instagram
+  [h3] WhatsApp
+  [h2] Selling on Messenger, Instagram and WhatsApp
+  [h2] Confirmation codes
+  [h2] The 24-hour window
+  [h2] Troubleshooting
+
+Sample Paragraphs:
+  * (Messenger, Instagram and WhatsApp): Answer customers on your Facebook Page, Instagram and WhatsApp....
+  * (Messenger, Instagram and WhatsApp): On this page: Plans · Connect · Selling on Meta · Confirmation codes · The 24-hour window · Troubleshooting...
+
+==================================================
+DOC TOPIC: Server APIs
+==================================================
+  [h1] Chat, Lead Conversion and Support Tickets APIs
+  [h2] Before you start
+  [h2] Chat API
+  [h2] Lead Conversion API
+  [h2] Support Tickets API
+  [h2] All server-to-server endpoints
+
+Sample Paragraphs:
+  * (Chat, Lead Conversion and Support Tickets APIs): Call Central AI from your own server....
+  * (Chat, Lead Conversion and Support Tickets APIs): On this page: Before you start · Chat API · Lead Conversion API · Support Tickets API · All server endpoints...
+
+==================================================
+DOC TOPIC: Live Checkout
+==================================================
+  [h1] Live checkout
+  [h2] What it is
+  [h2] The customer's journey
+  [h2] Set it up
+  [h2] 1. The checkout link
+  [h2] 2. The order message
+  [h2] Code to copy
+  [h3] PHP: the checkout route
+  [h3] PHP: the order message
+  [h3] Node.js (18 or later): the order message
+
+Sample Paragraphs:
+  * (Live checkout): Let the chat fill your own cart and follow the order your checkout creates....
+  * (Live checkout): On this page: What it is · The customer's journey · Set it up · 1. The checkout link · 2. The order message · Code to copy · Statuses · Test...
+
+==================================================
+DOC TOPIC: Commerce API
+==================================================
+  [h1] Commerce API
+  [h2] What it is
+  [h2] Who does what
+  [h2] One order, call by call
+  [h2] What you build
+  [h2] Your options
+  [h2] Discovery profile
+  [h2] Operations
+  [h2] What every call from Central AI carries
+  [h2] Signatures
+
+Sample Paragraphs:
+  * (Commerce API): Connect your own shop, booking or admissions system to the Sales agent....
+  * (Commerce API): On this page: What it is · Who does what · One order, call by call · What you build · Your options · Discovery profile · Operations · What e...
+
+==================================================
+DOC TOPIC: Security
+==================================================
+  [h1] Security and keys
+  [h2] Your two keys
+  [h2] Every credential
+  [h2] Rotating keys
+  [h2] Allowed domains
+  [h2] How your data is kept apart
+  [h2] Good practice
+
+Sample Paragraphs:
+  * (Security and keys): Which key is public, which is secret, and how your data is kept apart....
+  * (Security and keys): On this page: Your keys · Every credential · Rotating keys · Allowed domains · How your data is kept apart · Good practice...
+

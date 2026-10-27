@@ -714,4 +714,78 @@ class KnowledgeBaseHubTest extends TestCase
         $response = $this->actingAs($this->restrictedUser)->postJson('/dashboard/knowledge-base/reindex');
         $response->assertForbidden();
     }
+
+    /**
+     * Requirement: User with only FAQ view permission can access FAQs but is forbidden from documents.
+     */
+    public function test_user_with_only_faq_view_can_view_faqs_but_is_forbidden_from_documents(): void
+    {
+        $faqOnlyRole = Role::create([
+            'name'         => 'faq-only-unique',
+            'guard_name'   => 'web',
+            'workspace_id' => $this->workspaceA->id,
+        ]);
+        $faqOnlyRole->givePermissionTo(FAQPermission::VIEW->value);
+
+        $faqOnlyUser = User::factory()->create([
+            'workspace_id' => $this->workspaceA->id,
+        ]);
+        $faqOnlyUser->assignRole($faqOnlyRole);
+
+        // Can access Hub page and default tab is faqs
+        $pageResponse = $this->actingAs($faqOnlyUser)->get('/dashboard/knowledge-base');
+        $pageResponse->assertOk();
+        $pageResponse->assertViewHas('activeTab', 'faqs');
+        $pageResponse->assertViewHas('canViewFaqs', true);
+        $pageResponse->assertViewHas('canViewDocs', false);
+
+        // Can query FAQs DataTables
+        $faqDataResponse = $this->actingAs($faqOnlyUser)->getJson('/dashboard/knowledge-base?source=faqs');
+        $faqDataResponse->assertOk();
+
+        // Forbidden from documents DataTables
+        $docDataResponse = $this->actingAs($faqOnlyUser)->getJson('/dashboard/knowledge-base?source=documents');
+        $docDataResponse->assertForbidden();
+
+        // Forbidden from documents legacy endpoint
+        $legacyDocResponse = $this->actingAs($faqOnlyUser)->getJson('/dashboard/documents');
+        $legacyDocResponse->assertForbidden();
+    }
+
+    /**
+     * Requirement: User with only Document view permission can access documents but is forbidden from FAQs.
+     */
+    public function test_user_with_only_document_view_can_view_documents_but_is_forbidden_from_faqs(): void
+    {
+        $docOnlyRole = Role::create([
+            'name'         => 'doc-only-unique',
+            'guard_name'   => 'web',
+            'workspace_id' => $this->workspaceA->id,
+        ]);
+        $docOnlyRole->givePermissionTo(KnowledgeDocumentPermission::VIEW->value);
+
+        $docOnlyUser = User::factory()->create([
+            'workspace_id' => $this->workspaceA->id,
+        ]);
+        $docOnlyUser->assignRole($docOnlyRole);
+
+        // Can access Hub page and default tab automatically falls back to data_sources
+        $pageResponse = $this->actingAs($docOnlyUser)->get('/dashboard/knowledge-base');
+        $pageResponse->assertOk();
+        $pageResponse->assertViewHas('activeTab', 'data_sources');
+        $pageResponse->assertViewHas('canViewFaqs', false);
+        $pageResponse->assertViewHas('canViewDocs', true);
+
+        // Can query documents DataTables
+        $docDataResponse = $this->actingAs($docOnlyUser)->getJson('/dashboard/knowledge-base?source=documents');
+        $docDataResponse->assertOk();
+
+        // Forbidden from FAQs DataTables
+        $faqDataResponse = $this->actingAs($docOnlyUser)->getJson('/dashboard/knowledge-base?source=faqs');
+        $faqDataResponse->assertForbidden();
+
+        // Forbidden from FAQs legacy endpoint
+        $legacyFaqResponse = $this->actingAs($docOnlyUser)->getJson('/dashboard/faqs');
+        $legacyFaqResponse->assertForbidden();
+    }
 }

@@ -207,12 +207,14 @@ class SemanticAnswerabilityGate
 
         $qLower = mb_strtolower($query);
         $faqTitle = mb_strtolower((string) ($faq->question ?? ''));
-        if ($faqTitle === '') {
+        $faqAnswer = mb_strtolower((string) ($faq->answer ?? ''));
+        $combinedDoc = trim($faqTitle . ' ' . $faqAnswer);
+        if ($combinedDoc === '') {
             return false;
         }
 
         $qTokens = preg_split('/[\s\p{P}]+/u', $qLower, -1, PREG_SPLIT_NO_EMPTY) ?: [];
-        $titleTokens = preg_split('/[\s\p{P}]+/u', $faqTitle, -1, PREG_SPLIT_NO_EMPTY) ?: [];
+        $docTokens = preg_split('/[\s\p{P}]+/u', $combinedDoc, -1, PREG_SPLIT_NO_EMPTY) ?: [];
 
         $stopWords = [
             'the', 'and', 'for', 'are', 'what', 'how', 'you', 'can', 'with', 'from',
@@ -221,9 +223,9 @@ class SemanticAnswerabilityGate
         ];
 
         $meaningfulQ = array_filter($qTokens, fn ($t) => mb_strlen($t) >= 3 && !in_array($t, $stopWords, true));
-        $meaningfulTitle = array_filter($titleTokens, fn ($t) => mb_strlen($t) >= 3 && !in_array($t, $stopWords, true));
+        $meaningfulDoc = array_filter($docTokens, fn ($t) => mb_strlen($t) >= 3 && !in_array($t, $stopWords, true));
 
-        $overlap = array_intersect($meaningfulQ, $meaningfulTitle);
+        $overlap = array_intersect($meaningfulQ, $meaningfulDoc);
 
         return count($overlap) >= 1;
     }

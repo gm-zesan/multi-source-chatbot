@@ -13,6 +13,7 @@ class AnalyticsClient
     public function __construct(
         private readonly ?string $baseUrl = null,
         private readonly ?int $timeout = null,
+        private readonly ?string $apiKey = null,
     ) {}
 
     /**
@@ -29,6 +30,30 @@ class AnalyticsClient
     public function timeout(): int
     {
         return $this->timeout ?? (int) config('analytics.timeout', 30);
+    }
+
+    /**
+     * Get the API key for authenticating requests to the Python Analytics Service.
+     */
+    public function apiKey(): ?string
+    {
+        return $this->apiKey ?? config('analytics.api_key', config('retrieval.api_key'));
+    }
+
+    /**
+     * Create an authenticated HTTP pending request with timeout and API credentials.
+     */
+    protected function http(): \Illuminate\Http\Client\PendingRequest
+    {
+        $req = Http::timeout($this->timeout());
+        $key = $this->apiKey();
+        if (! empty($key)) {
+            $req = $req->withHeaders([
+                'X-API-Key' => $key,
+            ])->withToken($key);
+        }
+
+        return $req;
     }
 
     /**
@@ -53,7 +78,7 @@ class AnalyticsClient
                 $payload['history'] = $history;
             }
 
-            $response = Http::timeout($this->timeout())
+            $response = $this->http()
                 ->asJson()
                 ->acceptJson()
                 ->post($url, $payload);
@@ -158,7 +183,7 @@ class AnalyticsClient
     ): array {
         $url = "{$this->baseUrl()}/analytics/excel/upload";
         try {
-            $req = Http::timeout($this->timeout())
+            $req = $this->http()
                 ->attach('file', file_get_contents($filePath), $filename);
 
             $payload = ['workspace_id' => $workspaceId];
@@ -244,7 +269,7 @@ class AnalyticsClient
                 $payload['history'] = $history;
             }
 
-            $response = Http::timeout($this->timeout())
+            $response = $this->http()
                 ->asJson()
                 ->acceptJson()
                 ->post($url, $payload);
@@ -297,7 +322,7 @@ class AnalyticsClient
     {
         $url = "{$this->baseUrl()}/analytics/sources/list";
         try {
-            $response = Http::timeout($this->timeout())
+            $response = $this->http()
                 ->acceptJson()
                 ->get($url, ['workspace_id' => $workspaceId]);
 
@@ -331,7 +356,7 @@ class AnalyticsClient
     {
         $url = "{$this->baseUrl()}/analytics/sources/{$sourceId}";
         try {
-            $response = Http::timeout($this->timeout())
+            $response = $this->http()
                 ->acceptJson()
                 ->delete($url, ['workspace_id' => $workspaceId]);
 
@@ -378,7 +403,7 @@ class AnalyticsClient
                 $payload['explicit_source_id'] = trim($explicitSourceId);
             }
 
-            $response = Http::timeout($this->timeout())
+            $response = $this->http()
                 ->acceptJson()
                 ->post($url, $payload);
 

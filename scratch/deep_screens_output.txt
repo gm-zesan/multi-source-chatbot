@@ -1,0 +1,216 @@
+======================================================================
+ROUTE: /chat/dashboard/ | Title: Dashboard
+======================================================================
+Headings: [['h1', 'Dashboard']]
+Forms (2):
+Tables (2):
+  Headers: ['Name/Email', 'Status', 'Source', 'Date']
+  Sample row: ['No recent leads found.']
+  Headers: ['Contact', 'AI Score', 'Action']
+  Sample row: ['No recent chats found.']
+Sample Text: Dashboard /* Chart container sizing */
+.chart-container {
+    position: relative;
+    height: 300px;
+    width: 100%;
+}
+.premium-action-card {
+    text-align: left;
+}
+.premium-table th {
+    font-weight: 600;
+    color: #64748b;
+    border-bottom-wid
+
+======================================================================
+ROUTE: /chat/chatbot/settings/ | Title: Agents & Tools - Central AI
+======================================================================
+Headings: [['h1', 'Agents & Tools'], ['h2', 'Chat Agent'], ['h2', 'Support Ticket Agent'], ['h2', 'Smart Lead Agent']]
+Forms (3):
+  Form #3 [method=POST, action=/chat/chatbot/settings/]:
+    Inputs: active_tool (hidden), name (hidden), primary_color (hidden), welcome_message (hidden), prompt (text), support_ticket_enabled (checkbox), support_ticket_auto_detect (checkbox), support_ticket_instructions (text), lead_agent_enabled (checkbox), lead_agent_run_time (time), lead_agent_allowed_categories (text)
+    Selects: support_ticket_mode [options: 2], support_ticket_priority [options: 4], lead_agent_timezone [options: 433]
+Sample Text: Agents & Tools - Central AI /* Override Bootstrap blue hover/active for dropdown items */
+    .dropdown-menu .dropdown-item:hover,
+    .dropdown-menu .dropdown-item:focus,
+    .dropdown-menu .dropdown-item:active,
+    .dropdown-menu .dropdown-item.ac
+
+======================================================================
+ROUTE: /sales/ | Title: AI Sales Agent | Central AI
+======================================================================
+Headings: [['h1', 'AI Sales Agent'], ['h2', 'Company type'], ['h2', 'What you offer'], ['h2', 'How customers complete'], ['h2', 'Connection to your system Advanced'], ['h2', 'Where the agent sells'], ['h2', 'Rules and payment'], ['h2', 'Publish'], ['h2', 'Usage this month']]
+Forms (6):
+  Form #3 [method=post, action=/sales/]:
+    Inputs: action (hidden)
+    Selects: company_type [options: 9]
+  Form #4 [method=post, action=/sales/]:
+    Inputs: offering_kinds (checkbox), label_product (text), offering_kinds (checkbox), label_service (text), offering_kinds (checkbox), label_course_intake (text), offering_kinds (checkbox), label_appointment (text), offering_kinds (checkbox), label_event_date (text), offering_kinds (checkbox), label_plan (text), offering_kinds (checkbox), label_custom (text), mode_product (radio), mode_product (radio), mode_product (radio), mode_product (radio), mode_service (radio), mode_service (radio), mode_service (radio), mode_service (radio), mode_course_intake (radio), mode_course_intake (radio), mode_course_intake (radio), mode_course_intake (radio), mode_appointment (radio), mode_appointment (radio), mode_appointment (radio), mode_appointment (radio), mode_event_date (radio), mode_event_date (radio), mode_event_date (radio), mode_event_date (radio), mode_plan (radio), mode_plan (radio), mode_plan (radio), mode_plan (radio), mode_custom (radio), mode_custom (radio), mode_custom (radio), mode_custom (radio), checkout_link_template (text), live_checkout_meta (radio), live_checkout_meta (radio), profile_url (url), api_key (password), channels (checkbox), channels (checkbox), channels (checkbox), channels (checkbox), payment_methods (checkbox), payment_note_cash_on_delivery (text), payment_methods (checkbox), payment_note_bkash_manual (text), payment_methods (checkbox), payment_note_nagad_manual (text), payment_methods (checkbox), payment_note_bank_transfer (text), payment_methods (checkbox), payment_link_url (url), payment_note_payment_link (text), consume_inventory (checkbox), tone (text), languages (text), currency (text), never_promise (text), handoff_triggers (text), refund_policy_url (url), cancellation_policy_url (url), delivery_policy_url (url), enabled (checkbox), discovery_enabled (checkbox), commit_enabled (checkbox)
+Sample Text: AI Sales Agent | Central AI .sa-step { font-family: var(--q-font-display); font-weight: 800; font-size: 15px; }
+  .sa-row { display: grid; grid-template-columns: minmax(0, 220px) minmax(0, 1fr) auto; gap: 8px 16px; align-items: center; padding: 12px 
+
+======================================================================
+ROUTE: /sales/offerings/new/ | Title: New offering | AI Sales Agent
+======================================================================
+Headings: [['h1', 'New offering'], ['h2', 'What it is'], ['h2', 'Kind, price and availability'], ['h2', 'What the customer chooses'], ['h3', 'Options'], ['h3', 'Quantity per order'], ['h3', 'Intakes and seats'], ['h3', 'Slot rules'], ['h3', 'Party size'], ['h3', 'Opening hours'], ['h2', 'What to collect']]
+Forms (3):
+  Form #3 [method=post, action=]:
+    Inputs: selection_schema (hidden), required_fields (hidden), schedule (hidden), name (text), short_description (text), description (text), tags (text), sku (text), external_ref (text), image_url (url), external_url (url), price (number), currency (text), stock_quantity (number), track_inventory (checkbox), quote_required (checkbox), is_active (checkbox)
+    Selects: category [options: 1], offering_kind [options: 7], availability_mode [options: 5], fulfilment_kind [options: 5]
+Sample Text: New offering | AI Sales Agent .sa-editor + .sa-editor { margin-top: 18px; padding-top: 18px; border-top: 1px solid var(--ink-100); }
+  .sa-editor__title { font-size: 14px; font-weight: 700; color: var(--ink-900); margin: 0 0 2px; }
+  .sa-editor__hint
+
+======================================================================
+ROUTE: /lead-capture/dashboard/ | Title: Auto Lead Capture | ABC
+======================================================================
+Headings: [['h2', 'Auto Lead Capture']]
+Forms (3):
+Sample Text: Auto Lead Capture | ABC /* Override Bootstrap blue hover/active for dropdown items */
+    .dropdown-menu .dropdown-item:hover,
+    .dropdown-menu .dropdown-item:focus,
+    .dropdown-menu .dropdown-item:active,
+    .dropdown-menu .dropdown-item.active
+
+======================================================================
+ROUTE: /lead-engagement/settings/ | Title: AI Lead Engagement Agent
+======================================================================
+Headings: [['h1', 'AI Lead Engagement Agent']]
+Forms (2):
+Sample Text: AI Lead Engagement Agent /* Override Bootstrap blue hover/active for dropdown items */
+    .dropdown-menu .dropdown-item:hover,
+    .dropdown-menu .dropdown-item:focus,
+    .dropdown-menu .dropdown-item:active,
+    .dropdown-menu .dropdown-item.activ
+
+======================================================================
+ROUTE: /chat/widget/ | Title: Widget Integration | ABC
+======================================================================
+Headings: [['h1', 'Widget Integration']]
+Forms (3):
+  Form #3 [method=POST, action=]:
+    Inputs: primary_color (hidden), name (hidden), welcome_message (hidden), position (hidden), remove_logo (hidden), logo (file)
+Sample Text: Widget Integration | ABC .glass-card {
+    background: rgba(255, 255, 255, 0.95);
+    border: 1px solid #e5e7eb;
+    border-radius: 1rem;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  }
+  .code-block {
+    background: #1e293b;
+    color: #4ade
+
+======================================================================
+ROUTE: /integrations/meta/ | Title: Social Channels - Central AI
+======================================================================
+Headings: [['h2', 'Social Channels'], ['h4', 'Available Channels']]
+Forms (2):
+Sample Text: Social Channels - Central AI .channel-card {
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        border: 1px solid rgba(226, 232, 240, 0.8);
+        border-radius: 20px;
+        overflow: hidden;
+        background: white;
+    }
+    .c
+
+======================================================================
+ROUTE: /support/tickets/ | Title: Support Tickets
+======================================================================
+Headings: [['h1', 'Support Tickets']]
+Forms (3):
+  Form #3 [method=get, action=]:
+    Selects: status [options: 6], category [options: 7]
+Sample Text: Support Tickets /* Override Bootstrap blue hover/active for dropdown items */
+    .dropdown-menu .dropdown-item:hover,
+    .dropdown-menu .dropdown-item:focus,
+    .dropdown-menu .dropdown-item:active,
+    .dropdown-menu .dropdown-item.active {
+     
+
+======================================================================
+ROUTE: /accounts/company/update/ | Title: Update Company | Central AI
+======================================================================
+Headings: [['h1', 'Company Settings'], ['h3', 'Update Company Information'], ['h4', 'Email sending'], ['h4', 'Lead Alert Routing'], ['h4', 'Using Gmail for SMTP']]
+Forms (3):
+  Form #3 [method=POST, action=]:
+    Inputs: name (text), website (url), default_currency (text), address (text), logo (file), is_lead_email_routing_active (checkbox)
+Sample Text: Update Company | Central AI .page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 32px;
+  }
+  
+  .page-title {
+    font-size: 28px;
+    font-weight: 700;
+    color: #111827;
+  }
+  
+  .breadc
+
+======================================================================
+ROUTE: /accounts/team/ | Title: Team Management
+======================================================================
+Headings: [['h1', 'Team Management']]
+Forms (3):
+  Form #3 [method=POST, action=]:
+    Inputs: access_scopes (checkbox), access_scopes (checkbox), access_scopes (checkbox), access_scopes (checkbox), access_scopes (checkbox), access_scopes (checkbox)
+    Selects: role [options: 2]
+Tables (1):
+  Headers: ['User', 'Email', 'Role', 'Joined', 'Actions']
+  Sample row: ['zesan @zesan', '[email protected]', 'Admin', 'Oct 25, 2026', 'You']
+Sample Text: Team Management .btn-loading .spinner {
+    display: none;
+    width: 16px;
+    height: 16px;
+    border: 2px solid rgba(255,255,255,0.3);
+    border-top-color: white;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+  
+  .btn-lo
+
+======================================================================
+ROUTE: /accounts/security/api-keys/ | Title: API Keys - Central AI
+======================================================================
+Headings: [['h1', 'API Keys']]
+Forms (3):
+  Form #3 [method=POST, action=]:
+    Inputs: action (hidden), domain (text)
+Sample Text: API Keys - Central AI /* Override Bootstrap blue hover/active for dropdown items */
+    .dropdown-menu .dropdown-item:hover,
+    .dropdown-menu .dropdown-item:focus,
+    .dropdown-menu .dropdown-item:active,
+    .dropdown-menu .dropdown-item.active {
+
+======================================================================
+ROUTE: /billing/usage/ | Title: Usage Dashboard
+======================================================================
+Headings: [['h1', 'Usage Dashboard'], ['h2', 'Test Drive']]
+Forms (2):
+Sample Text: Usage Dashboard /* Override Bootstrap blue hover/active for dropdown items */
+    .dropdown-menu .dropdown-item:hover,
+    .dropdown-menu .dropdown-item:focus,
+    .dropdown-menu .dropdown-item:active,
+    .dropdown-menu .dropdown-item.active {
+     
+
+======================================================================
+ROUTE: /chat/api/docs/ | Title: API Reference - Central AI
+======================================================================
+Headings: [['h1', 'API Reference'], ['h2', 'Authentication'], ['h3', 'Every credential'], ['h3', 'Server-to-server endpoints'], ['h2', 'Chat API'], ['h3', 'Node.js, on your server'], ['h3', 'Errors'], ['h2', 'Knowledge Sync'], ['h3', 'Knowledge records'], ['h3', 'Offerings (AI Sales Agent)'], ['h3', 'cURL'], ['h3', 'Errors'], ['h2', 'Lead Conversion API'], ['h3', 'cURL'], ['h3', 'Python'], ['h3', 'PHP'], ['h3', 'Response'], ['h3', 'Errors'], ['h2', 'CRM connectors'], ['h2', 'Support Tickets API'], ['h2', 'Chat widget'], ['h2', 'Visitor tracker'], ['h2', 'Commerce API (AI Sales Agent)'], ['h3', 'Operations your system serves'], ['h3', 'What every request from Central AI carries'], ['h3', 'Idempotency on commit.create'], ['h3', 'Central AI’s endpoints for your system'], ['h3', 'Error codes'], ['h2', 'Error shapes']]
+Forms (2):
+Tables (19):
+  Headers: ['Credential', 'Header', 'Kind', 'What it is']
+  Sample row: ['External API key', 'X-API-Key', 'secret', 'The secret key for every server-to-server API. Begins with cax_. Call these APIs from your own server only.']
+  Headers: ['Method', 'Path', 'Credential', 'Origin checked', '']
+  Sample row: ['POST', '/chat/api/v1/', 'X-API-Key', 'yes', 'Chat API']
+  Headers: ['Action', 'Body', 'Answer']
+  Sample row: ['send_message', 'email, message; optional name, phone, session_id', 'response, session_id, session_name, message_count']
+Sample Text: API Reference - Central AI /* S-7.5: the one tenant-facing API reference. Facts (paths, methods, headers, error codes, limits)
+     come from apps/core/api_reference.py, which apps/core/tests/test_docs_match_code.py checks against
+     the code. Pros
+

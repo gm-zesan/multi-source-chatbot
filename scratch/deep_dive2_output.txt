@@ -1,0 +1,527 @@
+============================================================
+LEAD ENGAGEMENT
+============================================================
+Docs 
+Sign In 
+Docs 
+Agents 
+AI Lead Engagement 
+The add-on that follows up with your leads by email. 
+AI Lead Engagement Agent 
+is a paid add-on that works your leads by email: it sends the first follow-up,
+  writes the next ones from your follow-up plan and your knowledge, reads the replies, and hands a lead to a person when
+  it should. It is bought separately, on these plans: Growth, Scale, Enterprise,
+  and includes 1500 engagement credits a month (one credit is one AI call). In the dashboard: 
+Lead Engagement → Settings 
+. 
+Set up 
+Connect a mailbox 
+on the 
+Mailboxes 
+page (linked from
+    Company Settings) and assign it to Lead Engagement. Emails are sent from it and replies come back to it. 
+Tell the agent who it is: 
+its name and title, a paragraph about your company, and your objective
+    (in your own words: a booked demo, a paid order, an enrolment). 
+Write your follow-up plan: 
+how many follow-ups, how many days apart, and what each email should
+    achieve. Choose which lead sources to engage and your sending days, hours and daily cap. 
+Add playbooks 
+(optional): instructions for one lead category, such as how to talk to wholesale buyers. 
+Pick a mode 
+and switch it on. 
+Modes 
+off 
+draft_only 
+autonomous 
+Autonomous 
+needs a verified, active mailbox assigned to Lead Engagement. A playbook can make its category more
+  careful than the company mode, never less: 
+Follow the company setting 
+A person always approves this kind of lead 
+A person approves the first few, then the agent runs (default 10) 
+Where you work 
+The Lead Engagement section has an inbox of drafts and replies waiting for you, opportunities, conversations, a
+  suppression list (people who must not be emailed), analytics, playbooks and offers. Every email carries an unsubscribe
+  link. 
+Signed in? 
+Your own keys, endpoint addresses and the full error tables are
+            on the 
+API reference 
+inside your dashboard. These public pages never show
+            anyone’s key: examples use placeholders such as 
+YOUR_EXTERNAL_API_KEY 
+AI-Powered Business Growth Solution 
+64/3, Lake Circus (2nd floor), Mirpur Rd, Dhaka 1205 
+Documentation 
+Help Center 
+Blog 
+Pricing 
+About Us 
+Contact Us 
+Careers 
+Privacy Policy 
+Terms 
+© 2026 Central AI. All rights reserved.
+
+...
+
+============================================================
+SUPPORT AGENT
+============================================================
+Docs 
+Sign In 
+Docs 
+Agents 
+Support Ticket Agent 
+Raises support tickets from the chat when a customer needs a person. 
+The Support Ticket Agent notices when a customer in the chat needs a person, for example a payment problem, a
+  damaged order or a complaint, collects their email and the details, and raises a support ticket for your team, with
+  the conversation attached. 
+What it does 
+Recognises when the chat agent cannot solve a problem on its own. 
+Always asks for the customer’s email first, then creates the ticket with a clear subject and description. 
+Tells the customer a ticket has been raised and that your team will contact them. 
+Your team replies from the ticket; the customer gets the reply by email, and their email answers come back into
+    the ticket (checked every 3 minutes when your mailbox is connected). 
+Turn it on 
+Open 
+Agent & Chat → Agents 
+and switch on support tickets. 
+Choose where tickets go (below) and the default priority (new companies start at 
+medium 
+). 
+Connect your support mailbox so replies are sent from your own address. 
+Configure 
+Priorities: 
+low 
+medium 
+high 
+open 
+in_progress 
+resolved 
+closed 
+What the customer sees 
+The chat asks for their email, confirms the ticket, and later they receive your team’s reply by email. 
+Credits and limits 
+Raising a ticket does not use extra credits; the chat messages around it use chat credits as usual. 
+Troubleshooting 
+Signed in? 
+Your own keys, endpoint addresses and the full error tables are
+            on the 
+API reference 
+inside your dashboard. These public pages never show
+            anyone’s key: examples use placeholders such as 
+YOUR_EXTERNAL_API_KEY 
+AI-Powered Business Growth Solution 
+64/3, Lake Circus (2nd floor), Mirpur Rd, Dhaka 1205 
+Documentation 
+Help Center 
+Blog 
+Pricing 
+About Us 
+Contact Us 
+Careers 
+Privacy Policy 
+Terms 
+© 2026 Central AI. All rights reserved.
+
+...
+
+============================================================
+SECURITY & KEYS
+============================================================
+Docs 
+Sign In 
+Docs 
+Security 
+Security and keys 
+Which key is public, which is secret, and how your data is kept apart. 
+On this page: 
+Your keys 
+· 
+Every credential 
+· 
+Rotating keys 
+· 
+Allowed domains 
+· 
+How your data is kept apart 
+· 
+Good practice 
+Your two keys 
+You have two keys and 
+they are not interchangeable 
+. Both are on 
+Security 
+in the dashboard (under 
+Embed & API 
+). 
+Widget key 
+· 
+ca_… 
+Sent by the chat widget snippet. Begins with ca_. It is in your page source by design, and your allowed domains are what protect it. It is not accepted by any server-to-server API after the sunset date. 
+External API key 
+· 
+cax_… 
+The secret key for every server-to-server API. Begins with cax_. Call these APIs from your own server only. Only administrators and teammates with Agent
+        Configuration access can see it. 
+Why two: the widget key is printed in your page source, so anyone can read it. Everything called from a
+  server (reading conversations, syncing knowledge or offerings, reporting won leads, reading tickets) can reveal or change
+  your business data, so none of it accepts a key that is published on a public page.
+  Since 19 October 2026 the widget key is
+  refused by every server API. 
+Every credential 
+X-API-Key 
+X-Widget-Key 
+X-Shopper-Token 
+X-Site-Id 
+X-Central-Secret 
+Authorization 
+Signature 
+public 
+: in your page source by design; 
+secret 
+: never in a browser; 
+issued 
+: created by the system, never by you. 
+Live checkout order webhook secret 
+(secret): signs the order messages your server sends to Central
+  AI, in the 
+Central-AI-Signature 
+Rotating keys 
+Widget key: 
+Regenerate 
+on Security. The old key stops working at once, so paste the new
+    snippet on every page straight away. Your administrators are notified. 
+External API key: 
+Regenerate 
+on Security. Calls with the old key are refused at once;
+    update your servers first. Your administrators are notified. 
+CRM connector URL: 
+rotate it on the 
+Won Leads 
+page. The old URL then answers as if it never
+    existed. 
+Commerce API key 
+(the one your system issued for Central AI): in the AI Sales Agent settings, turn
+    on 
+Advanced 
+in section 3, enter the new key in 
+Connection to your system 
+, then press 
+Save connection 
+, 
+Publish connection revision 
+and 
+Test connection 
+. 
+Live checkout order webhook secret: 
+Rotate the secret 
+in section 3 (Live checkout). The old
+    one keeps working for 24 hours so your server can switch; press 
+Stop the old secret now 
+if it may have leaked. Only a company admin can do this. 
+Allowed domains 
+The widget, the Chat API and the lead capture tracker answer only for origins on your allowed-domains list, and 
+an empty list allows nothing 
+. Matching is by whole domain name, so a look-alike domain never matches.
+  See 
+Allowed domains 
+for the exact rules. 
+How your data is kept apart 
+Every record belongs to one company. 
+Knowledge, offerings, conversations, leads, tickets,
+    integrations and requests are stored with your company and every screen and API reads only your company’s
+    rows. Asking for another company’s ticket, suggestion or offering by its id is answered as not found. 
+Your knowledge is searched only in your own space. 
+The vectors your agent searches are stored in a
+    namespace of your company’s own; another company’s agent never searches it. 
+Central AI’s own assistant is separate. 
+The assistant on Central AI’s website has its own
+    knowledge and never reads yours. 
+Each visitor’s
+
+...
+
+============================================================
+KNOWLEDGE BASE
+============================================================
+Docs 
+Sign In 
+Docs 
+Your data 
+Knowledge base 
+Teach your agents from documents, CSV files, FAQs and your website. 
+On this page: 
+Ways to teach 
+· 
+Documents 
+· 
+CSV files 
+· 
+FAQ CSV 
+· 
+Web training 
+· 
+Credits 
+· 
+Troubleshooting 
+Ways to teach your agent 
+Your knowledge base is what your chat agent answers from. In the dashboard it is the 
+Knowledge Base 
+section of the sidebar: 
+Upload a document 
+Open 
+Documents → Upload 
+. 
+Give it a title, pick the document type and choose the file: 
+PDF, Word (.docx), plain text (.txt) or CSV 
+.
+    Keep each file under 10 MB, the limit the upload page states. 
+Press upload. The file is read in the background; its status changes to processed when your agent can use it. 
+A document is split into passages of about 400 characters (each overlapping the next by
+  80). Each passage is one knowledge record and uses one knowledge credit. 
+Save old Word files as .docx. 
+Text is read from PDF and .docx files. Any other file is
+    read as plain text, so an old binary 
+.doc 
+Upload a CSV file 
+A file whose name ends in 
+.csv 
+Question 
+question 
+What happens to the rows depends on the header: 
+With 
+question 
+answer 
+Any other header 
+: each row becomes one knowledge record, written as 
+column: value | column: value 
+FAQ CSV 
+question 
+answer 
+title 
+url 
+description 
+price 
+question,answer,title,url,description,price
+"What are your opening hours?","Saturday to Thursday, 10 AM to 8 PM.","Opening hours",,,
+"How much is the Oslo sofa?","The Oslo 3-seater sofa is 48,500 taka.","Oslo sofa",https://yourshop.com/oslo-sofa,"Solid wood frame",48500 
+A row without a question or an answer is skipped. Each FAQ uses one knowledge credit. The FAQs appear in 
+Training Data 
+, where you can edit or delete them one by one. 
+Add one FAQ by hand 
+In 
+Training Data 
+, add an FAQ with a question and an answer. It is the same as one
+  row of an FAQ CSV. 
+Train on your website 
+Available on these plans: 
+Starter 
+, 
+Growth 
+, 
+Scale 
+, 
+Enterprise 
+. 
+Open 
+Web Training 
+and enter your website address (for example 
+https://yourshop.com 
+https:// 
+Discovery. 
+Central AI reads 
+/sitemap.xml 
+www.yourshop.com 
+yourshop.com 
+Choose pages. 
+Untick pages you do not want, or add a page by hand. 
+Scrape. 
+The chosen pages are read in the background. Pages that need JavaScript are opened in a
+    browser. Links to files (PDF, images, Office documents, archives) are skipped: upload those as documents instead. 
+Embed. 
+Press embed to add the pages to your agent’s knowledge. Each page becomes one knowledge
+    record and uses one knowledge credit. 
+Your homepage is checked against your 
+robots.txt 
+The agent is given about the first 4000 characters of each page. Put the facts that matter near the
+    top of a long page, or upload them as a document. 
+You can edit the text of a scraped page, or delete it, from the web training job. 
+Pages are not re-read on their own. 
+When your site changes, run web training again, and delete
+    the old job so the agent does not hold two versions of a page. 
+Knowledge credits 
+Each knowledge record uses one knowledge credit: one FAQ, one CSV row, one document passage, one web page, or one
+  record created through the Knowledge Sync API. Your plan includes: 
+Uploads: 
+when a file has more records than you have credits left, only the first ones are
+    processed and the page tells you how many were skipped. With no credits left, the upload is refused. 
+Web training 
+charges one credit per page when the p
+
+...
+
+============================================================
+SERVER APIS
+============================================================
+Docs 
+Sign In 
+Docs 
+APIs 
+Chat, Lead Conversion and Support Tickets APIs 
+Call Central AI from your own server. 
+On this page: 
+Before you start 
+· 
+Chat API 
+· 
+Lead Conversion API 
+· 
+Support Tickets API 
+· 
+All server endpoints 
+Before you start 
+Every API on this page takes your 
+external API key 
+in the 
+X-API-Key 
+cax_ 
+Your 
+widget key 
+( 
+ca_… 
+LEGACY_API_KEY_RETIRED 
+Sunset 
+Examples call 
+http://centralai.daffodil-bd.com 
+YOUR_EXTERNAL_API_KEY 
+Chat API 
+POST http://centralai.daffodil-bd.com/chat/api/v1/ 
+Origin: 
+this API also checks the 
+Origin 
+Rate limit: 
+100 requests per 60 seconds per key; beyond
+    it, 
+429 
+Retry-After 
+Credits: 
+send_message 
+One endpoint, four actions ( 
+send_message 
+get_history 
+get_sessions 
+new_session 
+email 
+send_message 
+email 
+message 
+name 
+phone 
+session_id 
+response 
+session_id 
+session_name 
+message_count 
+get_history 
+email 
+session_id 
+history 
+session_id 
+get_sessions 
+email 
+sessions 
+total 
+new_session 
+email 
+name 
+phone 
+session_id 
+session_name 
+curl -X POST "http://centralai.daffodil-bd.com/chat/api/v1/" \
+  -H "X-API-Key: YOUR_EXTERNAL_API_KEY" \
+  -H "Origin: https://yourshop.com" \
+  -H "Content-Type: application/json" \
+  -d '{"action": "send_message", "email": " 
+[email protected] 
+", "message": "Do you deliver to Chattogram?"}' 
+{"success": true, "response": "Yes, we deliver across Bangladesh...",
+ "session_id": "...", "session_name": "...", "message_count": 2} 
+Errors answer 
+{"success": false, "error": "...", "code": "..."} 
+MISSING_API_KEY 
+INVALID_API_KEY 
+LEGACY_API_KEY_RETIRED 
+NO_DOMAINS_CONFIGURED 
+ORIGIN_NOT_ALLOWED 
+RATE_LIMIT_EXCEEDED 
+METHOD_NOT_ALLOWED 
+INVALID_JSON 
+NO_SUBSCRIPTION 
+SUBSCRIPTION_INACTIVE 
+CREDITS_EXHAUSTED 
+ACTION_REQUIRED 
+UNKNOWN_ACTION 
+EMAIL_REQUIRED 
+EMAIL_INVALID 
+MESSAGE_REQUIRED 
+AGENT_ERROR 
+AGENT_FAILED 
+INTERNAL_ERROR 
+Never call the Chat API from a browser. 
+The key would be in your page source, and anyone
+    could read your customers’ conversations by guessing an email address. For chat inside a web page, use the 
+widget 
+. 
+Lead Conversion API 
+Tell Central AI which leads became customers, from your CRM, billing or shop, so your reports show what the agent
+  actually won. 
+POST http://centralai.daffodil-bd.com/api/v1/leads/conversions/ 
+{"conversions": [...]} 
+GET http://centralai.daffodil-bd.com/api/v1/leads/lookup/ 
+external_id 
+email 
+phone 
+No 
+Origin 
+Each conversion needs at least one match key; they are tried in this order: 
+lead_id 
+external_id 
+email 
+phone 
+ip 
+value 
+currency 
+reference 
+occurred_at 
+note 
+ip 
+external_id 
+email 
+phone 
+curl -X POST "http://centralai.daffodil-bd.com/api/v1/leads/conversions/" \
+  -H "X-API-Key: YOUR_EXTERNAL_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"email": " 
+[email protected] 
+", "value": "85000.00", "currency": "BDT", "reference": "ORDER-1042"}' 
+{"success": true,
+ "results": [{"result": "converted", "matched_on": "email", "reason": "conversion_recorded", "lead": {...}}],
+ "summary": {"converted": 1, "suggested": 0, "already_converted": 0, "no_match": 0, "total": 1}} 
+No code at all? On 
+Won Leads 
+in the dashboard you can create a 
+CRM connector 
+: a secret URL that
+  HubSpot, Zoho CRM, Salesforce or any JSON sender posts closed deals to. 
+Support Tickets API 
+Read the support tickets your agent raises, for a helpdesk or your own system. First set the ticket mode to 
+External API 
+in your agent’s settings. 
+/api/v1/support-tickets/ 
+/api/v1/support-tickets/{tic
+
+...
+

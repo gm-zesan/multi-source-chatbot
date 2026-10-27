@@ -1,0 +1,190 @@
+=== 00_EXECUTIVE_SUMMARY.md ===
+  [K=4 / 0.72 similarity]: 1 occurrences
+    Line 104: | **Search Engine Infrastructure** | Document chunking (~400 chars, 80 overlap), vector similarity. 
+  [MFS / TrxID in Chat]: 1 occurrences
+    Line 61: PAYMENTS["Payment Verification<br/>(bKash / Nagad TrxID / SSLCommerz)"]
+  [False [OBSERVED] tags]: 1 occurrences
+    Line 119: - `[OBSERVED]`: Confirmed via authenticated dashboard HTTP inspection or live DOM scrape.
+
+=== 02_COMPLETE_MODULE_FEATURE_INVENTORY.md ===
+  [False [OBSERVED] tags]: 15 occurrences
+    Line 8: - **`[OBSERVED]`**: Verified by inspecting live dashboard endpoints, DOM forms, and responses during
+    Line 20: | **MOD-01** | **Chat Agent** | Knowledge-grounded RAG Q&A, strict hallucination prevention, persona
+    Line 26: | **MOD-07** | **Document Knowledge**| Document parser for PDF, DOCX, TXT (up to 10MB). Text chunkin
+    Line 27: | **MOD-08** | **Web Training** | Sitemap URL extraction, periodic domain crawler, automatic content
+    Line 28: | **MOD-09** | **FAQ Database** | Key-value Q&A manager, CSV bulk import/export, metadata linking (U
+
+=== 05_END_TO_END_WORKFLOWS.md ===
+  [MFS / TrxID in Chat]: 1 occurrences
+    Line 83: Bot-->>Buyer: "Send 1,800 BDT to 017XXXXXXXX & reply with TrxID"
+  [False [OBSERVED] tags]: 2 occurrences
+    Line 34: - **Error Handling**: Corrupt PDFs or encrypted documents produce an explicit `PARSING_ERROR` alert 
+    Line 146: - **Observed Screens**: Form actions and response handlers validated at `/knowledge/`, `/sales/`, `/
+
+=== 06_API_AND_INTEGRATIONS.md ===
+  [False [OBSERVED] tags]: 2 occurrences
+    Line 95: Central AI communicates with Odoo ERP through Odoo's native XML-RPC or REST protocols `[OBSERVED]`:
+    Line 146: - **Observed Interfaces**: Widget settings `/chat/widget/`, Odoo settings `/leads/integrations/`, an
+
+=== 07_AI_AGENTS_AND_KNOWLEDGE_FLOWS.md ===
+  [K=4 / 0.72 similarity]: 3 occurrences
+    Line 33: KB_STORE[("Knowledge Vector Index<br/>(Top-K Similarity > 0.72)")]
+    Line 83: VectorDB-->>Router: Return top K=4 chunks (Similarity score: 0.88, 0.81, 0.76, 0.73)
+    Line 95: - **Similarity Threshold**: ~0.72 minimum cosine similarity cutoff.
+  [MFS / TrxID in Chat]: 1 occurrences
+    Line 107: | **Commerce Interconnect**| Native Offering entities, cart state, bKash/Nagad TrxID recording, HMAC
+  [False [OBSERVED] tags]: 8 occurrences
+    Line 5: - **Audit Status**: Verified `[OBSERVED]` (Settings & UI) / `[DOCUMENTED]` (Retrieval Specs)
+    Line 59: - Regex patterns for contact data (Email: `[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}`, Phone: `
+    Line 104: | **Agent Paradigm** | Specialized 6-Agent routing pipeline with sales and CRM handoffs `[OBSERVED]`
+    Line 104: | **Agent Paradigm** | Specialized 6-Agent routing pipeline with sales and CRM handoffs `[OBSERVED]`
+    Line 105: | **Tabular Data** | Flattened text chunks (`col: val`). Cannot perform dynamic math/SQL queries `[D
+
+=== 08_LEADS_TICKETS_AND_HUMAN_HANDOFF.md ===
+  [BANT Qualification]: 2 occurrences
+    Line 41: The **Smart Lead Agent** evaluates prospective buyers across four dimensions (BANT criteria) `[DOCUM
+    Line 100: - **Documented**: BANT scoring framework and partner limits documented in enterprise feature matrix 
+  [False [OBSERVED] tags]: 4 occurrences
+    Line 5: - **Audit Status**: Verified `[OBSERVED]` (Leads & Odoo UI) / `[DOCUMENTED]` (Scoring Rules)
+    Line 70: 2. *Manual Bulk Sync*: Admins select rows on `/leads/` and click "Sync Selected to Odoo" `[OBSERVED]
+    Line 71: - **Status Indicators**: Each lead row displays a status pill: `Synced`, `Pending`, `Failed`, or `No
+    Line 99: - **Observed**: Screen `/leads/`, export buttons, and `/leads/integrations/` Odoo settings inspected
+
+=== 09_DATA_ENTITIES_AND_DEPENDENCIES.md ===
+  [MFS / TrxID in Chat]: 2 occurrences
+    Line 55: - **`PaymentReceipt`**: MFS transaction logs. Attributes: `id`, `order_id`, `transaction_id` (TrxID)
+    Line 69: | **Domestic Payments**| bKash / Nagad / Rocket | Manual TrxID / API | Settlement of South Asian cus
+  [False [OBSERVED] tags]: 2 occurrences
+    Line 5: - **Audit Status**: Verified `[OBSERVED]` (Forms & Tables) / `[INFERRED]` (Foreign Key Relationships
+    Line 76: - **Observed**: Relational fields confirmed via dashboard screens (`/knowledge/`, `/sales/`, `/leads
+
+=== 10_ROLES_PERMISSIONS_AND_SECURITY.md ===
+  [False [OBSERVED] tags]: 11 occurrences
+    Line 5: - **Audit Status**: Verified Active `[OBSERVED]` (Key UI & Settings) / `[DOCUMENTED]` (Security Spec
+    Line 11: Central AI implements a strict segregation of privilege through two distinct credential classes `[OB
+    Line 50: - **Enforcement**: Public widget keys (`ca_...`) only accept incoming chat requests if the HTTP `Ori
+    Line 83: | **API Authentication** | Dual-key architecture (`ca_...` public, `cax_...` secret server) `[OBSERV
+    Line 83: | **API Authentication** | Dual-key architecture (`ca_...` public, `cax_...` secret server) `[OBSERV
+
+=== 11_BILLING_USAGE_AND_PLAN_LIMITS.md ===
+  [BANT Qualification]: 1 occurrences
+    Line 53: 3. **Lead Qualification Credits**: Deducted strictly when the Smart Lead Agent executes a full quali
+  [False [OBSERVED] tags]: 6 occurrences
+    Line 5: - **Audit Status**: Verified Active `[OBSERVED]` (Live Usage UI) / `[DOCUMENTED]` (Official Pricing 
+    Line 11: Central AI packages its platform across five commercial tiers `[DOCUMENTED]` / `[OBSERVED]`:
+    Line 31: The platform actively tracks four metered units in real time `[OBSERVED]`:
+    Line 63: - **Knowledge Base Lockdown**: When record limits are reached, file uploads and web training crawler
+    Line 69: - **Invoicing**: Monthly tax-compliant PDF invoices are automatically generated and downloadable fro
+
+=== 12_EVIDENCE_REGISTER.md ===
+  [BANT Qualification]: 1 occurrences
+    Line 43: | `EVID-DOC-03` | `docs_smart_lead.html` | Smart Lead Agent | Multi-turn BANT qualification, scoring
+  [K=4 / 0.72 similarity]: 1 occurrences
+    Line 47: | `EVID-DOC-07` | `docs_knowledge_hub.html`| Knowledge Hub | ~400 char chunking, 80 char overlap, co
+  [MFS / TrxID in Chat]: 1 occurrences
+    Line 52: | `EVID-DOC-12` | `docs_commerce.html` | Commerce & Checkout| bKash/Nagad manual TrxID, SSLCommerz, 
+  [False [OBSERVED] tags]: 2 occurrences
+    Line 7: - `[OBSERVED]`: Directly inspected via authenticated HTTP requests, DOM exploration, or network traf
+    Line 15: ## 1. Live Authenticated Dashboard Endpoints (`[OBSERVED]`)
+
+=== 13_UNVERIFIED_FEATURES_AND_OPEN_QUESTIONS.md ===
+  [False [OBSERVED] tags]: 1 occurrences
+    Line 17: | **Live Odoo Two-Way Push** | Growth & Scale | Live sync execution requires active Odoo instance cr
+
+=== 14_AUDIT_PROGRESS.md ===
+  [BANT Qualification]: 1 occurrences
+    Line 22: | 7 | `04_FEATURE_DETAILS/03_SMART_LEAD_AGENT.md` | Multi-turn BANT Qualification | Completed | `[DO
+  [MFS / TrxID in Chat]: 1 occurrences
+    Line 67: - Incorporate structured offering entities and in-chat MFS (bKash/Nagad TrxID) verification to suppo
+  [False [OBSERVED] tags]: 22 occurrences
+    Line 16: | 1 | `00_EXECUTIVE_SUMMARY.md` | Executive Summary & Differentiators | Completed | `[OBSERVED]`, `[
+    Line 17: | 2 | `01_PRODUCT_AND_NAVIGATION_MAP.md` | Navigation Hierarchy & Zones | Completed | `[OBSERVED]`, 
+    Line 18: | 3 | `02_COMPLETE_MODULE_FEATURE_INVENTORY.md`| 22 Functional Modules Matrix | Completed | `[OBSERV
+    Line 19: | 4 | `03_DASHBOARD_SCREEN_CATALOG.md` | 15 Live Administrative Screens | Completed | `[OBSERVED]` |
+    Line 20: | 5 | `04_FEATURE_DETAILS/01_CHAT_AGENT.md` | Core Conversational RAG Engine | Completed | `[OBSERVE
+
+=== 15_LIVE_REVERIFICATION_REPORT.md ===
+  [BANT Qualification]: 5 occurrences
+    Line 17: - **Smart Lead Agent Workflow**: The prior audit claimed the Smart Lead Agent runs real-time convers
+    Line 17: - **Smart Lead Agent Workflow**: The prior audit claimed the Smart Lead Agent runs real-time convers
+    Line 67: | **CLM-05** | Smart Lead Agent conducts live conversational BANT interview. | `04_FEATURE_DETAILS/0
+    Line 87: - **Previous Claim**: An autonomous conversational agent that interrupts user chat to ask BANT quest
+    Line 156: 4. `04_FEATURE_DETAILS/03_SMART_LEAD_AGENT.md`: Rewritten to reflect daily batch summarization and c
+  [K=4 / 0.72 similarity]: 4 occurrences
+    Line 20: - **RAG Passage Retrieval Count**: The prior audit claimed K=4 candidate chunks are retrieved. **Cor
+    Line 64: | **CLM-02** | Chat Agent retrieves Top K=4 passages per turn. | `04_FEATURE_DETAILS/01_CHAT_AGENT.m
+    Line 64: | **CLM-02** | Chat Agent retrieves Top K=4 passages per turn. | `04_FEATURE_DETAILS/01_CHAT_AGENT.m
+    Line 142: | **CONTRADICTED** | 7 | Explicitly contradicted by official documentation / pricing DOM (Smart Lead
+  [MFS / TrxID in Chat]: 3 occurrences
+    Line 18: - **Live Checkout & Payment Mechanics**: The prior audit claimed Central AI features native in-chat 
+    Line 70: | **CLM-08** | In-chat checkout takes bKash/Nagad TrxID directly in dialogue. | `04_FEATURE_DETAILS/
+    Line 91: - **Previous Claim**: Central AI acts as a payment gateway collector where customers type bKash/Naga
+  [Lead Engagement Channels]: 3 occurrences
+    Line 19: - **AI Lead Engagement Channel**: The prior audit claimed Lead Engagement executes outbound WhatsApp
+    Line 69: | **CLM-07** | AI Lead Engagement sends outbound WhatsApp / Instagram DMs. | `04_FEATURE_DETAILS/05_
+    Line 142: | **CONTRADICTED** | 7 | Explicitly contradicted by official documentation / pricing DOM (Smart Lead
+  [Old Quotas (1k/5k/20k)]: 3 occurrences
+    Line 75: | **CLM-13** | Starter Plan includes 1,000 knowledge records. | `11_BILLING_USAGE_AND_PLAN_LIMITS.md
+    Line 76: | **CLM-14** | Growth Plan includes 5,000 knowledge records. | `11_BILLING_USAGE_AND_PLAN_LIMITS.md`
+    Line 77: | **CLM-15** | Scale Plan includes 20,000 knowledge records. | `11_BILLING_USAGE_AND_PLAN_LIMITS.md`
+  [Auto Lead Capture All Plans]: 1 occurrences
+    Line 68: | **CLM-06** | Auto Lead Capture is available on all plans including Test Drive. | `02_COMPLETE_MODU
+
+=== 04_FEATURE_DETAILS/01_CHAT_AGENT.md ===
+  [False [OBSERVED] tags]: 2 occurrences
+    Line 5: - **Audit Status**: Verified Active `[OBSERVED]`
+    Line 70: - **Evidence Tag**: `[OBSERVED]`
+
+=== 04_FEATURE_DETAILS/02_AI_SALES_AGENT.md ===
+  [False [OBSERVED] tags]: 2 occurrences
+    Line 5: - **Audit Status**: Verified Documented & Live Settings `[DOCUMENTED]` / `[OBSERVED]`
+    Line 63: - **Evidence Tag**: `[OBSERVED]` (Catalog & Suggestions) / `[DOCUMENTED]` (Live In-Chat Payment Flow
+
+=== 04_FEATURE_DETAILS/03_SMART_LEAD_AGENT.md ===
+  [BANT Qualification]: 2 occurrences
+    Line 16: Customers experience **zero friction** during live chats—they interact naturally with the Chat and S
+    Line 69: - **Re-Verification Finding**: Overturns prior audit claim of live in-chat BANT interviews.
+
+=== 04_FEATURE_DETAILS/04_AUTO_LEAD_CAPTURE.md ===
+  [False [OBSERVED] tags]: 2 occurrences
+    Line 5: - **Audit Status**: Verified Active `[OBSERVED]`
+    Line 53: - **Evidence Tag**: `[OBSERVED]`
+
+=== 04_FEATURE_DETAILS/07_KNOWLEDGE_BASE.md ===
+  [K=4 / 0.72 similarity]: 1 occurrences
+    Line 20: PARSER --> CHUNK["Text Chunker (~400 chars, 80 overlap)"]
+  [Old Quotas (1k/5k/20k)]: 3 occurrences
+    Line 58: - **Starter**: 1,000 knowledge records.
+    Line 59: - **Growth**: 5,000 knowledge records.
+    Line 60: - **Scale**: 20,000 knowledge records.
+  [False [OBSERVED] tags]: 2 occurrences
+    Line 5: - **Audit Status**: Verified Active `[OBSERVED]`
+    Line 66: - **Evidence Tag**: `[OBSERVED]`
+
+=== 04_FEATURE_DETAILS/08_OFFERINGS_AND_PRODUCT_CATALOG.md ===
+  [False [OBSERVED] tags]: 17 occurrences
+    Line 5: - **Audit Status**: Verified Active `[OBSERVED]`
+    Line 15: 2. Interactive visual rich cards rendered inside the chat widget with direct "Buy Now" or "Add to Ca
+    Line 17: 4. Automated AI extraction of sellable items from unstructured business documents via the "Find What
+    Line 24: - **Structured Fields**: Title, SKU, offering type, base price, currency, thumbnail image, marketing
+    Line 31: - **Search & Filter Controls**: DataTables grid with search-as-you-type, category filtering, and ins
+
+=== 04_FEATURE_DETAILS/09_WEBSITE_CHAT_WIDGET.md ===
+  [False [OBSERVED] tags]: 19 occurrences
+    Line 5: - **Audit Status**: Verified Active `[OBSERVED]`
+    Line 18: - **One-Line Script Tag**: Implemented as an asynchronous script loading an isolated web component o
+    Line 19: - **Public API Key**: Authentication relies on a tenant-specific public widget key (`ca_...`) `[OBSE
+    Line 20: - **Origin Whitelisting**: Mandatory security feature where admins must register permitted domain ho
+    Line 23: - **Primary Color Selector**: Hex color picker configuring the widget header, floating button, and u
+
+=== 04_FEATURE_DETAILS/10_SOCIAL_CHANNELS.md ===
+  [False [OBSERVED] tags]: 4 occurrences
+    Line 5: - **Audit Status**: Verified Active `[OBSERVED]`
+    Line 18: - **Connection Mechanism**: Meta OAuth login flow linking verified Facebook Pages `[OBSERVED]`.
+    Line 24: - **Connection Mechanism**: Connects through Facebook Page linked to an Instagram Professional/Busin
+    Line 87: - **Observed**: Screen `/integrations/meta/` inspected directly with Facebook, Instagram, and WhatsA
+
+=== 04_FEATURE_DETAILS/11_COMMERCE_AND_LIVE_CHECKOUT.md ===
+  [MFS / TrxID in Chat]: 1 occurrences
+    Line 88: - **Re-Verification Finding**: Corrects previous audit assumptions of native in-chat bKash/Nagad Trx
+

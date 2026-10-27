@@ -44,6 +44,7 @@ class KnowledgeDocument extends Model
         'chunk_count',
         'sheets_count',
         'version',
+        'active_generation_id',
         'is_active',
         'error_message',
         'metadata',

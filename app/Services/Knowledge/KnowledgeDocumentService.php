@@ -11,11 +11,13 @@ use App\Enums\RoleEnum;
 use App\Models\KnowledgeDocument;
 use App\Models\User;
 use App\Services\Analytics\AnalyticsClient;
+use App\Services\Retrieval\RetrievalClient;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
@@ -27,7 +29,13 @@ class KnowledgeDocumentService
 {
     public function __construct(
         private readonly AnalyticsClient $analyticsClient,
+        private readonly ?RetrievalClient $retrievalClient = null,
     ) {}
+
+    public function retrievalClient(): RetrievalClient
+    {
+        return $this->retrievalClient ?? app(RetrievalClient::class);
+    }
 
     /**
      * Get the authenticated user's workspace ID.
@@ -416,14 +424,11 @@ class KnowledgeDocumentService
             throw $e;
         }
 
-        // 6. Connect to Python Analytics Source Registration if purpose is data analytics
+        // 6. Connect to Python Analytics Source Registration if purpose is data analytics, or ingest for Knowledge Base
         if ($resolvedPurpose === \App\Enums\IngestionPurpose::DATA_ANALYTICS) {
             $this->processAnalyticsRegistration($document);
         } else {
-            $document->update([
-                'lifecycle_status' => DocumentLifecycleStatus::ACTIVE,
-                'is_active'        => true,
-            ]);
+            $this->processKnowledgeBaseIngestion($document);
         }
 
         return $document;
@@ -477,12 +482,12 @@ class KnowledgeDocumentService
                 'file_size'           => strlen($textContent),
                 'content_hash'        => $contentHash,
                 'active_content_hash' => $contentHash,
-                'lifecycle_status'    => DocumentLifecycleStatus::ACTIVE,
+                'lifecycle_status'    => DocumentLifecycleStatus::PENDING_INGESTION,
                 'purpose'             => $resolvedPurpose,
-                'chunk_count'         => 1,
+                'chunk_count'         => 0,
                 'sheets_count'        => 1,
                 'version'             => 1,
-                'is_active'           => true,
+                'is_active'           => false,
                 'error_message'       => null,
                 'metadata'            => [
                     'ingestion_purpose' => $resolvedPurpose->value,
@@ -496,6 +501,15 @@ class KnowledgeDocumentService
             $doc->save();
             return $doc;
         });
+
+        if ($resolvedPurpose === IngestionPurpose::KNOWLEDGE_BASE) {
+            $this->processKnowledgeBaseIngestion($document);
+        } else {
+            $document->update([
+                'lifecycle_status' => DocumentLifecycleStatus::ACTIVE,
+                'is_active'        => true,
+            ]);
+        }
 
         return $document;
     }
@@ -567,6 +581,495 @@ class KnowledgeDocumentService
     }
 
     /**
+     * Ingest, chunk, and index a knowledge base document into the semantic retrieval engine.
+     */
+    public function processKnowledgeBaseIngestion(KnowledgeDocument $document): void
+    {
+        $lock = null;
+        try {
+            $lock = Cache::lock("knowledge_doc_indexing:{$document->id}", 60);
+            $acquired = $lock->get();
+        } catch (\Throwable) {
+            $acquired = true;
+            $lock = null;
+        }
+
+        if (! $acquired) {
+            // H-01: Non-destructive lock contention - log and skip without corrupting document status
+            Log::info("[KnowledgeDocumentService] Concurrency lock could not be acquired for document {$document->id}; an indexing operation is already in progress.");
+            return;
+        }
+
+        $expectedVersion = (int) ($document->fresh()?->version ?? $document->version ?? 1);
+        $wasActive = ($document->lifecycle_status === DocumentLifecycleStatus::ACTIVE && $document->is_active);
+        $previousGenerationId = $document->active_generation_id;
+        $previousChunkCount = (int) ($document->chunk_count ?? 0);
+
+        $syncedChunkIds = [];
+        $generationId = null;
+
+        try {
+            // Fix 2: Recover any abandoned pending generation BEFORE writing new pending metadata
+            $cleanedAbandoned = $this->cleanupAbandonedPendingGeneration($document);
+            if (! $cleanedAbandoned) {
+                throw new \RuntimeException("Failed to confirm cleanup of previous abandoned generation from retrieval engine. Ingestion aborted to prevent orphaned chunks.");
+            }
+
+            $text = $this->extractDocumentText($document);
+            $trimmed = trim($text);
+
+            if ($trimmed === '') {
+                throw new \RuntimeException('Document content is empty or contains no extractable text.');
+            }
+
+            $chunks = $this->chunkText($trimmed);
+            if (empty($chunks)) {
+                throw new \RuntimeException('Failed to generate chunks from document text.');
+            }
+
+            // Generate new attempt generation ID
+            $generationId = (string) Str::uuid();
+
+            // L-01: Durably persist pending generation attempt BEFORE issuing any remote sync mutations
+            $meta = $document->fresh()?->metadata ?? $document->metadata ?? [];
+            $meta['pending_generation_id'] = $generationId;
+            $meta['pending_chunk_count'] = count($chunks);
+
+            $updatePayload = [
+                'metadata' => $meta,
+            ];
+
+            // Fix 1: If document was already active, preserve its active status and retrievability throughout indexing
+            if (! $wasActive) {
+                $updatePayload['lifecycle_status'] = DocumentLifecycleStatus::INDEXING;
+                $updatePayload['is_active']        = false;
+                $updatePayload['error_message']    = null;
+            }
+
+            $document->update($updatePayload);
+
+            $indexedCount = 0;
+            $client = $this->retrievalClient();
+
+            foreach ($chunks as $idx => $chunk) {
+                // C-01: Generation-scoped chunk identity isolates this attempt from any concurrent or older attempts
+                $chunkId = "doc_{$document->id}_{$generationId}_{$idx}";
+                $synced = $client->syncDocumentChunk(
+                    id: $chunkId,
+                    workspaceId: (int) $document->workspace_id,
+                    title: $document->title,
+                    content: $chunk,
+                    documentType: 'knowledge_document',
+                    sourceId: $document->source_id ?? $document->id
+                );
+
+                if (! $synced) {
+                    throw new \RuntimeException("Failed to sync chunk {$idx} to retrieval engine.");
+                }
+
+                $syncedChunkIds[] = $chunkId;
+                $indexedCount++;
+            }
+
+            $newVersion = $expectedVersion + 1;
+
+            // M-01 & M-02: Optimistic version check fencing: atomically advance version and publish active_generation_id
+            $affected = KnowledgeDocument::where('id', $document->id)
+                ->where('workspace_id', $document->workspace_id)
+                ->where('version', $expectedVersion)
+                ->whereNull('deleted_at')
+                ->update([
+                    'version'              => $newVersion,
+                    'lifecycle_status'     => DocumentLifecycleStatus::ACTIVE,
+                    'is_active'            => true,
+                    'chunk_count'          => $indexedCount,
+                    'active_generation_id' => $generationId,
+                    'error_message'        => null,
+                ]);
+
+            if ($affected === 0) {
+                // Version was superseded or document deleted while indexing was in progress;
+                // C-01: Safely roll back ONLY this worker's generation chunks without touching active/newer generation
+                $this->cleanupGenerationChunks($document, $generationId, count($syncedChunkIds));
+                throw new \RuntimeException("Indexing aborted: document version was superseded by a concurrent operation or deleted (expected version {$expectedVersion}).");
+            }
+
+            // Publication succeeded: safely clean up previous generation chunks now that new generation is live
+            try {
+                if ($previousGenerationId && $previousGenerationId !== $generationId) {
+                    $cleanedOld = $this->cleanupGenerationChunks($document, $previousGenerationId, $previousChunkCount);
+                    if (! $cleanedOld) {
+                        Log::warning("[KnowledgeDocumentService] Failed to clean up superseded generation {$previousGenerationId} after publication", [
+                            'document_id' => $document->id,
+                            'workspace_id' => $document->workspace_id,
+                        ]);
+                    }
+                }
+                // Also clean up any legacy un-versioned chunks if present
+                $this->cleanupLegacyChunks($document, $previousChunkCount);
+            } catch (\Throwable $cleanupEx) {
+                Log::warning("[KnowledgeDocumentService] Obsolete generation cleanup encountered an error: " . $cleanupEx->getMessage(), [
+                    'document_id' => $document->id,
+                    'workspace_id' => $document->workspace_id,
+                ]);
+            }
+
+            // Clear pending attempt metadata
+            $meta = $document->fresh()?->metadata ?? $document->metadata ?? [];
+            unset($meta['pending_generation_id'], $meta['pending_chunk_count']);
+            $document->metadata = $meta;
+            $document->saveQuietly();
+            $document->refresh();
+
+            Log::info("[KnowledgeDocumentService] Successfully indexed knowledge document generation", [
+                'document_id'   => $document->id,
+                'workspace_id'  => $document->workspace_id,
+                'generation_id' => $generationId,
+                'chunk_count'   => $indexedCount,
+                'version'       => $newVersion,
+            ]);
+        } catch (\Throwable $e) {
+            Log::error("[KnowledgeDocumentService] Failed to index knowledge base document", [
+                'document_id' => $document->id,
+                'error'       => $e->getMessage(),
+            ]);
+
+            // Attempt immediate rollback of this generation's chunks
+            $uncleanedRollbacks = [];
+            foreach ($syncedChunkIds as $rollbackId) {
+                $delSuccess = false;
+                try {
+                    $delSuccess = $this->retrievalClient()->deleteFaq($rollbackId, (int) $document->workspace_id);
+                } catch (\Throwable) {}
+                if (! $delSuccess) {
+                    $uncleanedRollbacks[] = $rollbackId;
+                }
+            }
+
+            // Check if document was superseded by a newer version or deleted
+            $freshDoc = KnowledgeDocument::find($document->id);
+            if ($freshDoc && ($freshDoc->version > $expectedVersion || $freshDoc->trashed())) {
+                Log::warning("[KnowledgeDocumentService] Stale indexing worker discarded for document {$document->id} (worker v{$expectedVersion} <= current v{$freshDoc->version})");
+                return;
+            }
+
+            $meta = $document->fresh()?->metadata ?? $document->metadata ?? [];
+            if (! empty($uncleanedRollbacks)) {
+                $meta['partial_chunks'] = array_values(array_unique(array_merge(
+                    $meta['partial_chunks'] ?? [],
+                    $uncleanedRollbacks
+                )));
+            }
+            if (isset($chunks) && is_array($chunks)) {
+                $meta['last_attempted_chunk_count'] = count($chunks);
+            }
+
+            if ($wasActive) {
+                // Fix 1: If document was already active, preserve its active status and previous generation!
+                $meta['last_reindex_error'] = $e->getMessage();
+                if ($generationId !== null && empty($uncleanedRollbacks)) {
+                    unset($meta['pending_generation_id'], $meta['pending_chunk_count']);
+                }
+                $document->update([
+                    'metadata' => $meta,
+                ]);
+            } else {
+                if ($generationId !== null && empty($uncleanedRollbacks)) {
+                    unset($meta['pending_generation_id'], $meta['pending_chunk_count']);
+                }
+                $document->update([
+                    'lifecycle_status' => DocumentLifecycleStatus::FAILED,
+                    'is_active'        => false,
+                    'error_message'    => $e->getMessage(),
+                    'metadata'         => $meta,
+                ]);
+            }
+        } finally {
+            if ($lock) {
+                try {
+                    $lock->release();
+                } catch (\Throwable) {}
+            }
+        }
+    }
+
+    /**
+     * Extract raw text from the knowledge document.
+     */
+    public function extractDocumentText(KnowledgeDocument $document): string
+    {
+        // 1. Check metadata for raw_text (for storeText or explicit text entries)
+        if (! empty($document->metadata['raw_text'])) {
+            return (string) $document->metadata['raw_text'];
+        }
+
+        $filePath = $document->file_path;
+        if (! $filePath || ! Storage::disk('local')->exists($filePath)) {
+            throw new \RuntimeException('Document file is missing from private storage.');
+        }
+
+        $extension = strtolower(pathinfo($document->original_filename ?: $filePath, PATHINFO_EXTENSION));
+
+        // Supported text formats: txt, md, json, log, csv
+        if (in_array($extension, ['txt', 'md', 'json', 'log', 'csv'], true)) {
+            $content = Storage::disk('local')->get($filePath);
+            return $content ?? '';
+        }
+
+        // Unsupported binary formats (PDF, Word, Excel, PowerPoint)
+        if (in_array($extension, ['pdf', 'doc', 'docx', 'xlsx', 'xls', 'ppt', 'pptx'], true)) {
+            throw new \RuntimeException(
+                "Unsupported file format for text extraction (.{$extension}). Text extraction requires plain text (.txt, .md) or direct text entries."
+            );
+        }
+
+        $raw = Storage::disk('local')->get($filePath);
+        if ($raw !== null && mb_check_encoding($raw, 'UTF-8')) {
+            return $raw;
+        }
+
+        throw new \RuntimeException("Unable to extract text from document of type: .{$extension}");
+    }
+
+    /**
+     * Deterministically split text into overlapping chunks.
+     *
+     * @return array<int, string>
+     */
+    public function chunkText(string $text, int $chunkSize = 500, int $overlap = 80): array
+    {
+        $text = str_replace(["\r\n", "\r"], "\n", trim($text));
+        if ($text === '') {
+            return [];
+        }
+
+        $length = mb_strlen($text);
+        if ($length <= $chunkSize) {
+            return [$text];
+        }
+
+        $chunks = [];
+        $start = 0;
+        $step = max(1, $chunkSize - $overlap);
+
+        while ($start < $length) {
+            $chunk = mb_substr($text, $start, $chunkSize);
+            $trimmed = trim($chunk);
+            if ($trimmed !== '') {
+                $chunks[] = $trimmed;
+            }
+            $start += $step;
+        }
+
+        return $chunks;
+    }
+
+    /**
+     * Clean up an abandoned pending generation from a previous crashed or interrupted attempt.
+     * Guarantees that active_generation_id is never deleted.
+     *
+     * @return bool True if cleanup succeeded or no abandoned generation existed; False if cleanup could not be confirmed.
+     */
+    public function cleanupAbandonedPendingGeneration(KnowledgeDocument $document): bool
+    {
+        $meta = $document->metadata ?? [];
+        $abandonedGenId = $meta['pending_generation_id'] ?? null;
+        $abandonedCount = (int) ($meta['pending_chunk_count'] ?? 0);
+
+        if (! empty($abandonedGenId)) {
+            // Guard: If pending_generation_id matches active_generation_id, it was successfully published
+            // in a prior attempt and only metadata clearing was interrupted. Do NOT delete its active chunks!
+            if ($abandonedGenId === $document->active_generation_id) {
+                unset($meta['pending_generation_id'], $meta['pending_chunk_count']);
+                $document->metadata = $meta;
+                $document->saveQuietly();
+            } else {
+                $count = max($abandonedCount, (int) ($document->chunk_count ?? 0), 10);
+                $cleaned = $this->cleanupGenerationChunks($document, $abandonedGenId, $count);
+                if (! $cleaned) {
+                    return false;
+                }
+                unset($meta['pending_generation_id'], $meta['pending_chunk_count']);
+                $document->metadata = $meta;
+                $document->saveQuietly();
+            }
+        }
+
+        // Also clean up any uncleaned partial chunks that do not belong to active generation
+        if (! empty($meta['partial_chunks']) && is_array($meta['partial_chunks'])) {
+            $client = $this->retrievalClient();
+            $uncleaned = [];
+            foreach ($meta['partial_chunks'] as $chunkId) {
+                if (is_string($chunkId) && str_starts_with($chunkId, "doc_{$document->id}_")) {
+                    if (! empty($document->active_generation_id) && str_contains($chunkId, "_{$document->active_generation_id}_")) {
+                        continue;
+                    }
+                    $success = false;
+                    try {
+                        $success = $client->deleteFaq($chunkId, (int) $document->workspace_id);
+                    } catch (\Throwable) {}
+                    if (! $success) {
+                        $uncleaned[] = $chunkId;
+                    }
+                }
+            }
+            if (! empty($uncleaned)) {
+                $meta['partial_chunks'] = $uncleaned;
+                $document->metadata = $meta;
+                $document->saveQuietly();
+
+                return false;
+            }
+            unset($meta['partial_chunks']);
+            $document->metadata = $meta;
+            $document->saveQuietly();
+        }
+
+        return true;
+    }
+
+    /**
+     * Delete chunks for a specific document generation.
+     */
+    public function cleanupGenerationChunks(KnowledgeDocument $document, string $generationId, int $count): bool
+    {
+        if ($count <= 0) {
+            $count = max((int) ($document->chunk_count ?? 0), 10);
+        }
+
+        $client = $this->retrievalClient();
+        $allSuccess = true;
+
+        for ($i = 0; $i < $count; $i++) {
+            $chunkId = "doc_{$document->id}_{$generationId}_{$i}";
+            try {
+                $deleted = $client->deleteFaq($chunkId, (int) $document->workspace_id);
+                if (! $deleted) {
+                    $allSuccess = false;
+                }
+            } catch (\Throwable) {
+                $allSuccess = false;
+            }
+        }
+
+        return $allSuccess;
+    }
+
+    /**
+     * Delete legacy non-generation-tagged chunks (doc_{id}_{i}).
+     */
+    public function cleanupLegacyChunks(KnowledgeDocument $document, int $count): bool
+    {
+        if ($count <= 0) {
+            return true;
+        }
+
+        $client = $this->retrievalClient();
+        $allSuccess = true;
+
+        for ($i = 0; $i < $count; $i++) {
+            $chunkId = "doc_{$document->id}_{$i}";
+            try {
+                $deleted = $client->deleteFaq($chunkId, (int) $document->workspace_id);
+                if (! $deleted) {
+                    $allSuccess = false;
+                }
+            } catch (\Throwable) {
+                $allSuccess = false;
+            }
+        }
+
+        return $allSuccess;
+    }
+
+    /**
+     * Cleanup all indexed chunks for a knowledge base document in Typesense.
+     *
+     * @param KnowledgeDocument $document
+     * @param int|null $expectedChunkCount Optional count of chunks being prepared for indexing
+     * @throws \RuntimeException If cleanup of any chunk cannot be confirmed by the retrieval service
+     */
+    public function cleanupKnowledgeBaseChunks(KnowledgeDocument $document, ?int $expectedChunkCount = null): void
+    {
+        $existingCount = (int) ($document->chunk_count ?? 0);
+        $metadata = $document->metadata ?? [];
+        $lastAttempted = (int) ($metadata['last_attempted_chunk_count'] ?? 0);
+        $expected = (int) ($expectedChunkCount ?? 0);
+        $maxCount = max($existingCount, $lastAttempted, $expected);
+
+        $chunkIds = [];
+
+        // 1. Legacy chunk IDs
+        for ($i = 0; $i < $maxCount; $i++) {
+            $chunkIds[] = "doc_{$document->id}_{$i}";
+        }
+
+        // 2. Active generation chunk IDs
+        if (! empty($document->active_generation_id)) {
+            for ($i = 0; $i < $maxCount; $i++) {
+                $chunkIds[] = "doc_{$document->id}_{$document->active_generation_id}_{$i}";
+            }
+        }
+
+        // 3. Pending generation from crash / previous attempt (L-01)
+        if (! empty($metadata['pending_generation_id'])) {
+            $pendingCount = max((int) ($metadata['pending_chunk_count'] ?? 0), $maxCount);
+            for ($i = 0; $i < $pendingCount; $i++) {
+                $chunkIds[] = "doc_{$document->id}_{$metadata['pending_generation_id']}_{$i}";
+            }
+        }
+
+        // 4. Any explicit partial chunk IDs
+        if (! empty($metadata['partial_chunks']) && is_array($metadata['partial_chunks'])) {
+            foreach ($metadata['partial_chunks'] as $pid) {
+                if (is_string($pid) && str_starts_with($pid, "doc_{$document->id}_")) {
+                    $chunkIds[] = $pid;
+                }
+            }
+        }
+
+        $chunkIds = array_values(array_unique($chunkIds));
+        if (empty($chunkIds)) {
+            return;
+        }
+
+        $client = $this->retrievalClient();
+        $uncleaned = [];
+
+        foreach ($chunkIds as $chunkId) {
+            $success = false;
+            try {
+                $success = $client->deleteFaq($chunkId, (int) $document->workspace_id);
+            } catch (\Throwable) {}
+            if (! $success) {
+                $uncleaned[] = $chunkId;
+            }
+        }
+
+        if (! empty($uncleaned)) {
+            $metadata['partial_chunks'] = array_values(array_unique(array_merge(
+                $metadata['partial_chunks'] ?? [],
+                $uncleaned
+            )));
+            $document->metadata = $metadata;
+            $document->saveQuietly();
+
+            throw new \RuntimeException(sprintf(
+                'Failed to confirm cleanup of %d chunk(s) from retrieval engine: %s',
+                count($uncleaned),
+                implode(', ', array_slice($uncleaned, 0, 3))
+            ));
+        }
+
+        // Cleanup confirmed for all chunks - clear partial_chunks, pending_generation_id, last_attempted_chunk_count
+        if (isset($metadata['partial_chunks']) || isset($metadata['last_attempted_chunk_count']) || isset($metadata['pending_generation_id'])) {
+            unset($metadata['partial_chunks'], $metadata['last_attempted_chunk_count'], $metadata['pending_generation_id'], $metadata['pending_chunk_count']);
+            $document->metadata = $metadata;
+            $document->saveQuietly();
+        }
+    }
+
+    /**
      * Retry registration for a failed document.
      */
     public function retry(string $id): KnowledgeDocument
@@ -578,6 +1081,7 @@ class KnowledgeDocumentService
             return $document;
         }
 
+        $document->increment('version');
         $document->update([
             'lifecycle_status' => DocumentLifecycleStatus::PENDING_INGESTION,
             'error_message'    => null,
@@ -586,10 +1090,7 @@ class KnowledgeDocumentService
         if ($document->getIngestionPurpose() === IngestionPurpose::DATA_ANALYTICS) {
             $this->processAnalyticsRegistration($document);
         } else {
-            $document->update([
-                'lifecycle_status' => DocumentLifecycleStatus::ACTIVE,
-                'is_active'        => true,
-            ]);
+            $this->processKnowledgeBaseIngestion($document);
         }
 
         return $document;
@@ -638,9 +1139,26 @@ class KnowledgeDocumentService
             ]);
         }
 
+        // Clean up knowledge base chunks if applicable
+        if ($document->getIngestionPurpose() === IngestionPurpose::KNOWLEDGE_BASE) {
+            try {
+                $this->cleanupKnowledgeBaseChunks($document);
+            } catch (\Throwable $e) {
+                $cleanupWarning = 'Semantic index chunk cleanup failed: ' . $e->getMessage();
+                Log::warning('[KnowledgeDocumentService] Knowledge base chunk cleanup failed', [
+                    'workspace_id' => $document->workspace_id,
+                    'document_id'  => $document->id,
+                    'error'        => $cleanupWarning,
+                ]);
+            }
+        }
+
         DB::transaction(function () use ($document, $cleanupWarning) {
+            // M-02: Increment version, nullify active generation, and mark inactive to immediately fence in-flight workers
+            $document->increment('version');
             $document->active_content_hash = null;
             $document->is_active = false;
+            $document->active_generation_id = null;
 
             if ($cleanupWarning !== null) {
                 $document->error_message = $cleanupWarning;
@@ -736,6 +1254,9 @@ class KnowledgeDocumentService
 
         if ($document->getIngestionPurpose() === \App\Enums\IngestionPurpose::DATA_ANALYTICS) {
             $this->processAnalyticsRegistration($document);
+        } elseif ($document->getIngestionPurpose() === \App\Enums\IngestionPurpose::KNOWLEDGE_BASE) {
+            $document->increment('version');
+            $this->processKnowledgeBaseIngestion($document);
         }
 
         return $document;
@@ -751,12 +1272,14 @@ class KnowledgeDocumentService
             return $document;
         }
 
+        $document->increment('version');
         $document->purpose = $newPurpose;
         $meta = $document->metadata ?? [];
         $meta['ingestion_purpose'] = $newPurpose->value;
         $document->metadata = $meta;
 
         if ($newPurpose === IngestionPurpose::DATA_ANALYTICS) {
+            $this->cleanupKnowledgeBaseChunks($document);
             $document->save();
             $this->processAnalyticsRegistration($document);
         } else {
@@ -767,9 +1290,8 @@ class KnowledgeDocumentService
                     \Illuminate\Support\Facades\Log::warning("[KnowledgeDocumentService] Failed to unregister analytics source: " . $e->getMessage());
                 }
             }
-            $document->lifecycle_status = DocumentLifecycleStatus::ACTIVE;
-            $document->is_active = true;
             $document->save();
+            $this->processKnowledgeBaseIngestion($document);
         }
 
         return $document;

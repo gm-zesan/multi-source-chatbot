@@ -24,4 +24,15 @@ return [
     |
     */
     'timeout' => (int) env('PYTHON_ANALYTICS_TIMEOUT', 30),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Python Analytics API Key
+    |--------------------------------------------------------------------------
+    |
+    | Shared secret token for authenticating service-to-service requests
+    | to python-ai-service analytics endpoints.
+    |
+    */
+    'api_key' => env('PYTHON_ANALYTICS_API_KEY', env('PYTHON_RETRIEVAL_API_KEY', '')),
 ];

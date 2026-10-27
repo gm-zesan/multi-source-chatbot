@@ -4,11 +4,14 @@ declare(strict_types=1);
 
 namespace App\Services\Retrieval;
 
+use App\Enums\DocumentLifecycleStatus;
 use App\Models\FAQ;
+use App\Models\KnowledgeDocument;
 use App\Services\FAQ\FAQSearchResult;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 
 class RetrievalClient
 {
@@ -102,7 +105,7 @@ class RetrievalClient
                     ]);
                 }
 
-                return $this->mapResults($results, $topK);
+                return $this->mapResults($results, $topK, $workspaceId);
             }
 
             $this->lastTelemetry = [];
@@ -153,6 +156,54 @@ class RetrievalClient
             Log::warning('[RetrievalClient] FAQ sync to Python service failed', [
                 'faq_id' => $faq->id,
                 'error'  => $e->getMessage(),
+            ]);
+
+            return false;
+        }
+    }
+
+    /**
+     * Sync a knowledge document chunk to the Python retrieval service for embedding & indexing.
+     */
+    public function syncDocumentChunk(
+        string $id,
+        int $workspaceId,
+        string $title,
+        string $content,
+        string $documentType = 'knowledge_document',
+        int $priority = 100,
+        bool $isActive = true,
+        array $lexiconTerms = [],
+        ?string $sourceId = null,
+    ): bool {
+        $url = "{$this->baseUrl()}/api/v1/faqs/sync";
+
+        $payload = [
+            'id'            => $id,
+            'workspace_id'  => $workspaceId,
+            'question'      => $title,
+            'answer'        => $content,
+            'document_type' => $documentType,
+            'priority'      => $priority,
+            'is_active'     => $isActive,
+            'lexicon_terms' => $lexiconTerms,
+        ];
+
+        try {
+            $req = Http::timeout($this->timeout);
+            $key = $this->apiKey ?? config('retrieval.api_key');
+            if (! empty($key)) {
+                $req = $req->withToken($key);
+            }
+
+            $response = $req->post($url, $payload);
+
+            return $response->successful();
+        } catch (\Throwable $e) {
+            Log::warning('[RetrievalClient] Document chunk sync to Python service failed', [
+                'chunk_id'     => $id,
+                'workspace_id' => $workspaceId,
+                'error'        => $e->getMessage(),
             ]);
 
             return false;
@@ -251,7 +302,13 @@ class RetrievalClient
      * @param array<int, array<string, mixed>> $results
      * @return Collection<int, FAQSearchResult>
      */
-    private function mapResults(array $results, int $topK): Collection
+    /**
+     * Map structured Python retrieval results to FAQSearchResult objects.
+     *
+     * @param array<int, array<string, mixed>> $results
+     * @return Collection<int, FAQSearchResult>
+     */
+    private function mapResults(array $results, int $topK, ?int $workspaceId = null): Collection
     {
         if (empty($results)) {
             return new Collection();
@@ -267,17 +324,54 @@ class RetrievalClient
             $id = $item['id'] ?? null;
             $faq = $id ? ($faqs[$id] ?? null) : null;
 
+            // If it is a knowledge document chunk, verify that the parent document is active and belongs to this workspace
+            if (is_string($id) && str_starts_with($id, 'doc_')) {
+                // Chunk ID formats:
+                // 1) Legacy: doc_{docUuid}_{chunkIndex}
+                // 2) Generation-scoped: doc_{docUuid}_{generationId}_{chunkIndex}
+                $parts = explode('_', $id);
+                $docUuid = $parts[1] ?? null;
+                $chunkGen = count($parts) >= 4 ? $parts[2] : null;
+
+                if ($docUuid) {
+                    $doc = KnowledgeDocument::find($docUuid);
+                    if ($doc === null || ! $doc->is_active || $doc->lifecycle_status !== DocumentLifecycleStatus::ACTIVE || $doc->trashed()) {
+                        continue;
+                    }
+                    if ($workspaceId !== null && (int) $doc->workspace_id !== (int) $workspaceId) {
+                        continue;
+                    }
+                    // Generation fencing: if chunk is generation-scoped, ensure it matches the currently active generation
+                    if ($chunkGen !== null && ! empty($doc->active_generation_id) && $chunkGen !== (string) $doc->active_generation_id) {
+                        continue;
+                    }
+                }
+            }
+
             if ($faq === null && isset($item['question'], $item['answer'])) {
-                // If model not in local DB (e.g. distributed store), build a transient instance
+                // If model not in local DB (e.g. distributed store or document chunk), build a transient instance
+                $itemWorkspaceId = isset($item['workspace_id']) ? (int) $item['workspace_id'] : $workspaceId;
+                if ($workspaceId !== null && $itemWorkspaceId !== (int) $workspaceId) {
+                    continue; // Strict tenant boundary guard
+                }
+
                 $faq = new FAQ([
                     'id'            => $id ?? 0,
                     'question'      => (string) $item['question'],
                     'answer'        => (string) $item['answer'],
-                    'document_type' => (string) ($item['document_type'] ?? 'faq'),
-                    'workspace_id'  => $item['workspace_id'] ?? null,
+                    'document_type' => (string) ($item['document_type'] ?? 'knowledge_document'),
+                    'workspace_id'  => $itemWorkspaceId,
                     'is_active'     => true,
                 ]);
                 $faq->exists = true;
+            }
+
+            if ($faq !== null && (! $faq->is_active || $faq->trashed())) {
+                continue;
+            }
+
+            if ($faq !== null && $workspaceId !== null && (int) $faq->workspace_id !== (int) $workspaceId) {
+                continue;
             }
 
             if ($faq !== null) {
@@ -338,6 +432,47 @@ class RetrievalClient
             matchType: 'keyword_fallback',
         ))->all();
 
-        return new Collection($mapped);
+        // Also search active knowledge documents in database fallback mode
+        $docQuery = KnowledgeDocument::where('is_active', true)
+            ->where('lifecycle_status', DocumentLifecycleStatus::ACTIVE)
+            ->where('workspace_id', $workspaceId);
+
+        if (! empty($words)) {
+            $docQuery->where(function ($q) use ($words) {
+                foreach ($words as $word) {
+                    $q->orWhere('title', 'LIKE', '%' . $word . '%')
+                      ->orWhere('metadata', 'LIKE', '%' . $word . '%');
+                }
+            });
+        }
+
+        $docs = $docQuery->limit($topK)->get();
+        foreach ($docs as $doc) {
+            $rawText = $doc->metadata['raw_text'] ?? null;
+            if (empty($rawText) && Storage::disk('local')->exists($doc->file_path)) {
+                $rawText = (string) Storage::disk('local')->get($doc->file_path);
+            }
+            if (! empty($rawText)) {
+                $transientFaq = new FAQ([
+                    'id'            => $doc->id,
+                    'question'      => $doc->title,
+                    'answer'        => $rawText,
+                    'document_type' => 'knowledge_document',
+                    'workspace_id'  => $doc->workspace_id,
+                    'is_active'     => true,
+                ]);
+                $transientFaq->exists = true;
+
+                $mapped[] = new FAQSearchResult(
+                    faq: $transientFaq,
+                    keywordScore: 0.85,
+                    semanticScore: 0.0,
+                    finalScore: 0.85,
+                    matchType: 'keyword_fallback',
+                );
+            }
+        }
+
+        return new Collection(array_slice($mapped, 0, $topK));
     }
 }

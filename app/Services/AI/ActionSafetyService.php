@@ -26,12 +26,13 @@ class ActionSafetyService
     ): void {
         $metadata = $conversation->metadata ?? [];
         $metadata['pending_action'] = [
-            'action'         => $action,
-            'parameters'     => $parameters,
-            'prompt_message' => $promptMessage,
-            'created_at'     => now()->toIso8601String(),
-            'expires_at'     => now()->addMinutes($expirationMinutes)->toIso8601String(),
-            'status'         => 'awaiting_confirmation',
+            'action'          => $action,
+            'conversation_id' => (int) $conversation->id,
+            'parameters'      => $parameters,
+            'prompt_message'  => $promptMessage,
+            'created_at'      => now()->toIso8601String(),
+            'expires_at'      => now()->addMinutes($expirationMinutes)->toIso8601String(),
+            'status'          => 'awaiting_confirmation',
         ];
 
         $conversation->update(['metadata' => $metadata]);
@@ -54,6 +55,7 @@ class ActionSafetyService
         $metadata = $conversation->metadata ?? [];
         $metadata['pending_action'] = [
             'action'          => self::ACTION_SEND_SELLER_EMAIL,
+            'conversation_id' => (int) $conversation->id,
             'seller_id'       => $proposal->sellerId,
             'recipient_email' => $proposal->recipientEmail,
             'subject'         => $proposal->subject,
@@ -96,23 +98,39 @@ class ActionSafetyService
      */
     public function isConfirmationIntent(string $query): bool
     {
-        $q = mb_strtolower(trim($query), 'UTF-8');
-        $q = preg_replace('/[^\p{L}\p{M}\p{N}\s]/u', ' ', (string) $q);
-        $q = trim((string) preg_replace('/\s+/', ' ', (string) $q));
+        $raw = trim($query);
+        $q = mb_strtolower($raw, 'UTF-8');
+        $clean = preg_replace('/[^\p{L}\p{M}\p{N}\s]/u', ' ', $q);
+        $clean = trim((string) preg_replace('/\s+/u', ' ', (string) $clean));
 
-        // Direct token or multi-word phrase patterns
-        $patterns = [
-            '/\b(yes|confirm|confirmed|send|ok|okay|yep|sure|proceed|do it|ha|haan|thik ache|thikase|send it|send mail|yes please|send email|ok send|ok please send|tahole mail pathao|mail pathao|mail pathan)\b/ui',
-            '/\b(হ্যাঁ|হ্যা|হাঁ|ঠিক আছে|কনফার্ম|পাঠাও|পাঠিয়ে দাও|পাঠিয়ে দিন|পাঠান|মেইল পাঠাও|মেইল করুন|হ্যাঁ পাঠাও|হ্যা পাঠান|তাহলে পাঠাও|মেইলটি পাঠাও|ইমেইল পাঠাও|হ্যাঁ পাঠান|হ্যাঁ পাঠাতে পারেন)\b/u',
-        ];
-
-        // If the query contains negative phrases (e.g. "না, করিমকে পাঠাও", "no don't send"), it is not confirming the pending action
-        if (preg_match('/(^|\s)(no|nah|nope|dont|not|না|বাতিল|ক্যান্সেল)($|\s)/ui', $q)) {
+        // 1. If the query contains negative phrases (e.g. "না, করিমকে পাঠাও", "no don't send"), it is not confirming
+        if (preg_match('/(^|\s)(no|nah|nope|dont|not|না|বাতিল|ক্যান্সেল)($|\s)/ui', $clean)) {
             return false;
         }
 
-        foreach ($patterns as $pattern) {
-            if (preg_match($pattern, $q)) {
+        // 2. Prevent discourse markers ("ok, ...", "sure, ...") in compound questions from triggering confirmation
+        $words = preg_split('/\s+/u', $clean, -1, PREG_SPLIT_NO_EMPTY);
+        $hasQuestionMarker = str_contains($raw, '?')
+            || (bool) preg_match('/\b(koto|ki|keno|how|what|where|who|when|why|price|cost|catalogue|catalog|delivery|details)\b/ui', $clean);
+
+        if ($hasQuestionMarker && count($words) > 3) {
+            return false;
+        }
+
+        // 3. Standalone affirmative replies (exact matching 1-3 words)
+        $standalonePattern = '/^(yes|confirm|confirmed|ok|okay|yep|sure|proceed|do it|ha|haan|thik ache|thikase|yes please|ok please|ha pathao|thik ache pathan|হ্যাঁ|হ্যা|হাঁ|ঠিক আছে|কনফার্ম)$/ui';
+        if (preg_match($standalonePattern, $clean)) {
+            return true;
+        }
+
+        // 4. Explicit action-directed confirmation phrases
+        $explicitActionPhrases = [
+            '/\b(send it|send mail|send email|ok send|ok please send|tahole mail pathao|mail pathao|mail pathan)\b/ui',
+            '/\b(মেইল পাঠাও|মেইল করুন|পাঠিয়ে দাও|পাঠিয়ে দিন|পাঠান|হ্যাঁ পাঠাও|হ্যা পাঠান|তাহলে পাঠাও|মেইলটি পাঠাও|ইমেইল পাঠাও|হ্যাঁ পাঠান|হ্যাঁ পাঠাতে পারেন)\b/u',
+        ];
+
+        foreach ($explicitActionPhrases as $pattern) {
+            if (preg_match($pattern, $clean)) {
                 return true;
             }
         }
@@ -130,7 +148,7 @@ class ActionSafetyService
         $q = trim((string) preg_replace('/\s+/', ' ', (string) $q));
 
         // If the query contains explicit new action directives (e.g. "না, করিমকে পাঠাও"), treat as changed request rather than pure cancellation
-        if (preg_match('/(পাঠাও|পাঠিয়ে|পাঠান|মেইল|email|send|করিম|রহিম|salesperson)/ui', $q) && !preg_match('/(পাঠাবো না|পাঠাবেন না|পাঠাতে হবে না|পাঠিও না)/ui', $q)) {
+        if (preg_match('/(পাঠাও|পাঠিয়ে|পাঠান|মেইল|email|send|করিম|রহিম|salesperson)/ui', $q) && !preg_match('/(পাঠাবো না|পাঠাবেন না|পাঠাতে হবে না|পাঠিও না|দরকার নেই|দরকার নাই|প্রয়োজন নেই|প্রয়োজন নাই)/ui', $q)) {
             return false;
         }
 
@@ -166,12 +184,20 @@ class ActionSafetyService
 
     /**
      * Retrieve the currently pending action from conversation metadata.
+     * Enforces conversation boundary to ensure cross-conversation actions cannot bleed.
      *
      * @return ?array<string, mixed>
      */
     public function getPendingAction(Conversation $conversation): ?array
     {
-        return $conversation->metadata['pending_action'] ?? null;
+        $pending = $conversation->metadata['pending_action'] ?? null;
+        if ($pending !== null && isset($pending['conversation_id'])) {
+            if ((int) $pending['conversation_id'] !== (int) $conversation->id) {
+                return null;
+            }
+        }
+
+        return $pending;
     }
 
     /**

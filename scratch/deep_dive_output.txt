@@ -1,0 +1,414 @@
+============================================================
+LIVE CHECKOUT
+============================================================
+Docs 
+Sign In 
+Docs 
+APIs 
+Live checkout 
+Let the chat fill your own cart and follow the order your checkout creates. 
+On this page: 
+What it is 
+· 
+The customer's journey 
+· 
+Set it up 
+· 
+1. The checkout link 
+· 
+2. The order message 
+· 
+Code to copy 
+· 
+Statuses 
+· 
+Test it 
+· 
+Security 
+What it is 
+With 
+Live checkout on your site 
+, the 
+AI Sales Agent 
+helps the customer choose and builds the basket in the chat, then hands it to 
+your own checkout 
+. Your
+  site asks the customer to log in if it needs to, takes the payment with your own gateway (or cash on delivery) and
+  creates the order as it always does. Your site then tells Central AI, and the customer’s chat shows the order
+  and every change within seconds. 
+Two small pieces on your side, nothing else: 
+a checkout link that fills your cart,
+      and one signed message to Central AI when an order is placed or changes. No Commerce API, no keys to publish, no
+      new login. The customer’s details come from your own checkout, never from the chat. 
+The customer's journey 
+The customer chats on your website and chooses, say, a course. The chat shows it in the basket. 
+They press 
+Checkout on yoursite.com 
+. Your checkout opens in a new tab, with the basket in your cart and a chat
+    reference your site keeps with the order. The chat shows 
+Waiting for your order on the website… 
+They log in or sign up on your site if it asks, and pay, or choose cash on delivery. 
+Your site sends Central AI a signed message: order placed (and paid). The chat shows 
+Payment received 
+or 
+Order placed 
+with your order number. 
+Later changes you send (confirmed, completed, cancelled, refunded) appear in the chat the same way. On Messenger,
+    Instagram and WhatsApp the customer gets a message instead. 
+Set it up 
+Give each offering the id it has on your site: the 
+id 
+In 
+AI Sales Agent, section 3 
+, set the kinds you sell on your site
+    to 
+Live checkout on your site 
+, and enter your 
+checkout link 
+(below). Choose what a
+    Messenger, Instagram or WhatsApp customer gets: the checkout link, or an order taken in the chat. 
+In the same box in section 3, press 
+Generate the secret and address 
+under 
+Order updates from your site 
+. Copy the
+    address and the secret for your developer. The secret is shown once. 
+Your developer adds the checkout route and the order message ( 
+code below 
+). 
+Publish, then 
+test it 
+in the Playground. 
+1. The checkout link 
+A link on your site that Central AI fills in for each checkout. It must be 
+https:// 
+{items} 
+{ref} 
+https://yourshop.com/cart/add?items={items}&ref={ref} 
+{items} 
+CODE:QTY,CODE:QTY 
+WEB-101:1,UX-7:2 
+, 
+: 
+{ref} 
+cai_Z3xH1… 
+Put 
+{items} 
+{ref} 
+Your route adds the items to the customer’s own cart (their session on your site), keeps the reference, and
+  sends them to your checkout. If your checkout requires an account, it asks them to log in there, as it does today. 
+2. The order message 
+When an order with a chat reference is placed, and whenever it changes, your server sends one 
+POST 
+http://centralai.daffodil-bd.com/webhooks/orders/ow_EXAMPLE/ 
+POST /webhooks/orders/ow_EXAMPLE/
+Content-Type: application/json
+Central-AI-Signature: t=1791009400,v1=5f2c…
+
+{
+  "event_id": "ENR-2041-paid",
+  "occurred_at": "2026-10-01T10:12:04Z",
+  "ref": "cai_Z3xH1…",
+  "order": {
+    "reference": "ENR-2041",
+    "status": "confirmed",
+    "payment_status": "paid",
+    "total": {"amount": "12500.00", "currency": "BDT"},
+    "payment_method": {"label": "SS
+
+...
+
+============================================================
+COMMERCE API
+============================================================
+Docs 
+Sign In 
+Docs 
+APIs 
+Commerce API 
+Connect your own shop, booking or admissions system to the Sales agent. 
+On this page: 
+What it is 
+· 
+Who does what 
+· 
+One order, call by call 
+· 
+What you build 
+· 
+Your options 
+· 
+Discovery profile 
+· 
+Operations 
+· 
+What every call carries 
+· 
+Signatures 
+· 
+Commit, quote and lookup 
+· 
+Examples 
+· 
+Status events 
+· 
+Your payment gateway 
+· 
+Errors 
+· 
+Connect it 
+· 
+Go-live checklist 
+· 
+Conventions 
+What it is 
+The Commerce API lets the 
+AI Sales Agent 
+work with your own shop,
+  booking or admissions system: get a quote, and create the order, booking or application 
+in your system 
+the moment the customer confirms (the 
+Created in our system 
+completion mode).
+  Your system stays the system of record: its prices, its stock, its order numbers and its payment gateway. 
+Unlike Central AI’s other APIs, 
+your system implements this one and Central AI calls
+      it 
+. Contract version: 
+1.3 
+1.x 
+This page is for the developers of that system 
+, for example the team behind a course
+      platform that already sells with SSLCommerz or Stripe. A shop owner who only wants the agent to take orders does not
+      need it: 
+Handled in Central AI 
+needs no code at all. 
+Start from working code. 
+Central AI provides reference implementations of this contract
+      in 
+Node.js 
+, 
+plain PHP 
+and a 
+Laravel package 
+, with the JSON schemas and
+      conformance checks. Signing, verification and idempotency are done; you connect their few shop methods to your
+      database. Ask your Central AI contact for the package. 
+Who does what 
+The Sales Agent (Central AI) does 
+Talks to the customer on your website, Messenger, Instagram and WhatsApp. 
+Finds your offerings, shows them as cards and builds the basket. 
+Asks 
+your 
+system for the price ( 
+quote.calculate 
+Collects the details you ask for and the payment method your quote lists. 
+Shows the whole request; 
+only the customer 
+confirms it, with a button or a code. 
+Sends exactly one order ( 
+commit.create 
+commit.lookup 
+Shows your payment page as 
+Pay now 
+, and tells the customer every status you send. 
+Your system does 
+Publishes one discovery document: where your endpoints are, and your public signing key. 
+Prices the basket with its own rules ( 
+quote.calculate 
+Creates the order once per 
+Idempotency-Key 
+commit.create 
+Finds an order by that key ( 
+commit.lookup 
+Takes the payment in 
+its own gateway 
+and returns the payment page ( 
+continue_url 
+Posts a signed status event when the order is accepted, paid, fulfilled or cancelled. 
+Signs every response and event, and verifies every call from Central AI. 
+Your offerings reach Central AI separately. 
+In this release the agent searches the
+      offerings you keep in Central AI, sent with the offerings feed of the 
+Knowledge Sync API 
+, a CSV file or the 
+offerings screen 
+. Give each one the 
+id 
+external_ref 
+catalog.search 
+catalog.get 
+availability.check 
+commit.get 
+One order, call by call 
+The customer asks 
+in the chat (“Do you have a web development course?”). The agent searches
+    your offerings in Central AI and shows cards. 
+No call to your system. 
+The customer chooses 
+and asks for the total. Central AI calls 
+quote.calculate 
+The agent collects the details 
+you require (name, phone, address, your own fields) and the payment
+    method, then shows the whole request with a code. 
+No call to your system. 
+The customer confirms. 
+Central AI calls 
+commit.create 
+Idempotency-Key 
+attributi
+
+...
+
+============================================================
+LEAD AGENT
+============================================================
+Docs 
+Sign In 
+Docs 
+Agents 
+Smart Lead Agent 
+Turns your chat conversations into summarised, categorised leads every day. 
+The Smart Lead Agent reads your chat conversations once a day, writes a short summary of each, sorts it into the
+  lead categories you define, and turns it into a lead your team can follow up. Nobody has to read every chat. 
+What it does 
+Picks up every conversation that has no summary yet. 
+Writes a summary of what the customer wanted and puts it in one of 
+your 
+categories (for example
+    “Admission enquiry” or “Wholesale order”; up to 50, in your own words). 
+Creates or updates the lead, with the customer’s details from the chat, on your 
+Leads 
+page. 
+Turn it on 
+Open 
+Agent & Chat → Agents 
+and switch on the Smart Lead Agent. 
+Choose the time it runs each day and your timezone (new companies start at 3:00,
+    Asia/Dhaka). 
+List your lead categories, separated by commas. 
+Configure 
+Run time and timezone: 
+it runs once a day, after that time in your timezone. 
+Categories: 
+the only categories it will use. Change them any time; the next run uses the new list. 
+What the customer sees 
+Nothing. It works on conversations that have already happened. Your team sees the new leads with their summaries. 
+Credits and limits 
+Each conversation it summarises uses one 
+lead agent credit 
+. If the summary fails, the credit is
+  given back and the conversation is tried again on the next run. Lead agent credits per month by plan: 
+Troubleshooting 
+Signed in? 
+Your own keys, endpoint addresses and the full error tables are
+            on the 
+API reference 
+inside your dashboard. These public pages never show
+            anyone’s key: examples use placeholders such as 
+YOUR_EXTERNAL_API_KEY 
+AI-Powered Business Growth Solution 
+64/3, Lake Circus (2nd floor), Mirpur Rd, Dhaka 1205 
+Documentation 
+Help Center 
+Blog 
+Pricing 
+About Us 
+Contact Us 
+Careers 
+Privacy Policy 
+Terms 
+© 2026 Central AI. All rights reserved.
+
+...
+
+============================================================
+LEAD CAPTURE
+============================================================
+Docs 
+Sign In 
+Docs 
+Agents 
+Auto Lead Capture 
+See which anonymous visitors are ready to buy, and turn them into leads. 
+Auto Lead Capture watches how anonymous visitors use your website (pages, time, scrolling, forms), scores their
+  interest, and when a visitor identifies themselves (for example by giving their email in the chat widget) turns them
+  into a lead with their history attached. 
+Available on these plans: 
+Growth 
+, 
+Scale 
+, 
+Enterprise 
+.
+  In the dashboard: 
+Auto Lead Capture 
+. 
+Set up 
+Make sure your website is on your 
+allowed domains 
+; the
+    tracker is refused everywhere else. 
+Open 
+Auto Lead Capture 
+, switch it on, and choose a consent mode. 
+Copy the tracker snippet from that page and paste it on every page, just before 
+</body> 
+<script>
+window.caq = window.caq || [];
+window.caq.push(['init', {
+  endpoint: 'http://centralai.daffodil-bd.com',
+  siteId: 'YOUR_SITE_ID'
+}]);
+</script>
+<script src="http://centralai.daffodil-bd.com/static/js/tracker.js" defer></script> 
+Your site id ( 
+site_… 
+X-Site-Id 
+What it records 
+Page views, time on page (idle time is not counted), how far down the page the visitor scrolled, and the first
+    time they start typing in a form (not when the first field is a password). 
+Each event carries the page path, title, referrer and UTM campaign tags. 
+Your own events: 
+caq.push(['track', 'cta_click', 1, {label: 'Book a demo'}]) 
+At most 300 events per 60 seconds from one visitor. 
+Consent 
+implicit 
+opt_in 
+opt_out 
+The tracker never asks for consent by itself. Your cookie banner tells it: 
+caq.push(['consent', 'granted']) 
+caq.push(['consent', 'denied']) 
+Identify a visitor 
+The chat widget identifies a visitor automatically when they give their email. Your own login or sign-up form can do
+  the same: 
+caq.push(['identify', {email: ' 
+[email protected] 
+', name: 'Rahim'}]) 
+The score 
+A score from 0 to 100, worked out by rules, not AI, when a visitor is identified. Default weights, which you can change:
+  page view 10, dwell time 15, scroll depth 10, cta click 25, form start 20, return visit 20. Recent
+  visitors score higher than ones last seen weeks ago. When your plan includes lead capture credits, one credit also buys
+  an AI summary of the visitor; it is refunded if the summary fails. 
+Signed in? 
+Your own keys, endpoint addresses and the full error tables are
+            on the 
+API reference 
+inside your dashboard. These public pages never show
+            anyone’s key: examples use placeholders such as 
+YOUR_EXTERNAL_API_KEY 
+AI-Powered Business Growth Solution 
+64/3, Lake Circus (2nd floor), Mirpur Rd, Dhaka 1205 
+Documentation 
+Help Center 
+Blog 
+Pricing 
+About Us 
+Contact Us 
+Careers 
+Privacy Policy 
+Terms 
+© 2026 Central AI. All rights reserved.
+
+...
+
