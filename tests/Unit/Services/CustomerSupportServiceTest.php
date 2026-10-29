@@ -443,4 +443,191 @@ class CustomerSupportServiceTest extends TestCase
         $this->assertSame('fallback', $result['route']);
         $this->assertSame('tenant_mismatch', $result['routing_telemetry']['intent']);
     }
+
+    public function test_deterministic_fallback_returns_knowledge_document_chunk_content_when_llm_fails(): void
+    {
+        $workspace = Workspace::create(['name' => 'Doc WS', 'slug' => 'doc-ws']);
+        $channel = \App\Models\Channel::create(['name' => 'Web', 'slug' => 'web-doc', 'is_active' => true]);
+        $channelAccount = \App\Models\ChannelAccount::create([
+            'channel_id'   => $channel->id,
+            'workspace_id' => $workspace->id,
+            'external_id'  => 'acc_doc_test',
+            'name'         => 'Doc Account',
+            'access_token' => 'tok',
+            'is_active'    => true,
+        ]);
+
+        $conversation = Conversation::create([
+            'channel_account_id' => $channelAccount->id,
+            'external_user_id'   => 'user_doc_test',
+            'status'             => 'open',
+            'last_direction'     => 'inbound',
+        ]);
+
+        $chunkText = 'Enterprise SLA Guarantee: 99.99% uptime with 1-hour response SLA code SLA-TITAN-99.';
+        $transientFaq = new \App\Models\FAQ([
+            'id'            => 'doc_chunk_123',
+            'question'      => 'Enterprise SLA Policy',
+            'answer'        => $chunkText,
+            'workspace_id'  => $workspace->id,
+            'document_type' => 'knowledge_document',
+            'is_active'     => true,
+        ]);
+        $transientFaq->exists = true;
+
+        $docHit = new FAQSearchResult(
+            faq: $transientFaq,
+            keywordScore: 0.95,
+            semanticScore: 0.95,
+            finalScore: 0.95,
+            matchType: 'hybrid',
+        );
+
+        $faqSearch = $this->createMock(FAQSearch::class);
+        $faqSearch->method('search')->willReturn(new Collection([$docHit]));
+
+        $router = $this->createMock(HybridRouter::class);
+        $router->method('route')->willReturn(new RoutingResult(
+            route: RouteType::KNOWLEDGE,
+            confidence: 0.99,
+            intent: 'sla_inquiry',
+        ));
+
+        $this->app->instance(HybridRouter::class, $router);
+        $this->app->instance(FAQSearch::class, $faqSearch);
+        $service = $this->app->make(CustomerSupportService::class);
+
+        $reply = $service->generateReply(
+            conversation: $conversation,
+            query: 'What is your enterprise SLA uptime guarantee and SLA code?',
+            workspaceId: $workspace->id,
+        );
+
+        $this->assertNotEmpty($reply);
+        $this->assertStringContainsString('SLA-TITAN-99', $reply);
+        $this->assertStringContainsString('99.99%', $reply);
+    }
+
+    public function test_deterministic_fallback_preserves_faq_answer_behavior(): void
+    {
+        $workspace = Workspace::create(['name' => 'FAQ WS', 'slug' => 'faq-ws']);
+        $channel = \App\Models\Channel::create(['name' => 'Web', 'slug' => 'web-faq', 'is_active' => true]);
+        $channelAccount = \App\Models\ChannelAccount::create([
+            'channel_id'   => $channel->id,
+            'workspace_id' => $workspace->id,
+            'external_id'  => 'acc_faq_test',
+            'name'         => 'FAQ Account',
+            'access_token' => 'tok',
+            'is_active'    => true,
+        ]);
+
+        $conversation = Conversation::create([
+            'channel_account_id' => $channelAccount->id,
+            'external_user_id'   => 'user_faq_test',
+            'status'             => 'open',
+            'last_direction'     => 'inbound',
+        ]);
+
+        $faqAnswer = 'Standard delivery takes 2-3 business days within Dhaka and 3-5 days outside Dhaka.';
+        $faq = \App\Models\FAQ::create([
+            'question'      => 'Delivery timeline',
+            'answer'        => $faqAnswer,
+            'workspace_id'  => $workspace->id,
+            'document_type' => 'faq',
+            'is_active'     => true,
+        ]);
+
+        $faqHit = new FAQSearchResult(
+            faq: $faq,
+            keywordScore: 0.92,
+            semanticScore: 0.92,
+            finalScore: 0.92,
+            matchType: 'hybrid',
+        );
+
+        $faqSearch = $this->createMock(FAQSearch::class);
+        $faqSearch->method('search')->willReturn(new Collection([$faqHit]));
+
+        $router = $this->createMock(HybridRouter::class);
+        $router->method('route')->willReturn(new RoutingResult(
+            route: RouteType::KNOWLEDGE,
+            confidence: 0.99,
+            intent: 'delivery_inquiry',
+        ));
+
+        $this->app->instance(HybridRouter::class, $router);
+        $this->app->instance(FAQSearch::class, $faqSearch);
+        $service = $this->app->make(CustomerSupportService::class);
+
+        $reply = $service->generateReply(
+            conversation: $conversation,
+            query: 'Delivery timeline koto din?',
+            workspaceId: $workspace->id,
+        );
+
+        $this->assertNotEmpty($reply);
+        $this->assertStringContainsString('Standard delivery takes 2-3 business days', $reply);
+    }
+
+    public function test_deterministic_fallback_returns_default_text_when_score_is_subthreshold(): void
+    {
+        $workspace = Workspace::create(['name' => 'Sub WS', 'slug' => 'sub-ws']);
+        $channel = \App\Models\Channel::create(['name' => 'Web', 'slug' => 'web-sub', 'is_active' => true]);
+        $channelAccount = \App\Models\ChannelAccount::create([
+            'channel_id'   => $channel->id,
+            'workspace_id' => $workspace->id,
+            'external_id'  => 'acc_sub_test',
+            'name'         => 'Sub Account',
+            'access_token' => 'tok',
+            'is_active'    => true,
+        ]);
+
+        $conversation = Conversation::create([
+            'channel_account_id' => $channelAccount->id,
+            'external_user_id'   => 'user_sub_test',
+            'status'             => 'open',
+            'last_direction'     => 'inbound',
+        ]);
+
+        $faq = new \App\Models\FAQ([
+            'id'            => 10,
+            'question'      => 'Weak match',
+            'answer'        => 'Irrelevant weak answer.',
+            'workspace_id'  => $workspace->id,
+            'document_type' => 'faq',
+            'is_active'     => true,
+        ]);
+
+        // Score below 0.45 threshold
+        $weakHit = new FAQSearchResult(
+            faq: $faq,
+            keywordScore: 0.35,
+            semanticScore: 0.35,
+            finalScore: 0.35,
+            matchType: 'hybrid',
+        );
+
+        $faqSearch = $this->createMock(FAQSearch::class);
+        $faqSearch->method('search')->willReturn(new Collection([$weakHit]));
+
+        $router = $this->createMock(HybridRouter::class);
+        $router->method('route')->willReturn(new RoutingResult(
+            route: RouteType::KNOWLEDGE,
+            confidence: 0.99,
+            intent: 'weak_inquiry',
+        ));
+
+        $this->app->instance(HybridRouter::class, $router);
+        $this->app->instance(FAQSearch::class, $faqSearch);
+        $service = $this->app->make(CustomerSupportService::class);
+
+        $reply = $service->generateReply(
+            conversation: $conversation,
+            query: 'Weak query question',
+            workspaceId: $workspace->id,
+        );
+
+        $this->assertNotEmpty($reply);
+        $this->assertStringNotContainsString('Irrelevant weak answer.', $reply);
+    }
 }

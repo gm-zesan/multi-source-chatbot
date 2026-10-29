@@ -182,8 +182,9 @@ class SemanticAnswerabilityGate
         $hasLexicalAlignment = $this->hasLexicalAlignmentWithDocument($cleanQuery, $topHit->faq ?? null);
         $hasAlignedEvidence = $hasCommerceIntent || $hasLexicalAlignment;
 
-        // High-confidence dense semantic retrieval (>= 0.65) does not require commerce keywords or word overlap
-        $isHighConfidenceSemantic = ($isDenseEvaluated && ($semanticScore ?? $topScore) >= 0.65 && $topScore >= 0.65);
+        // High-confidence dense semantic retrieval (>= 0.65) does not require commerce keywords or word overlap.
+        // Requires verified dense evaluation with explicit semantic score >= 0.65; never assume missing semanticScore = topScore.
+        $isHighConfidenceSemantic = ($isDenseEvaluated && $semanticScore !== null && $semanticScore >= 0.65 && $topScore >= 0.65);
 
         // 7. Off-Topic / Non-Aligned Queries Guard
         // E.g., "Python code for quick sort" or "Mirpur bus route" where router slipped to knowledge.

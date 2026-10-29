@@ -18,8 +18,8 @@ class FAQSearchResult implements Arrayable
      */
     public function __construct(
         public readonly FAQ $faq,
-        public readonly float $keywordScore = 0.0,
-        public readonly float $semanticScore = 0.0,
+        public readonly ?float $keywordScore = null,
+        public readonly ?float $semanticScore = null,
         public readonly float $finalScore = 0.0,
         public readonly string $matchType = 'keyword',
     ) {}
@@ -32,8 +32,8 @@ class FAQSearchResult implements Arrayable
             'answer'         => $this->faq->answer,
             'category'       => $this->faq->category?->name,
             'priority'       => $this->faq->priority,
-            'keyword_score'  => round($this->keywordScore, 4),
-            'semantic_score' => round($this->semanticScore, 4),
+            'keyword_score'  => $this->keywordScore !== null ? round($this->keywordScore, 4) : null,
+            'semantic_score' => $this->semanticScore !== null ? round($this->semanticScore, 4) : null,
             'final_score'    => round($this->finalScore, 4),
             'match_type'     => $this->matchType,
         ];

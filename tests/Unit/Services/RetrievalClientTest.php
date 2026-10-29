@@ -343,6 +343,67 @@ class RetrievalClientTest extends TestCase
         $this->assertEquals(0.85, $topHit->keywordScore);
     }
 
+    public function test_search_maps_hybrid_with_missing_subscores_as_null(): void
+    {
+        $ws = \App\Models\Workspace::create(['name' => 'Missing Subscore WS', 'slug' => 'missing-subscore-ws']);
+
+        Http::fake([
+            'http://127.0.0.1:8002/api/v1/search' => Http::response([
+                'results' => [
+                    [
+                        'id'           => 303,
+                        'workspace_id' => $ws->id,
+                        'question'     => 'Policy Inquiry',
+                        'answer'       => 'Policy details content.',
+                        'score'        => 0.88,
+                        'match_type'   => 'hybrid',
+                        // semantic_score and keyword_score omitted intentionally
+                    ],
+                ],
+            ], 200),
+        ]);
+
+        $client = new RetrievalClient('http://127.0.0.1:8002');
+        $results = $client->search('Policy Inquiry', workspaceId: $ws->id, topK: 1);
+
+        $this->assertCount(1, $results);
+        $topHit = $results->first();
+        $this->assertSame('hybrid', $topHit->matchType);
+        $this->assertEquals(0.88, $topHit->finalScore);
+        $this->assertNull($topHit->semanticScore, 'Missing semantic_score in hybrid must remain null rather than faking finalScore or 0.0');
+        $this->assertNull($topHit->keywordScore, 'Missing keyword_score in hybrid must remain null');
+    }
+
+    public function test_search_maps_vector_mode_with_missing_subscores(): void
+    {
+        $ws = \App\Models\Workspace::create(['name' => 'Vector WS', 'slug' => 'vector-ws']);
+
+        Http::fake([
+            'http://127.0.0.1:8002/api/v1/search' => Http::response([
+                'results' => [
+                    [
+                        'id'           => 404,
+                        'workspace_id' => $ws->id,
+                        'question'     => 'Vector Query',
+                        'answer'       => 'Vector result text.',
+                        'score'        => 0.91,
+                        'match_type'   => 'vector',
+                    ],
+                ],
+            ], 200),
+        ]);
+
+        $client = new RetrievalClient('http://127.0.0.1:8002');
+        $results = $client->search('Vector Query', workspaceId: $ws->id, topK: 1);
+
+        $this->assertCount(1, $results);
+        $topHit = $results->first();
+        $this->assertSame('vector', $topHit->matchType);
+        $this->assertEquals(0.91, $topHit->finalScore);
+        $this->assertEquals(0.91, $topHit->semanticScore);
+        $this->assertEquals(0.0, $topHit->keywordScore);
+    }
+
     public function test_sync_faq_payload_contains_lexicon_terms_across_domains(): void
     {
         $ws = \App\Models\Workspace::create(['name' => 'Cross Domain WS', 'slug' => 'cross-domain-ws']);

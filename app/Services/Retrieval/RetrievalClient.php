@@ -509,12 +509,18 @@ class RetrievalClient
             if ($faq !== null) {
                 $score = (float) ($item['score'] ?? 0.85);
                 $matchType = (string) ($item['match_type'] ?? 'hybrid');
+                $isPureKeyword = in_array($matchType, ['keyword', 'bm25', 'keyword_fallback'], true);
+
+                // Preserve explicit sub-scores from Python service contract.
+                // If sub-scores are not provided in the payload, explicitly leave as null
+                // rather than assuming semanticScore = finalScore or 0.0.
                 $semanticScore = isset($item['semantic_score'])
                     ? (float) $item['semantic_score']
-                    : ($matchType === 'vector' ? $score : 0.0);
+                    : ($isPureKeyword ? 0.0 : ($matchType === 'vector' ? $score : null));
+
                 $keywordScore = isset($item['keyword_score'])
                     ? (float) $item['keyword_score']
-                    : (in_array($matchType, ['keyword', 'bm25'], true) ? $score : 0.0);
+                    : ($matchType === 'vector' ? 0.0 : ($isPureKeyword ? $score : null));
 
                 $mapped[] = new FAQSearchResult(
                     faq: $faq,

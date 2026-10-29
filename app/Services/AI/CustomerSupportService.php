@@ -1623,8 +1623,16 @@ PROMPT;
 
             // Tier 3: Deterministic Grounded Fallback
             $topHit = $retrievedHits->first();
-            if ($topHit && $topHit->finalScore >= 0.45 && !empty($topHit->faq?->answer)) {
-                return $topHit->faq->answer;
+            if ($topHit && ($topHit->finalScore ?? 0.0) >= 0.45) {
+                $content = $topHit->faq?->answer
+                    ?? $topHit->content
+                    ?? $topHit->document_content
+                    ?? $topHit->answer
+                    ?? null;
+
+                if (!empty($content) && is_string($content) && trim($content) !== '') {
+                    return trim($content);
+                }
             }
 
             return $this->defaultFallbackText();
