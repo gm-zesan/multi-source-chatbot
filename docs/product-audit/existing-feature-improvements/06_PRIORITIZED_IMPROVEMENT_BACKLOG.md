@@ -62,18 +62,52 @@ PRIORITY TIER P1: High-Impact Quality, Retrieval & Reliability Upgrades
 ====================================================================================================
 ```
 
-### `IMP-ING-001`: [RESOLVED & VERIFIED] Knowledge Document Ingestion, Generation-Scoped Indexing & Typesense Search
-- **Status**: `RESOLVED & VERIFIED` (Phase 2 & Phase 2B.1–2B.4)
-- **Affected Current Feature**: Document Knowledge Base Ingestion ([`app/Services/Knowledge/KnowledgeDocumentService.php`](file:///Users/zesan/Desktop/Entrepreneurs_Automation/multi-source-chatbot/app/Services/Knowledge/KnowledgeDocumentService.php)).
-- **Observed Problem**: Uploaded text and PDF knowledge documents were stored in MySQL/disk, but never indexed into Typesense or searched by the AI chatbot.
+### `IMP-ING-001`: [RESOLVED & VERIFIED] Knowledge Document Ingestion, Generation-Scoped Indexing, Deterministic Fallback & Score Mapping
+- **Status**: `RESOLVED & VERIFIED` (Phase 2, Phase 2B.1–2B.4 & Phase 2C Regression Fixes)
+- **Affected Current Feature**: Document Knowledge Base Ingestion & Retrieval ([`app/Services/Knowledge/KnowledgeDocumentService.php`](file:///Users/zesan/Desktop/Entrepreneurs_Automation/multi-source-chatbot/app/Services/Knowledge/KnowledgeDocumentService.php), [`app/Services/Retrieval/RetrievalClient.php`](file:///Users/zesan/Desktop/Entrepreneurs_Automation/multi-source-chatbot/app/Services/Retrieval/RetrievalClient.php), [`app/Services/AI/CustomerSupportService.php`](file:///Users/zesan/Desktop/Entrepreneurs_Automation/multi-source-chatbot/app/Services/AI/CustomerSupportService.php)).
+- **Observed Problem**: Uploaded text and PDF knowledge documents were initially unindexed; after indexing, Tier 3 deterministic fallback only inspected `faq.answer` (ignoring document chunk contents), and hybrid `semantic_score` defaulting caused false OOD refusals.
 - **Implemented Fix**:
   1. Connected knowledge document ingestion pipeline (`processKnowledgeBaseIngestion`) upon store, restore, and purpose change.
   2. Implemented Blue-Green zero-downtime indexing using generation-scoped chunk IDs (`doc_{id}_{genId}_{idx}`). The active generation remains searchable while the replacement generation is indexing.
   3. Added database-level atomic Compare-And-Swap (CAS) publication fencing with version validation (`version = version + 1`) to eliminate race conditions.
   4. Added crash recovery, stale generation cleanup, and soft-delete fencing (`delete()` clears Typesense chunks and increments version).
   5. Connected retrieval pipeline so `KnowledgeRetrievalTool` queries document chunks alongside FAQs in Typesense.
-- **Verification Tests**: Verified with `tests/Feature/KnowledgeDocumentRetrievalPipelineTest.php` (89 tests passing across knowledge & retrieval suites).
+  6. **Phase 2C Deterministic Fallback & Score Mapping Fix**: Updated `CustomerSupportService.php` to resolve document chunk contents (`$topHit->faq?->answer ?? $topHit->content ?? $topHit->document_content ?? $topHit->answer`). Refactored `RetrievalClient.php` and `FAQSearchResult.php` so missing hybrid subscores remain `null` (rather than faking `0.0` or `$score`), preventing false semantic mismatch triggers while preserving off-topic non-commerce protections.
+- **Verification Tests**: Verified with `tests/Feature/KnowledgeDocumentRetrievalPipelineTest.php` (32 tests), `tests/Unit/Services/RetrievalClientTest.php` (18 tests), and `tests/Unit/Services/CustomerSupportServiceTest.php` (15 tests, 100% PASS).
 - **Complexity**: `HIGH`
+- **Priority**: `P1`
+
+---
+
+### `IMP-DOM-001`: [RESOLVED & VERIFIED] Contextual Query Building for Clarification & Multi-Turn Queries
+- **Status**: `RESOLVED & VERIFIED`
+- **Affected Current Feature**: Query Preprocessing & Multi-Turn Clarification ([`app/Services/AI/CustomerSupportService.php`](file:///Users/zesan/Desktop/Entrepreneurs_Automation/multi-source-chatbot/app/Services/AI/CustomerSupportService.php), [`app/AI/Routing/HybridRouter.php`](file:///Users/zesan/Desktop/Entrepreneurs_Automation/multi-source-chatbot/app/AI/Routing/HybridRouter.php)).
+- **Observed Problem**: Isolated user responses to clarification options (e.g. *"Option 2"* or *"Track parcel"*) lacked conversational context, failing dense vector retrieval.
+- **Implemented Fix**: Bound conversation context to user selection turns, propagating `contextual_intent` through the pipeline to ensure dense retrieval evaluates full semantic intent.
+- **Verification Tests**: Verified with regression tests in `CustomerSupportServiceTest.php` and router characterization tests.
+- **Complexity**: `MEDIUM`
+- **Priority**: `P1`
+
+---
+
+### `IMP-DOM-002`: [RESOLVED & VERIFIED] Dynamic Multi-Tenant FAQ Lexicon Lifecycle
+- **Status**: `RESOLVED & VERIFIED`
+- **Affected Current Feature**: Dynamic Terminology & Lexicon Synchronization ([`app/Services/FAQ/LexiconLifecycleManager.php`](file:///Users/zesan/Desktop/Entrepreneurs_Automation/multi-source-chatbot/app/Services/FAQ/LexiconLifecycleManager.php)).
+- **Observed Problem**: Domain-specific terminology and synonyms across diverse tenants were static or hardcoded, risking cross-tenant terminology contamination.
+- **Implemented Fix**: Implemented `LexiconLifecycleManager` to dynamically extract, sync, and isolate workspace-scoped domain lexicons across healthcare, education, retail, and hospitality.
+- **Verification Tests**: Verified with `tests/test_faq_sync_and_scoring.py` and `tests/test_adversarial_lexicon_fuzzing.py` in `python-ai-service`.
+- **Complexity**: `MEDIUM`
+- **Priority**: `P1`
+
+---
+
+### `IMP-DOM-003`: [RESOLVED & VERIFIED] Multi-Domain Retrieval Expansion Neutrality
+- **Status**: `RESOLVED & VERIFIED`
+- **Affected Current Feature**: Tier 3 LLM Query Expansion Engine (`python-ai-service/app/retrieval_engine.py:37-56`).
+- **Observed Problem**: The LLM query expansion prompt hardcoded retail-only topics (`refund, cancellation, delivery charges, payment methods, warranty`) and single retail example (`order kobe pabo?`), biasing expansions towards e-commerce even for healthcare, education, SaaS, or hotel queries.
+- **Implemented Fix**: Rewrote `expand_query_via_llm` system prompt to be strictly domain-neutral. Explicitly instructed LLM to preserve the exact subject domain of the query without injecting retail bias. Added diverse few-shot examples covering healthcare, education, retail, and hospitality.
+- **Verification Tests**: Verified with `python-ai-service/tests/test_domain_neutral_expansion.py` (5 tests passing) and regression tests (26 tests passing).
+- **Complexity**: `LOW`
 - **Priority**: `P1`
 
 ---
@@ -95,36 +129,29 @@ PRIORITY TIER P1: High-Impact Quality, Retrieval & Reliability Upgrades
 
 ---
 
-### `IMP-RET-001`: Enable Typesense Pure BM25 Fallback on Dense Embedding Outage
-- **Affected Current Feature**: Python Retrieval Engine (`python-ai-service/app/retrieval_engine.py:176-180`).
-- **Observed Problem**: If dense embedding model fails to initialize or runs out of RAM, `search_knowledge_base` raises an HTTP 503 error, completely disabling Typesense BM25 search.
-- **Evidence & Source Reference**: `python-ai-service/app/retrieval_engine.py:176-180`.
-- **Reproduction Steps**:
-  1. Simulate embedding failure (`embed = None`).
-  2. Query `/api/v1/search`.
-  3. Observe HTTP 503 Service Unavailable, despite Typesense service being fully operational.
-- **Expected User/Business Impact**: Eliminates a single point of failure; maintains keyword search availability during local embedder downtime.
-- **Recommended Improvement**: If `embed is None`, log a warning and fall back to pure Typesense BM25 text search instead of throwing 503.
-- **Regression Tests Needed**: `tests/Feature/Live/LiveTypesenseRetrievalTest.php`.
+### `IMP-RET-001`: [RESOLVED & VERIFIED] Typesense Pure BM25 Fallback on Dense Embedding Outage
+- **Status**: `RESOLVED & VERIFIED`
+- **Affected Current Feature**: Python Retrieval Engine (`python-ai-service/app/retrieval_engine.py:176-210`).
+- **Observed Problem**: If dense embedding model failed to initialize or ran out of RAM, `search_knowledge_base` raised an HTTP 503 error, completely disabling Typesense BM25 search.
+- **Implemented Fix**: Added degraded BM25 fallback in `retrieval_engine.py`. When `embed` is `None` or embedding generation throws an exception, the engine logs a warning and executes pure Typesense text match queries with BM25 score normalization, returning 200 OK.
+- **Verification Tests**: Verified with `python-ai-service/tests/test_degraded_embedding_fallback.py` (12 tests passing) and Laravel `tests/Unit/Services/RetrievalClientTest.php`.
 - **Complexity**: `LOW`
 - **Priority**: `P1`
-- **Dependencies & Risks**: None.
-- **Validation Metric & Acceptance Criteria**: Search returns exact keyword matches with 200 OK when embedding service is disabled.
 
 ---
 
-### `IMP-MEM-001`: Deduplicate & Serialize Background Memory Ingestion Queue Jobs
-- **Affected Current Feature**: Background Memory Extraction ([`app/Jobs/IngestConversationMemoryJob.php`](file:///Users/zesan/Desktop/Entrepreneurs_Automation/multi-source-chatbot/app/Jobs/IngestConversationMemoryJob.php#L64-L86)).
-- **Observed Problem**: Rapid user turns dispatch multiple concurrent jobs that process overlapping 6-message windows, causing duplicate nodes in Neo4j.
-- **Evidence & Source Reference**: [`IngestConversationMemoryJob.php:64-68`](file:///Users/zesan/Desktop/Entrepreneurs_Automation/multi-source-chatbot/app/Jobs/IngestConversationMemoryJob.php#L64-L68).
-- **Reproduction Steps**: Send 3 messages within 2 seconds; observe 3 simultaneous jobs querying the same conversation message IDs and calling Graphiti.
-- **Expected User/Business Impact**: Eliminates Neo4j entity bloat, reduces graph query latency, and prevents race conditions.
-- **Recommended Improvement**: Implement `ShouldBeUnique` on `IngestConversationMemoryJob` scoped to `conversation_id`, or track an `ingested_until_id` pointer.
-- **Regression Tests Needed**: `tests/Feature/ConversationMemoryPipelineTest.php`.
+### `IMP-MEM-001`: [RESOLVED & VERIFIED] Deduplicate & Serialize Background Memory Ingestion Queue Jobs
+- **Status**: `RESOLVED & VERIFIED`
+- **Affected Current Feature**: Background Memory Extraction ([`app/Jobs/IngestConversationMemoryJob.php`](file:///Users/zesan/Desktop/Entrepreneurs_Automation/multi-source-chatbot/app/Jobs/IngestConversationMemoryJob.php)).
+- **Observed Problem**: Rapid user turns dispatched multiple concurrent jobs that processed overlapping 6-message sliding windows, causing duplicate nodes in Neo4j, wasted LLM tokens, and lost metadata writes.
+- **Implemented Fix**:
+  1. Implemented `ShouldBeUniqueUntilProcessing` and `uniqueId()` on `IngestConversationMemoryJob` (with `$uniqueFor = 60`), deduplicating jobs queued before worker pickup while allowing subsequent turns arriving mid-flight to be cleanly queued.
+  2. Implemented execution-level runtime mutex using `Cache::lock("memory_ingest:conv:{$id}", 60)`. If a worker attempts to process an already active conversation, it safely delays execution with `$this->release(3)`.
+  3. Added ingestion watermark pointer `conversations.metadata['last_memory_ingested_message_id']`. Consecutive jobs only query `where('id', '>', $lastIngestedId)`. Overlap between successive runs dropped from $\ge 4$ to exactly $0$. If no new messages exist, the job exits immediately with 0 HTTP calls.
+  4. Added failure recovery and retry semantics: the watermark is only advanced on verified successful ingestion (`success: true`). On transient failure or timeout, the watermark remains in place and `$this->release(10)` schedules retry up to `$tries = 2`.
+- **Verification Tests**: Verified with `tests/Feature/MemoryJobConcurrencyTest.php` (6 tests, 25 assertions) and complete memory pipeline suite (41 tests, 100% PASS).
 - **Complexity**: `MEDIUM`
 - **Priority**: `P1`
-- **Dependencies & Risks**: Redis or cache lock configuration.
-- **Validation Metric & Acceptance Criteria**: Overlapping turns are serialized; duplicate relationship creation in Neo4j drops to 0.
 
 ---
 
@@ -134,23 +161,33 @@ PRIORITY TIER P2: Meaningful Efficiency, Accuracy & Schema Upgrades
 ====================================================================================================
 ```
 
-### `IMP-ANL-001`: Enforce Ingestion Bounds & Query Timeouts on Spreadsheet Analytics
-- **Affected Current Feature**: Excel Virtual SQLite Engine (`python-ai-service/app/analytics/excel_engine.py:104-140`).
-- **Observed Problem**: Large multi-sheet files read unbounded rows into memory; SQLite queries execute without statement timeouts.
-- **Evidence & Source Reference**: `excel_engine.py:104, 112-135`.
-- **Expected User/Business Impact**: Protects Python analytics worker from OOM crashes and CPU exhaustion.
-- **Recommended Improvement**: Enforce `MAX_SHEETS = 10`, `MAX_ROWS_PER_SHEET = 100_000`, and set a 15-second SQLite progress handler timeout.
+### `IMP-ANL-001`: [RESOLVED & VERIFIED] Enforce Ingestion Bounds & Query Timeouts on Spreadsheet Analytics
+- **Status**: `RESOLVED & VERIFIED`
+- **Affected Current Feature**: Excel Virtual SQLite Engine (`python-ai-service/app/analytics/excel_engine.py`).
+- **Observed Problem**: Large multi-sheet files read unbounded rows into memory; SQLite queries executed without statement execution timeouts, risking OOM crashes and CPU exhaustion.
+- **Implemented Fix**:
+  1. Configured resource limits in `app/config.py`: `ANALYTICS_MAX_SHEETS = 10`, `ANALYTICS_MAX_ROWS_PER_SHEET = 100_000`, `ANALYTICS_QUERY_TIMEOUT_SECONDS = 15.0`.
+  2. Bounded workbook ingestion in `excel_engine.py`: rejects workbooks with `> 10` worksheets before reading data; enforces `100,000` data rows limit (excluding header) during streaming/reading without loading unbounded worksheets into memory.
+  3. Added clean file cleanup on rejection to prevent orphaned SQLite files on disk.
+  4. Implemented `execute_sql_query` with SQLite `set_progress_handler` checking query deadline every 1,000 VM instructions. Safely interrupts long-running queries, returns safe timeout notice without exposing internal paths or stack traces, and resets the progress handler in `finally`.
+- **Verification Tests**: Verified with `python-ai-service/tests/test_analytics_resource_guards.py` (10 tests, 100% PASS) and complete analytics test battery (76 tests, 100% PASS).
 - **Complexity**: `LOW`
 - **Priority**: `P2`
 
 ---
 
-### `IMP-RET-002`: Optimize MySQL Full-Text Fallback Search Index
-- **Affected Current Feature**: Database Search Fallback ([`app/Services/Retrieval/RetrievalClient.php:305-342`](file:///Users/zesan/Desktop/Entrepreneurs_Automation/multi-source-chatbot/app/Services/Retrieval/RetrievalClient.php#L305-L342)).
-- **Observed Problem**: Fallback executes `LIKE '%word%'` table scans and hardcodes `finalScore = 0.85`.
-- **Evidence & Source Reference**: [`RetrievalClient.php:324-337`](file:///Users/zesan/Desktop/Entrepreneurs_Automation/multi-source-chatbot/app/Services/Retrieval/RetrievalClient.php#L324-L337).
-- **Expected User/Business Impact**: Prevents MySQL database lockups during microservice outages and provides realistic fallback ranking scores.
-- **Recommended Improvement**: Use `MATCH(...) AGAINST(...)` in MySQL and calculate normalized BM25 fallback scores.
+### `IMP-RET-002`: [RESOLVED & VERIFIED] Optimize MySQL Full-Text Fallback Search Index & Calibrated Scoring
+- **Status**: `RESOLVED & VERIFIED`
+- **Affected Current Feature**: Database Search Fallback ([`app/Services/Retrieval/RetrievalClient.php:538-695`](file:///Users/zesan/Desktop/Entrepreneurs_Automation/multi-source-chatbot/app/Services/Retrieval/RetrievalClient.php#L538-L695)).
+- **Observed Problem**: Fallback executed unindexed `LIKE '%word%'` table scans, hardcoded an arbitrary uncalibrated `finalScore = 0.85` for every match regardless of relevance, and dumped arbitrary FAQs when queries contained no tokens $> 2$ characters.
+- **Implemented Fix**:
+  1. Maintained strict tenant isolation: missing or invalid `workspace_id` aborts search immediately and returns an empty collection.
+  2. Empty queries or queries without searchable tokens ($\ge 2$ characters) return an empty collection immediately, preventing irrelevant FAQ dumping on chitchat or noise queries during microservice outages.
+  3. Added MySQL Full-Text Boolean Search fast-path (`MATCH(question, searchable_text) AGAINST(? IN BOOLEAN MODE)`) leveraging existing migration indexes on MySQL while safely failing over to parameterized token matching if FULLTEXT produces 0 hits or under SQLite in test environments.
+  4. Implemented calibrated lexical relevance scoring in $[0.0, 0.95]$ (`calculateFallbackRelevance`): exact question match ($0.95$), contiguous phrase in question ($0.90$), title word coverage ($0.60 - 0.88$), and full document/searchable text coverage ($0.40 - 0.75$). Filters out non-matching candidates ($0.0$).
+  5. Applied the same calibrated scoring and tenant isolation to active `KnowledgeDocument` records.
+  6. Sorted hits descending by calibrated score with `matchType = 'keyword_fallback'`.
+- **Verification Tests**: Verified with `tests/Unit/Services/DatabaseFallbackOptimizationTest.php` (8 tests, 42 assertions, 100% PASS) and complete retrieval regression suite (`RetrievalClientTest`, `SemanticAnswerabilityGateTest`, `CustomerSupportServiceTest`, `KnowledgeDocumentRetrievalPipelineTest` - 92 tests, 464 assertions, 0 failures).
 - **Complexity**: `MEDIUM`
 - **Priority**: `P2`
 

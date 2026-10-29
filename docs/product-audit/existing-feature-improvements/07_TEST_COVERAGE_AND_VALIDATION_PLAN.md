@@ -165,7 +165,7 @@ Every recommendation in the backlog must be quantitatively validated before bein
 | **IMP-ING-001** | Index Documents into Typesense | 0% PDF/DOCX indexed into Typesense | 100% active non-tabular docs chunked and searchable | `tests/Feature/Knowledge/GeneralDocumentRetrievalTest.php` |
 | **IMP-ROUT-001**| Regex/Heuristic Chitchat Fast-Path| 100% queries hit LLM (1.8s P50, ~300 tok) | < 5ms P50 latency, 0 tokens on greeting/thanks | `tests/Unit/AI/HybridRouterFastPathTest.php` |
 | **IMP-RET-001** | BM25 Fallback on Dense Failure | HTTP 503 / 0 results returned | > 85% Top-3 BM25 retrieval recall on embedding crash | `pytest tests/test_degraded_embedding_fallback.py` |
-| **IMP-RET-002** | Dynamic SQL DB Fallback Scoring | Static 0.85 score assigned to all | Levenshtein/BM25 normalized relevance score [0.0–1.0]| `tests/Unit/Services/RetrievalClientFallbackTest.php` |
+| **IMP-RET-002** | Dynamic SQL DB Fallback Scoring | Static 0.85 score assigned to all | Calibrated lexical relevance [0.0–0.95], MySQL FULLTEXT fast-path | `tests/Unit/Services/DatabaseFallbackOptimizationTest.php` (Verified) |
 | **IMP-MEM-001** | Atomic Lock on Memory Ingestion | 0 concurrency control (duplicate nodes) | Exactly 1 job processes conversation window | `tests/Feature/MemoryJobConcurrencyTest.php` |
 | **IMP-SAFE-001**| Context-Aware Action Confirmation| Stale actions confirmed across topic drift | Action invalidated on intent change; drift rejected | `tests/Unit/AI/ActionSafetyDriftTest.php` |
 | **IMP-ANS-001** | Reduce Banglish Hallucinations | 32.7% unsupported claims on Banglish | < 5.0% unsupported claims on Banglish | `php artisan audit:step4-generation-faithfulness` |

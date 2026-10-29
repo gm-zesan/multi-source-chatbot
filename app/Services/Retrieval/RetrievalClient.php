@@ -9,6 +9,7 @@ use App\Models\FAQ;
 use App\Models\KnowledgeDocument;
 use App\Services\FAQ\FAQSearchResult;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
@@ -536,7 +537,9 @@ class RetrievalClient
     }
 
     /**
-     * Database fallback when Python service is unavailable.
+     * Database fallback when Python retrieval service is unavailable.
+     * Enforces strict workspace isolation, MySQL FULLTEXT optimization where available,
+     * graceful parameterized token fallback, and calibrated relevance scoring.
      *
      * @return Collection<int, FAQSearchResult>
      */
@@ -551,72 +554,219 @@ class RetrievalClient
             return new Collection();
         }
 
-        $words = array_filter(explode(' ', $query), fn ($w) => mb_strlen(trim($w)) > 2);
-
-        $dbQuery = FAQ::where('is_active', true)
-            ->where('workspace_id', $workspaceId);
-
-        if (! empty($words)) {
-            $dbQuery->where(function ($q) use ($words) {
-                foreach ($words as $word) {
-                    $q->orWhere('question', 'LIKE', '%' . $word . '%')
-                      ->orWhere('answer', 'LIKE', '%' . $word . '%')
-                      ->orWhere('searchable_text', 'LIKE', '%' . $word . '%');
-                }
-            });
+        $cleanQuery = mb_strtolower(trim($query));
+        if ($cleanQuery === '') {
+            return new Collection();
         }
 
-        $faqs = $dbQuery->limit($topK)->get();
+        // Tokenize query into searchable keywords (length >= 2)
+        $queryWords = array_values(array_unique(array_filter(
+            preg_split('/\s+/u', $cleanQuery),
+            fn ($w) => mb_strlen(trim($w)) >= 2
+        )));
 
-        $mapped = $faqs->map(fn (FAQ $faq) => new FAQSearchResult(
-            faq: $faq,
-            keywordScore: 0.85,
-            semanticScore: 0.0,
-            finalScore: 0.85,
-            matchType: 'keyword_fallback',
-        ))->all();
-
-        // Also search active knowledge documents in database fallback mode
-        $docQuery = KnowledgeDocument::where('is_active', true)
-            ->where('lifecycle_status', DocumentLifecycleStatus::ACTIVE)
-            ->where('workspace_id', $workspaceId);
-
-        if (! empty($words)) {
-            $docQuery->where(function ($q) use ($words) {
-                foreach ($words as $word) {
-                    $q->orWhere('title', 'LIKE', '%' . $word . '%')
-                      ->orWhere('metadata', 'LIKE', '%' . $word . '%');
-                }
-            });
+        if (empty($queryWords)) {
+            return new Collection();
         }
 
-        $docs = $docQuery->limit($topK)->get();
-        foreach ($docs as $doc) {
-            $rawText = $doc->metadata['raw_text'] ?? null;
-            if (empty($rawText) && Storage::disk('local')->exists($doc->file_path)) {
-                $rawText = (string) Storage::disk('local')->get($doc->file_path);
-            }
-            if (! empty($rawText)) {
-                $transientFaq = new FAQ([
-                    'id'            => $doc->id,
-                    'question'      => $doc->title,
-                    'answer'        => $rawText,
-                    'document_type' => 'knowledge_document',
-                    'workspace_id'  => $doc->workspace_id,
-                    'is_active'     => true,
+        // 1. Check database driver for MySQL FULLTEXT support
+        $isMysql = false;
+        try {
+            $isMysql = DB::connection()->getDriverName() === 'mysql';
+        } catch (\Throwable) {
+            $isMysql = false;
+        }
+
+        $faqs = new Collection();
+
+        // Attempt MySQL FullText Boolean Search if on MySQL driver
+        if ($isMysql) {
+            try {
+                // Strip boolean operators that trigger MySQL syntax errors
+                $sanitized = preg_replace('/[+\-><()~*\"@]/u', ' ', $cleanQuery);
+                $ftTokens = array_values(array_filter(explode(' ', (string) $sanitized), fn ($t) => mb_strlen(trim($t)) >= 2));
+                if (! empty($ftTokens)) {
+                    $booleanExpr = implode(' ', array_map(fn ($t) => '+' . $t . '*', $ftTokens));
+                    $faqs = FAQ::where('is_active', true)
+                        ->where('workspace_id', $workspaceId)
+                        ->whereRaw('MATCH(question, searchable_text) AGAINST(? IN BOOLEAN MODE)', [$booleanExpr])
+                        ->limit($topK * 2)
+                        ->get();
+                }
+            } catch (\Throwable $e) {
+                Log::debug('[RetrievalClient] MySQL FullText query unviable, falling back to parameterized search', [
+                    'error' => $e->getMessage(),
                 ]);
-                $transientFaq->exists = true;
+                $faqs = new Collection();
+            }
+        }
 
+        // If MySQL FullText produced 0 hits (e.g. stopword, short token, or SQLite driver), use parameterized LIKE
+        if ($faqs->isEmpty()) {
+            $dbQuery = FAQ::where('is_active', true)
+                ->where('workspace_id', $workspaceId);
+
+            $dbQuery->where(function ($q) use ($queryWords) {
+                foreach ($queryWords as $word) {
+                    $q->orWhere('question', 'LIKE', '%' . $word . '%')
+                      ->orWhere('searchable_text', 'LIKE', '%' . $word . '%')
+                      ->orWhere('answer', 'LIKE', '%' . $word . '%');
+                }
+            });
+
+            $faqs = $dbQuery->limit($topK * 2)->get();
+        }
+
+        $mapped = [];
+        foreach ($faqs as $faq) {
+            $score = $this->calculateFallbackRelevance(
+                titleOrQuestion: $faq->question,
+                contentOrAnswer: $faq->answer,
+                searchableText: $faq->searchable_text ?? '',
+                queryWords: $queryWords,
+                cleanQuery: $cleanQuery,
+            );
+
+            if ($score > 0.0) {
                 $mapped[] = new FAQSearchResult(
-                    faq: $transientFaq,
-                    keywordScore: 0.85,
+                    faq: $faq,
+                    keywordScore: $score,
                     semanticScore: 0.0,
-                    finalScore: 0.85,
+                    finalScore: $score,
                     matchType: 'keyword_fallback',
                 );
             }
         }
 
+        // 2. Also search active knowledge documents in database fallback mode
+        $docQuery = KnowledgeDocument::where('is_active', true)
+            ->where('lifecycle_status', DocumentLifecycleStatus::ACTIVE)
+            ->where('workspace_id', $workspaceId);
+
+        $docQuery->where(function ($q) use ($queryWords) {
+            foreach ($queryWords as $word) {
+                $q->orWhere('title', 'LIKE', '%' . $word . '%')
+                  ->orWhere('metadata', 'LIKE', '%' . $word . '%');
+            }
+        });
+
+        $docs = $docQuery->limit($topK * 2)->get();
+        foreach ($docs as $doc) {
+            $rawText = $doc->metadata['raw_text'] ?? null;
+            if (empty($rawText) && Storage::disk('local')->exists($doc->file_path)) {
+                $rawText = (string) Storage::disk('local')->get($doc->file_path);
+            }
+
+            if (! empty($rawText)) {
+                $score = $this->calculateFallbackRelevance(
+                    titleOrQuestion: $doc->title,
+                    contentOrAnswer: $rawText,
+                    searchableText: '',
+                    queryWords: $queryWords,
+                    cleanQuery: $cleanQuery,
+                );
+
+                if ($score > 0.0) {
+                    $transientFaq = new FAQ([
+                        'id'            => $doc->id,
+                        'question'      => $doc->title,
+                        'answer'        => $rawText,
+                        'document_type' => 'knowledge_document',
+                        'workspace_id'  => $doc->workspace_id,
+                        'is_active'     => true,
+                    ]);
+                    $transientFaq->exists = true;
+
+                    $mapped[] = new FAQSearchResult(
+                        faq: $transientFaq,
+                        keywordScore: $score,
+                        semanticScore: 0.0,
+                        finalScore: $score,
+                        matchType: 'keyword_fallback',
+                    );
+                }
+            }
+        }
+
+        // 3. Sort hits descending by calibrated relevance score
+        usort($mapped, fn (FAQSearchResult $a, FAQSearchResult $b) => $b->finalScore <=> $a->finalScore);
+
         return new Collection(array_slice($mapped, 0, $topK));
+    }
+
+    /**
+     * Compute calibrated lexical relevance score in [0.0, 0.95].
+     *
+     * @param string   $titleOrQuestion
+     * @param string   $contentOrAnswer
+     * @param string   $searchableText
+     * @param string[] $queryWords
+     * @param string   $cleanQuery
+     * @return float
+     */
+    private function calculateFallbackRelevance(
+        string $titleOrQuestion,
+        string $contentOrAnswer,
+        string $searchableText,
+        array $queryWords,
+        string $cleanQuery,
+    ): float {
+        if (empty($queryWords)) {
+            return 0.0;
+        }
+
+        $title = mb_strtolower(trim($titleOrQuestion));
+        $content = mb_strtolower(trim($contentOrAnswer));
+        $searchable = mb_strtolower(trim($searchableText));
+
+        // 1. Exact title/question match (ignoring trailing punctuation)
+        $normalizedTitle = trim(preg_replace('/[?!.,;:]+$/u', '', $title));
+        $normalizedQuery = trim(preg_replace('/[?!.,;:]+$/u', '', $cleanQuery));
+        if ($title === $cleanQuery || ($normalizedTitle !== '' && $normalizedTitle === $normalizedQuery)) {
+            return 0.95;
+        }
+
+        // 2. Contiguous phrase containment in title
+        if (str_contains($title, $cleanQuery)) {
+            return 0.90;
+        }
+
+        // 3. Word-level match coverage in title
+        $totalWords = count($queryWords);
+        $matchedInTitle = 0;
+        foreach ($queryWords as $word) {
+            if (str_contains($title, $word)) {
+                $matchedInTitle++;
+            }
+        }
+
+        $titleRatio = $matchedInTitle / $totalWords;
+        if ($titleRatio === 1.0) {
+            // All query words match in the title/question
+            return round(min(0.88, 0.82 + 0.02 * $totalWords), 4);
+        }
+
+        if ($titleRatio >= 0.5) {
+            return round(0.60 + 0.20 * $titleRatio, 4);
+        }
+
+        // 4. Combined document text coverage (question + answer + searchable_text)
+        $matchedInDoc = 0;
+        foreach ($queryWords as $word) {
+            if (str_contains($title, $word) || str_contains($searchable, $word) || str_contains($content, $word)) {
+                $matchedInDoc++;
+            }
+        }
+
+        $docRatio = $matchedInDoc / $totalWords;
+        if ($docRatio === 1.0) {
+            return round(0.65 + 0.10 * $titleRatio, 4);
+        }
+
+        if ($docRatio > 0.0) {
+            return round(0.40 + 0.25 * $docRatio, 4);
+        }
+
+        return 0.0;
     }
 }

@@ -14,7 +14,7 @@
 | **IMP-ANS-001** | Grounding & Multilingual Quality | **CONFIRMED** | `BENCHMARK` & `CODE_INSPECTION` | Inspected `tests/Datasets/step4_generation_baseline_report.json` across 48 evaluated turns. Supported claim ratio: English 100%, Bengali 90.0%, Banglish 67.3% (32.7% unsupported), Code-Mixed 63.4% (36.6% unsupported). | DeepSeek-Chat prompt lacks romanized-to-formal strict grounding constraints; LLM extrapolates missing facts during Banglish translation. | **HIGH** (1 in 3 claims fabricated on romanized customer queries; severe policy misinformation risk). | Add language-adaptive grounding instructions and numeric constraint anchoring in `KnowledgeSupportAgent.php`. | `php artisan audit:step4-generation-faithfulness --lang=banglish` (< 5% unsupported claims) |
 | **IMP-SEC-002** | Security & Analytics API Auth | **CONFIRMED** | `REPRODUCED_TEST` & `CODE_INSPECTION` | Inspected route registry in `python-ai-service`: all 9 `/analytics/*` routes have `deps: []` (zero auth), whereas `/api/v1/faqs/*` have `deps: ['verify_api_key']`. | `app.include_router(analytics_router)` in `python-ai-service/app/main.py:141` omitted `dependencies=[Depends(verify_api_key)]`. | **CRITICAL** (Unauthenticated network caller can query, upload, list, or delete SQLite data across any workspace ID). | Add `dependencies=[Depends(verify_api_key)]` to `app.include_router(analytics_router)` in `main.py`. | `test_analytics_endpoint_rejects_unauthenticated_requests` |
 | **IMP-SAFE-001** | Action Safety & Confirmation Drift | **CONFIRMED** | `REPRODUCED_TEST` & `CODE_INSPECTION` | `php artisan test scratch/test_stale_action_drift.php` (PASS, 6 assertions). Action proposed in Turn 1; topic drifted in Turn 2; user typed "ok" in Turn 3 -> stale email dispatched! | `ActionSafetyService` pending action relies solely on 15-minute TTL without conversational turn counter or topic-drift invalidation. | **MEDIUM** (Users acknowledging an unrelated FAQ answer accidentally trigger previously proposed external actions). | Invalidate pending action when an incoming turn does not match confirmation/rejection; require explicit confirmation token. | `test_pending_action_is_invalidated_upon_topic_drift` |
-| **IMP-MEM-001** | Conversation Memory Concurrency | **CONFIRMED** | `REPRODUCED_TEST` & `CODE_INSPECTION` | `php artisan test scratch/test_concurrent_memory_job.php` (PASS, 5 assertions). Job does not implement `ShouldBeUnique`; 4–5 turns repeatedly extracted by overlapping jobs. | `IngestConversationMemoryJob` lacks queue uniqueness and processes a static sliding window (`take(6)`) on every turn. | **MEDIUM** (Duplicate nodes/relationships in Neo4j, wasted LLM extraction tokens, and metadata race condition overwrites). | Implement `ShouldBeUnique` on `IngestConversationMemoryJob` keyed by conversation ID; track ingested message watermark. | `test_rapid_fire_messages_dispatch_single_unique_memory_job` |
+| **IMP-MEM-001** | Conversation Memory Concurrency | **RESOLVED & VERIFIED** | `REPRODUCED_TEST` & `CODE_INSPECTION` | Initially reproduced with `test_concurrent_memory_job.php`. Resolved via `ShouldBeUniqueUntilProcessing`, watermark pointer, and runtime cache lock. Verified by `tests/Feature/MemoryJobConcurrencyTest.php` (6 tests, 25 assertions, 0 overlap). | `IngestConversationMemoryJob` lacked queue uniqueness and processed a static sliding window (`take(6)`) on every turn. | **MEDIUM** (Duplicate nodes/relationships in Neo4j, wasted LLM extraction tokens, and metadata race condition overwrites). | Implemented `ShouldBeUniqueUntilProcessing`, runtime mutex lock, and `last_memory_ingested_message_id` watermark. | `test_job_implements_unique_until_processing_contract`, `test_watermark_prevents_reingesting_overlapping_messages` |
 
 ---
 
@@ -244,19 +244,14 @@ In `python-ai-service/app/main.py:141`, change:
 - **Observed Symptom:** Wasted LLM extraction tokens, duplicate knowledge graph entities in Neo4j, and intermittent lost metadata writes in `conversations`.
 - **Root Cause:** Lack of job deduplication (`ShouldBeUnique`) and lack of an ingestion watermark (tracking which message IDs have already been extracted).
 
-#### Minimal Recommended Fix
-1. Add `implements ShouldBeUnique` to `IngestConversationMemoryJob`:
-   ```php
-   public function uniqueId(): string
-   {
-       return (string) $this->conversation->id;
-   }
-   ```
-2. Store `last_memory_ingested_message_id` on the `conversations` record, and query only `where('id', '>', $lastIngestedId)` rather than a fixed sliding window.
-
-#### Dependencies & Risks
-- **Dependencies:** Requires a cache driver supporting atomic locks (Redis or database lock).
-- **Risks:** If a job fails and throws an unhandled exception before releasing the lock, subsequent memory updates could be locked until cache lock timeout (default 120s). Setting `$uniqueFor = 60` mitigates this.
+#### Implemented & Verified Resolution
+- **Status:** `RESOLVED & VERIFIED`
+- **Implementation:**
+  1. Implemented `ShouldBeUniqueUntilProcessing` and `uniqueId(): string` with `$uniqueFor = 60` on `IngestConversationMemoryJob`. This deduplicates rapid-fire dispatches before worker pickup without stranding turns arriving while a worker is mid-flight.
+  2. Implemented execution-level runtime mutex using `Cache::lock("memory_ingest:conv:{$id}", 60)` with `$this->release(3)` to serialize concurrent worker execution cleanly.
+  3. Stored `conversations.metadata['last_memory_ingested_message_id']` as an ingestion watermark. Consecutive jobs only query `where('id', '>', $lastIngestedId)`. Redundant message turn overlap dropped from $\ge 4$ to exactly $0$.
+  4. Added failure recovery: watermark is only advanced on verified successful ingestion (`success: true`). Transient failures remain un-advanced and are retried via `$this->release(10)`.
+- **Verification Suite:** `tests/Feature/MemoryJobConcurrencyTest.php` (6 tests, 25 assertions, 100% PASS). All 41 memory feature tests passing.
 
 ---
 
