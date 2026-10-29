@@ -762,7 +762,7 @@ class CustomerSupportService
             $knowledgeRetrievalMs = round((microtime(true) - $t_retrieval_start) * 1000, 2);
 
             $t_gate_start = microtime(true);
-            $answerabilityDecision = $this->answerabilityGate->evaluate($contextualSignal ?? $query, $retrievalHits, $routingResult);
+            $answerabilityDecision = $this->answerabilityGate->evaluate($contextualSignal ?? $query, $retrievalHits, $routingResult, $workspaceId);
             $answerabilityMs = round((microtime(true) - $t_gate_start) * 1000, 2);
 
             $topHit = $answerabilityDecision->topHit();
@@ -1035,7 +1035,7 @@ class CustomerSupportService
             perPage: 5,
         );
 
-        $decision = $this->answerabilityGate->evaluate($query, $retrievalHits, null);
+        $decision = $this->answerabilityGate->evaluate($contextualSignal ?? $query, $retrievalHits, null, $workspaceId);
 
         if ($decision->isAmbiguous()) {
             return $this->executeUncertainRoute(
@@ -1590,7 +1590,11 @@ PROMPT;
         try {
             $response = $agent->prompt($query, provider: $primaryProvider, model: $primaryModel);
             $this->lastLlmUsage = $response->usage ?? null;
-            return (string) $response;
+            return KnowledgeSupportAgent::sanitizeUnsupportedContactDetails(
+                (string) $response,
+                $retrievedHits,
+                $businessContext
+            );
         } catch (\Throwable $ePrimary) {
             Log::warning('[CustomerSupportService] Primary provider failed, attempting fallback provider', [
                 'primary_provider'  => $primaryProvider,
@@ -1604,7 +1608,11 @@ PROMPT;
             if (!empty($fallbackProvider) && $fallbackProvider !== $primaryProvider) {
                 try {
                     $response = $agent->prompt($query, provider: $fallbackProvider, model: $fallbackModel);
-                    return (string) $response;
+                    return KnowledgeSupportAgent::sanitizeUnsupportedContactDetails(
+                        (string) $response,
+                        $retrievedHits,
+                        $businessContext
+                    );
                 } catch (\Throwable $eFallback) {
                     Log::warning('[CustomerSupportService] Fallback provider also failed', [
                         'fallback_provider' => $fallbackProvider,
@@ -1779,6 +1787,22 @@ PROMPT;
     public function getLastFollowUpDecision(): ?\App\Services\AI\DTOs\FollowUpDecision
     {
         return $this->lastFollowUpDecision;
+    }
+
+    /**
+     * Get the FAQSearch instance used by CustomerSupportService.
+     */
+    public function getFAQSearch(): FAQSearch
+    {
+        return $this->faqSearch;
+    }
+
+    /**
+     * Get the RetrievalClient instance used by CustomerSupportService.
+     */
+    public function getRetrievalClient(): \App\Services\Retrieval\RetrievalClient
+    {
+        return $this->faqSearch->getRetrievalClient();
     }
 
     private function defaultFallbackText(): string

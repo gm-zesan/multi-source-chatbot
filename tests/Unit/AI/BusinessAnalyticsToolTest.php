@@ -30,7 +30,7 @@ class BusinessAnalyticsToolTest extends TestCase
 
         $schema = $tool->schema($schemaMock);
         $this->assertArrayHasKey('query', $schema);
-        $this->assertArrayHasKey('workspace_id', $schema);
+        $this->assertArrayNotHasKey('workspace_id', $schema);
     }
 
     public function test_execute_calls_analytics_client_correctly(): void
@@ -74,7 +74,7 @@ class BusinessAnalyticsToolTest extends TestCase
         $clientMock = $this->createMock(AnalyticsClient::class);
         $clientMock->expects($this->never())->method('query');
 
-        $tool = new BusinessAnalyticsTool($clientMock);
+        $tool = new BusinessAnalyticsTool($clientMock, workspaceId: 1);
         $result = $tool->handle(new Request(['query' => '   ']));
 
         $this->assertSame('No analytics query provided.', (string) $result);
@@ -103,5 +103,61 @@ class BusinessAnalyticsToolTest extends TestCase
 
         $tool = new BusinessAnalyticsTool($clientMock, workspaceId: 5);
         $tool->handle(new Request(['query' => 'due balance']));
+    }
+
+    public function test_handle_fails_closed_when_workspace_context_is_missing(): void
+    {
+        $clientMock = $this->createMock(AnalyticsClient::class);
+        $clientMock->expects($this->never())->method('query');
+
+        $tool = new BusinessAnalyticsTool($clientMock, workspaceId: null);
+        $result = $tool->handle(new Request(['query' => 'total sales']));
+
+        $this->assertSame('Workspace context is missing or invalid.', (string) $result);
+    }
+
+    public function test_handle_fails_closed_when_workspace_context_is_invalid(): void
+    {
+        $clientMock = $this->createMock(AnalyticsClient::class);
+        $clientMock->expects($this->never())->method('query');
+
+        $tool = new BusinessAnalyticsTool($clientMock, workspaceId: 0);
+        $result = $tool->handle(new Request(['query' => 'total sales']));
+
+        $this->assertSame('Workspace context is missing or invalid.', (string) $result);
+    }
+
+    public function test_handle_strictly_ignores_llm_supplied_workspace_id_override(): void
+    {
+        $clientMock = $this->createMock(AnalyticsClient::class);
+        // CRITICAL: AnalyticsClient MUST be called with runtime workspace (2), NEVER with attacker's (777)
+        $clientMock->expects($this->once())
+            ->method('query')
+            ->with('total revenue', 2, [])
+            ->willReturn([
+                'status' => 'ok',
+                'report' => 'Revenue for workspace 2: ৳100,000',
+            ]);
+
+        $tool = new BusinessAnalyticsTool($clientMock, workspaceId: 2);
+        $result = $tool->handle(new Request([
+            'query' => 'total revenue',
+            'workspace_id' => 777, // Malicious override attempt from prompt injection
+        ]));
+
+        $this->assertSame('Revenue for workspace 2: ৳100,000', (string) $result);
+    }
+
+    public function test_execute_fails_closed_when_workspace_is_invalid(): void
+    {
+        $clientMock = $this->createMock(AnalyticsClient::class);
+        $clientMock->expects($this->never())->method('query');
+
+        $tool = new BusinessAnalyticsTool($clientMock);
+        $result = $tool->execute('total revenue', -1);
+
+        $this->assertFalse($result['success']);
+        $this->assertSame('error', $result['status']);
+        $this->assertSame('Invalid or missing workspace context.', $result['report']);
     }
 }

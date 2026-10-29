@@ -30,7 +30,7 @@ class ExcelAnalyticsToolTest extends TestCase
 
         $schema = $tool->schema($schemaMock);
         $this->assertArrayHasKey('question', $schema);
-        $this->assertArrayHasKey('workspace_id', $schema);
+        $this->assertArrayNotHasKey('workspace_id', $schema);
         $this->assertArrayHasKey('file_id', $schema);
     }
 
@@ -74,7 +74,7 @@ class ExcelAnalyticsToolTest extends TestCase
         $clientMock = $this->createMock(AnalyticsClient::class);
         $clientMock->expects($this->never())->method('queryExcel');
 
-        $tool = new ExcelAnalyticsTool($clientMock);
+        $tool = new ExcelAnalyticsTool($clientMock, workspaceId: 1);
         $result = $tool->handle(new Request(['question' => '   ']));
 
         $this->assertSame('No question provided for Excel spreadsheet analysis.', (string) $result);
@@ -110,5 +110,61 @@ class ExcelAnalyticsToolTest extends TestCase
 
         $this->assertTrue($result['success']);
         $this->assertSame('June revenue: ৳120,000', $result['report']);
+    }
+
+    public function test_handle_fails_closed_when_workspace_context_is_missing(): void
+    {
+        $clientMock = $this->createMock(AnalyticsClient::class);
+        $clientMock->expects($this->never())->method('queryExcel');
+
+        $tool = new ExcelAnalyticsTool($clientMock, workspaceId: null);
+        $result = $tool->handle(new Request(['question' => 'total rows']));
+
+        $this->assertSame('Workspace context is missing or invalid.', (string) $result);
+    }
+
+    public function test_handle_fails_closed_when_workspace_context_is_invalid(): void
+    {
+        $clientMock = $this->createMock(AnalyticsClient::class);
+        $clientMock->expects($this->never())->method('queryExcel');
+
+        $tool = new ExcelAnalyticsTool($clientMock, workspaceId: -10);
+        $result = $tool->handle(new Request(['question' => 'total rows']));
+
+        $this->assertSame('Workspace context is missing or invalid.', (string) $result);
+    }
+
+    public function test_handle_strictly_ignores_llm_supplied_workspace_id_override(): void
+    {
+        $clientMock = $this->createMock(AnalyticsClient::class);
+        // CRITICAL: AnalyticsClient MUST be called with runtime workspace (4), NEVER with attacker's (888)
+        $clientMock->expects($this->once())
+            ->method('queryExcel')
+            ->with('sheet summary', 4, null)
+            ->willReturn([
+                'status' => 'ok',
+                'report' => 'Summary for workspace 4: 10 rows',
+            ]);
+
+        $tool = new ExcelAnalyticsTool($clientMock, workspaceId: 4);
+        $result = $tool->handle(new Request([
+            'question' => 'sheet summary',
+            'workspace_id' => 888, // Malicious override attempt from prompt injection
+        ]));
+
+        $this->assertSame('Summary for workspace 4: 10 rows', (string) $result);
+    }
+
+    public function test_execute_fails_closed_when_workspace_is_invalid(): void
+    {
+        $clientMock = $this->createMock(AnalyticsClient::class);
+        $clientMock->expects($this->never())->method('queryExcel');
+
+        $tool = new ExcelAnalyticsTool($clientMock);
+        $result = $tool->execute('sheet summary', 0);
+
+        $this->assertFalse($result['success']);
+        $this->assertSame('error', $result['status']);
+        $this->assertSame('Invalid or missing workspace context.', $result['report']);
     }
 }

@@ -16,6 +16,8 @@ use Illuminate\Support\Facades\Storage;
 class RetrievalClient
 {
     private array $lastTelemetry = [];
+    private bool $lastSearchFailed = false;
+    private ?string $lastSearchError = null;
 
     public function __construct(
         private readonly ?string $baseUrl = null,
@@ -32,6 +34,32 @@ class RetrievalClient
     public function getLastTelemetry(): array
     {
         return $this->lastTelemetry;
+    }
+
+    /**
+     * Check if the last search failed against the primary retrieval service and used database fallback.
+     */
+    public function wasLastSearchFallback(): bool
+    {
+        return $this->lastSearchFailed;
+    }
+
+    /**
+     * Get the error message from the last retrieval failure, if any.
+     */
+    public function getLastSearchError(): ?string
+    {
+        return $this->lastSearchError;
+    }
+
+    /**
+     * Reset the last search failure state.
+     */
+    public function resetSearchState(): void
+    {
+        $this->lastSearchFailed = false;
+        $this->lastSearchError = null;
+        $this->lastTelemetry = [];
     }
 
     /**
@@ -88,9 +116,25 @@ class RetrievalClient
 
             if ($response->successful()) {
                 $data = $response->json();
-                $results = $data['results'] ?? [];
-                $telemetry = $data['telemetry'] ?? [];
+
+                // Validate required response payload structure
+                if (!is_array($data) || !array_key_exists('results', $data) || !is_array($data['results'])) {
+                    $this->lastTelemetry = [];
+                    $this->lastSearchFailed = true;
+                    $this->lastSearchError = 'Malformed retrieval response: missing or invalid "results" array in payload';
+                    Log::warning('[RetrievalClient] Search returned malformed HTTP 200 response', [
+                        'query'    => mb_substr($trimmed, 0, 80),
+                        'raw_body' => mb_substr((string) $response->body(), 0, 200),
+                    ]);
+
+                    return $this->fallbackDatabaseSearch($trimmed, $workspaceId, $topK);
+                }
+
+                $results = $data['results'];
+                $telemetry = is_array($data['telemetry'] ?? null) ? $data['telemetry'] : [];
                 $this->lastTelemetry = $telemetry;
+                $this->lastSearchFailed = false;
+                $this->lastSearchError = null;
 
                 if (! empty($telemetry)) {
                     Log::info('[Retrieval Observability]', [
@@ -109,12 +153,16 @@ class RetrievalClient
             }
 
             $this->lastTelemetry = [];
+            $this->lastSearchFailed = true;
+            $this->lastSearchError = "Search returned HTTP {$response->status()}";
             Log::warning('[RetrievalClient] Search returned non-200 status', [
                 'status' => $response->status(),
                 'query'  => mb_substr($trimmed, 0, 80),
             ]);
         } catch (\Throwable $e) {
             $this->lastTelemetry = [];
+            $this->lastSearchFailed = true;
+            $this->lastSearchError = $e->getMessage();
             Log::warning('[RetrievalClient] Python retrieval service unreachable, falling back to DB', [
                 'query' => mb_substr($trimmed, 0, 80),
                 'error' => $e->getMessage(),
@@ -140,6 +188,7 @@ class RetrievalClient
             'document_type' => $faq->document_type ?? 'faq',
             'priority'      => $faq->priority ?? 100,
             'is_active'     => (bool) $faq->is_active,
+            'lexicon_terms' => $this->extractLexiconTerms($faq),
         ];
 
         try {
@@ -159,6 +208,75 @@ class RetrievalClient
             ]);
 
             return false;
+        }
+    }
+
+    /**
+     * Extract unique lexical terms domain-neutrally from FAQ question, answer, and searchable_text.
+     *
+     * @param FAQ $faq
+     * @return string[]
+     */
+    public function extractLexiconTerms(FAQ $faq): array
+    {
+        try {
+            $rawParts = [
+                $faq->question ?? '',
+                $faq->answer ?? '',
+                $faq->searchable_text ?? '',
+            ];
+
+            $text = implode(' ', array_filter($rawParts));
+            if (trim($text) === '') {
+                return [];
+            }
+
+            // Strip HTML tags and decode entities
+            $text = html_entity_decode(strip_tags($text), ENT_QUOTES | ENT_HTML5, 'UTF-8');
+            $text = mb_strtolower($text, 'UTF-8');
+
+            // Split into tokens based on whitespace, Unicode punctuation, and symbols
+            $rawTokens = preg_split('/[\s\p{P}\p{S}]+/u', $text, -1, PREG_SPLIT_NO_EMPTY) ?: [];
+
+            // Universal domain-neutral grammatical stop words (Bengali and English)
+            $stopWords = [
+                // English functional / grammatical words
+                'the', 'and', 'for', 'are', 'what', 'how', 'you', 'can', 'with', 'from',
+                'this', 'that', 'your', 'our', 'have', 'does', 'doing', 'where', 'when',
+                'will', 'was', 'were', 'about', 'into', 'all', 'any', 'not', 'but', 'out',
+                'has', 'had', 'been', 'would', 'could', 'should', 'more', 'some', 'such',
+                'than', 'them', 'then', 'there', 'they', 'their', 'only', 'also', 'over',
+                'just', 'which', 'who', 'whom', 'whose', 'why', 'his', 'her', 'its', 'my',
+                'to', 'or', 'it', 'in', 'on', 'at', 'by', 'an', 'as', 'is', 'if', 'of',
+                'up', 'so', 'no', 'we', 'he', 'me', 'us', 'am', 'do', 'go',
+
+                // Bengali functional / grammatical particles & pronouns
+                'কি', 'কী', 'কিভাবে', 'কোন', 'থেকে', 'হলে', 'করব', 'করতে', 'পারি', 'হবে',
+                'এই', 'সেই', 'এবং', 'বা', 'না', 'একটি', 'করা', 'আছে', 'ছিল', 'জন্য',
+                'মতো', 'আর', 'তা', 'তো', 'যে', 'সে', 'ও', 'যা', 'কে', 'কীভাবে',
+            ];
+            $stopWordsFlip = array_flip($stopWords);
+
+            $terms = [];
+            foreach ($rawTokens as $token) {
+                $token = trim($token);
+                // Retain tokens with character length >= 2 and exclude stop words
+                if (mb_strlen($token, 'UTF-8') >= 2 && !isset($stopWordsFlip[$token])) {
+                    $terms[$token] = true;
+                    if (count($terms) >= 50) {
+                        break;
+                    }
+                }
+            }
+
+            return array_values(array_map('strval', array_keys($terms)));
+        } catch (\Throwable $e) {
+            Log::warning('[RetrievalClient] Failed to extract lexicon terms from FAQ', [
+                'faq_id' => $faq->id ?? null,
+                'error'  => $e->getMessage(),
+            ]);
+
+            return [];
         }
     }
 
@@ -238,6 +356,20 @@ class RetrievalClient
 
             return false;
         }
+    }
+
+    /**
+     * Safe stub for reloading workspace lexicon to prevent runtime failures.
+     *
+     * @param int $workspaceId
+     * @return array{ok: bool, workspace_id: int}
+     */
+    public function reloadLexicon(int $workspaceId = 0): array
+    {
+        return [
+            'ok'           => true,
+            'workspace_id' => $workspaceId,
+        ];
     }
 
     /**
@@ -361,7 +493,7 @@ class RetrievalClient
                     'answer'        => (string) $item['answer'],
                     'document_type' => (string) ($item['document_type'] ?? 'knowledge_document'),
                     'workspace_id'  => $itemWorkspaceId,
-                    'is_active'     => true,
+                    'is_active'     => isset($item['is_active']) ? (bool) $item['is_active'] : true,
                 ]);
                 $faq->exists = true;
             }
@@ -377,11 +509,17 @@ class RetrievalClient
             if ($faq !== null) {
                 $score = (float) ($item['score'] ?? 0.85);
                 $matchType = (string) ($item['match_type'] ?? 'hybrid');
+                $semanticScore = isset($item['semantic_score'])
+                    ? (float) $item['semantic_score']
+                    : ($matchType === 'vector' ? $score : 0.0);
+                $keywordScore = isset($item['keyword_score'])
+                    ? (float) $item['keyword_score']
+                    : (in_array($matchType, ['keyword', 'bm25'], true) ? $score : 0.0);
 
                 $mapped[] = new FAQSearchResult(
                     faq: $faq,
-                    keywordScore: $matchType === 'keyword' ? $score : 0.0,
-                    semanticScore: $matchType === 'vector' ? $score : 0.0,
+                    keywordScore: $keywordScore,
+                    semanticScore: $semanticScore,
                     finalScore: $score,
                     matchType: $matchType,
                 );

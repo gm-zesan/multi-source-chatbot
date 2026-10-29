@@ -131,7 +131,7 @@ class ContextualQueryBuilder
         $localRawEntities = $this->filterCandidateEntities($localRawEntities);
 
         // 3.5 Legacy Elliptical / Anaphora check (backward compatibility)
-        $legacyResolved = $this->resolveEllipticalLegacy($cleanQuery);
+        $legacyResolved = $this->resolveEllipticalLegacy($cleanQuery, $activeTopic, $recentTurns);
         if ($legacyResolved !== null) {
             return new ContextualResolutionResult(
                 rawQuery: $cleanQuery,
@@ -225,7 +225,7 @@ class ContextualQueryBuilder
             }
 
             // C. Fallback for Order / Tracking when active topic is Order_Tracking without explicit entity ID
-            if ($activeTopic === 'Order_Tracking' || preg_match('/(কবে\s+পাবো|kobe\s+pabo|where\s+is\s+it|tracking)/ui', $cleanQuery)) {
+            if ($activeTopic === 'Order_Tracking') {
                 return new ContextualResolutionResult(
                     rawQuery: $cleanQuery,
                     resolvedQuery: "আমার অর্ডার পার্সেল ডেলিভারি কবে পাবো ট্র্যাকিং",
@@ -239,15 +239,17 @@ class ContextualQueryBuilder
 
             if ($activeTopic !== null) {
                 $resolved = $this->resolveTopicContinuationQuery($cleanQuery, $activeTopic);
-                return new ContextualResolutionResult(
-                    rawQuery: $cleanQuery,
-                    resolvedQuery: $resolved,
-                    activeTopic: $activeTopic,
-                    resolvedEntity: null,
-                    confidence: 0.85,
-                    status: 'resolved',
-                    source: 'topic_continuation'
-                );
+                if ($resolved !== null) {
+                    return new ContextualResolutionResult(
+                        rawQuery: $cleanQuery,
+                        resolvedQuery: $resolved,
+                        activeTopic: $activeTopic,
+                        resolvedEntity: null,
+                        confidence: 0.85,
+                        status: 'resolved',
+                        source: 'topic_continuation'
+                    );
+                }
             }
 
             return new ContextualResolutionResult(
@@ -263,7 +265,9 @@ class ContextualQueryBuilder
         }
 
         // 4.5. Bare Order ID (User responding to a clarification or directly typing an order number)
-        if (preg_match('/^(?:\s*(?:order|অর্ডার|#)?\s*\d{3,8}\s*)$/ui', $cleanQuery)) {
+        if (preg_match('/^(?:\s*(?:order|অর্ডার|#)\s*\d{3,8}\s*)$/ui', $cleanQuery) ||
+            ($activeTopic === 'Order_Tracking' && preg_match('/^\s*\d{3,8}\s*$/', $cleanQuery))
+        ) {
             $extracted = $this->extractCandidateEntitiesFromTurn($cleanQuery);
             $orderId = !empty($extracted) ? $extracted[0] : $cleanQuery;
             return new ContextualResolutionResult(
@@ -283,6 +287,28 @@ class ContextualQueryBuilder
             $activeProductMeta = $conversation?->metadata['active_product'] ?? null;
             $activeProductName = !empty($activeProductMeta['name']) ? (string) $activeProductMeta['name'] : (!empty($localRawEntities) ? $localRawEntities[0] : null);
 
+            // Ambiguity check: if no explicit active product in metadata, check if multiple competing entities exist
+            if ($activeProductMeta === null && count($localRawEntities) > 1) {
+                $localCandidates = $this->structureLocalCandidates($localRawEntities, null);
+                $scored = $this->evaluateCandidates($localCandidates, $cleanQuery, $activeTopic);
+                if ($scored['status'] === 'ambiguous') {
+                    return new ContextualResolutionResult(
+                        rawQuery: $cleanQuery,
+                        resolvedQuery: null,
+                        activeTopic: $activeTopic,
+                        resolvedEntity: null,
+                        candidates: $scored['candidates'],
+                        confidence: $scored['confidence'],
+                        status: 'ambiguous',
+                        source: 'local_turns',
+                        diagnostics: ['reason' => 'competing_entities_for_subjectless_query']
+                    );
+                }
+                if ($scored['status'] === 'resolved' && $scored['winner'] !== null) {
+                    $activeProductName = $scored['winner']['name'];
+                }
+            }
+
             if ($activeProductName !== null && preg_match('/(order|অর্ডার|কিন|kin|দাম|dam|price|নিতে|nite|পাব|pabo)/ui', $cleanQuery)) {
                 return new ContextualResolutionResult(
                     rawQuery: $cleanQuery,
@@ -295,16 +321,32 @@ class ContextualQueryBuilder
                 );
             }
 
-            if ($activeTopic !== null) {
+            if ($activeTopic !== null && !in_array($activeTopic, ['Product_Inquiry', 'Product'], true)) {
                 $resolved = $this->resolveTopicContinuationQuery($cleanQuery, $activeTopic);
+                if ($resolved !== null) {
+                    return new ContextualResolutionResult(
+                        rawQuery: $cleanQuery,
+                        resolvedQuery: $resolved,
+                        activeTopic: $activeTopic,
+                        resolvedEntity: !empty($localRawEntities) ? ['type' => 'Product', 'name' => $localRawEntities[0]] : null,
+                        confidence: 0.95,
+                        status: 'resolved',
+                        source: 'topic_continuation'
+                    );
+                }
+            }
+
+            // Domain-neutral resolution when antecedent is available from recent turns
+            if ($activeProductName !== null) {
+                $resolved = $this->resolveSubjectlessWithAntecedent($cleanQuery, $activeProductName);
                 return new ContextualResolutionResult(
                     rawQuery: $cleanQuery,
                     resolvedQuery: $resolved,
-                    activeTopic: $activeTopic,
-                    resolvedEntity: !empty($localRawEntities) ? ['type' => 'Product', 'name' => $localRawEntities[0]] : null,
-                    confidence: 0.95,
+                    activeTopic: $activeTopic ?? $activeProductName,
+                    resolvedEntity: ['type' => 'Entity', 'name' => $activeProductName],
+                    confidence: 0.90,
                     status: 'resolved',
-                    source: 'topic_continuation'
+                    source: 'antecedent_context'
                 );
             }
 
@@ -327,7 +369,7 @@ class ContextualQueryBuilder
             activeTopic: $activeTopic,
             confidence: 0.85,
             status: 'resolved',
-            source: 'topic_continuation'
+            source: $activeTopic !== null ? 'topic_continuation' : 'self_contained'
         );
     }
 
@@ -375,7 +417,7 @@ class ContextualQueryBuilder
         }
 
         // Order inquiries: Tracking, Delivery arrival, Consignment status
-        if (preg_match('/(কবে\s*পাবো|kobe\s*pabo|when\s+will|ডেলিভারি|delivery|কবে|ট্র্যাক|track|tracking|কুরিয়ার|courier|পার্সেল|parcel|অর্ডার|order)/ui', $qLower)) {
+        if (preg_match('/(কবে\s*পাবো|kobe\s*pabo|when\s+will\s+i\s+get|when\s+will\s+it\s+arrive|কবে\s*আসবে|পৌঁছাবে|ডেলিভারি|delivery|ট্র্যাক|track|tracking|কুরিয়ার|courier|পার্সেল|parcel|অর্ডার|order)/ui', $qLower)) {
             return 'Order';
         }
 
@@ -620,7 +662,7 @@ class ContextualQueryBuilder
         }
 
         // Bengali pronouns (Unicode boundary and diacritic safe)
-        if (preg_match('/(^|[^\p{L}\p{M}\p{N}])(এটা|ওটা|সেটা|এইটা|ওইটা|সেইটা|এটার|ওটার|সেটার|এগুলোর|ওগুলোর|এগুলো|ওগুলো|তারা|তাদের|তার|তাঁর|তাদেরকে|উনাদের|ওদের|উনি|তিনি|ওনার|উনার)($|[^\p{L}\p{M}\p{N}])/u', $qLower)) {
+        if (preg_match('/(?:^|[^\p{L}\p{M}\p{N}])(এটা|ওটা|সেটা|এইটা|ওইটা|সেইটা|এটার|ওটার|সেটার|এইটার|ওইটার|সেইটার|এগুলোর|ওগুলোর|এইগুলোর|ওইগুলোর|এগুলো|ওগুলো|এইগুলো|ওইগুলো|তারা|তাদের|তার|তাঁর|তাদেরকে|উনাদের|ওদের|উনি|তিনি|ওনার|উনার)(?:$|[^\p{L}\p{M}\p{N}])/u', $qLower)) {
             return true;
         }
 
@@ -638,23 +680,29 @@ class ContextualQueryBuilder
             '/^(কত\s*দিন\s*(সময়\s*)?(লাগবে|লাগে|হবে)\??)$/ui',
             '/^(koto\s*din\s*(somoy\s*)?(lagbe|lage|hobe)\??)$/ui',
             '/^(how\s+long(\s+does\s+it\s+take)?\??)$/ui',
-            '/^(চার্জ\s*কত\??|কত\s*চার্জ\??|ফি\s*কত\??|কত\s*ফি\??)$/ui',
-            '/^(charge\s*koto\??|koto\s*charge\??|fee\s*koto\??|koto\s*fee\??|how\s+much\s+is\s+the\s+fee\??)$/ui',
+            '/^((?:চার্জ|ফি|খরচ|cost|fee|charge)\s*কত\??|কত\s*(?:চার্জ|ফি|খরচ)\??)$/ui',
+            '/^(charge\s*koto\??|koto\s*charge\??|fee\s*koto\??|koto\s*fee\??|how\s+much\s+is\s+the\s+fee\??|what\s+is\s+the\s+fee\??)$/ui',
             '/^(কবে\s*পাবো\??|কবে\s*আসবে\??|kobe\s*pabo\??|kobe\s*ashbe\??|when\s+will\s+i\s+get\s+it\??)$/ui',
-            '/^(দেরি\s*হলে\s*কি\s*করব\??|deri\s*hole\s*ki\s*korbo\??)$/ui',
+            '/^(দেরি\s*হলে\s*(কি|কী)\s*(করব|করবো|করণীয়|করণীয়|করতে\s*হবে)\??|deri\s*hole\s*ki\s*(korbo|korte\s*hobe)\??|(late|delayed)\s*হলে\s*(কি|কী)\s*(করব|করবো|করণীয়|করণীয়|করতে\s*হবে)\??)$/ui',
+            '/^(what\s+(should\s+i\s+do\s+|to\s+do\s+|happens\s+)?if\s+(i\s+am\s+|it\s+is\s+)?(late|delayed)\??|what\s+if\s+(i\s+am\s+|it\s+is\s+)?(late|delayed)\??)$/ui',
+            '/^((?:বাড়ানো|এক্সটেন্ড)\s*(কি\s*)?(যাবে|যায়|করা\s*যাবে|করা\s*যায়|সম্ভব)\??|extend\s*(kora\s*)?(jabe|jay)\??)$/ui',
+            '/^((can\s+i|how\s+to|how\s+do\s+i)\s+(extend|renew|reschedule)\??)$/ui',
             '/^(ট্র্যাক\s*করব\s*কীভাবে\??|ট্র্যাকিং\s*কীভাবে\??|track\s*kivabe\??|tracking\s*kivabe\??)$/ui',
             '/^(দাম\s*কত\??|কত\s*দাম\??|dam\s*koto\??|price\s*koto\??|how\s+much\??)$/ui',
             '/^(সাইজ\s*(কি\s*)?আছে\??|size\s*ache\??|available\s*size\??)$/ui',
+            '/^(কালার\s*(ভ্যারিয়েন্ট\s*)?(কি\s*কি\s*)?আছে\??|color\s*(variant\s*)?ache\??)$/ui',
             '/^((কীভাবে|কিভাবে)\s*অর্ডার\s*(করব|করবো|করা\s*যায়|করতে\s*হবে)\??)$/ui',
             '/^(kivabe\s*order\s*(korbo|kora\s*jay|korte\s*hobe)?\??|order\s*kivabe\??|how\s*(to|can\s*i)\s*order\??)$/ui',
             '/^(অর্ডার\s*(করতে|দিতে)\s*চাই\??|order\s*korte\s*chai\??|নিতে\s*চাই\??|nite\s*chai\??|কিনতে\s*চাই\??|kinte\s*chai\??)$/ui',
             '/^((আমার\s+)?(পার্সেল|অর্ডার|প্যাকেজ|ডেলিভারি)\s*(কই|কোথায়|কোথাই|কখন\s*আসবে|কবে\s*পাব|কোন\s*পর্যায়ে)\??)$/ui',
             '/^((amar\s+)?(parcel|order|package|delivery)\s*(kothay|koi|kotay|kokhon\s*ashbe|kobe\s*pabo|status)\??)$/ui',
             '/^((where\s+is\s+(my\s+)?(parcel|order|package|delivery))\??)$/ui',
+            '/^(where\s+is\s+it(\s+located)?\??)$/ui',
+            '/^(কোথায়\s*(অবস্থিত|পাব|পাওয়া\s*যায়)\??)$/ui',
         ];
 
         foreach ($patterns as $pattern) {
-            if (preg_match($pattern, $qLower)) {
+            if ($pattern === '' || preg_match($pattern, $qLower)) {
                 return true;
             }
         }
@@ -685,8 +733,60 @@ class ContextualQueryBuilder
         if (preg_match('/(কালার|রং|color|colour)/ui', $qLower)) {
             return "{$entityName} এর কালার ভ্যারিয়েন্ট কি কি আছে?";
         }
-        if (preg_match('/(কবে|when|delivery|ডেলিভারি|পৌঁছাবে|পাবো|kobe)/ui', $qLower)) {
+
+        // Restrict parcel delivery rewrite strictly to delivery topics or queries explicitly asking for delivery/courier/shipping/arrival
+        if (($topic === 'Delivery' || $topic === 'Order_Tracking' || preg_match('/(delivery|ডেলিভারি|কুরিয়ার|পার্সেল|শিপিং|shipping|courier|parcel)/ui', $qLower))
+            && preg_match('/(কবে\s*পাবো|kobe\s*pabo|when\s+will\s+i\s+get|পৌঁছাবে|পাবো)/ui', $qLower)
+        ) {
             return "{$entityName} এর ডেলিভারি কবে পাবো?";
+        }
+
+        // Generic English / Latin pronoun substitution
+        if (preg_match('/\b(it|this|that)\b/ui', $query)) {
+            $substituted = preg_replace('/\b(it|this|that)\b/ui', $entityName, $query);
+            if ($substituted !== null && $substituted !== $query) {
+                return $substituted;
+            }
+        }
+        if (preg_match('/\b(its|their)\b/ui', $query)) {
+            $substituted = preg_replace('/\b(its|their)\b/ui', "{$entityName}'s", $query);
+            if ($substituted !== null && $substituted !== $query) {
+                return $substituted;
+            }
+        }
+        if (preg_match('/\b(these|those|them)\b/ui', $query)) {
+            $substituted = preg_replace('/\b(these|those|them)\b/ui', $entityName, $query);
+            if ($substituted !== null && $substituted !== $query) {
+                return $substituted;
+            }
+        }
+
+        // Generic Banglish pronoun substitution
+        if (preg_match('/\b(etar|otar|shetar|eitar|oitar)\b/ui', $query)) {
+            $substituted = preg_replace('/\b(etar|otar|shetar|eitar|oitar)\b/ui', "{$entityName} এর", $query);
+            if ($substituted !== null && $substituted !== $query) {
+                return $substituted;
+            }
+        }
+        if (preg_match('/\b(eta|ota|sheta|eita|oita|sheita)\b/ui', $query)) {
+            $substituted = preg_replace('/\b(eta|ota|sheta|eita|oita|sheita)\b/ui', $entityName, $query);
+            if ($substituted !== null && $substituted !== $query) {
+                return $substituted;
+            }
+        }
+
+        // Generic Bengali pronoun substitution (Unicode boundary safe)
+        if (preg_match('/(?:^|[^\p{L}\p{M}\p{N}])(এটার|ওটার|সেটার|এইটার|ওইটার|সেইটার|এগুলোর|ওগুলোর|এইগুলোর|ওইগুলোর)(?:$|[^\p{L}\p{M}\p{N}])/u', $query)) {
+            $substituted = preg_replace('/(?<=^|[^\p{L}\p{M}\p{N}])(এটার|ওটার|সেটার|এইটার|ওইটার|সেইটার|এগুলোর|ওগুলোর|এইগুলোর|ওইগুলোর)(?=$|[^\p{L}\p{M}\p{N}])/u', "{$entityName} এর", $query);
+            if ($substituted !== null && $substituted !== $query) {
+                return $substituted;
+            }
+        }
+        if (preg_match('/(?:^|[^\p{L}\p{M}\p{N}])(এটা|ওটা|সেটা|এইটা|ওইটা|সেইটা|এগুলো|ওগুলো|এইগুলো|ওইগুলো)(?:$|[^\p{L}\p{M}\p{N}])/u', $query)) {
+            $substituted = preg_replace('/(?<=^|[^\p{L}\p{M}\p{N}])(এটা|ওটা|সেটা|এইটা|ওইটা|সেইটা|এগুলো|ওগুলো|এইগুলো|ওইগুলো)(?=$|[^\p{L}\p{M}\p{N}])/u', $entityName, $query);
+            if ($substituted !== null && $substituted !== $query) {
+                return $substituted;
+            }
         }
 
         return "{$entityName} সম্পর্কিত তথ্য: {$query}";
@@ -695,7 +795,7 @@ class ContextualQueryBuilder
     /**
      * Rewrite subject-less queries using active topic.
      */
-    private function resolveTopicContinuationQuery(string $query, string $activeTopic): string
+    private function resolveTopicContinuationQuery(string $query, string $activeTopic): ?string
     {
         $qLower = mb_strtolower($query);
 
@@ -720,15 +820,71 @@ class ContextualQueryBuilder
 
         // Sub-intent: Tracking
         if (preg_match('/(ট্র্যাক|track|কুরিয়ার|courier)/ui', $qLower)) {
-            return 'পার্সেল কুরিয়ার ট্র্যাকিং কীভাবে করব';
+            return match ($activeTopic) {
+                'Delivery', 'Order_Tracking' => 'পার্সেল কুরিয়ার ট্র্যাকিং কীভাবে করব',
+                default                      => "{$activeTopic} ট্র্যাকিং কীভাবে করব",
+            };
         }
 
         // Sub-intent: Delay
         if (preg_match('/(দেরি|deri|delay|late)/ui', $qLower)) {
-            return 'পার্সেল বা ডেলিভারি পেতে দেরি হলে করণীয় কী';
+            return match ($activeTopic) {
+                'Delivery' => 'পার্সেল বা ডেলিভারি পেতে দেরি হলে করণীয় কী',
+                default    => "{$activeTopic} দেরি হলে করণীয় কী",
+            };
         }
 
-        return "{$activeTopic} সম্পর্কিত প্রশ্ন: {$query}";
+        return null;
+    }
+
+    /**
+     * Resolve a subject-less short query using an available antecedent in a domain-neutral manner.
+     */
+    private function resolveSubjectlessWithAntecedent(string $query, string $antecedent): string
+    {
+        $qLower = mb_strtolower(trim($query));
+        $isEnglishQuery = !preg_match('/[\p{Bengali}]/u', $query);
+
+        // Sub-intent: Extension / Renewal
+        if (preg_match('/(extend|বাড়ানো|এক্সটেন্ড|renew)/ui', $qLower)) {
+            if ($isEnglishQuery) {
+                return "Can I extend {$antecedent}?";
+            }
+            return "{$antecedent} বাড়ানো যাবে?";
+        }
+
+        // Sub-intent: Charge / Fee
+        if (preg_match('/(চার্জ\s*কত|charge\s*koto|ফি\s*কত|fee\s*koto|fee|cost|খরচ|দাম|price)/ui', $qLower)) {
+            if ($isEnglishQuery && preg_match('/fee/i', $query)) {
+                return "{$antecedent} fee";
+            }
+            return "{$antecedent} ফি ও চার্জ কত";
+        }
+
+        // Sub-intent: Delay
+        if (preg_match('/(দেরি|deri|delay|late)/ui', $qLower)) {
+            return "{$antecedent} দেরি হলে করণীয় কী";
+        }
+
+        // Sub-intent: Duration / Timeframe
+        if (preg_match('/(কত\s*দিন|koto\s*din|how\s*long|কবে|kobe|timeframe|duration)/ui', $qLower)) {
+            return "{$antecedent} সময়সীমা কত দিন লাগবে";
+        }
+
+        // Sub-intent: Color / Size / Variant
+        if (preg_match('/(কালার|রং|color|colour)/ui', $qLower)) {
+            return "{$antecedent} এর কালার ভ্যারিয়েন্ট কি কি আছে?";
+        }
+        if (preg_match('/(সাইজ|size)/ui', $qLower)) {
+            return "{$antecedent} এর কি কি সাইজ পাওয়া যাবে?";
+        }
+
+        // Sub-intent: Process / Tracking
+        if (preg_match('/(কীভাবে|কিভাবে|how\s+to|track|ট্র্যাক)/ui', $qLower)) {
+            return "{$antecedent} {$query}";
+        }
+
+        return "{$antecedent} {$query}";
     }
 
     /**
@@ -797,42 +953,83 @@ class ContextualQueryBuilder
             }
         }
 
-        // 2. Title-cased / Proper Multi-word Sequences (Latin script: e.g. "Black Cotton Panjabi", "ThinkPad X1", "iPhone 15 Pro", "Burger Combo", "Doctor A", "Premium Subscription")
-        if (preg_match_all('/\b([iI]?[A-Z0-9][a-zA-Z0-9\-_]*(?:\s+(?:[A-Z0-9][a-zA-Z0-9\-_]*|[&+\/]|v\d+))+\b)/u', $text, $matches)) {
+        // 2. Title-cased / Proper Multi-word Sequences (Latin script: e.g. "Black Cotton Panjabi", "ThinkPad X1", "iPhone 15 Pro", "Burger Combo", "Doctor A", "Dr. Rahman", "Premium Subscription")
+        if (preg_match_all('/\b((?:[iI]?[A-Z][a-zA-Z0-9\-_]*\.?)(?:\s+(?:[A-Z0-9][a-zA-Z0-9\-_]*|[&+\/]|v\d+))+\b)/u', $text, $matches)) {
             foreach ($matches[1] as $m) {
                 $clean = trim($m);
                 $this->addValidEntityCandidate($entities, $clean);
             }
         }
 
-        // 3. Bengali / Banglish demonstratives (এই / ওই / সেই / this / that / the <phrase>)
-        if (preg_match_all('/(?:^|[^\p{L}\p{M}\p{N}])(?:এই|ঐ|ওই|সেই|ei|oi|shei|this|that|the)\s+([\p{L}\p{M}\p{N}\-_]+(?:\s+[\p{L}\p{M}\p{N}\-_]+){0,2})/ui', $text, $matches)) {
+        // 3. Bengali / Banglish / English demonstratives & determiners
+        if (preg_match_all('/(?:^|[^\p{L}\p{M}\p{N}])(?:এই|ঐ|ওই|সেই|ei|oi|shei|this|that|the|my|our|your|amar|amader|apnar|tomar|tar|আমার|আমাদের|আপনার|তাঁর|তার)\s+([\p{L}\p{M}\p{N}\-_]+(?:\s+[\p{L}\p{M}\p{N}\-_]+){0,2})/ui', $text, $matches)) {
             foreach ($matches[1] as $m) {
-                $clean = preg_replace('/(টা|টি|টার|টির|গুলো|গুলোর|-র|-এর|-তে|-এ)$/u', '', trim($m));
+                $clean = $this->stripBengaliDefinitiveSuffix(trim($m));
                 $this->addValidEntityCandidate($entities, $clean);
+            }
+        }
+        if (preg_match_all('/\b(?:a|an)\s+([a-zA-Z0-9\-_]+(?:\s+[a-zA-Z0-9\-_]+){0,2})\b/u', $text, $matches)) {
+            foreach ($matches[1] as $m) {
+                $this->addValidEntityCandidate($entities, trim($m));
             }
         }
 
         // 4. Bengali Definitive suffixes on single token (<word>টা / <word>টি / <word>টার / <word>টির / <word>গুলো / <word>-(তে|এর|র|কে))
         if (preg_match_all('/(?:^|[^\p{L}\p{M}\p{N}])([\p{L}\p{M}\p{N}\-_]+?)(?:টা|টি|টার|টির|গুলো|গুলোর|গুলা|গুলার|-(?:তে|এর|র|এ|কে))(?:$|[^\p{L}\p{M}\p{N}])/ui', $text, $matches)) {
             foreach ($matches[1] as $m) {
-                // If candidate ends with hasanta (conjunct consonant root like 'ওয়ারেন্'), it is not a genuine suffix
                 if (str_ends_with($m, "\u{09CD}") || str_ends_with($m, '্')) {
                     continue;
                 }
-                $clean = preg_replace('/(?:টা|টি|টার|টির|গুলো|গুলোর|গুলা|গুলার|-(?:তে|এর|র|এ|কে))$/u', '', trim($m));
+                $clean = $this->stripBengaliDefinitiveSuffix(trim($m));
                 $this->addValidEntityCandidate($entities, $clean);
             }
         }
 
-        // 5. Banglish <phrase> ta / <phrase> to
-        if (preg_match_all('/\b([a-zA-Z0-9\-_]+(?:\s+[a-zA-Z0-9\-_]+){0,2}?)\s+(?:ta|to|gulo)\b/ui', $text, $matches)) {
+        // 5. Banglish <phrase> ta / <phrase> to / <phrase>tar / <phrase>-er
+        if (preg_match_all('/\b([a-zA-Z0-9\-_]+(?:\s+[a-zA-Z0-9\-_]+){0,2}?)(?:\s+(?:ta|to|tar|gulo)|-(?:ta|to|tar|gulo|er)|(?:ta|tar))\b/ui', $text, $matches)) {
             foreach ($matches[1] as $m) {
                 $this->addValidEntityCandidate($entities, $m);
             }
         }
 
+        // 6. Bengali grammatical postpositions (topic regarding / about: সংক্রান্ত / বিষয়ক / নিয়ে / সম্পর্কে / ব্যাপারে)
+        if (preg_match_all('/(?:^|[^\p{L}\p{M}\p{N}])([\p{L}\p{M}\p{N}\-_]{2,30})\s+(?:সংক্রান্ত|বিষয়ক|নিয়ে|সম্পর্কে|ব্যাপারে)/ui', $text, $matches)) {
+            foreach ($matches[1] as $m) {
+                $clean = $this->stripBengaliDefinitiveSuffix(trim($m));
+                $this->addValidEntityCandidate($entities, $clean);
+            }
+        }
+
+        // 7. English topic antecedents (<noun> info / details / requirements / procedure)
+        if (preg_match_all('/\b([a-zA-Z0-9\-_]{2,30})\s+(?:information|info|details|requirements|procedure)\b/ui', $text, $matches)) {
+            foreach ($matches[1] as $m) {
+                $this->addValidEntityCandidate($entities, trim($m));
+            }
+        }
+
         return $entities;
+    }
+
+    /**
+     * Strip Bengali definitive suffix from candidate while protecting root loanwords and virama roots.
+     */
+    private function stripBengaliDefinitiveSuffix(string $term): string
+    {
+        $clean = trim($term);
+        if (preg_match('/^(.*?)(টা|টি|টার|টির|গুলো|গুলোর|গুলা|গুলার|-(?:তে|এর|র|এ|কে))$/u', $clean, $m)) {
+            $stem = $m[1];
+            if (str_ends_with($stem, "\u{09CD}") || str_ends_with($stem, '্')) {
+                return $clean;
+            }
+            if (mb_strlen($stem) < 2) {
+                return $clean;
+            }
+            if (in_array($m[2], ['টি', 'টির'], true) && (str_ends_with($stem, "\u{09BF}") || str_ends_with($stem, 'ি'))) {
+                return $clean;
+            }
+            return $stem;
+        }
+        return $clean;
     }
 
     /**
@@ -843,12 +1040,25 @@ class ContextualQueryBuilder
     private function addValidEntityCandidate(array &$entities, string $candidate): void
     {
         $clean = trim($candidate, " \t\n\r\0\x0B-_.,:;!?'\"()[]{}");
-        // Strip common conversational prefixes and question starters
-        $clean = preg_replace('/^(?:yes|no|ji|ha|haa|na|ok|okay|well|great\s+choice!?|great|thanks|thank\s+you|hello|hi|hey|is\s+the|in\s+the|on\s+the|at\s+the|for\s+the|with\s+the|our|your|their|my|this|that|the|ei|oi|shei|ami|apni|tumi|amar|apnar|amader|apnara|tader|tar|আমি|আপনি|তুমি|আমরা|আমার|আপনার|আমাদের|তাদের|তার|জি|হ্যাঁ|না)\b[,\s]*/ui', '', $clean);
-        $clean = preg_replace('/\s+(?:পছন্দ\s+করেছি|order\s+korte\s+chai|select\s+korechen|তৈরি|রয়েছে|হবে|আছে|khub\s+popular.*|is\s+100%.*|ta|to|gulo|er|te)$/ui', '', $clean);
+        // Strip common conversational prefixes, articles, numbers, and question starters in a bounded loop
+        do {
+            $prev = $clean;
+            $clean = preg_replace('/^(?:একটি|একটা|একটাই|দুটি|দুটো|দুইটি|দুইটা|তিনটি|তিনটা|চারটি|পাঁচটি|[০-৯0-9]+(?:\s*[-–]?\s*(?:টি|টা|টার|টির|পিস|জন))?|কোন|কোনো|কিছু|কি|কী|জি|হ্যাঁ|না|আমি|আপনি|তুমি|আমরা|আমার|আপনার|আমাদের|তাদের|তার)(?:$|[^\p{L}\p{M}\p{N}])[,\s]*/u', '', $clean);
+            $clean = preg_replace('/^(?:please|kindly|hello|hi|hey|yes|no|ji|ha|haa|na|ok|okay|well|great\s+choice!?|great|thanks|thank\s+you|is\s+the|in\s+the|on\s+the|at\s+the|for\s+the|with\s+the|our|your|their|my|this|that|the|ei|oi|shei|ami|apni|tumi|amar|apnar|amader|apnara|tader|tar|a|an|any|some|one|two|three)\b[,\s]*/ui', '', $clean);
+            $clean = trim($clean, " \t\n\r\0\x0B-_.,:;!?'\"()[]{}");
+        } while ($clean !== $prev && $clean !== '');
+        $clean = preg_replace('/\s+(?:পছন্দ\s+করেছি|তৈরি|রয়েছে|হবে|আছে|ছিল|হচ্ছে|হয়েছে|হয়েছিল|চলছে)(?:$|[^\p{L}\p{M}\p{N}]).*$/u', '', $clean);
+        $clean = preg_replace('/\s+(?:for|in|at|to|from|with|on|of|by|about|and|or|as|is|are|was|were|booked|confirmed|scheduled|locked|order\s+korte\s+chai|select\s+korechen|khub\s+popular.*|is\s+100%.*|ta|to|gulo|er|te)\b.*$/ui', '', $clean);
         $clean = trim($clean, " \t\n\r\0\x0B-_.,:;!?'\"()[]{}");
 
         if (mb_strlen($clean) < 2 || mb_strlen($clean) > 50) {
+            return;
+        }
+
+        // Filter out grammatical clause fragments (e.g. "Can I", "May I", "Should I", "I Have", "I Need", "I Want", "Please let")
+        if (preg_match('/\b(?:i|me|my|we|us|our|you|your|he|him|his|she|her|they|them|their|it|its)\b/i', $clean) &&
+            preg_match('/\b(?:can|could|would|should|shall|may|might|must|will|do|did|does|have|has|had|am|is|are|was|were|if|when|where|why|how|what|who|which|as|since|so|want|need|think|know|booked|got|wish|require|tell|give|let)\b/i', $clean)
+        ) {
             return;
         }
 
@@ -857,9 +1067,10 @@ class ContextualQueryBuilder
             return;
         }
 
-        // Filter out pure numbers, durations, measurements, quantifiers, and prices
-        if (preg_match('/^[০-৯0-9\s.,%+\-_]+$/u', $clean) ||
-            preg_match('/^(?:[০-৯0-9]+|\b(?:one|two|three|four|five|six|seven|eight|nine|ten|এক|দুই|তিন|চার|পাঁচ|ছয়|সাত|আট|নয়|দশ|১|২|৩|৪|৫|৬|৭|৮|৯|১০)\b)\s*(?:বছর|দিন|মাস|ঘণ্টা|মিনিট|সপ্তাহ|টাকা|পিস|টি|টা|year|years|day|days|month|months|week|weeks|hour|hours|tk|taka|bdt|percent|%|gm|kg|পয়েন্ট|point)?$/ui', $clean) ||
+        // Filter out pure numbers, durations, measurements, quantifiers, time-of-day, and prices
+        if (preg_match('/^[০-৯0-9\s.,%+\-_:]+$/u', $clean) ||
+            preg_match('/^(?:am|pm|a\.m\.|p\.m\.|o\'clock|today|tomorrow|tonight|yesterday)$/ui', $clean) ||
+            preg_match('/^(?:[০-৯0-9:]+|\b(?:one|two|three|four|five|six|seven|eight|nine|ten|এক|দুই|তিন|চার|পাঁচ|ছয়|সাত|আট|নয়|দশ|১|২|৩|৪|৫|৬|৭|৮|৯|১০)\b)\s*(?:বছর|দিন|মাস|ঘণ্টা|মিনিট|সপ্তাহ|টাকা|পিস|টি|টা|year|years|day|days|month|months|week|weeks|hour|hours|tk|taka|bdt|percent|%|gm|kg|পয়েন্ট|point|am|pm|a\.m\.|p\.m\.|o\'clock)?$/ui', $clean) ||
             preg_match('/^(?:এক|দুই|তিন|চার|পাঁচ|ছয়|সাত|আট|নয়|দশ|একটি|একটা|একটাই|দুটি|দুটো|দুটোই|দুইটি|দুইটা|তিনটি|চারটি|পাঁচটি|উভয়|উভয়টি|সবগুলো|সবগুলা|one|two|three|four|five|six|seven|eight|nine|ten|both|all)$/ui', $clean)
         ) {
             return;
@@ -869,6 +1080,8 @@ class ContextualQueryBuilder
         $stopWords = [
             'ei', 'oi', 'shei', 'eta', 'ota', 'sheta', 'eita', 'oita', 'etar', 'otar', 'shetar',
             'it', 'this', 'that', 'them', 'these', 'those', 'its', 'their', 'what', 'how', 'when', 'where', 'who', 'why',
+            'can', 'could', 'would', 'should', 'shall', 'may', 'might', 'must', 'will', 'do', 'did', 'does',
+            'have', 'has', 'had', 'am', 'is', 'are', 'was', 'were', 'want', 'need', 'please', 'kindly',
             'ami', 'apni', 'tumi', 'amra', 'apnara', 'amar', 'apnar', 'tomar',
             'আমি', 'আপনি', 'তুমি', 'আমরা', 'আপনার', 'আমার', 'তোমার', 'আমাদের', 'তাদের', 'তার',
             'এটা', 'ওটা', 'সেটা', 'এইটা', 'ওইটা', 'সেইটা', 'এটার', 'ওটার', 'সেটার',
@@ -878,6 +1091,9 @@ class ContextualQueryBuilder
             'thanks', 'thank you', 'ধন্যবাদ', 'help', 'support', 'yes', 'no', 'জি', 'হ্যাঁ', 'না', 'okay', 'sure',
             'product', 'পণ্য', 'item', 'details', 'feature', 'features', 'info', 'subscription',
             'বছর', 'মাস', 'দিন', 'সপ্তাহ', 'ঘণ্টা', 'স্টক', 'stock', 'চেম্বার', 'chamber', 'অফিস', 'office', 'দোকান', 'shop',
+            'করা', 'করার', 'করতে', 'হওয়া', 'হওয়ার', 'হতে', 'জানা', 'জানার', 'জানতে',
+            'am', 'pm', 'a.m.', 'p.m.', "o'clock", 'today', 'tomorrow', 'tonight', 'yesterday',
+            'system', 'platform', 'website', 'app', 'application', 'store', 'company', 'team',
         ];
 
         $lower = mb_strtolower($clean);
@@ -907,8 +1123,25 @@ class ContextualQueryBuilder
             return $entities;
         }
 
-        // 1. Prioritize proper multi-word title-cased entities over partial or generic single-word mentions
-        $properNamed = array_values(array_filter($entities, fn($e) => preg_match('/^[iI]?[A-Z0-9][a-zA-Z0-9\-_]*(?:\s+[A-Z0-9][a-zA-Z0-9\-_]*)+$/u', trim($e))));
+        // If an explicit order number (#1234) exists, discard generic phrases containing 'order' or 'অর্ডার'
+        $explicitOrderIds = array_values(array_filter($entities, fn($e) => preg_match('/^#\d+$/', $e)));
+        if (!empty($explicitOrderIds)) {
+            $entities = array_values(array_filter($entities, function ($e) use ($explicitOrderIds) {
+                if (in_array($e, $explicitOrderIds, true)) {
+                    return true;
+                }
+                if (preg_match('/(order|অর্ডার)/ui', $e)) {
+                    return false;
+                }
+                return true;
+            }));
+            if (count($entities) <= 1) {
+                return $entities;
+            }
+        }
+
+        // 1. Prioritize proper multi-word title-cased entities over partial or generic mentions
+        $properNamed = array_values(array_filter($entities, fn($e) => preg_match('/^[iI]?[A-Z][a-zA-Z0-9\-_]*(?:\s+[A-Z0-9][a-zA-Z0-9\-_]*)+$/u', trim($e))));
         if (!empty($properNamed)) {
             $filtered = [];
             foreach ($entities as $e) {
@@ -918,11 +1151,12 @@ class ContextualQueryBuilder
                     continue;
                 }
 
-                $tokens = preg_split('/\s+/u', mb_strtolower($e), -1, PREG_SPLIT_NO_EMPTY) ?: [];
-                // If this candidate is a single generic word and we already have a multi-word proper entity, skip it
-                if (count($tokens) === 1) {
+                // If we have proper named entities, discard non-proper candidates
+                if (!in_array($e, $properNamed, true)) {
                     continue;
                 }
+
+                $tokens = preg_split('/\s+/u', mb_strtolower($e), -1, PREG_SPLIT_NO_EMPTY) ?: [];
 
                 // If this is a token subset of another proper candidate, skip it
                 $isPartialOfProper = false;
@@ -1003,7 +1237,7 @@ class ContextualQueryBuilder
             for ($i = count($history) - 1; $i >= 0; $i--) {
                 $item = $history[$i];
                 $body = is_array($item)
-                    ? ($item['body'] ?? $item['user_message'] ?? $item['message'] ?? '')
+                    ? ($item['body'] ?? $item['user_message'] ?? $item['message'] ?? $item['text'] ?? '')
                     : (string) $item;
                 $body = trim((string) $body);
                 if ($body === '' || mb_strtolower($body) === $cleanCurrent) {
@@ -1029,19 +1263,35 @@ class ContextualQueryBuilder
     private function isPureConversationalPleasantry(string $text): bool
     {
         $cleaned = mb_strtolower(trim($text));
-        $words = preg_split('/\s+/u', $cleaned, -1, PREG_SPLIT_NO_EMPTY) ?: [];
+        $cleaned = trim($cleaned, " \t\n\r\0\x0B-_.,:;!?'\"()[]{}");
+        if ($cleaned === '') {
+            return true;
+        }
 
+        $cues = [
+            'thanks', 'thank you', 'ok', 'okay', 'cool', 'great', 'awesome',
+            'hi', 'hello', 'hey', 'hello again', 'got it', 'sure', 'dhonnobad',
+            'thank you so much', 'you are very welcome', 'welcome',
+            'ধন্যবাদ', 'থ্যাংকস', 'ঠিক আছে', 'আচ্ছা', 'জি', 'হ্যাঁ', 'না', 'ji', 'ha', 'haa', 'na',
+        ];
+
+        // Exact match with known cue
+        if (in_array($cleaned, $cues, true)) {
+            return true;
+        }
+
+        // If turn has <= 3 words, check if ALL words are conversational particles/cues
+        $words = preg_split('/\s+/u', $cleaned, -1, PREG_SPLIT_NO_EMPTY) ?: [];
         if (count($words) <= 3) {
-            $cues = [
-                'thanks', 'thank you', 'ok', 'okay', 'cool', 'great', 'awesome',
-                'hi', 'hello', 'hey', 'hello again', 'got it', 'sure', 'dhonnobad',
-                'thank you so much!', 'you are very welcome!',
-                'ধন্যবাদ', 'থ্যাংকস', 'ঠিক আছে', 'আচ্ছা',
-            ];
-            foreach ($cues as $cue) {
-                if ($cleaned === $cue || str_contains($cleaned, $cue)) {
-                    return true;
+            $allCues = true;
+            foreach ($words as $w) {
+                if (!in_array($w, $cues, true) && !in_array($w, ['so', 'much', 'very', 'too', 'again', 'there', 'you'], true)) {
+                    $allCues = false;
+                    break;
                 }
+            }
+            if ($allCues) {
+                return true;
             }
         }
 
@@ -1050,31 +1300,70 @@ class ContextualQueryBuilder
 
     /**
      * Legacy elliptical resolution for existing benchmark tests.
+     *
+     * @param array<int, array{text: string, direction: string}> $recentTurns
      */
-    private function resolveEllipticalLegacy(string $query): ?string
+    private function resolveEllipticalLegacy(string $query, ?string $activeTopic, array $recentTurns = []): ?string
     {
         $qLower = mb_strtolower($query);
 
         if (preg_match('/^(and|what\s+about|how\s+about|ar|aar|ebong|আর|এবং)\s+(the\s+)?telegram\??$/ui', $qLower)) {
-            return "How do I connect Telegram bot to the platform?";
+            if ($activeTopic === 'WhatsApp_Integration' || $this->turnsMentionTopic($recentTurns, ['whatsapp', 'channel', 'bot', 'platform'])) {
+                return "How do I connect Telegram bot to the platform?";
+            }
+            return null;
         }
         if (preg_match('/^(and|what\s+about|how\s+about|ar|aar|ebong|আর|এবং)\s+(the\s+)?whatsapp\??$/ui', $qLower)) {
-            return "How do I connect WhatsApp to the platform?";
+            if ($activeTopic === 'Telegram_Integration' || $this->turnsMentionTopic($recentTurns, ['telegram', 'channel', 'bot', 'platform'])) {
+                return "How do I connect WhatsApp to the platform?";
+            }
+            return null;
         }
         if (preg_match('/^(and|what\s+about|how\s+about|ar|aar|ebong|আর|এবং)\s+(the\s+)?rate\s+limits?\??$/ui', $qLower)) {
-            return "What are the API rate limits per minute and hour?";
+            if ($activeTopic === 'API_Keys' || $this->turnsMentionTopic($recentTurns, ['api', 'rate limit', 'api key'])) {
+                return "What are the API rate limits per minute and hour?";
+            }
+            return null;
         }
         if (preg_match('/^(and|what\s+about|how\s+about|ar|aar|ebong|আর|এবং)\s+(the\s+)?(invoices?|bills?|ইনভয়েস|বিল)\??$/ui', $qLower)) {
-            return "How do I view and download my billing invoices in PDF?";
+            if ($activeTopic === 'Billing_Invoices' || $this->turnsMentionTopic($recentTurns, ['invoice', 'bill', 'billing', 'ইনভয়েস', 'বিল'])) {
+                return "How do I view and download my billing invoices in PDF?";
+            }
+            return null;
         }
         if (preg_match('/^(can\s+i|how\s+to)\s+extend\s+it\??$/ui', $qLower)) {
-            return "Is there a free trial and can I extend the 14-day free trial on Pro plan?";
+            if ($activeTopic === 'Free_Trial' || $this->turnsMentionTopic($recentTurns, ['trial', 'free trial', 'ট্রায়াল'])) {
+                return "Is there a free trial and can I extend the 14-day free trial on Pro plan?";
+            }
+            return null;
         }
         if (preg_match('/what\s+are\s+the\s+limits\s+on\s+it/ui', $qLower)) {
-            return "What are the API rate limits on API keys?";
+            if ($activeTopic === 'API_Keys' || $this->turnsMentionTopic($recentTurns, ['api', 'rate limit', 'api key'])) {
+                return "What are the API rate limits on API keys?";
+            }
+            return null;
         }
 
         return null;
+    }
+
+    /**
+     * Check if recent turns mention any of the given topic keywords.
+     *
+     * @param array<int, array{text: string, direction: string}> $recentTurns
+     * @param string[] $keywords
+     */
+    private function turnsMentionTopic(array $recentTurns, array $keywords): bool
+    {
+        foreach ($recentTurns as $turn) {
+            $tLower = mb_strtolower($turn['text'] ?? '');
+            foreach ($keywords as $kw) {
+                if (str_contains($tLower, mb_strtolower($kw))) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     /**

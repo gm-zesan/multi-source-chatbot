@@ -40,6 +40,15 @@ class BusinessAnalyticsTool implements Tool
      */
     public function execute(string $query, int $workspaceId, array $history = []): array
     {
+        if ($workspaceId <= 0) {
+            \Illuminate\Support\Facades\Log::warning('[BusinessAnalyticsTool] execute() called with invalid workspaceId: ' . $workspaceId);
+            return [
+                'success' => false,
+                'status' => 'error',
+                'report' => 'Invalid or missing workspace context.',
+            ];
+        }
+
         return $this->analyticsClient->query(
             query: $query,
             workspaceId: $workspaceId,
@@ -52,14 +61,18 @@ class BusinessAnalyticsTool implements Tool
      */
     public function handle(Request $request): Stringable|string
     {
-        $query = trim((string) ($request['query'] ?? ''));
-        $workspaceId = (int) ($request['workspace_id'] ?? $this->workspaceId ?? 1);
+        if ($this->workspaceId === null || $this->workspaceId <= 0) {
+            \Illuminate\Support\Facades\Log::warning('[BusinessAnalyticsTool] Invocation rejected: tool has missing or invalid runtime workspace context.');
+            return 'Workspace context is missing or invalid.';
+        }
 
+        $query = trim((string) ($request['query'] ?? ''));
         if ($query === '') {
             return 'No analytics query provided.';
         }
 
-        $result = $this->execute(query: $query, workspaceId: $workspaceId);
+        // Strictly enforce runtime $this->workspaceId; LLM-supplied workspace arguments are never trusted.
+        $result = $this->execute(query: $query, workspaceId: $this->workspaceId);
 
         return $result['report'] ?? 'Could not retrieve analytics data.';
     }
@@ -71,7 +84,6 @@ class BusinessAnalyticsTool implements Tool
     {
         return [
             'query' => $schema->string()->description('The natural language business intelligence or database question in Bengali, Banglish, or English.'),
-            'workspace_id' => $schema->integer()->description('The authenticated multi-tenant workspace ID.')->default(1),
         ];
     }
 }

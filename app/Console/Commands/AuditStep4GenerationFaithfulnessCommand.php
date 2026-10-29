@@ -14,6 +14,8 @@ use App\Services\AI\CustomerSupportService;
 use App\Services\AI\Evaluation\GenerationFaithfulnessEvaluator;
 use App\Services\FAQ\FAQSearch;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 class AuditStep4GenerationFaithfulnessCommand extends Command
 {
@@ -21,7 +23,10 @@ class AuditStep4GenerationFaithfulnessCommand extends Command
                             {--limit= : Maximum number of scenarios to evaluate (default: all)}
                             {--scenario= : Specific scenario ID to evaluate (e.g. EN_SC_01)}
                             {--lang= : Filter by language (en, bn, banglish, code_mixed)}
-                            {--export : Export full audit findings to JSON report}';
+                            {--workspace= : Explicit workspace ID to bind (fails closed if missing)}
+                            {--export : Export full audit findings to JSON report}
+                            {--output= : Custom destination path for exported JSON report}
+                            {--dry-run : Run preflight checks only without writing data or calling LLM APIs}';
 
     protected $description = 'STEP 4: E2E Generation Baseline & Faithfulness Attribution Audit across 100 Multi-turn Scenarios';
 
@@ -72,12 +77,242 @@ class AuditStep4GenerationFaithfulnessCommand extends Command
         }
 
         $scenarios = array_values($scenarios);
-        $this->info("Evaluating " . count($scenarios) . " scenarios..." . PHP_EOL);
 
-        $workspace = Workspace::first() ?? Workspace::create([
-            'name' => 'Step 4 Benchmark Workspace',
-            'slug' => 'step4-bench-workspace',
-        ]);
+        // Resolve export destination safely
+        $baselineReportPath = base_path('tests/Datasets/step4_generation_baseline_report.json');
+        $candidateReportDefault = 'tests/Datasets/step4_generation_candidate_report.json';
+        $resolvedExportPath = null;
+        if ($this->option('output')) {
+            $rawPath = (string) $this->option('output');
+            $resolvedExportPath = str_starts_with($rawPath, '/') ? $rawPath : base_path($rawPath);
+        } elseif ($this->option('export')) {
+            $resolvedExportPath = base_path($candidateReportDefault);
+        }
+
+        // Hard safety check: never overwrite baseline report
+        $isBaselineTarget = false;
+        if ($resolvedExportPath !== null) {
+            $normalizedTarget = rtrim(str_replace('\\', '/', $resolvedExportPath), '/');
+            $normalizedBaseline = rtrim(str_replace('\\', '/', $baselineReportPath), '/');
+            $isBaselineTarget = ($normalizedTarget === $normalizedBaseline) ||
+                (file_exists($resolvedExportPath) && realpath($resolvedExportPath) === realpath($baselineReportPath));
+        }
+
+        if ($isBaselineTarget) {
+            $this->error('CRITICAL SAFETY BLOCK: Overwriting the committed baseline report (step4_generation_baseline_report.json) is strictly forbidden. Specify a distinct path via --output.');
+            return 1;
+        }
+
+        // Active retrieval dependency consistency
+        $activeFaqSearch = $supportService->getFAQSearch();
+        $retrievalClient = $supportService->getRetrievalClient();
+
+        // Database connection & strict allowlist verification
+        // Approved disposable databases for dry-run inspection:
+        // 1. 'chatbot_test_disposable': Dedicated isolated MySQL database for benchmark execution
+        // 2. ':memory:': In-memory SQLite database used by Laravel PHPUnit test harness
+        $approvedDryRunDatabases = [
+            'chatbot_test_disposable',
+            ':memory:',
+        ];
+
+        $isDryRun = (bool) $this->option('dry-run');
+        $defaultConn = (string) config('database.default');
+        $rawDbName = (string) DB::connection()->getDatabaseName();
+        $connectedDb = basename($rawDbName);
+        $driver = (string) DB::connection()->getDriverName();
+        $isCore = (mb_strtolower($connectedDb) === 'chatbot_core');
+        $isDisposable = (in_array($rawDbName, $approvedDryRunDatabases, true) || in_array($connectedDb, $approvedDryRunDatabases, true)) && !$isCore;
+
+        // Immediate fail-closed guard for live execution:
+        // 1. Connection MUST be 'mysql_disposable'
+        // 2. Active database name MUST be 'chatbot_test_disposable'
+        // 3. Driver MUST NOT be sqlite in production/CLI (:memory: / SQLite never permitted for live external LLM calls)
+        if (!$isDryRun) {
+            $isApprovedConnection = ($defaultConn === 'mysql_disposable');
+            $isApprovedDbName = ($connectedDb === 'chatbot_test_disposable');
+            $isSqliteBlocked = ($driver === 'sqlite' && !app()->runningUnitTests());
+            $isMemoryBlocked = ($rawDbName === ':memory:' || $connectedDb === ':memory:');
+
+            if (!$isApprovedConnection || !$isApprovedDbName || $isSqliteBlocked || $isMemoryBlocked || $isCore) {
+                $this->error("CRITICAL SAFETY BLOCK: Refusing to execute live benchmark against unapproved or non-disposable database [{$connectedDb}]. Live benchmark execution requires active connection [mysql_disposable] to MySQL database [chatbot_test_disposable]. Active connection: [{$defaultConn}], database: [{$connectedDb}], driver: [{$driver}].");
+                return 1;
+            }
+        }
+
+        // Resolve and validate target workspace safely (with fail-closed database exception handling)
+        $workspaceOption = $this->option('workspace');
+        $resolvedWorkspace = null;
+        $workspaceError = null;
+
+        try {
+            $hasWorkspacesTable = Schema::hasTable('workspaces');
+            if ($workspaceOption !== null) {
+                $wsId = filter_var($workspaceOption, FILTER_VALIDATE_INT);
+                if ($wsId === false || (int) $wsId <= 0) {
+                    $workspaceError = "Invalid --workspace argument [{$workspaceOption}]. Must be a positive integer.";
+                } else {
+                    $resolvedWorkspace = $hasWorkspacesTable ? Workspace::find((int) $wsId) : null;
+                    if ($resolvedWorkspace === null) {
+                        $workspaceError = "Specified workspace [{$wsId}] does not exist in active database [{$connectedDb}]. Refusing to fall back or auto-create records.";
+                    }
+                }
+            } else {
+                $resolvedWorkspace = $hasWorkspacesTable ? Workspace::first() : null;
+                if ($resolvedWorkspace === null) {
+                    $workspaceError = "No workspace found in active database [{$connectedDb}]. Provide an explicit workspace via --workspace=<id>.";
+                }
+            }
+        } catch (\Throwable $e) {
+            $this->error(PHP_EOL . "CRITICAL DATABASE ERROR: Unable to connect to or query active database [{$connectedDb}] on connection [{$defaultConn}]: {$e->getMessage()}");
+            return 1;
+        }
+
+        // Immediate fail-closed check for missing/invalid workspace in live execution
+        if (!$isDryRun && $workspaceError !== null) {
+            $this->error("CRITICAL SAFETY BLOCK: {$workspaceError}");
+            return 1;
+        }
+
+        // Inspect Python Retrieval Service health
+        $retrievalHealth = $retrievalClient->health();
+
+        // Dry-run / Preflight Mode (Zero writes, zero external API calls)
+        if ($isDryRun) {
+            $this->info(PHP_EOL . '=== PREFLIGHT VALIDATION & ISOLATION CHECK (DRY-RUN) ===');
+
+            // 1. Connection & Target
+            $dbUser = (string) config("database.connections.{$defaultConn}.username", 'N/A');
+            $dbHost = (string) config("database.connections.{$defaultConn}.host", 'N/A');
+            $this->table(
+                ['Parameter', 'Configured Value', 'Evaluation'],
+                [
+                    ['Default Connection', $defaultConn, $defaultConn === 'mysql_disposable' ? '🟢 Isolated' : ($defaultConn === 'mysql' ? '🟡 Standard MySQL' : '⚪ Other')],
+                    ['Connected Database', $connectedDb, $isDisposable ? '🟢 Disposable / Isolated' : ($isCore ? '🔴 PRODUCTION / CORE (UNSAFE FOR LIVE RUN)' : '⚪ Other')],
+                    ['Database Host / User', "{$dbHost} / {$dbUser}", $dbUser === 'chatbot_test_user' ? '🟢 Restricted User' : '🟡 Unrestricted User'],
+                ]
+            );
+            $this->line("  • Connected Database: {$connectedDb} (" . ($isDisposable ? 'Disposable / Isolated' : 'Non-disposable') . ")");
+
+            // 2. Target Workspace & Tenant Binding
+            $wsEvaluation = $resolvedWorkspace !== null
+                ? "🟢 Found (ID: {$resolvedWorkspace->id}, Name: '{$resolvedWorkspace->name}')"
+                : "🔴 {$workspaceError}";
+            $wsFaqCount = 0;
+            if ($resolvedWorkspace !== null) {
+                try {
+                    $wsFaqCount = DB::table('faqs')->where('workspace_id', $resolvedWorkspace->id)->count();
+                } catch (\Throwable) {
+                    $wsFaqCount = 0;
+                }
+            }
+
+            $this->info(PHP_EOL . 'Target Workspace & Tenant Binding:');
+            $this->table(
+                ['Parameter', 'Value', 'Status'],
+                [
+                    ['Workspace Option', $workspaceOption ?? 'None (defaults to first)', $workspaceOption !== null ? 'Explicit Binding' : 'Default Binding'],
+                    ['Resolved Workspace', $resolvedWorkspace ? "ID {$resolvedWorkspace->id}: {$resolvedWorkspace->name}" : 'None', $wsEvaluation],
+                    ['Workspace FAQs in DB', (string) $wsFaqCount, $wsFaqCount > 0 ? '🟢 Populated' : '⚠️ 0 FAQs in DB (Requires Typesense or DB FAQs)'],
+                ]
+            );
+
+            // 3. Schema and Table Verification
+            $tables = ['workspaces', 'channels', 'channel_accounts', 'conversations', 'messages', 'faqs'];
+            $schemaRows = [];
+            try {
+                foreach ($tables as $table) {
+                    $exists = Schema::hasTable($table);
+                    $count = $exists ? DB::table($table)->count() : 0;
+                    $schemaRows[] = [
+                        $table,
+                        $exists ? 'EXISTS' : 'MISSING',
+                        $count,
+                        $table === 'faqs' && $count === 0 ? '⚠️ ZERO FAQS (Retrieval will return empty)' : 'OK',
+                    ];
+                }
+            } catch (\Throwable $e) {
+                $this->error(PHP_EOL . "CRITICAL DATABASE ERROR: Schema table inspection failed on database [{$connectedDb}] on connection [{$defaultConn}]: {$e->getMessage()}");
+                return 1;
+            }
+            $this->info(PHP_EOL . 'Target Database Schema & Table Counts:');
+            $this->table(['Table', 'Status', 'Record Count', 'Note'], $schemaRows);
+
+            // 4. LLM API Key Presence Check (Zero secrets displayed)
+            $provider = (string) config('ai.default', 'deepseek');
+            $model = (string) config('ai.default_model', 'deepseek-chat');
+            $rawKey = (string) (config("ai.providers.{$provider}.key") ?: env('LLM_API_KEY') ?: env('DEEPSEEK_API_KEY'));
+            $keyLength = strlen($rawKey);
+            $keyStatus = $keyLength > 0 ? "Configured ({$keyLength} chars)" : 'MISSING';
+
+            $this->info(PHP_EOL . 'LLM Provider Configuration:');
+            $this->table(
+                ['Setting', 'Value'],
+                [
+                    ['Provider', $provider],
+                    ['Model', $model],
+                    ['API Key Status', $keyStatus],
+                ]
+            );
+
+            // 5. Retrieval Service Readiness
+            $retrievalStatus = $retrievalHealth['ok'] ? 'ONLINE' : 'OFFLINE';
+            $retrievalEval = $retrievalHealth['ok']
+                ? "🟢 Healthy ({$retrievalHealth['latency_ms']} ms)"
+                : "🔴 Unreachable ({$retrievalHealth['error']})";
+
+            $this->info(PHP_EOL . 'Retrieval Service Readiness:');
+            $this->table(
+                ['Parameter', 'Configured Value', 'Evaluation'],
+                [
+                    ['Base URL', $retrievalClient->baseUrl(), 'Configured'],
+                    ['Health Status', $retrievalStatus, $retrievalEval],
+                ]
+            );
+            $this->line("  • Retrieval Service: " . ($retrievalHealth['ok'] ? "ONLINE ({$retrievalHealth['latency_ms']} ms)" : "OFFLINE (Unreachable: {$retrievalHealth['error']})"));
+
+            // 6. Scenario Selection Summary
+            $turnCount = 0;
+            $langCounts = [];
+            foreach ($scenarios as $s) {
+                $l = $s['language'];
+                $langCounts[$l] = ($langCounts[$l] ?? 0) + count($s['turns']);
+                $turnCount += count($s['turns']);
+            }
+            $this->info(PHP_EOL . "Scenarios Selected: " . count($scenarios) . " scenarios ({$turnCount} total turns)");
+            foreach ($langCounts as $l => $c) {
+                $this->line("  • {$l}: {$c} turns");
+            }
+
+            // 7. Output Destination
+            $this->info(PHP_EOL . 'Report Output Destination:');
+            $this->line("  • Target Path: " . ($resolvedExportPath ?? 'None (run without --export)'));
+            $this->line("  • Baseline Safe: " . (($resolvedExportPath !== $baselineReportPath) ? 'YES (Baseline protected)' : 'NO'));
+
+            $this->info(PHP_EOL . 'PREFLIGHT COMPLETE: Zero database writes executed, zero external API calls dispatched.' . PHP_EOL);
+            return 0;
+        }
+
+        // Hard blocker if not dry-run and not connected to an explicitly isolated disposable database
+        if (!$isDisposable) {
+            $this->error("CRITICAL SAFETY BLOCK: Refusing to execute live benchmark against unapproved or non-disposable database [{$connectedDb}]. Approved databases: " . implode(', ', $approvedDisposableDatabases) . ".");
+            return 1;
+        }
+
+        // Hard blocker if target workspace is invalid or missing
+        if ($workspaceError !== null) {
+            $this->error("CRITICAL SAFETY BLOCK: {$workspaceError}");
+            return 1;
+        }
+
+        // Hard blocker if Python retrieval service is offline or unreachable
+        if (!$retrievalHealth['ok']) {
+            $this->error("CRITICAL SAFETY BLOCK: Python retrieval service at [{$retrievalClient->baseUrl()}] is unreachable or unhealthy ({$retrievalHealth['error']}). Live benchmark aborted.");
+            return 1;
+        }
+
+        $workspace = $resolvedWorkspace;
+        $this->info("Evaluating " . count($scenarios) . " scenarios on Workspace ID: {$workspace->id} ({$workspace->name})..." . PHP_EOL);
 
         $channel = Channel::firstOrCreate(
             ['slug' => 'web'],
@@ -93,6 +328,12 @@ class AuditStep4GenerationFaithfulnessCommand extends Command
                 'is_active'    => true,
             ]
         );
+
+        // Strict tenant integrity validation
+        if ((int) $channelAccount->workspace_id !== (int) $workspace->id) {
+            $this->error("CRITICAL TENANT INTEGRITY ERROR: ChannelAccount workspace [{$channelAccount->workspace_id}] does not match target workspace [{$workspace->id}].");
+            return 1;
+        }
 
         $totalTurns = 0;
         $groundedTurns = 0;
@@ -140,6 +381,8 @@ class AuditStep4GenerationFaithfulnessCommand extends Command
                 $intentType = $turn['intent_type'] ?? 'knowledge';
                 $expectedDocs = $turn['expected_document_types'] ?? [];
 
+                $activeFaqSearch->resetSearchState();
+
                 $t0 = microtime(true);
 
                 // Run real E2E pipeline
@@ -148,6 +391,13 @@ class AuditStep4GenerationFaithfulnessCommand extends Command
                     workspaceId: $workspace->id,
                     conversation: $conversation,
                 );
+
+                // Fail-safe check: detect retrieval infrastructure failure during turn execution
+                if ($activeFaqSearch->wasLastSearchFallback()) {
+                    $err = $activeFaqSearch->getLastSearchError() ?? 'Primary retrieval service failed';
+                    $this->error(PHP_EOL . "CRITICAL INFRASTRUCTURE FAILURE: Retrieval service failed during scenario [{$sc['id']}] turn [#{$turnIdx}]: {$err}. Benchmark aborted to prevent corrupting faithfulness metrics.");
+                    return 1;
+                }
 
                 $elapsedMs = round((microtime(true) - $t0) * 1000, 2);
                 $latencies[] = $elapsedMs;
@@ -340,9 +590,8 @@ class AuditStep4GenerationFaithfulnessCommand extends Command
         }
 
         // Export JSON report if requested
-        if ($this->option('export')) {
-            $exportPath = base_path('tests/Datasets/step4_generation_baseline_report.json');
-            file_put_contents($exportPath, json_encode([
+        if ($this->option('export') && $resolvedExportPath !== null) {
+            file_put_contents($resolvedExportPath, json_encode([
                 'timestamp'          => date('c'),
                 'total_turns'        => $totalTurns,
                 'groundedness_rate'  => $groundedRate,
@@ -356,7 +605,7 @@ class AuditStep4GenerationFaithfulnessCommand extends Command
                 'language_breakdown' => $langStats,
                 'detailed_logs'      => $detailedLogs,
             ], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
-            $this->info("Full audit report exported to: {$exportPath}");
+            $this->info("Full audit report exported to: {$resolvedExportPath}");
         }
 
         return 0;

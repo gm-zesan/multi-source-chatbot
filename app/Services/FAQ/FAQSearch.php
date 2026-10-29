@@ -60,5 +60,37 @@ class FAQSearch
     {
         return $this->retrievalClient->getLastTelemetry();
     }
+
+    /**
+     * Check if the last search fell back to database keyword search due to service failure.
+     */
+    public function wasLastSearchFallback(): bool
+    {
+        return $this->retrievalClient->wasLastSearchFallback();
+    }
+
+    /**
+     * Get the error message from the last retrieval failure, if any.
+     */
+    public function getLastSearchError(): ?string
+    {
+        return $this->retrievalClient->getLastSearchError();
+    }
+
+    /**
+     * Get the underlying RetrievalClient instance.
+     */
+    public function getRetrievalClient(): RetrievalClient
+    {
+        return $this->retrievalClient;
+    }
+
+    /**
+     * Reset search failure and telemetry state.
+     */
+    public function resetSearchState(): void
+    {
+        $this->retrievalClient->resetSearchState();
+    }
 }
 

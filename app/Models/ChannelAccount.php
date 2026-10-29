@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Casts\EnvelopedEncryptedString;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -23,6 +24,18 @@ class ChannelAccount extends Model
     protected $casts = [
         'settings' => 'array',
         'is_active' => 'boolean',
+        'access_token' => EnvelopedEncryptedString::class,
+        'refresh_token' => EnvelopedEncryptedString::class,
+    ];
+
+    /**
+     * The attributes that should be hidden for serialization.
+     *
+     * @var array<int, string>
+     */
+    protected $hidden = [
+        'access_token',
+        'refresh_token',
     ];
 
     public function workspace(): BelongsTo

@@ -45,6 +45,15 @@ class ExcelAnalyticsTool implements Tool
         ?string $fileId = null,
         ?array $history = null,
     ): array {
+        if ($workspaceId <= 0) {
+            \Illuminate\Support\Facades\Log::warning('[ExcelAnalyticsTool] execute() called with invalid workspaceId: ' . $workspaceId);
+            return [
+                'success' => false,
+                'status' => 'error',
+                'report' => 'Invalid or missing workspace context.',
+            ];
+        }
+
         return $this->analyticsClient->queryExcel(
             question: $question,
             workspaceId: $workspaceId,
@@ -58,18 +67,23 @@ class ExcelAnalyticsTool implements Tool
      */
     public function handle(Request $request): Stringable|string
     {
-        $question = trim((string) ($request['question'] ?? ''));
-        $workspaceId = (int) ($request['workspace_id'] ?? $this->workspaceId ?? 1);
-        $fileId = isset($request['file_id']) ? (string) $request['file_id'] : null;
-        $history = isset($request['history']) && is_array($request['history']) ? $request['history'] : null;
+        if ($this->workspaceId === null || $this->workspaceId <= 0) {
+            \Illuminate\Support\Facades\Log::warning('[ExcelAnalyticsTool] Invocation rejected: tool has missing or invalid runtime workspace context.');
+            return 'Workspace context is missing or invalid.';
+        }
 
+        $question = trim((string) ($request['question'] ?? ''));
         if ($question === '') {
             return 'No question provided for Excel spreadsheet analysis.';
         }
 
+        $fileId = isset($request['file_id']) ? (string) $request['file_id'] : null;
+        $history = isset($request['history']) && is_array($request['history']) ? $request['history'] : null;
+
+        // Strictly enforce runtime $this->workspaceId; LLM-supplied workspace arguments are never trusted.
         $result = $this->execute(
             question: $question,
-            workspaceId: $workspaceId,
+            workspaceId: $this->workspaceId,
             fileId: $fileId,
             history: $history,
         );
@@ -84,7 +98,6 @@ class ExcelAnalyticsTool implements Tool
     {
         return [
             'question' => $schema->string()->description('The natural language question about specific tabs or sheets in the uploaded Excel file.'),
-            'workspace_id' => $schema->integer()->description('The authenticated workspace ID.')->default(1),
             'file_id' => $schema->string()->description('Optional specific file ID of the uploaded spreadsheet (leave null for the latest file).'),
         ];
     }

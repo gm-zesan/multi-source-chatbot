@@ -50,11 +50,17 @@ class KnowledgeRetrievalTool implements Tool
         ?string $contextualSignal = null,
         int $perPage = 5,
     ): Collection {
+        $effectiveWorkspaceId = $workspaceId ?? $this->workspaceId;
+        if ($effectiveWorkspaceId === null || $effectiveWorkspaceId <= 0) {
+            \Illuminate\Support\Facades\Log::warning('[KnowledgeRetrievalTool] Missing or invalid workspace_id context for execute().');
+            return new Collection([]);
+        }
+
         try {
             return $this->faqSearch->search(
                 query: $query,
                 perPage: $perPage,
-                workspaceId: $workspaceId ?? $this->workspaceId,
+                workspaceId: $effectiveWorkspaceId,
                 conversation: $conversation,
                 contextualSignal: $contextualSignal,
             );
@@ -69,16 +75,20 @@ class KnowledgeRetrievalTool implements Tool
      */
     public function handle(Request $request): Stringable|string
     {
-        $query = trim((string) ($request['query'] ?? ''));
-        $workspaceId = isset($request['workspace_id']) ? (int) $request['workspace_id'] : $this->workspaceId;
+        if ($this->workspaceId === null || $this->workspaceId <= 0) {
+            \Illuminate\Support\Facades\Log::warning('[KnowledgeRetrievalTool] Invocation rejected: tool has missing or invalid runtime workspace context.');
+            return 'Workspace context is missing or invalid.';
+        }
 
+        $query = trim((string) ($request['query'] ?? ''));
         if ($query === '') {
             return 'No search query provided.';
         }
 
+        // Strictly enforce runtime $this->workspaceId; LLM-supplied workspace arguments are never trusted.
         $results = $this->execute(
             query: $query,
-            workspaceId: $workspaceId,
+            workspaceId: $this->workspaceId,
             perPage: $this->topK,
         );
 
@@ -105,7 +115,6 @@ class KnowledgeRetrievalTool implements Tool
     {
         return [
             'query' => $schema->string()->description('The search query keyword or phrase to search knowledge base policies.'),
-            'workspace_id' => $schema->integer()->description('The authenticated multi-tenant workspace ID.')->default(1),
         ];
     }
 }

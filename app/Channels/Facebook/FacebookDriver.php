@@ -73,11 +73,10 @@ class FacebookDriver implements ChannelDriver
     }
 
     public function getUserProfile(ChannelAccount $account,string $psid): array {
-        $response = Http::get(
+        $response = Http::withToken($account->access_token)->get(
             "https://graph.facebook.com/{$psid}",
             [
-                'fields'       => 'name,profile_pic',
-                'access_token' => $account->access_token,
+                'fields' => 'name,profile_pic',
             ]
         );
 

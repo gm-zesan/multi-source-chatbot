@@ -34,7 +34,7 @@ class KnowledgeRetrievalToolTest extends TestCase
 
         $schema = $tool->schema($schemaMock);
         $this->assertArrayHasKey('query', $schema);
-        $this->assertArrayHasKey('workspace_id', $schema);
+        $this->assertArrayNotHasKey('workspace_id', $schema);
     }
 
     public function test_handles_valid_query_and_returns_context_text(): void
@@ -102,7 +102,7 @@ class KnowledgeRetrievalToolTest extends TestCase
             ->method('search')
             ->willReturn(new EloquentCollection([]));
 
-        $tool = new KnowledgeRetrievalTool($faqSearchMock);
+        $tool = new KnowledgeRetrievalTool($faqSearchMock, workspaceId: 1);
         $result = $tool->handle(new Request(['query' => 'Where is my order?']));
 
         $this->assertStringContainsString('No relevant knowledge base articles', (string) $result);
@@ -113,9 +113,73 @@ class KnowledgeRetrievalToolTest extends TestCase
         $faqSearchMock = $this->createMock(FAQSearch::class);
         $faqSearchMock->expects($this->never())->method('search');
 
-        $tool = new KnowledgeRetrievalTool($faqSearchMock);
+        $tool = new KnowledgeRetrievalTool($faqSearchMock, workspaceId: 1);
         $result = $tool->handle(new Request(['query' => '   ']));
 
         $this->assertStringContainsString('No search query provided', (string) $result);
+    }
+
+    public function test_handle_fails_closed_when_workspace_context_is_missing(): void
+    {
+        $faqSearchMock = $this->createMock(FAQSearch::class);
+        $faqSearchMock->expects($this->never())->method('search');
+
+        $tool = new KnowledgeRetrievalTool($faqSearchMock, workspaceId: null);
+        $result = $tool->handle(new Request(['query' => 'Return policy']));
+
+        $this->assertSame('Workspace context is missing or invalid.', (string) $result);
+    }
+
+    public function test_handle_fails_closed_when_workspace_context_is_invalid(): void
+    {
+        $faqSearchMock = $this->createMock(FAQSearch::class);
+        $faqSearchMock->expects($this->never())->method('search');
+
+        $tool = new KnowledgeRetrievalTool($faqSearchMock, workspaceId: -5);
+        $result = $tool->handle(new Request(['query' => 'Return policy']));
+
+        $this->assertSame('Workspace context is missing or invalid.', (string) $result);
+    }
+
+    public function test_handle_strictly_ignores_llm_supplied_workspace_id_override(): void
+    {
+        $faq = new FAQ([
+            'question' => 'How to cancel?',
+            'answer' => 'Click cancel in order details.',
+        ]);
+
+        $searchResult = new FAQSearchResult(
+            faq: $faq,
+            keywordScore: 0.9,
+            semanticScore: 0.9,
+            finalScore: 0.9,
+            matchType: 'hybrid',
+        );
+
+        $faqSearchMock = $this->createMock(FAQSearch::class);
+        // CRITICAL: Must search with authenticated runtime workspace (3), NOT caller-supplied (999)
+        $faqSearchMock->expects($this->once())
+            ->method('search')
+            ->with('How to cancel?', 5, 3)
+            ->willReturn(new EloquentCollection([$searchResult]));
+
+        $tool = new KnowledgeRetrievalTool($faqSearchMock, workspaceId: 3);
+        $result = $tool->handle(new Request([
+            'query' => 'How to cancel?',
+            'workspace_id' => 999, // Malicious override attempt from prompt injection
+        ]));
+
+        $this->assertStringContainsString('Article #1:', (string) $result);
+    }
+
+    public function test_execute_fails_closed_with_null_or_invalid_workspace(): void
+    {
+        $faqSearchMock = $this->createMock(FAQSearch::class);
+        $faqSearchMock->expects($this->never())->method('search');
+
+        $tool = new KnowledgeRetrievalTool($faqSearchMock, workspaceId: null);
+        $collection = $tool->execute('test query', workspaceId: 0);
+
+        $this->assertTrue($collection->isEmpty());
     }
 }

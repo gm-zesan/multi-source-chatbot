@@ -34,15 +34,17 @@ class SemanticAnswerabilityGate
     /**
      * Evaluate retrieval results against answerability criteria.
      *
-     * @param string             $query Raw user query
+     * @param string             $query         Raw user query
      * @param Collection         $retrievalHits Typesense hybrid hits
      * @param RoutingResult|null $routingResult Output of HybridRouter
+     * @param int|null           $workspaceId   Multi-tenant workspace ID (fail-closed guard)
      * @return AnswerabilityDecision
      */
     public function evaluate(
         string $query,
         Collection $retrievalHits,
         ?RoutingResult $routingResult = null,
+        ?int $workspaceId = null,
     ): AnswerabilityDecision {
         $cleanQuery = trim($query);
 
@@ -60,7 +62,22 @@ class SemanticAnswerabilityGate
             );
         }
 
-        // 2. Pre-Retrieval Ambiguity Detection (e.g. standalone "How much is the fee?")
+        // 2. Tenant Context Fail-Closed Guard (Criterion 7)
+        // Missing (null) or invalid (<= 0) workspace context must fail closed
+        if ($workspaceId === null || $workspaceId <= 0) {
+            return new AnswerabilityDecision(
+                status: AnswerabilityStatus::UNANSWERABLE,
+                groundedHits: new Collection(),
+                confidenceScore: 0.0,
+                reasons: [
+                    'rule'             => 'invalid_workspace_context',
+                    'workspace_id'     => $workspaceId,
+                    'authorized'       => false,
+                ],
+            );
+        }
+
+        // 3. Pre-Retrieval Ambiguity Detection (e.g. standalone "How much is the fee?")
         if ($this->detectAmbiguity($cleanQuery)) {
             return new AnswerabilityDecision(
                 status: AnswerabilityStatus::AMBIGUOUS,
@@ -88,38 +105,117 @@ class SemanticAnswerabilityGate
             );
         }
 
+        // 4. Hit-Level Tenant Boundary Guard (Criterion 7)
+        // Fail-closed if ANY candidate hit belongs to a different workspace
+        foreach ($retrievalHits as $hit) {
+            if ($hit->faq !== null && isset($hit->faq->workspace_id)) {
+                $docWsId = (int) $hit->faq->workspace_id;
+                if ($docWsId > 0 && $docWsId !== $workspaceId) {
+                    return new AnswerabilityDecision(
+                        status: AnswerabilityStatus::UNANSWERABLE,
+                        groundedHits: new Collection(),
+                        confidenceScore: 0.0,
+                        reasons: [
+                            'rule'             => 'tenant_isolation_violation',
+                            'workspace_id'     => $workspaceId,
+                            'doc_workspace_id' => $docWsId,
+                            'authorized'       => false,
+                        ],
+                    );
+                }
+            }
+        }
+
         $topScore = (float) $topHit->finalScore;
-        $secondScore = $retrievalHits->count() > 1 ? (float) ($retrievalHits->get(1)->finalScore ?? 0.0) : 0.0;
-        $margin = round($topScore - $secondScore, 4);
+        $hasSecondCandidate = $retrievalHits->count() > 1;
+        $secondHit = $hasSecondCandidate ? $retrievalHits->get(1) : null;
+        $secondScore = $secondHit !== null ? (float) ($secondHit->finalScore ?? 0.0) : 0.0;
+
+        // Margin separation is only meaningful when a 2nd candidate actually exists.
+        // Missing candidates must NOT have margin fabricated as $topScore.
+        $margin = $hasSecondCandidate ? round($topScore - $secondScore, 4) : 0.0;
+        $isNearlyTied = $hasSecondCandidate && ($margin < 0.03);
+
+        $matchType = property_exists($topHit, 'matchType') ? (string) $topHit->matchType : 'hybrid';
+        $isDegradedMode = in_array($matchType, ['bm25', 'keyword', 'keyword_fallback'], true);
+        $isDenseEvaluated = !$isDegradedMode || (property_exists($topHit, 'semanticScore') && $topHit->semanticScore !== null && (float) $topHit->semanticScore > 0.0);
+        $semanticScore = property_exists($topHit, 'semanticScore') && $topHit->semanticScore !== null
+            ? (float) $topHit->semanticScore
+            : ($matchType === 'vector' ? $topScore : null);
+
+        // 5. Conflicting Retrieval Evidence Guard (Criterion 5)
+        // If top candidates are nearly tied and not individually overwhelming, evidence is conflicting
+        if ($isNearlyTied && $topScore < 0.65) {
+            return new AnswerabilityDecision(
+                status: AnswerabilityStatus::UNANSWERABLE,
+                groundedHits: new Collection(),
+                confidenceScore: round($topScore * 0.40, 4),
+                reasons: [
+                    'rule'             => 'conflicting_retrieval_evidence',
+                    'top_score'        => $topScore,
+                    'second_score'     => $secondScore,
+                    'margin'           => $margin,
+                    'authorized'       => false,
+                ],
+            );
+        }
+
+        // 6. Semantic Meaning Mismatch Guard (Criterion 6)
+        // When dense embedding was computed, low semantic similarity reveals that the query meaning
+        // diverges from the document despite incidental lexical overlap.
+        if ($isDenseEvaluated && $semanticScore !== null && $semanticScore < 0.35) {
+            return new AnswerabilityDecision(
+                status: AnswerabilityStatus::UNANSWERABLE,
+                groundedHits: new Collection(),
+                confidenceScore: 0.0,
+                reasons: [
+                    'rule'             => 'semantic_meaning_mismatch',
+                    'semantic_score'   => $semanticScore,
+                    'top_score'        => $topScore,
+                    'match_type'       => $matchType,
+                    'authorized'       => false,
+                ],
+            );
+        }
 
         $hasCommerceIntent = $this->detectCommerceAlignment($cleanQuery);
         $hasLexicalAlignment = $this->hasLexicalAlignmentWithDocument($cleanQuery, $topHit->faq ?? null);
-        $hasRetailIntent = $hasCommerceIntent || $hasLexicalAlignment;
+        $hasAlignedEvidence = $hasCommerceIntent || $hasLexicalAlignment;
 
-        // 3. Second Safety Barrier: Off-Topic / Non-Commerce Queries
-        // E.g., "Python code for quick sort" or "Mirpur bus route" where router slipped to knowledge
-        if (!$hasRetailIntent && $topScore < 0.65) {
+        // High-confidence dense semantic retrieval (>= 0.65) does not require commerce keywords or word overlap
+        $isHighConfidenceSemantic = ($isDenseEvaluated && ($semanticScore ?? $topScore) >= 0.65 && $topScore >= 0.65);
+
+        // 7. Off-Topic / Non-Aligned Queries Guard
+        // E.g., "Python code for quick sort" or "Mirpur bus route" where router slipped to knowledge.
+        // Pure BM25 or keyword fallback matches MUST have aligned evidence.
+        if (!$hasAlignedEvidence && !$isHighConfidenceSemantic) {
             return new AnswerabilityDecision(
                 status: AnswerabilityStatus::UNANSWERABLE,
                 groundedHits: new Collection(),
                 confidenceScore: 0.0,
                 reasons: [
                     'rule'             => 'non_commerce_off_topic_guard',
-                    'has_commerce'     => false,
-                    'has_alignment'    => false,
+                    'has_commerce'     => $hasCommerceIntent,
+                    'has_alignment'    => $hasLexicalAlignment,
                     'top_score'        => $topScore,
+                    'match_type'       => $matchType,
                     'top_doc_type'     => $topHit->faq?->document_type ?? 'none',
                     'authorized'       => false,
                 ],
             );
         }
 
-        // 4. Evidence Sufficiency & Margin Verification
-        $isSufficient = ($topScore >= 0.45 && $hasRetailIntent)
-            || ($topScore >= 0.38 && $margin >= 0.05 && $hasRetailIntent);
+        // 8. Evidence Sufficiency & Margin Verification (Domain-Neutral)
+        // - High-confidence semantic retrieval (>= 0.65) does not require commerce keywords.
+        // - Moderate confidence (>= 0.45) is accepted with aligned evidence (lexical or domain).
+        // - Marginal scores (0.38 - 0.44) require validated margin separation (>= 0.05) with an actual 2nd candidate and alignment.
+        $isModerateWithAlignment = ($topScore >= 0.45 && $hasAlignedEvidence && (!$hasSecondCandidate || $margin >= 0.03));
+        $isMarginalWithClearSeparation = ($hasSecondCandidate && $topScore >= 0.38 && $margin >= 0.05 && $hasAlignedEvidence);
+
+        $isSufficient = $isHighConfidenceSemantic || $isModerateWithAlignment || $isMarginalWithClearSeparation;
 
         if ($isSufficient) {
-            $groundedHits = $this->filterGroundedHits($retrievalHits);
+            $groundedHits = $this->filterGroundedHits($retrievalHits, $workspaceId);
 
             // Composite confidence score (distinct from raw retrieval similarity score)
             $compositeConfidence = round(min(1.0, 0.50 + ($topScore * 0.40) + ($margin * 0.10)), 4);
@@ -134,12 +230,13 @@ class SemanticAnswerabilityGate
                     'second_score'     => $secondScore,
                     'margin'           => $margin,
                     'has_commerce'     => $hasCommerceIntent,
+                    'has_alignment'    => $hasLexicalAlignment,
                     'authorized'       => true,
                 ],
             );
         }
 
-        // 5. Insufficient Evidence Fallback
+        // 9. Insufficient Evidence Fallback
         return new AnswerabilityDecision(
             status: AnswerabilityStatus::UNANSWERABLE,
             groundedHits: new Collection(),
@@ -180,7 +277,7 @@ class SemanticAnswerabilityGate
     /**
      * Filter retrieval hits to include strictly validated evidence for the Knowledge Support Agent.
      */
-    public function filterGroundedHits(Collection $retrievalHits): Collection
+    public function filterGroundedHits(Collection $retrievalHits, ?int $workspaceId = null): Collection
     {
         $topHit = $retrievalHits->first();
         if ($topHit === null) {
@@ -189,8 +286,16 @@ class SemanticAnswerabilityGate
 
         $topScore = (float) $topHit->finalScore;
 
-        // Grounded hits must have individual scores within 0.10 of top hit and >= 0.38
-        return $retrievalHits->filter(function ($hit) use ($topScore) {
+        // Grounded hits must have individual scores within 0.10 of top hit and >= 0.38,
+        // and must strictly belong to the active workspace if workspaceId is provided
+        return $retrievalHits->filter(function ($hit) use ($topScore, $workspaceId) {
+            if ($workspaceId !== null && isset($hit->faq?->workspace_id)) {
+                $docWsId = (int) $hit->faq->workspace_id;
+                if ($docWsId > 0 && $docWsId !== $workspaceId) {
+                    return false;
+                }
+            }
+
             $score = (float) $hit->finalScore;
             return ($score >= 0.45) || ($score >= 0.38 && ($topScore - $score) <= 0.10);
         });

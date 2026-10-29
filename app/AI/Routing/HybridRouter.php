@@ -78,6 +78,28 @@ class HybridRouter
             }
         }
 
+        // ── 0.5 Layer 0.5: Deterministic Standalone Greeting & Pleasantry Fast-Path ──
+        $greetingResult = $this->matchGreetingFastPath($cleanQuery, $normalized);
+        if ($greetingResult !== null) {
+            $latency = round((microtime(true) - $t_start) * 1000, 2);
+            return new RoutingResult(
+                route: $greetingResult['route'],
+                confidence: $greetingResult['confidence'],
+                intent: $greetingResult['intent'],
+                signals: array_merge([
+                    'layer'             => 'layer0_greeting_fastpath',
+                    'normalized_query'  => $normalized,
+                    'router_latency_ms' => $latency,
+                    'fastpath_matched'  => true,
+                ], $greetingResult['signals'] ?? []),
+                entities: [],
+                routerLatencyMs: $latency,
+                isFallback: false,
+                securityStatus: 'allowed',
+                ambiguityType: null,
+            );
+        }
+
         // ── 1. Fast LLM Semantic Router ──────────────────────────────────────
         $systemPrompt = <<<PROMPT
 <ROLE>
@@ -250,6 +272,119 @@ PROMPT;
                 securityStatus: 'allowed',
             );
         }
+    }
+
+    /**
+     * Layer 0.5 Deterministic Fast-Path for standalone greetings, gratitude, and pleasantries.
+     *
+     * Bypasses the remote LLM router for unambiguous standalone greetings while strictly
+     * passing through queries that contain substantive keywords, question patterns, or mixed intents.
+     *
+     * @return array{route: RouteType, confidence: float, intent: string, signals: array<string, mixed>}|null
+     */
+    private function matchGreetingFastPath(string $cleanQuery, string $normalized): ?array
+    {
+        // 1. Immediate rejection: Digits or order/ticket hash symbols represent substantive entities
+        if (preg_match('/[0-9#]/u', $cleanQuery)) {
+            return null;
+        }
+
+        // 2. Clean phrase: strip question marks and collapse whitespace
+        $phrase = trim(preg_replace('/[\s\?]+/u', ' ', $normalized));
+        if ($phrase === '') {
+            return null;
+        }
+
+        // Fast-path applies only to concise standalone greetings (<= 5 words)
+        $tokens = array_values(array_filter(explode(' ', $phrase)));
+        if (count($tokens) > 5) {
+            return null;
+        }
+
+        // 3. Substantive content guard: Check for substantive keywords that must NEVER be intercepted
+        // (e.g. "delivery charge koto?", "return policy ki?", "order kobe ashbe?", "sales summary", "ar ekta question ache")
+        $substantivePattern = '/\b(?:'
+            . 'order|delivery|charge|shipment|track|tracking|price|cost|rate|fee|dam|taka'
+            . '|koto|kobe|kivabe|kemne|kothay|koi|keno|kon|kar|which|what|when|where|why'
+            . '|ki(?!\s+(?:khobor|obostha))'
+            . '|policy|rules|rule|return|refund|cancel|exchange|product|item|stock|available'
+            . '|warranty|sales|sell|due|balance|customer|seller|salesman|report|forecast|collection'
+            . '|mail|email|sms|ticket|account|password|login|buy|kinte|nite|address|phone|number'
+            . '|question|proshno|help|sahajjo|somossa|problem|issue|support|chai|lagbe|ache|janbo'
+            . '|অর্ডার|ডেলিভারি|চার্জ|শিপমেন্ট|ট্র্যাক|প্রাইস|দাম|খরচ|টাকা|কত|কবে|কিভাবে|কেমনে'
+            . '|কোথায়|কই|কেন|কোন|কার|কী|কি(?!\s+(?:খবর|অবস্থা))|পলিসি|রুলস|নিয়ম|নিয়ম|রিটার্ন|রিফান্ড|বাতিল|বদল'
+            . '|পণ্য|আইটেম|স্টক|ওয়ারেন্টি|সেলস|বিক্রি|বাকি|কাস্টমার|সেলার|সেলসম্যান|রিপোর্ট|কালেকশন'
+            . '|মেইল|ইমেইল|টিকেট|একাউন্ট|পাসওয়ার্ড|কিনতে|নিতে|ঠিকানা|ফোন|নাম্বার'
+            . '|প্রশ্ন|সাহায্য|সমস্যা|সাপোর্ট|চাই|লাগবে|আছে|জানবো|জানতে'
+            . ')\b/ui';
+
+        if (preg_match($substantivePattern, $phrase)) {
+            return null;
+        }
+
+        // 4. Standalone Whitelisted Phrase Matching
+        // Greetings
+        $greetingPattern = '/^(?:'
+            . '(?:hi|hello|hey|heya)(?:\s+(?:there|hi|hello|hey))?'
+            . '|hi\s+there\s+everyone'
+            . '|good\s+(?:morning|afternoon|evening|night|day)'
+            . '|(?:how\s+are\s+you(?:\s+doing)?|how\s+do\s+you\s+do|whats\s+up|what\s+s\s+up)'
+            . '|(?:salam|slm|assalamu\s+alaikum|assalamualikum|as\s+salam\s+alaikum|as\s+salamu\s+alaikum)(?:\s+(?:kemon\s+achen|kemon\s+acho))?'
+            . '|kemon\s+(?:achen|acho)'
+            . '|ki\s+(?:khobor|obostha)'
+            . '|(?:adaab|adab|nomoshkar|namaskar)'
+            . '|(?:হ্যালো|হাই|সালাম|আসসালামু\s*আলাইকুম|আসসালামুআলাইকুম|আদাব|নমস্কার)(?:\s+(?:কেমন\s+(?:আছেন|আছো)))?'
+            . '|কেমন\s+(?:আছেন|আছো)'
+            . '|কি\s+(?:খবর|অবস্থা)'
+            . '|শুভ\s+(?:সকাল|অপরাহ্ন|সন্ধ্যা|রাত্রি)'
+            . ')$/ui';
+
+        if (preg_match($greetingPattern, $phrase)) {
+            return [
+                'route'      => RouteType::CHAT,
+                'confidence' => 1.0,
+                'intent'     => 'greeting',
+                'signals'    => ['greeting_type' => 'greeting'],
+            ];
+        }
+
+        // Gratitude / Pleasantries
+        $gratitudePattern = '/^(?:'
+            . '(?:thanks|thank\s+you)(?:\s+(?:so\s+much|a\s+lot|very\s+much))?'
+            . '|many\s+thanks'
+            . '|(?:ok|okay)\s+thanks'
+            . '|(?:onek\s+)?dhonn?[oa]bad'
+            . '|(?:অনেক\s+)?ধন্যবাদ'
+            . '|welcome|you\s+are\s+welcome|you\s+welcome|swagotom|স্বাগতম'
+            . ')$/ui';
+
+        if (preg_match($gratitudePattern, $phrase)) {
+            return [
+                'route'      => RouteType::CHAT,
+                'confidence' => 1.0,
+                'intent'     => 'gratitude',
+                'signals'    => ['greeting_type' => 'gratitude'],
+            ];
+        }
+
+        // Farewells
+        $farewellPattern = '/^(?:'
+            . 'bye|good\s*bye|bye\s+bye|see\s+you(?:\s+later)?|tata|ta\s+ta'
+            . '|(?:allah|khoda)\s+hafez'
+            . '|(?:আল্লাহ|খোদা)\s*হাফেজ'
+            . '|বিদায়|বিদায়'
+            . ')$/ui';
+
+        if (preg_match($farewellPattern, $phrase)) {
+            return [
+                'route'      => RouteType::CHAT,
+                'confidence' => 1.0,
+                'intent'     => 'farewell',
+                'signals'    => ['greeting_type' => 'farewell'],
+            ];
+        }
+
+        return null;
     }
 
     /**
