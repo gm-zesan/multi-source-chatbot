@@ -23,20 +23,105 @@ class ExportService
      * @param array{headers: array<string>, rows: array<array<mixed>>, summary?: array<string, mixed>, title?: string} $data
      * @param string $format 'csv' | 'xlsx' | 'pdf'
      * @param string $filename
+     * @param \App\Services\Spreadsheet\Security\ServerControlledContext|null $context
      * @return Response|StreamedResponse
      */
-    public function exportData(array $data, string $format = 'csv', string $filename = 'analytics-export'): Response|StreamedResponse
-    {
+    public function exportData(
+        array $data,
+        string $format = 'csv',
+        string $filename = 'analytics-export',
+        ?\App\Services\Spreadsheet\Security\ServerControlledContext $context = null,
+    ): Response|StreamedResponse {
         $headers = $data['headers'] ?? [];
         $rows = $data['rows'] ?? [];
         $title = $data['title'] ?? 'Business Analytics Report';
         $summary = $data['summary'] ?? [];
+
+        // If context provided, enforce field-level export boundaries
+        if ($context !== null && ! $context->isOwner()) {
+            $policy = new \App\Services\Spreadsheet\Security\DataProjectionPolicy();
+            $filteredIndices = [];
+            $filteredHeaders = [];
+
+            foreach ($headers as $idx => $h) {
+                $role = str_replace([' ', '-'], '_', strtolower(trim((string) $h)));
+                $sens = \App\Services\Spreadsheet\Security\DataClassification::classifyRole($role);
+                if ($policy->canProjectField((string) $idx, $role, $sens, $context, (string) $h)) {
+                    $filteredIndices[] = $idx;
+                    $filteredHeaders[] = $h;
+                }
+            }
+
+            if (count($filteredHeaders) < count($headers)) {
+                $headers = $filteredHeaders;
+                $filteredRows = [];
+                foreach ($rows as $row) {
+                    $newRow = [];
+                    foreach ($filteredIndices as $fIdx) {
+                        $newRow[] = $row[$fIdx] ?? '';
+                    }
+                    $filteredRows[] = $newRow;
+                }
+                $rows = $filteredRows;
+            }
+        }
 
         return match (strtolower($format)) {
             'xlsx', 'excel' => $this->generateXlsx($headers, $rows, $title, $summary, $filename),
             'pdf'           => $this->generatePdf($headers, $rows, $title, $summary, $filename),
             default         => $this->generateCsv($headers, $rows, $filename),
         };
+    }
+
+    /**
+     * Export structured records via FieldLevelProjectionService.
+     *
+     * @param iterable<\App\Models\StructuredRecord> $records
+     */
+    public function exportStructuredRecords(
+        iterable $records,
+        \App\Services\Spreadsheet\Security\ServerControlledContext $context,
+        string $format = 'csv',
+        string $filename = 'records-export',
+        string $title = 'Structured Records Export'
+    ): Response|StreamedResponse {
+        $projectionService = app(\App\Services\Spreadsheet\Projections\FieldLevelProjectionService::class);
+        $projectedRecords = $projectionService->projectBatch($records, $context);
+
+        if ($projectedRecords->isEmpty()) {
+            return $this->exportData([
+                'headers' => ['Status'],
+                'rows'    => [['No authorized records available for export']],
+                'title'   => $title,
+            ], $format, $filename);
+        }
+
+        $headers = [];
+        foreach ($projectedRecords as $pr) {
+            foreach (array_keys($pr->fields) as $role) {
+                if (! in_array($role, $headers, true)) {
+                    $headers[] = $role;
+                }
+            }
+        }
+
+        $formattedHeaders = array_map(fn ($h) => ucwords(str_replace('_', ' ', $h)), $headers);
+        $rows = [];
+
+        foreach ($projectedRecords as $pr) {
+            $row = [];
+            foreach ($headers as $role) {
+                $val = $pr->get($role, '');
+                $row[] = is_array($val) ? json_encode($val, JSON_UNESCAPED_UNICODE) : (string) $val;
+            }
+            $rows[] = $row;
+        }
+
+        return $this->exportData([
+            'headers' => $formattedHeaders,
+            'rows'    => $rows,
+            'title'   => $title,
+        ], $format, $filename, $context);
     }
 
     /**
@@ -109,9 +194,11 @@ class ExportService
             foreach ($rows as $row) {
                 $flatRow = array_map(function ($val) {
                     if (is_array($val) || is_object($val)) {
-                        return json_encode($val, JSON_UNESCAPED_UNICODE);
+                        $val = json_encode($val, JSON_UNESCAPED_UNICODE);
                     }
-                    return (string) $val;
+                    $strVal = (string) $val;
+                    // Escape spreadsheet formula triggers (=, +, -, @, |, %) if non-numeric
+                    return app(\App\Services\Spreadsheet\SpreadsheetInspectorService::class)->sanitizeCellForDisplay($strVal);
                 }, $row);
                 fputcsv($output, $flatRow);
             }
@@ -183,7 +270,17 @@ class ExportService
             $colIndex = 1;
             foreach ($row as $cellValue) {
                 $colLetter = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($colIndex);
-                $sheet->setCellValue($colLetter . $currentRow, is_array($cellValue) ? json_encode($cellValue) : (string) $cellValue);
+                $valStr = (is_array($cellValue) || is_object($cellValue))
+                    ? json_encode($cellValue, JSON_UNESCAPED_UNICODE)
+                    : (string) $cellValue;
+
+                // Explicit literal string binding for formula-like values to prevent execution
+                $cleanLeading = ltrim($valStr, " \t\r\n\0\x0B");
+                if ($cleanLeading !== '' && in_array($cleanLeading[0], ['=', '+', '-', '@', '|', '%'], true) && ! is_numeric($valStr)) {
+                    $sheet->setCellValueExplicit($colLetter . $currentRow, $valStr, \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
+                } else {
+                    $sheet->setCellValue($colLetter . $currentRow, $valStr);
+                }
                 $colIndex++;
             }
             $currentRow++;

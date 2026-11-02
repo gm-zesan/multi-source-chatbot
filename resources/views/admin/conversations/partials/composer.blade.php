@@ -1,5 +1,5 @@
 <form
-    action="{{ url('/conversations/'.$conversation->id.'/reply') }}"
+    action="{{ route('conversations.reply', $conversation->id) }}"
     method="POST"
     class="composer">
 

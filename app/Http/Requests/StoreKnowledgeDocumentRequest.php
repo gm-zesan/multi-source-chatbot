@@ -16,6 +16,7 @@ class StoreKnowledgeDocumentRequest extends FormRequest
      */
     public const ALLOWED_MIME_TYPES = [
         'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        'application/vnd.ms-excel',
         'application/zip',
         'text/csv',
         'text/plain',
@@ -26,12 +27,12 @@ class StoreKnowledgeDocumentRequest extends FormRequest
     /**
      * Allowed file extensions for MIME detection matching.
      */
-    public const ALLOWED_EXTENSIONS = ['xlsx', 'csv', 'zip', 'txt'];
+    public const ALLOWED_EXTENSIONS = ['xlsx', 'xls', 'csv', 'zip', 'txt'];
 
     /**
-     * Supported client extensions for user uploads.
+     * Supported client extensions for user uploads (strictly .xlsx, .xls, .csv).
      */
-    public const SUPPORTED_CLIENT_EXTENSIONS = ['xlsx', 'csv'];
+    public const SUPPORTED_CLIENT_EXTENSIONS = ['xlsx', 'xls', 'csv'];
 
     /**
      * Determine if the user is authorized to make this request.

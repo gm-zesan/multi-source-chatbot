@@ -37,16 +37,17 @@ class AnalyticsSourceSelectionRegressionTest extends TestCase
         parent::setUp();
 
         $this->workspace = Workspace::create(['name' => 'Test Workspace', 'slug' => 'test-ws']);
-        $channel = Channel::create(['name' => 'Web', 'slug' => 'web', 'driver' => 'web']);
+        $channel = Channel::create(['name' => 'Simulator', 'slug' => 'simulator', 'driver' => 'web']);
         $this->account = ChannelAccount::create([
             'workspace_id' => $this->workspace->id,
             'channel_id'   => $channel->id,
-            'name'         => 'Storefront Web',
-            'external_id'  => 'acc_storefront_test',
-            'access_token' => 'tok_storefront_test',
+            'name'         => 'Admin Simulator',
+            'external_id'  => 'acc_simulator_test',
+            'access_token' => 'tok_simulator_test',
             'is_active'    => true,
         ]);
 
+        Role::firstOrCreate(['name' => 'admin', 'guard_name' => 'web']);
         Role::firstOrCreate(['name' => 'superadmin', 'guard_name' => 'web']);
 
         $this->user = User::factory()->create([
@@ -54,6 +55,8 @@ class AnalyticsSourceSelectionRegressionTest extends TestCase
             'email' => 'user@example.com',
             'workspace_id' => $this->workspace->id,
         ]);
+        $this->user->assignRole('admin');
+        $this->actingAs($this->user);
 
         $this->businessToolMock = Mockery::mock(BusinessAnalyticsTool::class);
         $this->excelToolMock = Mockery::mock(ExcelAnalyticsTool::class);
@@ -82,7 +85,7 @@ class AnalyticsSourceSelectionRegressionTest extends TestCase
             'external_thread_id' => 'th_' . uniqid(),
             'last_direction'     => 'inbound',
             'status'             => 'open',
-            'metadata'           => $metadata,
+            'metadata'           => array_merge(['is_simulator' => true, 'role' => 'owner'], $metadata),
         ]);
     }
 

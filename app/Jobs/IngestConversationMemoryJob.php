@@ -40,7 +40,6 @@ class IngestConversationMemoryJob implements ShouldQueue, ShouldBeUniqueUntilPro
     public function __construct(
         public readonly Conversation $conversation,
     ) {
-        $this->connection = 'database';
         $this->queue = 'memory';
     }
 
@@ -149,6 +148,17 @@ class IngestConversationMemoryJob implements ShouldQueue, ShouldBeUniqueUntilPro
                 || (!isset($result['error']) && (!empty($result['edges_created']) || !empty($result['entities_extracted'])));
 
             if ($isSuccess) {
+                // Fencing guard: Ensure this worker still owns the lock before advancing watermark.
+                // Fail-closed: If ownership cannot be positively verified, abort without advancing watermark.
+                $isOwned = method_exists($lock, 'isOwnedByCurrentProcess') && $lock->isOwnedByCurrentProcess();
+                if (! $isOwned) {
+                    Log::warning('[IngestConversationMemoryJob] Ingestion lock ownership lost or expired before watermark update', [
+                        'conversation_id' => $this->conversation->id,
+                        'watermark' => (int) $messageModels->max('id'),
+                    ]);
+                    return;
+                }
+
                 $newWatermark = (int) $messageModels->max('id');
                 $this->conversation->refresh();
                 $metadata = (array) ($this->conversation->metadata ?? []);
@@ -202,6 +212,12 @@ class IngestConversationMemoryJob implements ShouldQueue, ShouldBeUniqueUntilPro
                 }
 
                 $this->conversation->update(['metadata' => $metadata]);
+
+                // If a full batch of 10 was ingested and more uningested messages exist,
+                // dispatch next batch to completely drain the backlog without stranding messages.
+                if ($messageModels->count() >= 10 && $this->conversation->messages()->where('id', '>', $newWatermark)->exists()) {
+                    self::dispatch($this->conversation);
+                }
 
                 Log::info('[IngestConversationMemoryJob] Successfully ingested conversation into Graph Memory', [
                     'conversation_id' => $this->conversation->id,

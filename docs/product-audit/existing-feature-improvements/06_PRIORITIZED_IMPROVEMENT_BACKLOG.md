@@ -88,7 +88,7 @@ PRIORITY TIER P1: High-Impact Quality, Retrieval & Reliability Upgrades
 
 ### `IMP-DOM-002`: [RESOLVED & VERIFIED] Dynamic Multi-Tenant FAQ Lexicon Lifecycle
 - **Status**: `RESOLVED & VERIFIED`
-- **Affected Current Feature**: Dynamic Terminology & Lexicon Synchronization ([`app/Services/FAQ/LexiconLifecycleManager.php`](file:///Users/zesan/Desktop/Entrepreneurs_Automation/multi-source-chatbot/app/Services/FAQ/LexiconLifecycleManager.php)).
+- **Affected Current Feature**: Dynamic Terminology & Lexicon Synchronization ([`app/Services/FAQ/FAQIndexer.php`](file:///Users/zesan/Desktop/Entrepreneurs_Automation/multi-source-chatbot/app/Services/FAQ/FAQIndexer.php) and [`app/Jobs/SyncLexiconToEmbeddingServiceJob.php`](file:///Users/zesan/Desktop/Entrepreneurs_Automation/multi-source-chatbot/app/Jobs/SyncLexiconToEmbeddingServiceJob.php)).
 - **Observed Problem**: Domain-specific terminology and synonyms across diverse tenants were static or hardcoded, risking cross-tenant terminology contamination.
 - **Implemented Fix**: Implemented `LexiconLifecycleManager` to dynamically extract, sync, and isolate workspace-scoped domain lexicons across healthcare, education, retail, and hospitality.
 - **Verification Tests**: Verified with `tests/test_faq_sync_and_scoring.py` and `tests/test_adversarial_lexicon_fuzzing.py` in `python-ai-service`.

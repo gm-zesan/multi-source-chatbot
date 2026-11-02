@@ -20,6 +20,45 @@ class RetrievalClient
     private bool $lastSearchFailed = false;
     private ?string $lastSearchError = null;
 
+    /**
+     * Domain-neutral and conversational stopwords to prevent bag-of-words score inflation.
+     */
+    private const FALLBACK_STOPWORDS = [
+        'what', 'whats', "what's", 'how', 'does', 'can', 'could', 'would', 'will', 'is', 'are', 'am', 'was', 'were',
+        'the', 'a', 'an', 'of', 'in', 'for', 'to', 'at', 'by', 'from', 'on', 'with', 'about', 'tell', 'me', 'you',
+        'your', 'do', 'have', 'has', 'had', 'any', 'there', 'this', 'that', 'please', 'i', 'my', 'we', 'our',
+        'ami', 'tumi', 'apni', 'she', 'tara', 'ki', 'koto', 'kobe', 'kemne', 'kivabe', 'asche', 'ashbe', 'pabo', 'pawa', 'jabe', 'hobe', 'ache', 'bhai', 'mama', 'vai',
+        'apnader', 'amader', 'amar', 'shob', 'kono', 'ekto', 'ektu', 'ashole', 'jante', 'chaisilam', 'je', 'okhane', 'ar', 'eta', 'otar', 'ta', 'te', 'kore', 'korle', 'korben',
+        'lagbe', 'katben', 'bolben', 'diben', 'deben', 'nite', 'pab', 'jodi', 'tahole', 'option', 'shomoy', 'beshi', 'lage', 'pochondo', 'na',
+        'kemon', 'achen',
+        'কি', 'কী', 'কে', 'কেন', 'কখন', 'কোথায়', 'কীভাবে', 'কিভাবে', 'হবে', 'হবেকি', 'আছে', 'আছেকি',
+        'করা', 'যায়', 'যায়কি', 'পারি', 'পারব', 'পারা', 'জন্য', 'এর', 'তে', 'এ', 'দেওয়া', 'দেয়া',
+        'দেবেন', 'দিবেন', 'নাকি', 'বলুন', 'আমাকে', 'একটু', 'ভাই', 'মামা', 'আমাদের', 'আপনার', 'আপনাদের', 'আমার', 'আমি', 'বা', 'বাকি', 'পাওয়া', 'গেলে', 'হলে', 'হওয়া',
+        'লাগবে', 'কাটবেন', 'বলবেন', 'নিতে', 'পাব', 'পাবো', 'পৌঁছাইতে', 'পৌঁছাতে', 'করতে', 'অপেক্ষা', 'স্পষ্ট', 'লেখা', 'বলছেন', 'কোনো',
+    ];
+
+    /**
+     * Domain-neutral cross-lingual vocabulary & synonyms for search candidate expansion.
+     * Preserves language translation, transliteration, and universal commerce terms
+     * without domain/product-specific hardcoding.
+     */
+    private const GENERIC_SYNONYMS = [
+        'pure' => ['পিওর', 'খাঁটি'],
+        'পিওর' => ['pure', 'খাঁটি'],
+        'খাঁটি' => ['pure', 'পিওর'],
+        'জরুরি' => ['দ্রুত', 'urgent', 'express'],
+        'দ্রুত' => ['জরুরি', 'urgent', 'express'],
+        'urgent' => ['জরুরি', 'দ্রুত', 'express'],
+        'emergency' => ['জরুরি', 'urgent', 'express'],
+        'express' => ['জরুরি', 'দ্রুত', 'urgent', 'fast'],
+        'দাম' => ['মূল্য', 'price', 'rate', 'টাকা'],
+        'মূল্য' => ['দাম', 'price', 'rate', 'টাকা'],
+        'price' => ['দাম', 'মূল্য', 'টাকা'],
+        'খরচ' => ['ফি', 'fee', 'charge', 'cost'],
+        'charge' => ['ফি', 'খরচ', 'cost'],
+        'fee' => ['ফি', 'খরচ', 'charge'],
+    ];
+
     public function __construct(
         private readonly ?string $baseUrl = null,
         private readonly ?string $apiKey = null,
@@ -128,7 +167,7 @@ class RetrievalClient
                         'raw_body' => mb_substr((string) $response->body(), 0, 200),
                     ]);
 
-                    return $this->fallbackDatabaseSearch($trimmed, $workspaceId, $topK);
+                    return $this->fallbackDatabaseSearch($trimmed, $workspaceId, $topK, $contextualSignal);
                 }
 
                 $results = $data['results'];
@@ -171,7 +210,7 @@ class RetrievalClient
         }
 
         // Graceful fallback to database keyword search
-        return $this->fallbackDatabaseSearch($trimmed, $workspaceId, $topK);
+        return $this->fallbackDatabaseSearch($trimmed, $workspaceId, $topK, $contextualSignal);
     }
 
     /**
@@ -543,7 +582,7 @@ class RetrievalClient
      *
      * @return Collection<int, FAQSearchResult>
      */
-    private function fallbackDatabaseSearch(string $query, ?int $workspaceId, int $topK): Collection
+    private function fallbackDatabaseSearch(string $query, ?int $workspaceId, int $topK, ?string $contextualSignal = null): Collection
     {
         if ($workspaceId === null || $workspaceId <= 0) {
             Log::warning('[RetrievalClient] Database fallback aborted: missing or invalid workspace_id for tenant isolation', [
@@ -555,24 +594,74 @@ class RetrievalClient
         }
 
         $cleanQuery = mb_strtolower(trim($query));
-        if ($cleanQuery === '') {
+        $cleanContext = ($contextualSignal !== null && trim($contextualSignal) !== '' && trim($contextualSignal) !== trim($query))
+            ? mb_strtolower(trim($contextualSignal))
+            : null;
+
+        if (($cleanQuery === '' || mb_strlen($cleanQuery) < 2) && empty($cleanContext)) {
             return new Collection();
         }
 
-        // Tokenize query into searchable keywords (length >= 2)
+        // Detect negated attribute expressions (e.g., "সুতি বাদে", "কটন ছাড়া", "synthetic pochondo na")
+        $negatedWords = [];
+        if (preg_match_all('/([^\p{L}\p{M}\p{N}\-_]+|^)([\p{L}\p{M}\p{N}\-_]+)\s+(?:pochondo\s+na|pochondo\s*nei|পছন্দ\s*না|পছন্দ\s*নেই|বাদে|ছাড়া|chara|bade|without|except)/ui', $cleanQuery, $negMatches)) {
+            foreach ($negMatches[2] as $nw) {
+                $negatedWords[] = mb_strtolower($nw);
+            }
+        }
+
+        // Tokenize query with punctuation normalization (length >= 2 or alphanumeric single token, excluding negated attributes)
+        $normalizedQuery = preg_replace('/[^\p{L}\p{M}\p{N}\-_]+/u', ' ', $cleanQuery);
         $queryWords = array_values(array_unique(array_filter(
-            preg_split('/\s+/u', $cleanQuery),
-            fn ($w) => mb_strlen(trim($w)) >= 2
+            preg_split('/\s+/u', $normalizedQuery),
+            fn ($w) => (mb_strlen(trim($w)) >= 2 || preg_match('/^[\p{L}\p{N}]$/u', trim($w))) && !in_array($w, $negatedWords, true)
         )));
 
-        if (empty($queryWords)) {
+        // Tokenize contextual signal if present
+        $normalizedCtx = $cleanContext !== null ? preg_replace('/[^\p{L}\p{M}\p{N}\-_]+/u', ' ', $cleanContext) : null;
+        $contextWords = $normalizedCtx !== null
+            ? array_values(array_unique(array_filter(
+                preg_split('/\s+/u', $normalizedCtx),
+                fn ($w) => (mb_strlen(trim($w)) >= 2 || preg_match('/^[\p{L}\p{N}]$/u', trim($w))) && !in_array($w, $negatedWords, true)
+            )))
+            : [];
+
+        // Combined unique words for database candidate filtering
+        $allWords = array_values(array_unique(array_merge($queryWords, $contextWords)));
+        if (empty($allWords)) {
             return new Collection();
         }
+
+        // Substantive words vs stopwords
+        $substantiveWords = array_values(array_filter($allWords, fn ($w) => !in_array($w, self::FALLBACK_STOPWORDS, true)));
+        $searchWords = !empty($substantiveWords) ? $substantiveWords : $allWords;
+
+        // Expand candidate filtering keywords using generic morphological stemming and language synonyms
+        $expandedSearchWords = $searchWords;
+        $stemSuffixes = ['গুলোতে', 'গুলোর', 'টিতে', 'টাতে', 'টার', 'টির', 'গুলো', 'গুলা', 'য়ের', 'ের', 'তে', 'এ', 'র', 'কে', 'টা', 'টি'];
+        foreach ($searchWords as $w) {
+            foreach ($stemSuffixes as $suf) {
+                if (str_ends_with($w, $suf)) {
+                    $stem = mb_substr($w, 0, mb_strlen($w) - mb_strlen($suf));
+                    if (mb_strlen($stem) >= 3) {
+                        $expandedSearchWords[] = $stem;
+                    }
+                }
+            }
+        }
+        foreach ($expandedSearchWords as $w) {
+            if (isset(self::GENERIC_SYNONYMS[$w])) {
+                foreach (self::GENERIC_SYNONYMS[$w] as $syn) {
+                    $expandedSearchWords[] = $syn;
+                }
+            }
+        }
+        $expandedSearchWords = array_values(array_unique($expandedSearchWords));
 
         // 1. Check database driver for MySQL FULLTEXT support
         $isMysql = false;
         try {
-            $isMysql = DB::connection()->getDriverName() === 'mysql';
+            $isMysql = (new FAQ)->getConnection()->getDriverName() === 'mysql';
         } catch (\Throwable) {
             $isMysql = false;
         }
@@ -582,15 +671,22 @@ class RetrievalClient
         // Attempt MySQL FullText Boolean Search if on MySQL driver
         if ($isMysql) {
             try {
-                // Strip boolean operators that trigger MySQL syntax errors
-                $sanitized = preg_replace('/[+\-><()~*\"@]/u', ' ', $cleanQuery);
-                $ftTokens = array_values(array_filter(explode(' ', (string) $sanitized), fn ($t) => mb_strlen(trim($t)) >= 2));
+                // Strip boolean operators and punctuation that break MySQL boolean mode or token boundary parsing
+                $ftSource = $cleanContext ?? $cleanQuery;
+                $sanitized = preg_replace('/[+\-><()~*\"@:;|&!?,.\/\\\]/u', ' ', (string) $ftSource);
+                $ftTokens = array_values(array_filter(
+                    preg_split('/\s+/u', (string) $sanitized),
+                    fn ($t) => mb_strlen(trim($t)) >= 2
+                ));
                 if (! empty($ftTokens)) {
-                    $booleanExpr = implode(' ', array_map(fn ($t) => '+' . $t . '*', $ftTokens));
+                    // Use wildcard tokens without mandatory '+' conjunction to prevent built-in InnoDB
+                    // stopwords and short tokens (< innodb_ft_min_token_size) from causing 0-hit rejection.
+                    $booleanExpr = implode(' ', array_map(fn ($t) => $t . '*', $ftTokens));
                     $faqs = FAQ::where('is_active', true)
                         ->where('workspace_id', $workspaceId)
                         ->whereRaw('MATCH(question, searchable_text) AGAINST(? IN BOOLEAN MODE)', [$booleanExpr])
-                        ->limit($topK * 2)
+                        ->orderByRaw('MATCH(question, searchable_text) AGAINST(? IN BOOLEAN MODE) DESC', [$booleanExpr])
+                        ->limit(max(100, $topK * 10))
                         ->get();
                 }
             } catch (\Throwable $e) {
@@ -601,31 +697,53 @@ class RetrievalClient
             }
         }
 
-        // If MySQL FullText produced 0 hits (e.g. stopword, short token, or SQLite driver), use parameterized LIKE
+        // If candidate filtering with expanded search words produced 0 hits, fall back to all words
         if ($faqs->isEmpty()) {
             $dbQuery = FAQ::where('is_active', true)
                 ->where('workspace_id', $workspaceId);
 
-            $dbQuery->where(function ($q) use ($queryWords) {
-                foreach ($queryWords as $word) {
+            $dbQuery->where(function ($q) use ($expandedSearchWords) {
+                foreach ($expandedSearchWords as $word) {
                     $q->orWhere('question', 'LIKE', '%' . $word . '%')
                       ->orWhere('searchable_text', 'LIKE', '%' . $word . '%')
                       ->orWhere('answer', 'LIKE', '%' . $word . '%');
                 }
             });
 
-            $faqs = $dbQuery->limit($topK * 2)->get();
+            $faqs = $dbQuery->limit(max(100, $topK * 10))->get();
         }
 
         $mapped = [];
         foreach ($faqs as $faq) {
-            $score = $this->calculateFallbackRelevance(
+            $rawScore = $this->calculateFallbackRelevance(
                 titleOrQuestion: $faq->question,
                 contentOrAnswer: $faq->answer,
                 searchableText: $faq->searchable_text ?? '',
                 queryWords: $queryWords,
                 cleanQuery: $cleanQuery,
+                negatedWords: $negatedWords,
             );
+
+            $ctxScore = !empty($contextWords) && $cleanContext !== null
+                ? $this->calculateFallbackRelevance(
+                    titleOrQuestion: $faq->question,
+                    contentOrAnswer: $faq->answer,
+                    searchableText: $faq->searchable_text ?? '',
+                    queryWords: $contextWords,
+                    cleanQuery: $cleanContext,
+                    negatedWords: $negatedWords,
+                )
+                : 0.0;
+
+            $score = max($rawScore, $ctxScore);
+
+            // If an explicit SKU is matched in query or context, ensure precision boost
+            if (!empty($faq->sku)) {
+                $skuLower = mb_strtolower($faq->sku);
+                if (str_contains($cleanQuery, $skuLower) || ($cleanContext !== null && str_contains($cleanContext, $skuLower))) {
+                    $score = round(min(0.95, $score + 0.05), 4);
+                }
+            }
 
             if ($score > 0.0) {
                 $mapped[] = new FAQSearchResult(
@@ -643,28 +761,61 @@ class RetrievalClient
             ->where('lifecycle_status', DocumentLifecycleStatus::ACTIVE)
             ->where('workspace_id', $workspaceId);
 
-        $docQuery->where(function ($q) use ($queryWords) {
-            foreach ($queryWords as $word) {
+        $docQuery->where(function ($q) use ($expandedSearchWords) {
+            foreach ($expandedSearchWords as $word) {
                 $q->orWhere('title', 'LIKE', '%' . $word . '%')
                   ->orWhere('metadata', 'LIKE', '%' . $word . '%');
             }
         });
 
-        $docs = $docQuery->limit($topK * 2)->get();
+        $docs = $docQuery->limit(max(50, $topK * 5))->get();
+
+        if ($docs->isEmpty()) {
+            $docQuery = KnowledgeDocument::where('is_active', true)
+                ->where('lifecycle_status', DocumentLifecycleStatus::ACTIVE)
+                ->where('workspace_id', $workspaceId);
+
+            $docQuery->where(function ($q) use ($allWords) {
+                foreach ($allWords as $word) {
+                    $q->orWhere('title', 'LIKE', '%' . $word . '%')
+                      ->orWhere('metadata', 'LIKE', '%' . $word . '%');
+                }
+            });
+
+            $docs = $docQuery->limit(max(50, $topK * 5))->get();
+        }
         foreach ($docs as $doc) {
             $rawText = $doc->metadata['raw_text'] ?? null;
-            if (empty($rawText) && Storage::disk('local')->exists($doc->file_path)) {
-                $rawText = (string) Storage::disk('local')->get($doc->file_path);
+            if (empty($rawText)) {
+                if (Storage::disk('local')->exists($doc->file_path)) {
+                    $rawText = (string) Storage::disk('local')->get($doc->file_path);
+                } elseif (file_exists($doc->file_path)) {
+                    $rawText = (string) file_get_contents($doc->file_path);
+                }
             }
 
             if (! empty($rawText)) {
-                $score = $this->calculateFallbackRelevance(
+                $rawScore = $this->calculateFallbackRelevance(
                     titleOrQuestion: $doc->title,
                     contentOrAnswer: $rawText,
                     searchableText: '',
                     queryWords: $queryWords,
                     cleanQuery: $cleanQuery,
+                    negatedWords: $negatedWords,
                 );
+
+                $ctxScore = !empty($contextWords) && $cleanContext !== null
+                    ? $this->calculateFallbackRelevance(
+                        titleOrQuestion: $doc->title,
+                        contentOrAnswer: $rawText,
+                        searchableText: '',
+                        queryWords: $contextWords,
+                        cleanQuery: $cleanContext,
+                        negatedWords: $negatedWords,
+                    )
+                    : 0.0;
+
+                $score = max($rawScore, $ctxScore);
 
                 if ($score > 0.0) {
                     $transientFaq = new FAQ([
@@ -702,6 +853,7 @@ class RetrievalClient
      * @param string   $searchableText
      * @param string[] $queryWords
      * @param string   $cleanQuery
+     * @param string[] $negatedWords
      * @return float
      */
     private function calculateFallbackRelevance(
@@ -710,6 +862,7 @@ class RetrievalClient
         string $searchableText,
         array $queryWords,
         string $cleanQuery,
+        array $negatedWords = [],
     ): float {
         if (empty($queryWords)) {
             return 0.0;
@@ -719,6 +872,15 @@ class RetrievalClient
         $content = mb_strtolower(trim($contentOrAnswer));
         $searchable = mb_strtolower(trim($searchableText));
 
+        // Penalty if candidate features negated attribute
+        if (!empty($negatedWords)) {
+            foreach ($negatedWords as $neg) {
+                if (str_contains($title, $neg) || str_contains($content, $neg)) {
+                    return 0.10;
+                }
+            }
+        }
+
         // 1. Exact title/question match (ignoring trailing punctuation)
         $normalizedTitle = trim(preg_replace('/[?!.,;:]+$/u', '', $title));
         $normalizedQuery = trim(preg_replace('/[?!.,;:]+$/u', '', $cleanQuery));
@@ -727,46 +889,133 @@ class RetrievalClient
         }
 
         // 2. Contiguous phrase containment in title
-        if (str_contains($title, $cleanQuery)) {
+        if (str_contains($title, $cleanQuery) || ($normalizedQuery !== '' && str_contains($title, $normalizedQuery))) {
             return 0.90;
         }
 
-        // 3. Word-level match coverage in title
-        $totalWords = count($queryWords);
+        // Substantive tokens
+        $subWords = array_values(array_filter($queryWords, fn ($w) => !in_array($w, self::FALLBACK_STOPWORDS, true)));
+        $effectiveSubWords = !empty($subWords) ? $subWords : $queryWords;
+
+        // Multi-word phrase matching in title
+        $hasTrigramInTitle = false;
+        $hasBigramInTitle = false;
+        if (count($effectiveSubWords) >= 3) {
+            for ($i = 0; $i < count($effectiveSubWords) - 2; $i++) {
+                $trigram = $effectiveSubWords[$i] . ' ' . $effectiveSubWords[$i + 1] . ' ' . $effectiveSubWords[$i + 2];
+                if (str_contains($title, $trigram)) {
+                    $hasTrigramInTitle = true;
+                    break;
+                }
+            }
+        }
+        if (count($effectiveSubWords) >= 2) {
+            for ($i = 0; $i < count($effectiveSubWords) - 1; $i++) {
+                $bigram = $effectiveSubWords[$i] . ' ' . $effectiveSubWords[$i + 1];
+                if (str_contains($title, $bigram)) {
+                    $hasBigramInTitle = true;
+                    break;
+                }
+            }
+        }
+
+        $phraseBonus = $hasTrigramInTitle ? 0.12 : ($hasBigramInTitle ? 0.08 : 0.0);
+
+        // Word matches in title
         $matchedInTitle = 0;
-        foreach ($queryWords as $word) {
-            if (str_contains($title, $word)) {
+        foreach ($effectiveSubWords as $word) {
+            if ($this->wordMatches($title, $word)) {
                 $matchedInTitle++;
             }
         }
+        $titleRatio = $matchedInTitle / count($effectiveSubWords);
 
-        $titleRatio = $matchedInTitle / $totalWords;
-        if ($titleRatio === 1.0) {
-            // All query words match in the title/question
-            return round(min(0.88, 0.82 + 0.02 * $totalWords), 4);
-        }
-
-        if ($titleRatio >= 0.5) {
-            return round(0.60 + 0.20 * $titleRatio, 4);
-        }
-
-        // 4. Combined document text coverage (question + answer + searchable_text)
+        // Word matches in document
         $matchedInDoc = 0;
-        foreach ($queryWords as $word) {
-            if (str_contains($title, $word) || str_contains($searchable, $word) || str_contains($content, $word)) {
+        foreach ($effectiveSubWords as $word) {
+            if ($this->wordMatches($title, $word) || $this->wordMatches($searchable, $word) || $this->wordMatches($content, $word)) {
                 $matchedInDoc++;
             }
         }
+        $docRatio = $matchedInDoc / count($effectiveSubWords);
 
-        $docRatio = $matchedInDoc / $totalWords;
+        // Numeric specification precision bonus
+        preg_match_all('/\b\d+(?:[.:]\d+)?\b/u', $cleanQuery, $numMatches);
+        $numBonus = 0.0;
+        if (!empty($numMatches[0])) {
+            foreach ($numMatches[0] as $num) {
+                if (str_contains($title, $num) || str_contains($content, $num) || str_contains($searchable, $num)) {
+                    $numBonus = 0.06;
+                    break;
+                }
+            }
+        }
+
+        if ($titleRatio === 1.0) {
+            return round(min(0.92, 0.82 + 0.02 * count($effectiveSubWords) + $phraseBonus + $numBonus), 4);
+        }
+
+        if ($titleRatio >= 0.5) {
+            return round(min(0.88, 0.62 + 0.20 * $titleRatio + $phraseBonus + $numBonus), 4);
+        }
+
+        if ($phraseBonus > 0.0) {
+            return round(min(0.85, 0.58 + 0.15 * $docRatio + $phraseBonus + $numBonus), 4);
+        }
+
         if ($docRatio === 1.0) {
-            return round(0.65 + 0.10 * $titleRatio, 4);
+            return round(min(0.85, 0.65 + 0.10 * $titleRatio + $phraseBonus + $numBonus), 4);
+        }
+
+        if ($docRatio >= 0.5) {
+            return round(min(0.70, 0.40 + 0.25 * $docRatio + $phraseBonus + $numBonus), 4);
         }
 
         if ($docRatio > 0.0) {
-            return round(0.40 + 0.25 * $docRatio, 4);
+            return round(min(0.40, 0.60 * $docRatio + $phraseBonus + $numBonus), 4);
         }
 
         return 0.0;
+    }
+
+    /**
+     * Check if a token or its morphological/synonym variants match within target text.
+     */
+    private function wordMatches(string $haystack, string $needle): bool
+    {
+        $suffixes = ['গুলোতে', 'গুলোর', 'টিতে', 'টাতে', 'টার', 'টির', 'গুলো', 'গুলা', 'য়ের', 'ের', 'তে', 'এ', 'র', 'কে', 'টা', 'টি'];
+        $variants = [$needle];
+        foreach ($suffixes as $suf) {
+            if (str_ends_with($needle, $suf)) {
+                $stem = mb_substr($needle, 0, mb_strlen($needle) - mb_strlen($suf));
+                if (mb_strlen($stem) >= 3) {
+                    $variants[] = $stem;
+                }
+            }
+        }
+
+        foreach ($variants as $var) {
+            if (mb_strlen($var) <= 3) {
+                if ((bool) preg_match('/(?:^|[^\p{L}\p{M}\p{N}])' . preg_quote($var, '/') . '(?:$|[^\p{L}\p{M}\p{N}])/ui', $haystack)) {
+                    return true;
+                }
+            } elseif (stripos($haystack, $var) !== false) {
+                return true;
+            }
+
+            if (isset(self::GENERIC_SYNONYMS[$var])) {
+                foreach (self::GENERIC_SYNONYMS[$var] as $syn) {
+                    if (mb_strlen($syn) <= 3) {
+                        if ((bool) preg_match('/(?:^|[^\p{L}\p{M}\p{N}])' . preg_quote($syn, '/') . '(?:$|[^\p{L}\p{M}\p{N}])/ui', $haystack)) {
+                            return true;
+                        }
+                    } elseif (stripos($haystack, $syn) !== false) {
+                        return true;
+                    }
+                }
+            }
+        }
+
+        return false;
     }
 }

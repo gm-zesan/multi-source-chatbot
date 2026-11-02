@@ -57,7 +57,7 @@
     </div>
 
     <div class="chat-actions">
-        <form action="{{ url('/dashboard/conversations/'.$conversation->id.'/ai-reply') }}" method="POST" style="display:inline;">
+        <form action="{{ route('conversations.ai-reply', $conversation->id) }}" method="POST" style="display:inline;">
             @csrf
             <button type="submit" class="btn btn-sm btn-outline-primary" style="display: flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 8px; font-weight: 500; font-size: 13px;" title="Generate AI Assistant Response">
                 <i class="bi bi-robot"></i>

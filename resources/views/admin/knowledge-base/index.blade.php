@@ -464,6 +464,103 @@
                 </div>
             </div>
         </div>
+
+        <!-- Spreadsheet Column Mapping Confirmation Modal (Phase 2) -->
+        <div class="modal fade" id="spreadsheetMappingModal" tabindex="-1" aria-labelledby="spreadsheetMappingModalLabel" aria-hidden="true" data-bs-backdrop="static">
+            <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+                <div class="modal-content border-0 shadow-lg">
+                    <div class="modal-header bg-light border-bottom py-3 px-4">
+                        <div class="d-flex align-items-center gap-2">
+                            <i class="ri-table-line text-warning fs-3"></i>
+                            <div>
+                                <h5 class="modal-title fw-bold text-dark mb-0" id="spreadsheetMappingModalLabel">Confirm Spreadsheet Schema & Column Mappings</h5>
+                                <div class="text-muted small" id="mappingModalSubtitle">Configure header rows, verify inferred column categories, and resolve ambiguities.</div>
+                            </div>
+                        </div>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body p-4">
+                        <div id="mappingModalLoader" class="text-center py-5">
+                            <div class="spinner-border text-primary" role="status"></div>
+                            <div class="text-muted small mt-2">Inspecting spreadsheet structure...</div>
+                        </div>
+                        <div id="mappingModalContent" class="d-none">
+                            <!-- Ambiguity Warning Banner -->
+                            <div class="alert alert-warning border-warning d-flex align-items-start gap-2 mb-3">
+                                <i class="ri-alert-line fs-5 text-warning flex-shrink-0 mt-1"></i>
+                                <div>
+                                    <strong>Owner Confirmation Required:</strong>
+                                    <div class="small">This spreadsheet contains title banners, non-standard headers, or ambiguous column types. Review the header row and column mappings below before ingesting. All unmapped columns will be safely preserved in custom attributes with zero data loss.</div>
+                                </div>
+                            </div>
+
+                            <!-- Header Selection & Settings Row -->
+                            <div class="card border mb-3">
+                                <div class="card-body p-3 bg-light">
+                                    <div class="row g-3">
+                                        <div class="col-md-6">
+                                            <label class="form-label fw-bold text-dark small mb-1">
+                                                <i class="ri-file-list-line me-1 text-primary"></i>Detected Header Row
+                                            </label>
+                                            <select class="form-select form-select-sm" id="mappingHeaderRowSelect">
+                                                <!-- Populated dynamically with candidate headers -->
+                                            </select>
+                                            <div class="form-text text-muted" style="font-size: 11px;">Candidate header rows discovered by density, keyword scoring, and lookahead consistency.</div>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label class="form-label fw-bold text-dark small mb-1">
+                                                <i class="ri-git-merge-line me-1 text-info"></i>Conflict Mode
+                                            </label>
+                                            <select class="form-select form-select-sm" id="mappingConflictModeSelect">
+                                                <option value="skip" selected>Skip Existing (Safe)</option>
+                                                <option value="overwrite">Overwrite By Identifier</option>
+                                                <option value="append">Append All Rows</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label class="form-label fw-bold text-dark small mb-1">
+                                                <i class="ri-pages-line me-1 text-success"></i>Worksheet
+                                            </label>
+                                            <select class="form-select form-select-sm" id="mappingSheetSelect">
+                                                <!-- Populated dynamically with workbook sheets -->
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Column Mapping Table -->
+                            <h6 class="fw-bold text-dark mb-2 d-flex align-items-center justify-content-between">
+                                <span><i class="ri-layout-column-line me-1 text-primary"></i>Column Categorization & Projections</span>
+                                <span class="badge bg-light text-dark border small" id="mappingColumnCountBadge">0 columns</span>
+                            </h6>
+                            <div class="table-responsive border rounded mb-3" style="max-height: 380px;">
+                                <table class="table table-sm table-hover align-middle mb-0" id="mappingColumnsTable">
+                                    <thead class="table-light sticky-top">
+                                        <tr>
+                                            <th style="width: 25%;">Spreadsheet Column</th>
+                                            <th style="width: 15%;">Inferred Type</th>
+                                            <th style="width: 25%;">Sample Values</th>
+                                            <th style="width: 15%;">Confidence</th>
+                                            <th style="width: 20%;">Semantic Mapping</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="mappingColumnsTableBody">
+                                        <!-- Rows injected dynamically -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer bg-light border-top py-2 px-4 d-flex justify-content-between">
+                        <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="button" class="btn btn-sm btn-primary d-flex align-items-center gap-1" id="btnConfirmAndIngest">
+                            <i class="ri-check-line"></i> Confirm & Start Ingestion
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
 @endsection
 
     @push('custom-scripts')
@@ -785,6 +882,11 @@
                                     btns += `<a href="${SITEURL}/dashboard/simulator?file_id=${encodeURIComponent(targetId)}" class="btn btn-sm btn-primary text-white me-1" title="Ask Questions in Simulator" style="padding: 2px 8px; font-size: 12px;"><i class="ri-chat-smile-2-line"></i></a>`;
                                 }
 
+                                // 2.5 Review & Confirm Mapping (for spreadsheets requiring owner mapping)
+                                if (data.requires_mapping && data.can_update) {
+                                    btns += `<button type="button" class="btn btn-sm btn-warning text-dark me-1 btn-review-mapping" data-id="${id}" title="Review & Confirm Column Mapping"><i class="ri-table-line me-1"></i>Confirm</button>`;
+                                }
+
                                 // 3. Retry / Ingest Button (for pending or failed documents)
                                 if ((data.has_failed || data.is_pending) && data.can_update) {
                                     var btnTitle = data.is_pending ? 'Ingest & Activate Now' : 'Retry Ingestion';
@@ -862,6 +964,8 @@
                     statusBadge = '<span class="badge bg-info text-dark"><i class="ri-loader-4-line spin me-1"></i>Indexing in Progress</span>';
                 } else if (doc.is_pending) {
                     statusBadge = '<span class="badge bg-secondary"><i class="ri-time-line me-1"></i>Pending Ingestion</span>';
+                } else if (doc.requires_mapping) {
+                    statusBadge = '<span class="badge bg-warning text-dark"><i class="ri-table-line me-1"></i>Requires Mapping</span>';
                 } else if (doc.is_active) {
                     statusBadge = '<span class="badge bg-success"><i class="ri-checkbox-circle-line me-1"></i>Active</span>';
                 } else {
@@ -885,6 +989,19 @@
                     if (doc.can_update) {
                         $('#modalRetryForm').removeClass('d-none').attr('action', SITEURL + '/dashboard/documents/' + doc.id + '/retry');
                         $('#modalRetryForm button').removeClass('btn-danger').addClass('btn-primary').html('<i class="ri-play-circle-line"></i> Ingest & Activate Now');
+                    } else {
+                        $('#modalRetryForm').addClass('d-none');
+                    }
+                } else if (doc.requires_mapping) {
+                    $('#modalErrorSection').removeClass('d-none');
+                    $('#modalErrorMsg').html('<span class="text-warning fw-bold">Ambiguous Schema Detected:</span> Header row or column semantic mappings require owner confirmation before ingestion.');
+                    if (doc.can_update) {
+                        $('#modalRetryForm').removeClass('d-none').attr('action', 'javascript:void(0)');
+                        $('#modalRetryForm button').removeClass('btn-danger btn-primary').addClass('btn-warning text-dark').html('<i class="ri-table-line me-1"></i> Review & Confirm Mapping').off('click').on('click', function(ev) {
+                            ev.preventDefault();
+                            $('#documentDetailsModal').modal('hide');
+                            openSpreadsheetMappingModal(doc.id);
+                        });
                     } else {
                         $('#modalRetryForm').addClass('d-none');
                     }
@@ -1127,5 +1244,152 @@
                 renderPreviewRows(filtered);
                 $('#previewRowCounter').text(filtered.length + ' matched');
             }
+
+            // Spreadsheet Mapping Review Modal Logic (Phase 2)
+            window.activeMappingDocId = null;
+            window.activeInspectionData = null;
+
+            $(document).on('click', '.btn-review-mapping', function (e) {
+                e.preventDefault();
+                var id = $(this).attr('data-id');
+                openSpreadsheetMappingModal(id);
+            });
+
+            function openSpreadsheetMappingModal(docId) {
+                window.activeMappingDocId = docId;
+                $('#mappingModalLoader').removeClass('d-none');
+                $('#mappingModalContent').addClass('d-none');
+                $('#btnConfirmAndIngest').prop('disabled', true);
+                $('#spreadsheetMappingModal').modal('show');
+
+                $.ajax({
+                    url: `${SITEURL}/dashboard/documents/${docId}/spreadsheet/suggestions`,
+                    type: 'GET',
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                    success: function (res) {
+                        $('#mappingModalLoader').addClass('d-none');
+                        if (!res.success) {
+                            alert(res.message || 'Failed to load suggestions.');
+                            $('#spreadsheetMappingModal').modal('hide');
+                            return;
+                        }
+                        window.activeInspectionData = res;
+                        renderMappingModalContent(res);
+                        $('#mappingModalContent').removeClass('d-none');
+                        $('#btnConfirmAndIngest').prop('disabled', false);
+                    },
+                    error: function (xhr) {
+                        $('#mappingModalLoader').addClass('d-none');
+                        alert(xhr.responseJSON?.message || 'Error loading spreadsheet details.');
+                        $('#spreadsheetMappingModal').modal('hide');
+                    }
+                });
+            }
+
+            function renderMappingModalContent(data) {
+                // Populate Header Row Select
+                var headerSelect = $('#mappingHeaderRowSelect');
+                headerSelect.empty();
+                var candidates = data.candidate_headers || [];
+                var activeHeaderIdx = data.header_row_index !== undefined ? data.header_row_index : 0;
+
+                if (candidates.length === 0) {
+                    headerSelect.append(`<option value="0" selected>Row 1 (Default / Single Header Row)</option>`);
+                } else {
+                    candidates.forEach(function (c) {
+                        var scorePct = Math.round((c.score || 0) * 100);
+                        var sampleCols = (c.candidate_headers || []).slice(0, 4).join(', ');
+                        var label = `Row ${c.row_index + 1} (Score: ${scorePct}%) — [${sampleCols}]`;
+                        var isSel = (c.row_index === activeHeaderIdx) ? 'selected' : '';
+                        headerSelect.append(`<option value="${c.row_index}" ${isSel}>${$('<div>').text(label).html()}</option>`);
+                    });
+                }
+
+                // Populate Columns
+                var tbody = $('#mappingColumnsTableBody');
+                tbody.empty();
+                var columns = data.columns || [];
+                $('#mappingColumnCountBadge').text(`${columns.length} columns`);
+
+                var categories = data.available_categories || {};
+                var existingMapping = data.existing_mapping || {};
+
+                columns.forEach(function (col) {
+                    var colName = col.name;
+                    var inferredType = col.inferred_type || 'string';
+                    var samples = (col.samples || []).slice(0, 3).join(', ');
+                    var confidence = Math.round((col.confidence || 0) * 100);
+                    var isAmbiguous = col.is_ambiguous;
+                    var badgeClass = isAmbiguous || confidence < 65 ? 'bg-warning text-dark' : 'bg-success text-white';
+                    var assigned = existingMapping[colName] || col.suggested_category || 'custom_attribute';
+
+                    var selectHtml = `<select class="form-select form-select-sm col-category-select" data-col-name="${$('<div>').text(colName).html()}">`;
+                    Object.keys(categories).forEach(function (catKey) {
+                        var isSelected = (catKey === assigned) ? 'selected' : '';
+                        selectHtml += `<option value="${catKey}" ${isSelected}>${categories[catKey]}</option>`;
+                    });
+                    selectHtml += '</select>';
+
+                    var rowHtml = `
+                        <tr>
+                            <td class="fw-semibold text-dark">${$('<div>').text(colName).html()}</td>
+                            <td><span class="badge bg-light text-dark border font-monospace">${inferredType}</span></td>
+                            <td class="small text-muted text-truncate" style="max-width: 200px;" title="${$('<div>').text(samples).html()}">${$('<div>').text(samples || '-').html()}</td>
+                            <td><span class="badge ${badgeClass}" style="font-size: 11px;">${confidence}%</span></td>
+                            <td>${selectHtml}</td>
+                        </tr>
+                    `;
+                    tbody.append(rowHtml);
+                });
+            }
+
+            // Confirm Mapping Click Handler
+            $(document).on('click', '#btnConfirmAndIngest', function () {
+                if (!window.activeMappingDocId) return;
+
+                var headerRowIndex = parseInt($('#mappingHeaderRowSelect').val(), 10) || 0;
+                var conflictMode = $('#mappingConflictModeSelect').val() || 'skip';
+
+                var mappings = {};
+                $('.col-category-select').each(function () {
+                    var colName = $(this).attr('data-col-name');
+                    var category = $(this).val();
+                    mappings[colName] = category;
+                });
+
+                var $btn = $(this);
+                $btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1" role="status"></span> Queuing Ingestion...');
+
+                $.ajax({
+                    url: `${SITEURL}/dashboard/documents/${window.activeMappingDocId}/spreadsheet/confirm`,
+                    type: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content'),
+                        'Accept': 'application/json'
+                    },
+                    data: {
+                        header_row_index: headerRowIndex,
+                        conflict_mode: conflictMode,
+                        mappings: mappings
+                    },
+                    success: function (res) {
+                        $('#spreadsheetMappingModal').modal('hide');
+                        $btn.prop('disabled', false).html('<i class="ri-check-line"></i> Confirm & Start Ingestion');
+                        if (window.knowledgeDocumentsTable) {
+                            window.knowledgeDocumentsTable.ajax.reload(null, false);
+                        }
+                        if (typeof swal !== 'undefined') {
+                            swal("Success", "Mapping confirmed! Spreadsheet ingestion has been queued.", "success");
+                        } else {
+                            alert("Mapping confirmed! Spreadsheet ingestion has been queued.");
+                        }
+                    },
+                    error: function (xhr) {
+                        $btn.prop('disabled', false).html('<i class="ri-check-line"></i> Confirm & Start Ingestion');
+                        var msg = xhr.responseJSON?.message || 'Failed to confirm mapping.';
+                        alert(msg);
+                    }
+                });
+            });
         </script>
     @endpush

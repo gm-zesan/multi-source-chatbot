@@ -17,6 +17,8 @@ use App\Models\Message;
 use App\Models\Workspace;
 use App\Enums\DocumentLifecycleStatus;
 use App\Enums\IngestionPurpose;
+use App\Enums\RoleEnum;
+use App\Models\ChannelAccount;
 use App\Services\Business\BusinessSourceOfTruthService;
 use App\Services\Chat\ConversationService;
 use App\Services\FAQ\FAQSearch;
@@ -26,10 +28,15 @@ use App\Services\AI\DTOs\SellerEmailProposal;
 use App\Services\AI\SellerEmailService;
 use App\Services\Analytics\AnalyticsClient;
 use App\Services\Memory\ConversationMemoryService;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 
 class CustomerSupportService
 {
+    /**
+     * Standard graceful refusal for unauthorized customer-channel analytics requests (AC-14, AC-20, AC-21, AC-38).
+     */
+    public const CUSTOMER_ANALYTICS_DENIAL_MESSAGE = 'আমি শুধুমাত্র আমাদের পণ্য ও কাস্টমার সার্ভিস সংক্রান্ত তথ্য দিতে পারি। অভ্যন্তরীণ ব্যবসায়িক হিসাব প্রকাশের অনুমতি নেই।';
     private readonly HybridRouter $router;
     private readonly ActionSafetyService $actionSafety;
     private readonly ContextualQueryBuilder $contextualQueryBuilder;
@@ -170,12 +177,34 @@ class CustomerSupportService
             }
         }
 
+        $isCustomer = $this->isCustomerChannel($conversation);
+
+        // Pre-routing Hard Block: Workforce Privacy & Financial Security Barrier (AC-38)
+        if ($isCustomer && $this->hasInternalWorkforceOrFinancialIntent($query)) {
+            Log::info('[CustomerSupportService] Inbound customer workforce/financial inquiry blocked by P0 Security Barrier', [
+                'conversation_id' => $conversation->id,
+                'query' => $query,
+            ]);
+
+            return self::CUSTOMER_ANALYTICS_DENIAL_MESSAGE;
+        }
+
         // ── 1. Hybrid Routing (Evaluates with full dialogue context) ────────────────────────────────────────────────
         $routingResult = $this->router->route(
             query: $query,
             conversation: $conversation,
             workspaceId: $effectiveWorkspaceId,
         );
+
+        // Post-routing Hard Block: Dual-Layer Customer Analytics Interception (AC-14, AC-20, AC-21)
+        if ($isCustomer && $routingResult->isAnalytics()) {
+            Log::info('[CustomerSupportService] Inbound customer ANALYTICS route intercepted by P0 Security Barrier', [
+                'conversation_id' => $conversation->id,
+                'query' => $query,
+            ]);
+
+            return self::CUSTOMER_ANALYTICS_DENIAL_MESSAGE;
+        }
 
         // ── Phase M2: Context Resolution & Ambiguity Handling (Knowledge/Uncertain only) ─────
         $contextResult = null;
@@ -659,6 +688,59 @@ class CustomerSupportService
             }
         }
 
+        $isCustomer = $this->isCustomerChannel($conversation);
+
+        // Pre-routing Hard Block: Workforce Privacy & Financial Security Barrier (AC-38)
+        if ($isCustomer && $this->hasInternalWorkforceOrFinancialIntent($query)) {
+            Log::info('[CustomerSupportService] handleQuery customer workforce/financial query blocked by P0 Security Barrier', [
+                'conversation_id' => $conversation?->id,
+                'query' => $query,
+            ]);
+
+            $replyText = self::CUSTOMER_ANALYTICS_DENIAL_MESSAGE;
+            $totalE2eMs = round((microtime(true) - $t_start) * 1000, 2);
+
+            return [
+                'reply' => $replyText,
+                'route' => 'analytics_denied',
+                'confidence' => 1.0,
+                'suggestions' => [],
+                'sources' => [],
+                'is_handoff' => false,
+                'memory_context' => null,
+                'business_context' => null,
+                'retrieval_hits' => new \Illuminate\Database\Eloquent\Collection(),
+                'top_hit' => null,
+                'answered' => true,
+                'answerability_decision' => null,
+                'follow_up_decision' => null,
+                'raw_llm_response' => [
+                    'provider' => config('ai.default', 'deepseek'),
+                    'model' => config('ai.default_model', 'deepseek-chat'),
+                    'raw_reply_text' => $replyText,
+                    'prompt_tokens' => 0,
+                    'completion_tokens' => 0,
+                    'total_tokens' => 0,
+                    'router_tokens' => [],
+                    'agent_tokens' => [],
+                    'grounded_documents_count' => 0,
+                    'grounded_faq_questions' => [],
+                ],
+                'routing_telemetry' => [
+                    'route' => 'analytics_denied',
+                    'confidence' => 1.0,
+                    'intent' => 'customer_analytics_blocked',
+                    'total_e2e_ms' => $totalE2eMs,
+                ],
+                'lexicon_telemetry' => [],
+                'latency_breakdown' => [
+                    'router_ms' => 0.0,
+                    'total_e2e_ms' => $totalE2eMs,
+                    'total_ms' => $totalE2eMs,
+                ],
+            ];
+        }
+
         // ── 1. Hybrid Router (Evaluates with full dialogue context) ──────────────────
         $t_router_start = microtime(true);
         $routingResult = $this->router->route(
@@ -667,6 +749,57 @@ class CustomerSupportService
             workspaceId: $workspaceId,
         );
         $routerLatencyMs = round((microtime(true) - $t_router_start) * 1000, 2);
+
+        // Post-routing Hard Block: Dual-Layer Customer Analytics Interception (AC-14, AC-20, AC-21)
+        if ($isCustomer && $routingResult->isAnalytics()) {
+            Log::info('[CustomerSupportService] handleQuery customer ANALYTICS route intercepted by P0 Security Barrier', [
+                'conversation_id' => $conversation?->id,
+                'query' => $query,
+            ]);
+
+            $replyText = self::CUSTOMER_ANALYTICS_DENIAL_MESSAGE;
+            $totalE2eMs = round((microtime(true) - $t_start) * 1000, 2);
+
+            return [
+                'reply' => $replyText,
+                'route' => 'analytics_denied',
+                'confidence' => $routingResult->confidence,
+                'suggestions' => [],
+                'sources' => [],
+                'is_handoff' => false,
+                'memory_context' => null,
+                'business_context' => null,
+                'retrieval_hits' => new \Illuminate\Database\Eloquent\Collection(),
+                'top_hit' => null,
+                'answered' => true,
+                'answerability_decision' => null,
+                'follow_up_decision' => null,
+                'raw_llm_response' => [
+                    'provider' => config('ai.default', 'deepseek'),
+                    'model' => config('ai.default_model', 'deepseek-chat'),
+                    'raw_reply_text' => $replyText,
+                    'prompt_tokens' => 0,
+                    'completion_tokens' => 0,
+                    'total_tokens' => 0,
+                    'router_tokens' => [],
+                    'agent_tokens' => [],
+                    'grounded_documents_count' => 0,
+                    'grounded_faq_questions' => [],
+                ],
+                'routing_telemetry' => [
+                    'route' => 'analytics_denied',
+                    'confidence' => $routingResult->confidence,
+                    'intent' => 'customer_analytics_blocked',
+                    'total_e2e_ms' => $totalE2eMs,
+                ],
+                'lexicon_telemetry' => [],
+                'latency_breakdown' => [
+                    'router_ms' => $routerLatencyMs,
+                    'total_e2e_ms' => $totalE2eMs,
+                    'total_ms' => $totalE2eMs,
+                ],
+            ];
+        }
 
         // ── Phase M2: Context Resolution & Context Ambiguity Handling (Knowledge/Uncertain only) ─────
         $contextResult = null;
@@ -777,7 +910,7 @@ class CustomerSupportService
                 $answerabilityDecision !== null && $answerabilityDecision->isAmbiguous()
                     ? $this->executeUncertainRoute($conversation ?? new Conversation(), $query, $routingResult)
                     : (
-                        $answerabilityDecision !== null && $answerabilityDecision->isUnanswerable() && empty($businessContext)
+                        $answerabilityDecision !== null && $answerabilityDecision->isUnanswerable() && empty($businessContext) && empty($memoryContext) && !$this->isMemoryOrIdentityQuery($query)
                             ? $this->executeOodRoute($conversation, $query)
                             : $this->processAgentFollowUp(
                                 rawAgentOutput: $this->promptKnowledgeAgent(
@@ -1233,6 +1366,17 @@ PROMPT;
         int $workspaceId,
         RoutingResult $routingResult,
     ): string {
+        // Layer 2 Fail-Closed Authorization Barrier (AC-14, AC-20, AC-22, AC-39)
+        if ($this->isCustomerChannel($conversation) || !$this->isAuthorizedOwnerOrManager($workspaceId, $conversation)) {
+            Log::warning('[CustomerSupportService] Layer 2 execution boundary blocked unauthorized ANALYTICS execution', [
+                'conversation_id' => $conversation->id ?? null,
+                'workspace_id'    => $workspaceId,
+                'query'           => $query,
+            ]);
+
+            return self::CUSTOMER_ANALYTICS_DENIAL_MESSAGE;
+        }
+
         @set_time_limit(120);
         $this->resetUncertainCount($conversation);
 
@@ -1276,8 +1420,8 @@ PROMPT;
             return $analyticsResult['report'] ?? $this->defaultFallbackText();
         }
 
-        // Rule 1 & 3: Explicit Document request with active file context takes priority
-        if ($isExplicitDoc && $activeFileId !== null) {
+        // Rule 1 & 3: Explicit Document request takes priority
+        if ($isExplicitDoc) {
             try {
                 $excelResult = $this->excelAnalyticsTool->execute(
                     question: $query,
@@ -1517,6 +1661,247 @@ PROMPT;
         }
 
         return "দুঃখিত, এই বিষয়টি আমাদের কাস্টমার সাপোর্ট নলেজ বেসের আওতাভুক্ত নয়। আমাদের সার্ভিস বা অ্যাকাউন্ট সম্পর্কিত কোনো প্রশ্ন থাকলে জানান, অথবা আমি আপনাকে একজন সাপোর্ট স্পেশালিস্টের সাথে যুক্ত করে দিতে পারি।";
+    }
+
+    /**
+     * Determine if a query relates to customer memory, past preferences, or personal identity.
+     * Domain-neutral: checks profile, preferences, past customer orders/history without apparel/payment hardcoding.
+     */
+    private function isMemoryOrIdentityQuery(string $query): bool
+    {
+        return (bool) preg_match('/(আমার\s*(?:পূর্বের|আগের|বর্তমান|পছন্দের|ডিফল্ট)?\s*(?:তথ্য|অর্ডার|পছন্দ|প্রোফাইল|হিস্ট্রি|রেকর্ড)|amar\s*(?:order|profile|preference|history|record)|আমার\s*প্রোফাইল|amar\s*profile|মনে\s*আছে|mone\s*ache|previous\s*order|my\s*order|my\s*profile|my\s*preference|my\s*history|remember\s*me|who\s*am\s*i|amar\s*nam|আমার\s*নাম)/ui', $query);
+    }
+
+    /**
+     * Determine if a conversation originates from an inbound customer-facing channel.
+     * Enforces AC-14, AC-20, AC-21, AC-38.
+     */
+    public function isCustomerChannel(?Conversation $conversation): bool
+    {
+        if ($conversation === null) {
+            return !$this->isAuthenticatedOwnerOrManager();
+        }
+
+        $meta = $conversation->metadata ?? [];
+
+        // Check associated ChannelAccount and Channel slug
+        $channelSlug = null;
+        $channelAccount = $conversation->channelAccount;
+        if ($channelAccount === null && $conversation->channel_account_id !== null) {
+            $channelAccount = ChannelAccount::with('channel')->find($conversation->channel_account_id);
+        }
+
+        if ($channelAccount !== null) {
+            $channelSlug = $channelAccount->channel?->slug ?? null;
+        }
+
+        // Public customer channels are strictly customer channels — client metadata CANNOT bypass this (AC-14, AC-21, AC-38)
+        if ($channelSlug !== null) {
+            $slug = mb_strtolower(trim($channelSlug));
+            if (in_array($slug, ['facebook', 'messenger', 'whatsapp', 'instagram', 'telegram', 'web', 'website', 'web_widget', 'widget', 'public'], true)) {
+                return true;
+            }
+
+            // Administrative channels (simulator, admin, dashboard, console)
+            if (in_array($slug, ['simulator', 'admin', 'dashboard', 'internal', 'console'], true)) {
+                $workspaceId = $channelAccount?->workspace_id ?? null;
+                if ($this->isAuthenticatedOwnerOrManager($workspaceId)) {
+                    return false;
+                }
+                if (!empty($meta['is_simulator']) && $meta['is_simulator'] === true) {
+                    return false;
+                }
+                if (!empty($meta['role']) && in_array($meta['role'], ['owner', 'manager'], true)) {
+                    return false;
+                }
+                return true;
+            }
+        }
+
+        // Explicit metadata overrides for test isolation and simulator when channel slug is unassigned
+        if (isset($meta['is_customer'])) {
+            return (bool) $meta['is_customer'];
+        }
+
+        if (!empty($meta['is_simulator']) && $meta['is_simulator'] === true) {
+            return false;
+        }
+
+        if (!empty($meta['role']) && in_array($meta['role'], ['owner', 'manager'], true)) {
+            return false;
+        }
+
+        $workspaceId = $channelAccount?->workspace_id ?? null;
+        if ($this->isAuthenticatedOwnerOrManager($workspaceId)) {
+            return false;
+        }
+
+        // Fail closed: treat as customer channel
+        return true;
+    }
+
+    /**
+     * Detect queries seeking internal business workforce, employee metrics, or proprietary financial records.
+     * Enforces AC-38.
+     */
+    public function hasInternalWorkforceOrFinancialIntent(string $query): bool
+    {
+        $q = mb_strtolower(trim($query));
+
+        // 0. Ignore legitimate personal customer order lookup queries (e.g. "আমার কেনাকাটা", "amar order")
+        if (preg_match('/^(?:আমার|amar|my|our)\s+(?:কেনাকাটা|order|orders|purchase|purchases)/ui', $q)) {
+            return false;
+        }
+
+        // 0. Ignore customer inquiries requesting to connect/talk with support agent or salesman
+        if (preg_match('/(?:কথা\s*বলতে|যোগাযোগ\s*করতে|connect|talk\s*to|speak\s*with)/ui', $q)) {
+            return false;
+        }
+
+        // 1. Explicit workforce inquiries (employee/salesman + metric)
+        $workforceTerms = '(?:salesman|salesmen|salesperson|salespeople|employee|employees|staff|worker|workers|kormi|kormider|karmachari|কর্মচারী|কর্মচারীদের|কর্মী|কর্মীদের|সেলসম্যান|সেলসম্যানের|সেলসম্যানদের|বিক্রেতা)';
+        $metricTokens = [
+            'sales', 'sale', 'sell', 'sold', 'order', 'orders', 'performance', 'performing', 'commission',
+            'salary', 'target', 'revenue', 'profit', 'turnover', 'figures', 'breakdown', 'bikri', 'bikroy', 'labh',
+            'beton', 'khoroch', 'হিসাব', 'তালিকা', 'বিক্রি', 'সেলস', 'পারফরম্যান্স', 'কমিশন', 'বেতন', 'টার্গেট', 'লাভ', 'ক্ষতি'
+        ];
+
+        $hasWorkforce = (bool) preg_match('/\b' . $workforceTerms . '\b/ui', $q);
+        $hasMetric = false;
+        foreach ($metricTokens as $m) {
+            if (preg_match('/(?:^|[^\p{L}\p{N}])' . preg_quote($m, '/') . '(?:$|[^\p{L}\p{N}])/ui', $q)) {
+                $hasMetric = true;
+                break;
+            }
+        }
+        if ($hasWorkforce && $hasMetric) {
+            return true;
+        }
+
+        // 2. Comparative employee sales questions ("who sold the most", "who brought in the most revenue", "কে সবচেয়ে বেশি বিক্রি করেছে")
+        if (preg_match('/(?:who\s+(?:sold|brought|made)\s+(?:in\s+)?(?:the\s+)?most|কে\s+(?:সবচেয়ে\s+)?বেশি\s+(?:বিক্রি|সেলস)|কার\s+(?:সেলস|বিক্রি)\s+(?:সবচেয়ে\s+)?বেশি)/ui', $q)) {
+            return true;
+        }
+
+        // 3. Named individual employee sales ("Rahim er sales", "রহিমের বিক্রি", "রহিম কত বিক্রি করেছে")
+        if (preg_match('/(?:কত\s*(?:টাকার\s*)?(?:sales|বিক্রি|সেলস)|(?:sales|বিক্রি|সেলস)\s*করেছে|সেলস\s*কত|sales\s*report|sales\s*koto|koto\s*sales)/ui', $q)) {
+            if (!preg_match('/^(?:amar|amader|আমার|আমাদের|my|our)\b/ui', $q)) {
+                return true;
+            }
+        }
+
+        if (preg_match('/\b[a-z\p{L}]+(?:-er|\s+er|\s+এর|\s*র)\s+.*?(?:sales|বিক্রি|পারফরম্যান্স|performance|commission|কমিশন)/ui', $q)) {
+            if (!preg_match('/^(?:amar|amader|আমার|আমাদের|my|our)\b/ui', $q)) {
+                return true;
+            }
+        }
+
+        // 4. Store-wide proprietary business financials, turnover, profit & loss, cash collections
+        if (preg_match('/(?:মোট\s*.*?(?:বিক্রি|সেলস|লাভ|মুনাফা|রেভিনিউ|উপার্জন|ক্যাশ|টাকা\s*জমা)|ব্যবসা[রয়]?\s*.*?(?:লাভ|বিক্রি|হিসাব|ক্ষতি|আয়|উপার্জন|ক্যাশ)|কোম্পানির\s*.*?(?:লাভ|বিক্রি|আয়|ব্যয়|রেভিনিউ|ক্যাশ|টার্নওভার)|দোকানের\s*.*?(?:বিক্রি|লাভ|মুনাফা|ক্যাশ|ক্যাশবাক্স|টাকা\s*জমা|আয়|হিসাব)|total\s+.*?(?:revenue|profit|sales|turnover|earnings|cash)|monthly\s+.*?(?:revenue|profit|sales|turnover|earnings|cash)|daily\s+.*?(?:revenue|profit|sales|turnover|earnings|cash)|profit\s+(?:did\s+you\s+make|report|koto|hoise)|sales\s+report|financial\s+(?:report|figures)|(?:business|company|store)\s+.*?(?:profit|revenue|turnover|labh|earnings|collection)|labh\s*koto|cash\s*in\s*koto|ক্যাশ\s*ইন|ক্যাশ\s*কালেকশন|overall\s+earnings|how\s+much\s+(?:profit|revenue|money\s+did\s+(?:the\s+store|you)\s+make))/ui', $q)) {
+            return true;
+        }
+
+        // 5. Employee salary, commission, or performance targets
+        if (preg_match('/(?:বেতন|salary|commission|কমিশন|sales\s*target|টার্গেট)\b/ui', $q)) {
+            if (preg_match('/(?:employee|staff|salesman|worker|কর্মী|কর্মচারী|সেলসম্যান)/ui', $q)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Verify whether the current request is from an authenticated Owner or Manager.
+     * Enforces AC-14, AC-22, AC-39.
+     */
+    public function isAuthenticatedOwnerOrManager(?int $workspaceId = null): bool
+    {
+        $user = Auth::user();
+        if ($user === null && config('auth.guards.sanctum') !== null) {
+            try {
+                $user = Auth::guard('sanctum')->user();
+            } catch (\Throwable) {
+                $user = null;
+            }
+        }
+        if ($user === null) {
+            return false;
+        }
+
+        // Superadmins have universal authority across workspaces
+        if (method_exists($user, 'hasRole') && $user->hasRole(RoleEnum::SUPERADMIN->value)) {
+            return true;
+        }
+
+        // Intra-tenant RBAC: User must strictly belong to the specified workspace (prevents cross-tenant access)
+        if ($workspaceId !== null && (int) $user->workspace_id !== (int) $workspaceId) {
+            return false; // Cross-tenant access strictly denied
+        }
+
+        // Workspace Owner/Admin: Full operational access within their own workspace
+        if (method_exists($user, 'hasRole') && $user->hasRole(RoleEnum::ADMIN->value)) {
+            return true;
+        }
+
+        // Manager Role: Must possess explicit analytics/workforce permission to access business analytics (AC-39)
+        if (method_exists($user, 'hasRole') && $user->hasRole('manager')) {
+            $hasPermission = false;
+            if (method_exists($user, 'hasPermissionTo')) {
+                try {
+                    $hasPermission = $user->hasPermissionTo('view_analytics')
+                        || $user->hasPermissionTo('analytics.view')
+                        || $user->hasPermissionTo('view_workforce')
+                        || $user->hasPermissionTo('workforce.view');
+                } catch (\Throwable) {
+                    $hasPermission = false;
+                }
+            }
+            if (!$hasPermission && method_exists($user, 'can')) {
+                try {
+                    $hasPermission = $user->can('view_analytics')
+                        || $user->can('analytics.view')
+                        || $user->can('view_workforce')
+                        || $user->can('workforce.view');
+                } catch (\Throwable) {
+                    $hasPermission = false;
+                }
+            }
+            return $hasPermission;
+        }
+
+        return false;
+    }
+
+    /**
+     * Verify authorization for analytics execution across interactive session, simulator, or explicit roles.
+     * Enforces AC-14, AC-22, AC-39.
+     */
+    public function isAuthorizedOwnerOrManager(int $workspaceId, ?Conversation $conversation = null): bool
+    {
+        if ($this->isAuthenticatedOwnerOrManager($workspaceId)) {
+            return true;
+        }
+
+        if ($conversation !== null) {
+            $meta = $conversation->metadata ?? [];
+            if (!empty($meta['is_simulator']) && $meta['is_simulator'] === true) {
+                return true;
+            }
+
+            if (!empty($meta['role']) && $meta['role'] === 'owner') {
+                return true;
+            }
+
+            if (!empty($meta['role']) && $meta['role'] === 'manager') {
+                $perms = $meta['permissions'] ?? [];
+                return in_array('view_analytics', $perms, true)
+                    || in_array('analytics.view', $perms, true)
+                    || in_array('view_workforce', $perms, true);
+            }
+        }
+
+        return false;
     }
 
     /**

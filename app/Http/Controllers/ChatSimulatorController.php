@@ -26,6 +26,7 @@ class ChatSimulatorController extends Controller
         private readonly CustomerSupportService $customerSupportService,
         private readonly RetrievalClient $retrievalClient,
         private readonly AnalyticsClient $analyticsClient,
+        private readonly ?\App\Services\AI\OwnerBusinessAssistant $ownerBusinessAssistant = null,
     ) {
     }
 
@@ -169,12 +170,24 @@ class ChatSimulatorController extends Controller
             name: null,
         );
 
-        // ── 2. Run Unified CustomerSupportService with Conversation Memory 
-        $supportResult = $this->customerSupportService->handleQuery(
-            query: $query,
-            workspaceId: $workspaceId,
-            conversation: $conversation,
-        );
+        // ── 2. Route Separation: Owner Business Intelligence vs Customer Support
+        $currentUser = Auth::user();
+        $assistant = $this->ownerBusinessAssistant ?? app(\App\Services\AI\OwnerBusinessAssistant::class);
+
+        if ($currentUser && $assistant->isAuthorizedOwnerOrManager($currentUser, $workspaceId)) {
+            $supportResult = $assistant->handleOwnerQuery(
+                query: $query,
+                workspaceId: $workspaceId,
+                conversation: $conversation,
+                user: $currentUser
+            );
+        } else {
+            $supportResult = $this->customerSupportService->handleQuery(
+                query: $query,
+                workspaceId: $workspaceId,
+                conversation: $conversation,
+            );
+        }
 
         // Save AI outbound response to conversation history for next turn context
         if (!empty($supportResult['reply'])) {
@@ -473,7 +486,7 @@ class ChatSimulatorController extends Controller
         $sessionId = $request->hasSession() ? $request->session()->getId() : 'default_sim_session';
         $sessionKey = 'simulator_conv_' . ($sessionId ?: 'default');
 
-        $channel = Channel::first() ?? Channel::create([
+        $channel = Channel::where('slug', 'simulator')->first() ?? Channel::create([
             'name' => 'Simulator Channel',
             'slug' => 'simulator',
             'driver' => 'web',
@@ -489,17 +502,37 @@ class ChatSimulatorController extends Controller
             ]
         );
 
-        return Conversation::firstOrCreate(
+        $currentUser = Auth::user();
+        $isOwnerOrAdmin = $currentUser?->hasRole('owner') || $currentUser?->hasRole('admin');
+
+        $conversation = Conversation::firstOrCreate(
             [
                 'channel_account_id' => $channelAccount->id,
                 'external_user_id' => $sessionKey,
             ],
             [
                 'status' => 'active',
-                'customer_name' => Auth::user()?->name ?? 'Simulator User',
+                'customer_name' => $currentUser?->name ?? 'Simulator User',
                 'last_direction' => 'inbound',
+                'metadata' => [
+                    'is_simulator' => true,
+                    'is_customer' => false,
+                    'role' => $isOwnerOrAdmin ? 'owner' : 'manager',
+                ],
             ]
         );
+
+        // Ensure metadata is populated for existing conversations
+        $meta = $conversation->metadata ?? [];
+        if (! isset($meta['is_simulator']) || ! isset($meta['is_customer'])) {
+            $meta['is_simulator'] = true;
+            $meta['is_customer'] = false;
+            $meta['role'] = $isOwnerOrAdmin ? 'owner' : 'manager';
+            $conversation->metadata = $meta;
+            $conversation->save();
+        }
+
+        return $conversation;
     }
 
     /**

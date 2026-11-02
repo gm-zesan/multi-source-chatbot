@@ -269,7 +269,7 @@ class KnowledgeDocumentService
                 ], true);
 
                 $extension = strtolower(pathinfo($doc->original_filename, PATHINFO_EXTENSION));
-                $isSpreadsheet = in_array($extension, ['csv', 'xlsx'], true);
+                $isSpreadsheet = in_array($extension, ['csv', 'xlsx', 'xls'], true);
 
                 $purpose = $doc->getIngestionPurpose();
                 $isDataAnalytics = $purpose === IngestionPurpose::DATA_ANALYTICS;
@@ -515,7 +515,7 @@ class KnowledgeDocumentService
     }
 
     /**
-     * Dispatch spreadsheet ingestion to Python analytics service and update document status.
+     * Dispatch spreadsheet inspection, dynamic schema discovery, and structured data ingestion.
      */
     public function processAnalyticsRegistration(KnowledgeDocument $document): void
     {
@@ -531,35 +531,89 @@ class KnowledgeDocumentService
 
         $extension = strtolower(pathinfo($document->original_filename, PATHINFO_EXTENSION));
 
-        $analyticsResponse = $this->analyticsClient->uploadSpreadsheet(
-            filePath: $realStoredPath,
-            filename: $document->original_filename,
-            workspaceId: $document->workspace_id,
-            conversationId: null,
-            format: $extension,
-            sourceId: $document->source_id ?: $document->id,
-        );
+        // 1. Dynamic inspection and candidate header detection (Phase 2C)
+        $inspector = app(\App\Services\Spreadsheet\SpreadsheetInspectorService::class);
+        $inspection = $inspector->inspectWorkbook($realStoredPath, $document->original_filename);
 
-        if (! empty($analyticsResponse['success'])) {
-            $sourceId = (string) ($analyticsResponse['source_id'] ?? $analyticsResponse['file_id'] ?? $document->id);
-            $sheets = $analyticsResponse['sheets'] ?? [];
-            $sheetsCount = (int) ($analyticsResponse['sheets_count'] ?? count($sheets));
-            $failedSheets = $analyticsResponse['failed_sheets'] ?? [];
-            $totalRows = (int) ($analyticsResponse['total_rows'] ?? 0);
-            $schemaSummary = (string) ($analyticsResponse['schema_summary'] ?? '');
-
-            $existingMetadata = is_array($document->metadata) ? $document->metadata : [];
-            $newMetadata = array_merge($existingMetadata, [
-                'source_id'          => $sourceId,
-                'sheets'             => $sheets,
-                'sheets_count'       => $sheetsCount,
-                'failed_sheets'      => $failedSheets,
-                'total_rows'         => $totalRows,
-                'tables'             => $analyticsResponse['tables'] ?? [],
-                'schema_summary'     => $schemaSummary,
-                'searchable_catalog' => $analyticsResponse['metadata_catalog'] ?? null,
-                'ingestion_purpose'  => $existingMetadata['ingestion_purpose'] ?? \App\Enums\IngestionPurpose::DATA_ANALYTICS->value,
+        if (empty($inspection['success'])) {
+            $document->update([
+                'lifecycle_status' => DocumentLifecycleStatus::FAILED,
+                'is_active'        => false,
+                'error_message'    => $inspection['error'] ?? 'Spreadsheet validation failed.',
             ]);
+            return;
+        }
+
+        $detectedSchema = $inspection['inspection'] ?? [];
+        $sheets = $inspection['sheets'] ?? ['Default'];
+        $sheetsCount = count($sheets);
+        $totalRows = (int) ($inspection['total_rows'] ?? 0);
+        $isAmbiguous = $detectedSchema['is_ambiguous'] ?? false;
+
+        // Check if any column mapping is ambiguous or has low confidence
+        foreach ($detectedSchema['columns'] ?? [] as $col) {
+            if (! empty($col['is_ambiguous']) || (float) ($col['confidence'] ?? 0.0) < 0.65) {
+                $isAmbiguous = true;
+                break;
+            }
+        }
+
+        // 2. Connect to Python Analytics Source Registration if available
+        $analyticsResponse = [];
+        try {
+            $analyticsResponse = $this->analyticsClient->uploadSpreadsheet(
+                filePath: $realStoredPath,
+                filename: $document->original_filename,
+                workspaceId: $document->workspace_id,
+                conversationId: null,
+                format: $extension,
+                sourceId: $document->source_id ?: $document->id,
+            );
+        } catch (\Throwable $e) {
+            Log::warning('[KnowledgeDocumentService] Python analytics registration exception: ' . $e->getMessage());
+        }
+
+        $sourceId = (string) ($analyticsResponse['source_id'] ?? $analyticsResponse['file_id'] ?? $document->source_id ?? $document->id);
+        $existingMetadata = is_array($document->metadata) ? $document->metadata : [];
+
+        $newMetadata = array_merge($existingMetadata, [
+            'source_id'          => $sourceId,
+            'sheets'             => $sheets,
+            'sheets_count'       => max(1, $sheetsCount),
+            'total_rows'         => $totalRows,
+            'inspection'         => $detectedSchema,
+            'searchable_catalog' => $analyticsResponse['metadata_catalog'] ?? null,
+            'schema_summary'     => $analyticsResponse['schema_summary'] ?? null,
+            'ingestion_purpose'  => $existingMetadata['ingestion_purpose'] ?? \App\Enums\IngestionPurpose::DATA_ANALYTICS->value,
+        ]);
+
+        $ingestionService = app(\App\Services\Spreadsheet\SpreadsheetIngestionService::class);
+
+        // 3. Status decision: Ambiguous mappings require owner confirmation (AC-23, Phase 2C)
+        if ($isAmbiguous) {
+            $document->update([
+                'source_id'        => $sourceId,
+                'sheets_count'     => max(1, $sheetsCount),
+                'chunk_count'      => $totalRows,
+                'lifecycle_status' => DocumentLifecycleStatus::REQUIRES_MAPPING,
+                'is_active'        => false,
+                'error_message'    => null,
+                'metadata'         => $newMetadata,
+            ]);
+
+            $ingestionService->createImportJob(
+                document: $document,
+                sheetName: $inspection['active_sheet'] ?? $sheets[0],
+                headerRowIndex: $detectedSchema['header_row_index'] ?? 0,
+                mappingConfig: null,
+                conflictMode: 'skip',
+                userId: Auth::id()
+            );
+        } else {
+            $autoMapping = [];
+            foreach ($detectedSchema['columns'] ?? [] as $col) {
+                $autoMapping[$col['name']] = $col['suggested_category'];
+            }
 
             $document->update([
                 'source_id'        => $sourceId,
@@ -570,13 +624,17 @@ class KnowledgeDocumentService
                 'error_message'    => null,
                 'metadata'         => $newMetadata,
             ]);
-        } else {
-            $errorMsg = (string) ($analyticsResponse['message'] ?? 'Failed to register analytical data source in analytics engine.');
-            $document->update([
-                'lifecycle_status' => DocumentLifecycleStatus::FAILED,
-                'is_active'        => false,
-                'error_message'    => $errorMsg,
-            ]);
+
+            $job = $ingestionService->createImportJob(
+                document: $document,
+                sheetName: $inspection['active_sheet'] ?? $sheets[0],
+                headerRowIndex: $detectedSchema['header_row_index'] ?? 0,
+                mappingConfig: $autoMapping,
+                conflictMode: 'skip',
+                userId: Auth::id()
+            );
+
+            \App\Jobs\ProcessSpreadsheetImportJob::dispatch($job, $job->generation_id);
         }
     }
 
@@ -798,6 +856,25 @@ class KnowledgeDocumentService
      */
     public function extractDocumentText(KnowledgeDocument $document): string
     {
+        // 0. If structured records exist for this document, project strictly authorized public records (Zero-Token Leakage)
+        if ($document->structuredRecords()->exists()) {
+            $publicRecords = $document->structuredRecords()->where('is_public', true)->get();
+            if ($publicRecords->isEmpty()) {
+                return '';
+            }
+            $context = \App\Services\Spreadsheet\Security\ServerControlledContext::forCustomer((int) $document->workspace_id);
+            $projectionService = app(\App\Services\Spreadsheet\Projections\FieldLevelProjectionService::class);
+            $projected = $projectionService->projectBatch($publicRecords, $context);
+            $lines = [];
+            foreach ($projected as $pr) {
+                $str = $pr->toPromptString();
+                if ($str !== '') {
+                    $lines[] = $str;
+                }
+            }
+            return implode("\n", $lines);
+        }
+
         // 1. Check metadata for raw_text (for storeText or explicit text entries)
         if (! empty($document->metadata['raw_text'])) {
             return (string) $document->metadata['raw_text'];

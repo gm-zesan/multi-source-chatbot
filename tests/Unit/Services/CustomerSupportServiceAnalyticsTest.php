@@ -60,9 +60,17 @@ class CustomerSupportServiceAnalyticsTest extends TestCase
             businessAnalyticsTool: $businessAnalyticsTool,
         );
 
+        $conversation = new Conversation([
+            'metadata' => [
+                'role' => 'owner',
+                'is_simulator' => true,
+            ],
+        ]);
+
         $result = $service->handleQuery(
             query: 'Aj koto cashin hoise?',
             workspaceId: 5,
+            conversation: $conversation,
         );
 
         $this->assertSame('analytics', $result['route']);

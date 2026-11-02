@@ -31,4 +31,19 @@ class Workspace extends Model
     {
         return $this->hasMany(CRMContact::class);
     }
+
+    public function knowledgeDocuments(): HasMany
+    {
+        return $this->hasMany(KnowledgeDocument::class);
+    }
+
+    public function spreadsheetImportJobs(): HasMany
+    {
+        return $this->hasMany(SpreadsheetImportJob::class);
+    }
+
+    public function structuredRecords(): HasMany
+    {
+        return $this->hasMany(StructuredRecord::class);
+    }
 }

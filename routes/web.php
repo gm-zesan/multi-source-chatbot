@@ -4,6 +4,7 @@ use App\Enums\Permissions\ConversationPermission;
 use App\Enums\Permissions\MessagePermission;
 use App\Enums\Permissions\RolePermission;
 use App\Enums\Permissions\UserPermission;
+use App\Enums\Permissions\FAQPermission;
 use App\Http\Controllers\AssignRoleController;
 use App\Http\Controllers\ChatSimulatorController;
 use App\Http\Controllers\ContactFormController;
@@ -63,8 +64,10 @@ Route::middleware('auth')->prefix('dashboard')->group(function () {
     Route::resource('conversations',ConversationController::class)->only(['index', 'show'])
         ->middleware('permission:' . ConversationPermission::VIEW->value);
     Route::post('/conversations/{conversation}/reply', [ConversationController::class,'reply'])
+        ->name('conversations.reply')
         ->middleware('permission:' . ConversationPermission::UPDATE->value);
     Route::post('/conversations/{conversation}/ai-reply', [ConversationController::class,'aiReply'])
+        ->name('conversations.ai-reply')
         ->middleware('permission:' . ConversationPermission::UPDATE->value);
 
     // Users
@@ -103,39 +106,39 @@ Route::middleware('auth')->prefix('dashboard')->group(function () {
     Route::get('/knowledge-base', [KnowledgeBaseController::class, 'index'])
         ->name('knowledge-base.index')
         ->middleware('permission:' . implode('|', [
-            \App\Enums\Permissions\FAQPermission::VIEW->value,
+            FAQPermission::VIEW->value,
             KnowledgeDocumentPermission::VIEW->value,
         ]));
 
     Route::post('/knowledge-base/reindex', [KnowledgeBaseController::class, 'reindex'])
         ->name('knowledge-base.reindex')
         ->middleware('permission:' . implode('|', [
-            \App\Enums\Permissions\FAQPermission::UPDATE->value,
-            \App\Enums\Permissions\FAQPermission::CREATE->value,
+            FAQPermission::UPDATE->value,
+            FAQPermission::CREATE->value,
         ]));
 
 
     // ── FAQs ────────────────────────────────────────────────────────────
     Route::resource('/faqs', FAQController::class)->except(['show'])
         ->middleware('permission:' . implode('|', [
-            \App\Enums\Permissions\FAQPermission::VIEW->value,
-            \App\Enums\Permissions\FAQPermission::CREATE->value,
-            \App\Enums\Permissions\FAQPermission::UPDATE->value,
-            \App\Enums\Permissions\FAQPermission::DELETE->value,
+            FAQPermission::VIEW->value,
+            FAQPermission::CREATE->value,
+            FAQPermission::UPDATE->value,
+            FAQPermission::DELETE->value,
         ]));
     Route::post('/faqs/{faq}/toggle-active', [FAQController::class, 'toggleActive'])
         ->name('faqs.toggle-active')
-        ->middleware('permission:' . \App\Enums\Permissions\FAQPermission::UPDATE->value);
+        ->middleware('permission:' . FAQPermission::UPDATE->value);
     Route::post('/faqs/{faq}/resync', [FAQController::class, 'resync'])
         ->name('faqs.resync')
-        ->middleware('permission:' . \App\Enums\Permissions\FAQPermission::UPDATE->value);
+        ->middleware('permission:' . FAQPermission::UPDATE->value);
     Route::post('/faqs/{id}/restore', [FAQController::class, 'restore'])
         ->name('faqs.restore')
         ->withTrashed()
-        ->middleware('permission:' . \App\Enums\Permissions\FAQPermission::UPDATE->value);
+        ->middleware('permission:' . FAQPermission::UPDATE->value);
     Route::post('/faqs/bulk-delete', [FAQController::class, 'bulkDelete'])
         ->name('faqs.bulk-delete')
-        ->middleware('permission:' . \App\Enums\Permissions\FAQPermission::DELETE->value);
+        ->middleware('permission:' . FAQPermission::DELETE->value);
 
     // ── Knowledge Documents ─────────────────────────────────────────────
     Route::resource('/documents', KnowledgeDocumentController::class)->only(['index', 'create', 'store', 'destroy'])
@@ -157,6 +160,43 @@ Route::middleware('auth')->prefix('dashboard')->group(function () {
     Route::get('/documents/{document}/preview', [KnowledgeDocumentController::class, 'preview'])
         ->name('documents.preview')
         ->middleware('permission:' . KnowledgeDocumentPermission::VIEW->value);
+
+    // ── Dynamic Spreadsheet Ingestion & Mapping (Phase 2) ───────────────
+    Route::prefix('/documents/{document}/spreadsheet')->name('documents.spreadsheet.')->group(function () {
+        Route::get('/inspect', [\App\Http\Controllers\SpreadsheetImportController::class, 'inspect'])
+            ->name('inspect')
+            ->middleware('permission:' . KnowledgeDocumentPermission::VIEW->value);
+        Route::get('/suggestions', [\App\Http\Controllers\SpreadsheetImportController::class, 'mappingSuggestions'])
+            ->name('suggestions')
+            ->middleware('permission:' . KnowledgeDocumentPermission::VIEW->value);
+        Route::post('/confirm', [\App\Http\Controllers\SpreadsheetImportController::class, 'confirmMapping'])
+            ->name('confirm')
+            ->middleware('permission:' . KnowledgeDocumentPermission::UPDATE->value);
+        Route::get('/status', [\App\Http\Controllers\SpreadsheetImportController::class, 'status'])
+            ->name('status')
+            ->middleware('permission:' . KnowledgeDocumentPermission::VIEW->value);
+        Route::get('/errors', [\App\Http\Controllers\SpreadsheetImportController::class, 'errors'])
+            ->name('errors')
+            ->middleware('permission:' . KnowledgeDocumentPermission::VIEW->value);
+        Route::post('/retry', [\App\Http\Controllers\SpreadsheetImportController::class, 'retry'])
+            ->name('retry')
+            ->middleware('permission:' . KnowledgeDocumentPermission::UPDATE->value);
+        Route::post('/cancel', [\App\Http\Controllers\SpreadsheetImportController::class, 'cancel'])
+            ->name('cancel')
+            ->middleware('permission:' . KnowledgeDocumentPermission::UPDATE->value);
+        Route::get('/relationships', [\App\Http\Controllers\SpreadsheetImportController::class, 'relationships'])
+            ->name('relationships')
+            ->middleware('permission:' . KnowledgeDocumentPermission::VIEW->value);
+        Route::post('/relationships/discover', [\App\Http\Controllers\SpreadsheetImportController::class, 'discoverRelationships'])
+            ->name('relationships.discover')
+            ->middleware('permission:' . KnowledgeDocumentPermission::UPDATE->value);
+        Route::post('/relationships/confirm', [\App\Http\Controllers\SpreadsheetImportController::class, 'confirmRelationship'])
+            ->name('relationships.confirm')
+            ->middleware('permission:' . KnowledgeDocumentPermission::UPDATE->value);
+        Route::post('/relationships/reject', [\App\Http\Controllers\SpreadsheetImportController::class, 'rejectRelationship'])
+            ->name('relationships.reject')
+            ->middleware('permission:' . KnowledgeDocumentPermission::UPDATE->value);
+    });
 
 
 });

@@ -129,6 +129,16 @@ class KnowledgeDocument extends Model
         return $this->belongsTo(User::class, 'updated_by');
     }
 
+    public function importJobs(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(SpreadsheetImportJob::class, 'document_id');
+    }
+
+    public function structuredRecords(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(StructuredRecord::class, 'document_id');
+    }
+
     /**
      * Get a human-readable file size string.
      */

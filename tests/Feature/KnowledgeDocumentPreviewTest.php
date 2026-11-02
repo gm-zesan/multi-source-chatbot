@@ -206,7 +206,7 @@ class KnowledgeDocumentPreviewTest extends TestCase
         $response->assertUnauthorized();
     }
 
-    public function test_superadmin_can_preview_documents_across_workspaces(): void
+    public function test_superadmin_without_active_governance_session_is_denied_cross_workspace_preview(): void
     {
         $csvContent = "Col1,Col2\nVal1,Val2";
         $filePath = "documents/{$this->workspaceB->id}/" . (string) Str::uuid() . '.csv';
@@ -224,6 +224,37 @@ class KnowledgeDocumentPreviewTest extends TestCase
             'purpose'           => IngestionPurpose::DATA_ANALYTICS,
         ]);
 
+        // SuperAdmin has NO governance session for Workspace B -> MUST be 403 Forbidden
+        $response = $this->actingAs($this->superAdmin)
+            ->getJson(route('documents.preview', ['document' => $doc->id]));
+
+        $response->assertStatus(403);
+    }
+
+    public function test_superadmin_with_active_governance_session_can_preview_documents_across_workspaces(): void
+    {
+        $csvContent = "Col1,Col2\nVal1,Val2";
+        $filePath = "documents/{$this->workspaceB->id}/" . (string) Str::uuid() . '.csv';
+        Storage::disk('local')->put($filePath, $csvContent);
+
+        $doc = KnowledgeDocument::create([
+            'workspace_id'      => $this->workspaceB->id,
+            'title'             => 'Workspace B Doc',
+            'original_filename' => 'data.csv',
+            'file_path'         => $filePath,
+            'content_hash'      => hash('sha256', $csvContent),
+            'mime_type'         => 'text/csv',
+            'file_size'         => strlen($csvContent),
+            'lifecycle_status'  => DocumentLifecycleStatus::ACTIVE,
+            'purpose'           => IngestionPurpose::DATA_ANALYTICS,
+        ]);
+
+        $session = \App\Models\SuperAdminGovernanceSession::createSession(
+            $this->superAdmin,
+            $this->workspaceB->id,
+            'Audited investigation for cross-tenant document preview'
+        );
+
         $response = $this->actingAs($this->superAdmin)
             ->getJson(route('documents.preview', ['document' => $doc->id]));
 
@@ -232,5 +263,11 @@ class KnowledgeDocumentPreviewTest extends TestCase
                 'success' => true,
                 'type'    => 'spreadsheet',
             ]);
+
+        // Verify permanent audit event logging
+        $session->refresh();
+        $this->assertNotEmpty($session->audit_log);
+        $actions = array_column($session->audit_log, 'action');
+        $this->assertContains('document_accessed', $actions);
     }
 }
