@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Listeners;
 
 use App\Events\IncomingMessageReceived;
-use App\Services\AI\CustomerSupportService;
+use App\AI\Orchestration\CustomerSupportService;
 use App\Support\ChannelManager;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Queue\InteractsWithQueue;

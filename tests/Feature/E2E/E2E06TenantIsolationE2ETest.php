@@ -11,7 +11,7 @@ use App\Models\Channel;
 use App\Models\ChannelAccount;
 use App\Models\Conversation;
 use App\Models\Workspace;
-use App\Services\AI\CustomerSupportService;
+use App\AI\Orchestration\CustomerSupportService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
@@ -27,6 +27,8 @@ class E2E06TenantIsolationE2ETest extends TestCase
 
     private Workspace $ws1;
     private Workspace $ws2;
+    private \App\Models\User $user1;
+    private \App\Models\User $user2;
     private Conversation $conv1;
     private Conversation $conv2;
 
@@ -34,9 +36,19 @@ class E2E06TenantIsolationE2ETest extends TestCase
     {
         parent::setUp();
 
-        $channel = Channel::firstOrCreate(['slug' => 'web'], ['name' => 'Web', 'driver' => 'web', 'is_active' => true]);
+        $channel = Channel::firstOrCreate(['slug' => 'simulator'], ['name' => 'Admin Simulator', 'driver' => 'web', 'is_active' => true]);
+        \Spatie\Permission\Models\Role::firstOrCreate(['name' => \App\Enums\RoleEnum::ADMIN->value, 'guard_name' => 'web']);
 
         $this->ws1 = Workspace::create(['name' => 'Tenant 1 Mart', 'slug' => 'tenant-1-mart']);
+        $this->user1 = \App\Models\User::create([
+            'workspace_id' => $this->ws1->id,
+            'name'         => 'Owner 1',
+            'email'        => 'o1@test.com',
+            'password'     => bcrypt('secret'),
+            'role'         => 'admin',
+        ]);
+        $this->user1->assignRole(\App\Enums\RoleEnum::ADMIN->value);
+
         $acc1 = ChannelAccount::create([
             'workspace_id' => $this->ws1->id,
             'channel_id'   => $channel->id,
@@ -53,6 +65,15 @@ class E2E06TenantIsolationE2ETest extends TestCase
         ]);
 
         $this->ws2 = Workspace::create(['name' => 'Tenant 2 Mart', 'slug' => 'tenant-2-mart']);
+        $this->user2 = \App\Models\User::create([
+            'workspace_id' => $this->ws2->id,
+            'name'         => 'Owner 2',
+            'email'        => 'o2@test.com',
+            'password'     => bcrypt('secret'),
+            'role'         => 'admin',
+        ]);
+        $this->user2->assignRole(\App\Enums\RoleEnum::ADMIN->value);
+
         $acc2 = ChannelAccount::create([
             'workspace_id' => $this->ws2->id,
             'channel_id'   => $channel->id,
@@ -124,6 +145,7 @@ class E2E06TenantIsolationE2ETest extends TestCase
         $service = $this->app->make(CustomerSupportService::class);
 
         // Turn 1: Workspace 1 Query
+        $this->actingAs($this->user1);
         $reply1 = $service->generateReply(
             conversation: $this->conv1,
             query: 'Show me today\'s cash collection',
@@ -135,6 +157,7 @@ class E2E06TenantIsolationE2ETest extends TestCase
         $this->assertStringNotContainsString('20,000', $reply1);
 
         // Turn 2: Workspace 2 Query
+        $this->actingAs($this->user2);
         $reply2 = $service->generateReply(
             conversation: $this->conv2,
             query: 'Show me today\'s cash collection',

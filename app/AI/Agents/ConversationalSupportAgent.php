@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace App\AI\Agents;
 
+use App\AI\Contracts\AgentInterface;
+use App\AI\DTOs\AgentContext;
+use App\AI\DTOs\AgentResponse;
 use App\Models\Conversation;
 use Laravel\Ai\Contracts\Agent;
 use Laravel\Ai\Contracts\Conversational;
@@ -14,14 +17,53 @@ use Laravel\Ai\Messages\UserMessage;
 use Laravel\Ai\Promptable;
 use Stringable;
 
-class ConversationalSupportAgent implements Agent, Conversational, HasProviderOptions
+class ConversationalSupportAgent implements Agent, Conversational, HasProviderOptions, AgentInterface
 {
     use Promptable;
+
+    public const AGENT_ID = 'conversational_support_agent';
+    public const ROLE_NAME = 'Customer Conversational Support Assistant';
+    public const MAX_STEPS = 1;
 
     public function __construct(
         public readonly ?Conversation $conversation = null,
         public readonly ?string $memoryContext = null,
     ) {}
+
+    public function getAgentId(): string
+    {
+        return self::AGENT_ID;
+    }
+
+    public function getRoleName(): string
+    {
+        return self::ROLE_NAME;
+    }
+
+    public function getSystemPrompt(AgentContext $context): string
+    {
+        return (string) $this->instructions();
+    }
+
+    public function getRegisteredTools(): array
+    {
+        return [];
+    }
+
+    public function maxSteps(): int
+    {
+        return self::MAX_STEPS;
+    }
+
+    public function onTurnStart(AgentContext $context): void
+    {
+        // Lifecycle hook
+    }
+
+    public function onTurnEnd(AgentContext $context, AgentResponse $response): void
+    {
+        // Lifecycle hook
+    }
 
     public function instructions(): Stringable|string
     {

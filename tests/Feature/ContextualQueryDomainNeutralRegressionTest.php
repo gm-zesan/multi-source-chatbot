@@ -9,8 +9,8 @@ use App\Models\ChannelAccount;
 use App\Models\Conversation;
 use App\Models\Message;
 use App\Models\Workspace;
-use App\Services\AI\ContextualQueryBuilder;
-use App\Services\AI\DTOs\ContextualResolutionResult;
+use App\AI\Context\ContextualQueryBuilder;
+use App\AI\DTOs\ContextualResolutionResult;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 

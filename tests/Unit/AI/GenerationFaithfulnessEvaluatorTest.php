@@ -6,9 +6,9 @@ namespace Tests\Unit\AI;
 
 use App\AI\Agents\KnowledgeSupportAgent;
 use App\Models\FAQ;
-use App\Services\AI\DTOs\AnswerabilityDecision;
-use App\Services\AI\Enums\AnswerabilityStatus;
-use App\Services\AI\Evaluation\GenerationFaithfulnessEvaluator;
+use App\AI\DTOs\AnswerabilityDecision;
+use App\Enums\AI\AnswerabilityStatus;
+use App\AI\Evaluation\GenerationFaithfulnessEvaluator;
 use App\Services\FAQ\FAQSearchResult;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Tests\TestCase;

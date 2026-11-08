@@ -8,7 +8,7 @@ use App\Models\Channel;
 use App\Models\ChannelAccount;
 use App\Models\Conversation;
 use App\Models\Workspace;
-use App\Services\AI\ActionSafetyService;
+use App\AI\Guards\ActionSafetyService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 

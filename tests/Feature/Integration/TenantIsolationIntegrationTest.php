@@ -11,7 +11,7 @@ use App\Models\Channel;
 use App\Models\ChannelAccount;
 use App\Models\Conversation;
 use App\Models\Workspace;
-use App\Services\AI\CustomerSupportService;
+use App\AI\Orchestration\CustomerSupportService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
@@ -27,21 +27,28 @@ class TenantIsolationIntegrationTest extends TestCase
     private Conversation $conv1;
     private Conversation $conv2;
     private CustomerSupportService $supportService;
+    private \App\Models\User $user1;
+    private \App\Models\User $user2;
 
     protected function setUp(): void
     {
         parent::setUp();
 
         $channel = Channel::firstOrCreate(
-            ['slug' => 'web'],
-            ['name' => 'Web Chat', 'driver' => 'web', 'is_active' => true]
+            ['slug' => 'simulator'],
+            ['name' => 'Simulator', 'driver' => 'simulator', 'is_active' => true]
         );
+
+        \Spatie\Permission\Models\Role::firstOrCreate(['name' => 'superadmin', 'guard_name' => 'web']);
 
         // Workspace 1 (e.g. Retailer Alpha)
         $this->workspace1 = Workspace::create([
             'name' => 'Retailer Alpha',
             'slug' => 'retailer-alpha',
         ]);
+
+        $this->user1 = \App\Models\User::factory()->create(['workspace_id' => $this->workspace1->id]);
+        $this->user1->assignRole('superadmin');
 
         $this->account1 = ChannelAccount::create([
             'workspace_id' => $this->workspace1->id,
@@ -64,6 +71,9 @@ class TenantIsolationIntegrationTest extends TestCase
             'name' => 'Retailer Beta',
             'slug' => 'retailer-beta',
         ]);
+
+        $this->user2 = \App\Models\User::factory()->create(['workspace_id' => $this->workspace2->id]);
+        $this->user2->assignRole('superadmin');
 
         $this->account2 = ChannelAccount::create([
             'workspace_id' => $this->workspace2->id,
@@ -132,7 +142,7 @@ class TenantIsolationIntegrationTest extends TestCase
 
         $this->supportService = $this->app->make(CustomerSupportService::class);
 
-        $reply = $this->supportService->generateReply(
+        $reply = $this->actingAs($this->user1)->supportService->generateReply(
             conversation: $this->conv1,
             query: 'আজকে cash collection কত?',
             workspaceId: $this->workspace1->id
@@ -173,7 +183,7 @@ class TenantIsolationIntegrationTest extends TestCase
 
         $this->supportService = $this->app->make(CustomerSupportService::class);
 
-        $reply = $this->supportService->generateReply(
+        $reply = $this->actingAs($this->user2)->supportService->generateReply(
             conversation: $this->conv2,
             query: 'আজকে cash collection কত?',
             workspaceId: $this->workspace2->id
@@ -214,7 +224,7 @@ class TenantIsolationIntegrationTest extends TestCase
 
         $this->supportService = $this->app->make(CustomerSupportService::class);
 
-        $reply = $this->supportService->generateReply(
+        $reply = $this->actingAs($this->user1)->supportService->generateReply(
             conversation: $this->conv1,
             query: 'Nasir er sales koto?',
             workspaceId: $this->workspace1->id

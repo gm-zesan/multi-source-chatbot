@@ -100,7 +100,7 @@ class E2E09MultipleEntitiesClarificationTest extends BaseE2ETestCase
         $this->recordTurn(
             'আমি Royal Silk Panjabi নাকি Black Cotton Panjabi নিবো বুঝতে পারছি না।',
             'outbound',
-            'দুইটি পাঞ্জাবিই আমাদের বেস্টসেলার।'
+            'দুইটিই খুব চমৎকার চয়েস।'
         );
 
         $query = 'ওটার দাম কত?';

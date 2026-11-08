@@ -573,6 +573,26 @@ class KnowledgeDocumentService
             Log::warning('[KnowledgeDocumentService] Python analytics registration exception: ' . $e->getMessage());
         }
 
+        if (!empty($analyticsResponse) && empty($analyticsResponse['success'])) {
+            $isDownstreamUnavailable = str_contains($analyticsResponse['message'] ?? '', 'Failed to connect') ||
+                                       str_contains($analyticsResponse['message'] ?? '', 'Connection refused') ||
+                                       str_contains($analyticsResponse['message'] ?? '', 'HTTP error uploading data source: 400') ||
+                                       str_contains($analyticsResponse['message'] ?? '', 'HTTP error uploading data source: 5');
+
+            if (!$isDownstreamUnavailable) {
+                $document->update([
+                    'lifecycle_status' => DocumentLifecycleStatus::FAILED,
+                    'is_active'        => false,
+                    'error_message'    => $analyticsResponse['message'] ?? 'Failed to register spreadsheet with analytics service.',
+                ]);
+                return;
+            }
+        }
+
+        if (!empty($analyticsResponse['total_rows'])) {
+            $totalRows = (int) $analyticsResponse['total_rows'];
+        }
+
         $sourceId = (string) ($analyticsResponse['source_id'] ?? $analyticsResponse['file_id'] ?? $document->source_id ?? $document->id);
         $existingMetadata = is_array($document->metadata) ? $document->metadata : [];
 
@@ -584,6 +604,7 @@ class KnowledgeDocumentService
             'inspection'         => $detectedSchema,
             'searchable_catalog' => $analyticsResponse['metadata_catalog'] ?? null,
             'schema_summary'     => $analyticsResponse['schema_summary'] ?? null,
+            'failed_sheets'      => $analyticsResponse['failed_sheets'] ?? [],
             'ingestion_purpose'  => $existingMetadata['ingestion_purpose'] ?? \App\Enums\IngestionPurpose::DATA_ANALYTICS->value,
         ]);
 
@@ -612,7 +633,7 @@ class KnowledgeDocumentService
         } else {
             $autoMapping = [];
             foreach ($detectedSchema['columns'] ?? [] as $col) {
-                $autoMapping[$col['name']] = $col['suggested_category'];
+                $autoMapping[$col['name']] = $col['suggested_category'] ?? $col['canonical_category'] ?? 'General';
             }
 
             $document->update([

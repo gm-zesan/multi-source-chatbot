@@ -11,7 +11,7 @@ use App\Models\Channel;
 use App\Models\ChannelAccount;
 use App\Models\Conversation;
 use App\Models\Workspace;
-use App\Services\AI\CustomerSupportService;
+use App\AI\Orchestration\CustomerSupportService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
@@ -34,7 +34,19 @@ class E2E09DownstreamFailureResilienceTest extends TestCase
         parent::setUp();
 
         $this->workspace = Workspace::create(['name' => 'E2E Resilience Store', 'slug' => 'e2e-resilience-store']);
-        $channel = Channel::firstOrCreate(['slug' => 'web'], ['name' => 'Web', 'driver' => 'web', 'is_active' => true]);
+        $channel = Channel::firstOrCreate(['slug' => 'simulator'], ['name' => 'Admin Simulator', 'driver' => 'web', 'is_active' => true]);
+
+        \Spatie\Permission\Models\Role::firstOrCreate(['name' => \App\Enums\RoleEnum::ADMIN->value, 'guard_name' => 'web']);
+
+        $owner = \App\Models\User::create([
+            'workspace_id' => $this->workspace->id,
+            'name'         => 'Store Owner',
+            'email'        => 'owner@e2eresilience.test',
+            'password'     => bcrypt('secret'),
+            'role'         => 'admin',
+        ]);
+        $owner->assignRole(\App\Enums\RoleEnum::ADMIN->value);
+        $this->actingAs($owner);
 
         $this->account = ChannelAccount::create([
             'workspace_id' => $this->workspace->id,

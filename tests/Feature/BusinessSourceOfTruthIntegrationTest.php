@@ -14,7 +14,7 @@ use App\Models\CRMContactEmail;
 use App\Models\CRMContactPhone;
 use App\Models\FAQ;
 use App\Models\Workspace;
-use App\Services\AI\CustomerSupportService;
+use App\AI\Orchestration\CustomerSupportService;
 use App\Services\Business\BusinessSourceOfTruthService;
 use App\Services\FAQ\FAQSearchResult;
 use Illuminate\Foundation\Testing\RefreshDatabase;

@@ -8,9 +8,9 @@ use App\AI\Routing\RouteType;
 use App\Models\ChannelAccount;
 use App\Models\Conversation;
 use App\Models\Workspace;
-use App\Services\AI\DTOs\ContextualResolutionResult;
-use App\Services\AI\DTOs\FollowUpDecision;
-use App\Services\AI\FollowUpPolicyManager;
+use App\AI\DTOs\ContextualResolutionResult;
+use App\AI\DTOs\FollowUpDecision;
+use App\AI\Guards\FollowUpPolicyManager;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -336,7 +336,7 @@ class FollowUpPolicyManagerTest extends TestCase
     public function test_handles_malformed_json_and_plain_text_safely(): void
     {
         $rawPlainText = "আমাদের সব পণ্য প্রিমিয়াম কোয়ালিটি সুতি কাপড়ে তৈরি।";
-        $parsed = app(\App\Services\AI\CustomerSupportService::class)->parseAgentOutput($rawPlainText);
+        $parsed = app(\App\AI\Orchestration\CustomerSupportService::class)->parseAgentOutput($rawPlainText);
 
         $this->assertSame($rawPlainText, $parsed['answer']);
         $this->assertNull($parsed['proposed_follow_up']);

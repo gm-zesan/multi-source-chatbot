@@ -15,9 +15,9 @@ use App\Models\ChannelAccount;
 use App\Models\Conversation;
 use App\Models\Customer;
 use App\Models\Workspace;
-use App\Services\AI\ActionSafetyService;
-use App\Services\AI\CustomerSupportService;
-use App\Services\AI\SellerEmailService;
+use App\AI\Guards\ActionSafetyService;
+use App\AI\Orchestration\CustomerSupportService;
+use App\AI\Orchestration\SellerEmailService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Mail;
 use Mockery;
@@ -194,7 +194,7 @@ class SellerEmailActionIntegrationTest extends TestCase
 
         // Register an expired pending action
         $safety = $this->app->make(ActionSafetyService::class);
-        $proposal = new \App\Services\AI\DTOs\SellerEmailProposal(
+        $proposal = new \App\AI\DTOs\SellerEmailProposal(
             sellerId: $this->rahim->id,
             recipientEmail: 'rahim@store1.com',
             subject: 'Subject',
@@ -446,7 +446,7 @@ class SellerEmailActionIntegrationTest extends TestCase
         ]);
 
         $safety = $this->app->make(ActionSafetyService::class);
-        $proposal = new \App\Services\AI\DTOs\SellerEmailProposal(
+        $proposal = new \App\AI\DTOs\SellerEmailProposal(
             sellerId: $this->rahim->id,
             recipientEmail: 'rahim@store1.com',
             subject: 'Subject',

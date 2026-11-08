@@ -6,7 +6,7 @@ namespace App\Services\Memory;
 
 use App\Jobs\IngestConversationMemoryJob;
 use App\Models\Conversation;
-use App\Services\AI\DTOs\ContextualResolutionResult;
+use App\AI\DTOs\ContextualResolutionResult;
 use Illuminate\Support\Facades\Log;
 
 class ConversationMemoryService

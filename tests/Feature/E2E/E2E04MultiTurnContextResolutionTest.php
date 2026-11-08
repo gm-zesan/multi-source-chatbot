@@ -12,7 +12,7 @@ use App\Models\ChannelAccount;
 use App\Models\Conversation;
 use App\Models\Message;
 use App\Models\Workspace;
-use App\Services\AI\CustomerSupportService;
+use App\AI\Orchestration\CustomerSupportService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
@@ -35,7 +35,19 @@ class E2E04MultiTurnContextResolutionTest extends TestCase
         parent::setUp();
 
         $this->workspace = Workspace::create(['name' => 'E2E MultiTurn Store', 'slug' => 'e2e-multiturn-store']);
-        $channel = Channel::firstOrCreate(['slug' => 'web'], ['name' => 'Web', 'driver' => 'web', 'is_active' => true]);
+        $channel = Channel::firstOrCreate(['slug' => 'simulator'], ['name' => 'Admin Simulator', 'driver' => 'web', 'is_active' => true]);
+
+        \Spatie\Permission\Models\Role::firstOrCreate(['name' => \App\Enums\RoleEnum::ADMIN->value, 'guard_name' => 'web']);
+
+        $owner = \App\Models\User::create([
+            'workspace_id' => $this->workspace->id,
+            'name'         => 'Store Owner',
+            'email'        => 'owner@e2emultiturn.test',
+            'password'     => bcrypt('secret'),
+            'role'         => 'admin',
+        ]);
+        $owner->assignRole(\App\Enums\RoleEnum::ADMIN->value);
+        $this->actingAs($owner);
 
         $this->account = ChannelAccount::create([
             'workspace_id' => $this->workspace->id,

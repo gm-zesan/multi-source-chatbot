@@ -10,7 +10,8 @@ use App\Models\Conversation;
 use App\Models\Message;
 use App\Models\KnowledgeDocument;
 use App\Models\Workspace;
-use App\Services\AI\CustomerSupportService;
+use App\AI\Orchestration\CustomerSupportService;
+use App\AI\Orchestration\OwnerBusinessAssistant;
 use App\Services\CRM\CRMService;
 use App\Services\Retrieval\RetrievalClient;
 use App\Services\Analytics\AnalyticsClient;
@@ -26,7 +27,7 @@ class ChatSimulatorController extends Controller
         private readonly CustomerSupportService $customerSupportService,
         private readonly RetrievalClient $retrievalClient,
         private readonly AnalyticsClient $analyticsClient,
-        private readonly ?\App\Services\AI\OwnerBusinessAssistant $ownerBusinessAssistant = null,
+        private readonly ?OwnerBusinessAssistant $ownerBusinessAssistant = null,
     ) {
     }
 
@@ -172,7 +173,7 @@ class ChatSimulatorController extends Controller
 
         // ── 2. Route Separation: Owner Business Intelligence vs Customer Support
         $currentUser = Auth::user();
-        $assistant = $this->ownerBusinessAssistant ?? app(\App\Services\AI\OwnerBusinessAssistant::class);
+        $assistant = $this->ownerBusinessAssistant ?? app(OwnerBusinessAssistant::class);
 
         if ($currentUser && $assistant->isAuthorizedOwnerOrManager($currentUser, $workspaceId)) {
             $supportResult = $assistant->handleOwnerQuery(

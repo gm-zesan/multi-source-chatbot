@@ -13,8 +13,8 @@ use App\Models\Message;
 use App\Models\Workspace;
 use App\Services\FAQ\FAQSearch;
 use App\Models\FAQ;
-use App\Services\AI\CustomerSupportService;
-use App\Services\AI\Evaluation\GenerationFaithfulnessEvaluator;
+use App\AI\Orchestration\CustomerSupportService;
+use App\AI\Evaluation\GenerationFaithfulnessEvaluator;
 use App\Services\FAQ\FAQSearchResult;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -654,7 +654,7 @@ class KnowledgeSupportAgentTest extends TestCase
     public function test_sanitizer_and_customer_support_service_pipeline_handles_follow_up_nullification(): void
     {
         $service = app(CustomerSupportService::class);
-        $policyManager = app(\App\Services\AI\FollowUpPolicyManager::class);
+        $policyManager = app(\App\AI\Guards\FollowUpPolicyManager::class);
 
         // Case A: Hallucinated hotline in proposed_follow_up -> nullified and suppressed as no_proposal downstream
         $jsonPayload = json_encode([

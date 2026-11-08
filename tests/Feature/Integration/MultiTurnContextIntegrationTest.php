@@ -13,7 +13,7 @@ use App\Models\Conversation;
 use App\Models\FAQ;
 use App\Models\Message;
 use App\Models\Workspace;
-use App\Services\AI\CustomerSupportService;
+use App\AI\Orchestration\CustomerSupportService;
 use App\Services\FAQ\FAQSearch;
 use App\Services\FAQ\FAQSearchResult;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -39,8 +39,8 @@ class MultiTurnContextIntegrationTest extends TestCase
         ]);
 
         $channel = Channel::firstOrCreate(
-            ['slug' => 'web'],
-            ['name' => 'Web Chat', 'driver' => 'web', 'is_active' => true]
+            ['slug' => 'simulator'],
+            ['name' => 'Simulator', 'driver' => 'simulator', 'is_active' => true]
         );
 
         $this->channelAccount = ChannelAccount::create([
@@ -58,6 +58,13 @@ class MultiTurnContextIntegrationTest extends TestCase
             'status'             => 'open',
             'last_direction'     => 'inbound',
         ]);
+
+        \Spatie\Permission\Models\Role::firstOrCreate(['name' => 'superadmin', 'guard_name' => 'web']);
+        $owner = \App\Models\User::factory()->create([
+            'workspace_id' => $this->workspace->id,
+        ]);
+        $owner->assignRole('superadmin');
+        $this->actingAs($owner);
 
         $this->supportService = app(CustomerSupportService::class);
     }

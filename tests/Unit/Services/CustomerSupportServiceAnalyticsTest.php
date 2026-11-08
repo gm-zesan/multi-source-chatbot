@@ -8,7 +8,7 @@ use App\AI\Routing\HybridRouter;
 use App\AI\Routing\RouteType;
 use App\AI\Routing\RoutingResult;
 use App\Models\Conversation;
-use App\Services\AI\CustomerSupportService;
+use App\AI\Orchestration\CustomerSupportService;
 use App\Services\Analytics\AnalyticsClient;
 use App\Services\Chat\ConversationService;
 use App\Services\FAQ\FAQSearch;

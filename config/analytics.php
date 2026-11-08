@@ -35,4 +35,15 @@ return [
     |
     */
     'api_key' => env('PYTHON_ANALYTICS_API_KEY', env('PYTHON_RETRIEVAL_API_KEY', '')),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Contract 3.0 Execution Grant HMAC Secret Key
+    |--------------------------------------------------------------------------
+    |
+    | Cryptographic secret shared between Laravel and Python Analytics Service
+    | for HMAC-SHA256 signing of single-use ExecutionAuthorizationGrants.
+    |
+    */
+    'secret_key' => env('ANALYTICS_SECRET_KEY', env('API_KEY', env('APP_KEY', 'fallback_analytics_secret'))),
 ];

@@ -12,7 +12,7 @@ use App\Models\ChannelAccount;
 use App\Models\Conversation;
 use App\Models\FAQ;
 use App\Models\Workspace;
-use App\Services\AI\CustomerSupportService;
+use App\AI\Orchestration\CustomerSupportService;
 use App\Services\FAQ\FAQSearch;
 use App\Services\FAQ\FAQSearchResult;
 use Illuminate\Database\Eloquent\Collection;

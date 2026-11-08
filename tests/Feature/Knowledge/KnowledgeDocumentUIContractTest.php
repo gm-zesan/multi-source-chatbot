@@ -15,6 +15,7 @@ use Database\Seeders\PermissionSeeder;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
 class KnowledgeDocumentUIContractTest extends TestCase
@@ -274,6 +275,11 @@ class KnowledgeDocumentUIContractTest extends TestCase
 
     public function test_store_creates_direct_text_knowledge_document(): void
     {
+        Http::fake([
+            '*/api/v1/faqs/sync*' => Http::response(['status' => 'synced', 'id' => 'doc_test'], 200),
+            '*'                   => Http::response(['status' => 'ok'], 200),
+        ]);
+
         $this->actingAs($this->adminUser);
 
         $response = $this->post(route('documents.store'), [

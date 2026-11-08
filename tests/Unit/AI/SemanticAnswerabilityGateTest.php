@@ -7,9 +7,9 @@ namespace Tests\Unit\AI;
 use App\AI\Routing\RouteType;
 use App\AI\Routing\RoutingResult;
 use App\Models\FAQ;
-use App\Services\AI\DTOs\AnswerabilityDecision;
-use App\Services\AI\Enums\AnswerabilityStatus;
-use App\Services\AI\SemanticAnswerabilityGate;
+use App\AI\DTOs\AnswerabilityDecision;
+use App\Enums\AI\AnswerabilityStatus;
+use App\AI\Guards\SemanticAnswerabilityGate;
 use Illuminate\Database\Eloquent\Collection;
 use PHPUnit\Framework\TestCase;
 

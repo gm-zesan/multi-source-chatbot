@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Memory;
 
 use App\Models\Conversation;
-use App\Services\AI\DTOs\ContextualResolutionResult;
+use App\AI\DTOs\ContextualResolutionResult;
 use App\Services\Memory\DTOs\MemoryGateDecision;
 
 /**

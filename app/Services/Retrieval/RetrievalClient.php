@@ -120,6 +120,22 @@ class RetrievalClient
     }
 
     /**
+     * Dynamically compute the bounded timeout in seconds.
+     * Respects active AgentContext monotonic SLA budget if available.
+     */
+    public function effectiveTimeout(?int $default = null): float
+    {
+        $base = (float) ($default ?? $this->timeout);
+
+        if (\App\AI\DTOs\AgentContext::hasCurrent()) {
+            $remaining = \App\AI\DTOs\AgentContext::current()->getRemainingTimeout();
+            return max(0.1, min($base, $remaining));
+        }
+
+        return $base;
+    }
+
+    /**
      * Search relevant FAQs through the Python Retrieval Service.
      *
      * @return Collection<int, FAQSearchResult>
@@ -146,7 +162,9 @@ class RetrievalClient
         ];
 
         try {
-            $req = Http::timeout($this->timeout);
+            $timeout = $this->effectiveTimeout();
+            $connectTimeout = min($timeout, 2.0);
+            $req = Http::timeout($timeout)->connectTimeout($connectTimeout);
             $key = $this->apiKey ?? config('retrieval.api_key');
             if (! empty($key)) {
                 $req = $req->withToken($key);
@@ -163,8 +181,8 @@ class RetrievalClient
                     $this->lastSearchFailed = true;
                     $this->lastSearchError = 'Malformed retrieval response: missing or invalid "results" array in payload';
                     Log::warning('[RetrievalClient] Search returned malformed HTTP 200 response', [
-                        'query'    => mb_substr($trimmed, 0, 80),
-                        'raw_body' => mb_substr((string) $response->body(), 0, 200),
+                        'workspace_id' => $workspaceId,
+                        'query_sha256' => hash('sha256', $trimmed),
                     ]);
 
                     return $this->fallbackDatabaseSearch($trimmed, $workspaceId, $topK, $contextualSignal);
@@ -179,10 +197,9 @@ class RetrievalClient
                 if (! empty($telemetry)) {
                     Log::info('[Retrieval Observability]', [
                         'workspace_id'     => $workspaceId,
-                        'query'            => mb_substr($trimmed, 0, 60),
+                        'query_sha256'     => hash('sha256', $trimmed),
                         'first_pass_score' => $telemetry['first_pass_score'] ?? null,
                         'expansion'        => $telemetry['expansion_triggered'] ?? false,
-                        'expanded_query'   => $telemetry['expanded_query'] ?? null,
                         'final_score'      => $telemetry['final_score'] ?? null,
                         'latency_total_ms' => $telemetry['total_retrieval_latency_ms'] ?? null,
                         'returned_ids'     => $telemetry['returned_faq_ids'] ?? [],
@@ -196,16 +213,18 @@ class RetrievalClient
             $this->lastSearchFailed = true;
             $this->lastSearchError = "Search returned HTTP {$response->status()}";
             Log::warning('[RetrievalClient] Search returned non-200 status', [
-                'status' => $response->status(),
-                'query'  => mb_substr($trimmed, 0, 80),
+                'workspace_id' => $workspaceId,
+                'status'       => $response->status(),
+                'query_sha256' => hash('sha256', $trimmed),
             ]);
         } catch (\Throwable $e) {
             $this->lastTelemetry = [];
             $this->lastSearchFailed = true;
             $this->lastSearchError = $e->getMessage();
             Log::warning('[RetrievalClient] Python retrieval service unreachable, falling back to DB', [
-                'query' => mb_substr($trimmed, 0, 80),
-                'error' => $e->getMessage(),
+                'workspace_id' => $workspaceId,
+                'query_sha256' => hash('sha256', $trimmed),
+                'error'        => $e->getMessage(),
             ]);
         }
 

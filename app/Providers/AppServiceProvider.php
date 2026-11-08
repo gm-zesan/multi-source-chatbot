@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use App\Enums\RoleEnum;
 use App\Models\User;
+use App\AI\Agents\OwnerBusinessAgent;
 use App\Services\Retrieval\RetrievalClient;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Log;
@@ -23,6 +24,11 @@ class AppServiceProvider extends ServiceProvider
                 timeout: (int) config('retrieval.timeout', 15),
                 defaultTopK: (int) config('retrieval.top_k', 5),
             );
+        });
+
+        // Register BO-2 Governed Agent
+        $this->app->singleton(OwnerBusinessAgent::class, function ($app) {
+            return new OwnerBusinessAgent();
         });
     }
 
@@ -47,7 +53,50 @@ class AppServiceProvider extends ServiceProvider
             }
         });
 
+        // Governed Agent Runtime: Clean up ambient context on request and queue lifecycle termination
+        $this->app->terminating(function () {
+            \App\AI\DTOs\AgentContext::clear();
+        });
+
+        \Illuminate\Support\Facades\Event::listen(\Illuminate\Queue\Events\JobProcessed::class, function () {
+            \App\AI\DTOs\AgentContext::clear();
+        });
+
+        \Illuminate\Support\Facades\Event::listen(\Illuminate\Queue\Events\JobFailed::class, function () {
+            \App\AI\DTOs\AgentContext::clear();
+        });
+
         $this->validateConfiguration();
+        $this->registerLegacyArchitectureAliases();
+    }
+
+    /**
+     * Backward-compatibility class aliases for reorganized AI domain namespaces.
+     */
+    private function registerLegacyArchitectureAliases(): void
+    {
+        $aliases = [
+            'App\AI\Services\Enums\AnswerabilityStatus' => \App\Enums\AI\AnswerabilityStatus::class,
+            'App\AI\Services\DTOs\AnswerabilityDecision' => \App\AI\DTOs\AnswerabilityDecision::class,
+            'App\AI\Services\DTOs\ContextualResolutionResult' => \App\AI\DTOs\ContextualResolutionResult::class,
+            'App\AI\Services\DTOs\FollowUpDecision' => \App\AI\DTOs\FollowUpDecision::class,
+            'App\AI\Services\DTOs\SellerEmailProposal' => \App\AI\DTOs\SellerEmailProposal::class,
+            'App\AI\Services\Evaluation\GenerationFaithfulnessEvaluator' => \App\AI\Evaluation\GenerationFaithfulnessEvaluator::class,
+            'App\AI\Services\ClarificationManager' => \App\AI\Context\ClarificationManager::class,
+            'App\AI\Services\ContextualQueryBuilder' => \App\AI\Context\ContextualQueryBuilder::class,
+            'App\AI\Services\SemanticAnswerabilityGate' => \App\AI\Guards\SemanticAnswerabilityGate::class,
+            'App\AI\Services\ActionSafetyService' => \App\AI\Guards\ActionSafetyService::class,
+            'App\AI\Services\FollowUpPolicyManager' => \App\AI\Guards\FollowUpPolicyManager::class,
+            'App\AI\Services\CustomerSupportService' => \App\AI\Orchestration\CustomerSupportService::class,
+            'App\AI\Services\OwnerBusinessAssistant' => \App\AI\Orchestration\OwnerBusinessAssistant::class,
+            'App\AI\Services\SellerEmailService' => \App\AI\Orchestration\SellerEmailService::class,
+        ];
+
+        foreach ($aliases as $legacy => $modern) {
+            if (!class_exists($legacy, false) && !interface_exists($legacy, false) && !enum_exists($legacy, false)) {
+                class_alias($modern, $legacy);
+            }
+        }
     }
 
     /**

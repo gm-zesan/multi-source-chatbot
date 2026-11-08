@@ -12,7 +12,7 @@ use App\Models\Channel;
 use App\Models\ChannelAccount;
 use App\Models\Conversation;
 use App\Models\Workspace;
-use App\Services\AI\CustomerSupportService;
+use App\AI\Orchestration\CustomerSupportService;
 use App\Services\Retrieval\RetrievalClient;
 use Tests\Feature\Live\Support\BaseLiveTestCase;
 
@@ -57,7 +57,7 @@ class LiveTypesenseRetrievalTest extends BaseLiveTestCase
 
         $results = $client->search(
             query: 'ডেলিভারি চার্জ কত?',
-            workspaceId: null,
+            workspaceId: 1,
             topK: 5
         );
 
@@ -79,7 +79,7 @@ class LiveTypesenseRetrievalTest extends BaseLiveTestCase
 
         $results = $tool->execute(
             query: 'ডেলিভারি চার্জ কত?',
-            workspaceId: null,
+            workspaceId: 1,
             perPage: 5
         );
 

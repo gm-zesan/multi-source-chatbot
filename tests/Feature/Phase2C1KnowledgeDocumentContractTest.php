@@ -60,6 +60,20 @@ class Phase2C1KnowledgeDocumentContractTest extends TestCase
         $this->adminB->assignRole(RoleEnum::ADMIN->value);
 
         $this->service = app(KnowledgeDocumentService::class);
+
+        $inspectorMock = \Mockery::mock(\App\Services\Spreadsheet\SpreadsheetInspectorService::class);
+        $inspectorMock->shouldReceive('inspectWorkbook')->byDefault()->andReturn([
+            'success' => true,
+            'sheets' => ['Sheet1'],
+            'total_rows' => 42,
+            'inspection' => [
+                'columns' => [
+                    ['name' => 'Item', 'inferred_type' => 'string', 'suggested_category' => 'Product', 'confidence' => 0.95, 'is_ambiguous' => false],
+                ],
+                'is_ambiguous' => false,
+            ],
+        ]);
+        $this->app->instance(\App\Services\Spreadsheet\SpreadsheetInspectorService::class, $inspectorMock);
     }
 
     protected array $tempFilesToDelete = [];
@@ -121,6 +135,10 @@ class Phase2C1KnowledgeDocumentContractTest extends TestCase
                 'sheets_count' => 1,
                 'total_rows'   => 42,
             ], 200),
+        ]);
+
+        \Illuminate\Support\Facades\Queue::fake([
+            \App\Jobs\ProcessSpreadsheetImportJob::class,
         ]);
 
         $xlsx = $this->createFakeXlsx('inventory.xlsx', true);

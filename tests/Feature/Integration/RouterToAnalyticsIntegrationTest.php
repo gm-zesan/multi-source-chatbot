@@ -11,7 +11,7 @@ use App\Models\Channel;
 use App\Models\ChannelAccount;
 use App\Models\Conversation;
 use App\Models\Workspace;
-use App\Services\AI\CustomerSupportService;
+use App\AI\Orchestration\CustomerSupportService;
 use App\Services\Analytics\AnalyticsClient;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
@@ -36,8 +36,8 @@ class RouterToAnalyticsIntegrationTest extends TestCase
         ]);
 
         $channel = Channel::firstOrCreate(
-            ['slug' => 'web'],
-            ['name' => 'Web Chat', 'driver' => 'web', 'is_active' => true]
+            ['slug' => 'simulator'],
+            ['name' => 'Simulator', 'driver' => 'simulator', 'is_active' => true]
         );
 
         $this->channelAccount = ChannelAccount::create([
@@ -55,6 +55,13 @@ class RouterToAnalyticsIntegrationTest extends TestCase
             'status'             => 'open',
             'last_direction'     => 'inbound',
         ]);
+
+        \Spatie\Permission\Models\Role::firstOrCreate(['name' => 'superadmin', 'guard_name' => 'web']);
+        $owner = \App\Models\User::factory()->create([
+            'workspace_id' => $this->workspace->id,
+        ]);
+        $owner->assignRole('superadmin');
+        $this->actingAs($owner);
 
         $this->supportService = app(CustomerSupportService::class);
     }

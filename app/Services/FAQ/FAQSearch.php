@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Services\FAQ;
 
 use App\Models\Conversation;
-use App\Services\AI\ContextualQueryBuilder;
+use App\AI\Context\ContextualQueryBuilder;
 use App\Services\Retrieval\RetrievalClient;
 use Illuminate\Database\Eloquent\Collection;
 

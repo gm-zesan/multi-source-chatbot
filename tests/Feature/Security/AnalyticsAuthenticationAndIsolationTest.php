@@ -44,22 +44,15 @@ class AnalyticsAuthenticationAndIsolationTest extends TestCase
 
     public function test_analytics_client_attaches_auth_to_excel_queries(): void
     {
-        Http::fake([
-            'http://127.0.0.1:8001/analytics/excel/query' => Http::response([
-                'success' => true,
-                'report' => 'Excel report',
-            ], 200),
-        ]);
+        Http::fake();
 
         $client = new AnalyticsClient(baseUrl: 'http://127.0.0.1:8001', apiKey: 'test-secure-analytics-key-999');
-        $client->queryExcel('how many items sold?', workspaceId: 10, fileId: 'src_abc');
+        $result = $client->queryExcel('how many items sold?', workspaceId: 10, fileId: 'src_abc');
 
-        Http::assertSent(function ($request) {
-            return $request->url() === 'http://127.0.0.1:8001/analytics/excel/query'
-                && $request->hasHeader('X-API-Key', 'test-secure-analytics-key-999')
-                && $request['file_id'] === 'src_abc'
-                && $request['workspace_id'] === 10;
-        });
+        Http::assertNothingSent();
+
+        $this->assertFalse($result['success']);
+        $this->assertSame('retired', $result['status']);
     }
 
     public function test_analytics_client_attaches_auth_to_source_listing_and_deletion(): void

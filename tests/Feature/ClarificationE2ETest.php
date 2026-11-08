@@ -56,7 +56,7 @@ class ClarificationE2ETest extends TestCase
         $this->assertSame('AMOUNT_AMBIGUOUS', $routingResult->ambiguityType);
         
         // Pass it through ClarificationManager to test state persistence
-        $clarificationManager = app(\App\Services\AI\ClarificationManager::class);
+        $clarificationManager = app(\App\AI\Context\ClarificationManager::class);
         $jsonResponse = $clarificationManager->handleAnalyticAmbiguity($this->conversation, 'Rahim er taka koto?', $routingResult);
         
         $this->conversation->refresh();

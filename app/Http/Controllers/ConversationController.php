@@ -8,7 +8,7 @@ use App\Enums\RoleEnum;
 use App\Http\Requests\SendMessageRequest;
 use App\Models\Conversation;
 use App\Models\User;
-use App\Services\AI\CustomerSupportService;
+use App\AI\Orchestration\CustomerSupportService;
 use App\Services\Chat\ConversationService;
 use App\Services\FAQ\FAQSearch;
 use App\Support\ChannelManager;

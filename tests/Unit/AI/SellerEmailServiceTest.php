@@ -7,7 +7,7 @@ namespace Tests\Unit\AI;
 use App\Mail\SellerNotificationMail;
 use App\Models\AnalyticsSalesperson;
 use App\Models\Workspace;
-use App\Services\AI\SellerEmailService;
+use App\AI\Orchestration\SellerEmailService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Mail;
 use Tests\TestCase;

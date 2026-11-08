@@ -4,7 +4,12 @@ declare(strict_types=1);
 
 namespace App\Services\Spreadsheet\Security;
 
+use App\Services\Analytics\DTOs\Contract3\PreparedQueryArtifact;
+use App\Services\Analytics\DTOs\Contract3\ExecutionAuthorizationGrant;
+use App\Services\Analytics\DTOs\Contract3\GrantSigner;
 use App\Services\Spreadsheet\DTOs\SourceColumnDescriptor;
+use App\Services\Spreadsheet\Relationships\DTOs\SpreadsheetRelationshipGraph;
+use App\Services\Spreadsheet\Relationships\DTOs\DiscoveredRelationshipEdge;
 use App\Services\Spreadsheet\Security\Exceptions\UnauthorizedDataAccessException;
 use Throwable;
 
@@ -61,16 +66,58 @@ class AnalyticsAstAuthorizer
             // 4. Index source descriptors by multiple search keys
             $descriptorIndex = $this->buildDescriptorIndex($sourceDescriptors);
 
-            // 5. Track Alias Dependency Graph (e.g., WITH t AS (SELECT purchase_cost AS c ...))
+            // 5. Track Alias Dependency Graph & Table Scope (Fail-Closed Context)
             $aliasGraph = $this->extractAliasDependencyGraph($sanitizedSql);
+            $tableScope = $this->extractTableNamesAndAliases($sanitizedSql);
+            $outputAliases = $this->extractOutputAliases($sanitizedSql);
+
+            // 5b. Wildcard Projection Guard (Fail-Closed against unverified or restricted exposure)
+            if ($this->detectWildcardProjection($sanitizedSql)) {
+                if (empty($sourceDescriptors)) {
+                    throw new UnauthorizedDataAccessException(
+                        message: "Wildcard '*' projection blocked: schema contains unverified or empty descriptor metadata.",
+                        field: '*',
+                        role: 'wildcard',
+                        sensitivity: DataClassification::RESTRICTED,
+                        purpose: $context->purpose,
+                    );
+                }
+
+                foreach ($sourceDescriptors as $desc) {
+                    $arr = $desc instanceof SourceColumnDescriptor ? $desc->toArray() : (array) $desc;
+                    $colId = (string) ($arr['source_column_id'] ?? '*');
+                    $role = (string) ($arr['semantic_role'] ?? 'custom_attribute');
+                    $sensitivity = (string) ($arr['sensitivity'] ?? DataClassification::RESTRICTED);
+                    $header = (string) ($arr['original_header'] ?? '*');
+
+                    if (! $this->policy->canProjectField($colId, $role, $sensitivity, $context, $header)) {
+                        throw new UnauthorizedDataAccessException(
+                            message: "Wildcard '*' projection blocked: schema contains restricted column '{$header}' without required permissions.",
+                            field: '*',
+                            role: $role,
+                            sensitivity: $sensitivity,
+                            purpose: $context->purpose,
+                        );
+                    }
+                }
+            }
 
             // 6. Extract Column Identifiers from Query
             $referencedIdentifiers = $this->extractReferencedColumns($sanitizedSql);
 
-            // 7. Resolve all identifiers against descriptor index and alias graph
+            // 7. Resolve all identifiers against descriptor index, alias graph, and fail-closed boundary
             foreach ($referencedIdentifiers as $identifier) {
+                // Skip if this identifier is a known table name, table alias, or CTE name
+                if (isset($tableScope[$identifier])) {
+                    continue;
+                }
+
                 // Check if identifier is an alias pointing to an underlying sensitive column
                 $resolvedTarget = $aliasGraph[$identifier] ?? $identifier;
+                if (isset($tableScope[$resolvedTarget])) {
+                    continue;
+                }
+
                 $matchedDescriptor = $this->findDescriptor($resolvedTarget, $descriptorIndex)
                     ?? $this->findDescriptor($identifier, $descriptorIndex);
 
@@ -90,11 +137,21 @@ class AnalyticsAstAuthorizer
                         );
                     }
                 } else {
-                    // Check if the identifier or alias target itself matches known restricted keywords
-                    $this->checkRawIdentifierRestrictions($resolvedTarget, $context);
-                    if ($resolvedTarget !== $identifier) {
+                    // Check if it is an output expression alias that is not backed by an unmapped table column
+                    if (isset($outputAliases[$identifier]) && ! isset($aliasGraph[$identifier])) {
+                        // Expression alias (e.g. COUNT(*) AS total_count) - verify alias name itself does not match restricted keywords
                         $this->checkRawIdentifierRestrictions($identifier, $context);
+                        continue;
                     }
+
+                    // FAIL-CLOSED: Any unmapped/unknown column is strictly rejected
+                    throw new UnauthorizedDataAccessException(
+                        message: "Access denied: Query references unknown or unmapped column '{$identifier}'. Unmapped columns are denied by default under fail-closed authorization policy.",
+                        field: $identifier,
+                        role: $identifier,
+                        sensitivity: DataClassification::RESTRICTED,
+                        purpose: $context->purpose,
+                    );
                 }
             }
 
@@ -112,6 +169,86 @@ class AnalyticsAstAuthorizer
                 previous: $e
             );
         }
+    }
+
+    /**
+     * Authorize a Stage A PreparedQueryArtifact and issue a cryptographically signed ExecutionAuthorizationGrant.
+     * Enforces AST validation, column sensitivities, confirmed relationship integrity,
+     * and workspace ownership before signing the grant.
+     *
+     * @param PreparedQueryArtifact $artifact
+     * @param array<int|string, array<string, mixed>|SourceColumnDescriptor> $sourceDescriptors
+     * @param SpreadsheetRelationshipGraph|null $graph
+     * @param ServerControlledContext $context
+     * @param string|null $secretKey
+     * @return ExecutionAuthorizationGrant
+     * @throws UnauthorizedDataAccessException
+     */
+    public function authorizePreparedQuery(
+        PreparedQueryArtifact $artifact,
+        array $sourceDescriptors,
+        ?SpreadsheetRelationshipGraph $graph,
+        ServerControlledContext $context,
+        ?string $secretKey = null,
+    ): ExecutionAuthorizationGrant {
+        // 1. Workspace Context Invariant
+        if ($context->workspaceId !== $artifact->workspaceId) {
+            throw new UnauthorizedDataAccessException(
+                message: "Workspace mismatch: context workspace {$context->workspaceId} cannot authorize query for artifact workspace {$artifact->workspaceId}.",
+                purpose: $context->purpose,
+            );
+        }
+
+        // 2. Customer Channel Barrier: Customers are strictly barred from analytics SQL execution
+        if ($context->isCustomer()) {
+            throw new UnauthorizedDataAccessException(
+                message: 'Customer channels are strictly forbidden from executing structured analytics queries.',
+                purpose: $context->purpose,
+            );
+        }
+
+        // 3. Inspect SQL Shape (Read-only SELECT / WITH only, fail closed on mutation keywords)
+        $this->sanitizeAndValidateQueryShape($artifact->sqlTemplate);
+
+        // 4. Verify Confirmed Relationships
+        // If query uses cross-sheet joins, EVERY used edge must exist in $graph and have state === 'CONFIRMED'
+        if (!empty($artifact->confirmedEdgeIds)) {
+            if ($graph === null) {
+                throw new UnauthorizedDataAccessException(
+                    message: 'Query requires confirmed relationship edges, but no relationship graph was provided.',
+                    purpose: $context->purpose,
+                );
+            }
+
+            foreach ($artifact->confirmedEdgeIds as $edgeId) {
+                $edge = $graph->edges[$edgeId] ?? null;
+                if ($edge === null) {
+                    throw new UnauthorizedDataAccessException(
+                        message: "Query references relationship edge '{$edgeId}' which does not exist in the relationship graph.",
+                        purpose: $context->purpose,
+                    );
+                }
+
+                if ($edge->state !== DiscoveredRelationshipEdge::STATE_CONFIRMED) {
+                    throw new UnauthorizedDataAccessException(
+                        message: "Query references relationship edge '{$edgeId}' which is not confirmed (current state: '{$edge->state}'). Cross-table join blocked.",
+                        purpose: $context->purpose,
+                    );
+                }
+            }
+        }
+
+        // 5. Enforce AST authorization, fail-closed column verification, and sensitivity policies
+        $this->authorizeQuery($artifact->sqlTemplate, $sourceDescriptors, $context);
+
+        // 6. Issue cryptographically signed single-use grant
+        return GrantSigner::issue(
+            workspaceId: $artifact->workspaceId,
+            queryFingerprint: $artifact->queryFingerprint,
+            generationId: $artifact->generationId,
+            secret: $secretKey,
+            ttlSeconds: 60,
+        );
     }
 
     /**
@@ -180,6 +317,102 @@ class AnalyticsAstAuthorizer
         }
 
         return $aliasMap;
+    }
+
+    /**
+     * Detect wildcard projection (SELECT * or SELECT t.*) outside of aggregate COUNT(*).
+     */
+    public function detectWildcardProjection(string $sql): bool
+    {
+        $cleanSql = preg_replace('/\'[^\']*\'|"[^"]*"/', '', $sql) ?? $sql;
+        // Strip COUNT(*) which is an aggregation count of rows, not column data projection
+        $noCountStar = preg_replace('/\bCOUNT\s*\(\s*\*\s*\)/i', '', $cleanSql) ?? $cleanSql;
+
+        return (bool) preg_match('/(?:^|\s|,|\.)\*(?:\s|,|$)/', $noCountStar);
+    }
+
+    /**
+     * Extract table names, table aliases, and CTE names from SQL.
+     *
+     * @return array<string, bool>
+     */
+    public function extractTableNamesAndAliases(string $sql): array
+    {
+        $tablesAndAliases = [];
+        $cleanSql = preg_replace('/\'[^\']*\'|"[^"]*"/', '', $sql) ?? $sql;
+
+        // 1. CTE definitions: WITH cte_name AS (...) or , cte_name AS (...)
+        if (preg_match_all('/\b(?:WITH|,)\s+([a-zA-Z_][a-zA-Z0-9_]*)\s+AS\s*\(/ui', $cleanSql, $cteMatches)) {
+            foreach ($cteMatches[1] as $cte) {
+                $tablesAndAliases[strtolower($cte)] = true;
+            }
+        }
+
+        $sqlKeywords = [
+            'WHERE', 'JOIN', 'LEFT', 'RIGHT', 'INNER', 'OUTER', 'CROSS', 'ON', 'GROUP',
+            'ORDER', 'LIMIT', 'UNION', 'HAVING', 'USING', 'SET', 'SELECT', 'WITH',
+        ];
+        $kwLookup = array_fill_keys($sqlKeywords, true);
+
+        // 2. FROM table [AS] alias
+        $fromPattern = '/\bFROM\s+([a-zA-Z_][a-zA-Z0-9_]*)(?:\s+(?:AS\s+)?([a-zA-Z_][a-zA-Z0-9_]*))?\b/ui';
+        if (preg_match_all($fromPattern, $cleanSql, $fromMatches, PREG_SET_ORDER)) {
+            foreach ($fromMatches as $m) {
+                $table = strtolower($m[1]);
+                $tablesAndAliases[$table] = true;
+                if (! empty($m[2])) {
+                    $alias = strtolower($m[2]);
+                    if (! isset($kwLookup[strtoupper($alias)])) {
+                        $tablesAndAliases[$alias] = true;
+                    }
+                }
+            }
+        }
+
+        // 3. JOIN table [AS] alias
+        $joinPattern = '/\b(?:JOIN|LEFT\s+JOIN|RIGHT\s+JOIN|INNER\s+JOIN|OUTER\s+JOIN|CROSS\s+JOIN)\s+([a-zA-Z_][a-zA-Z0-9_]*)(?:\s+(?:AS\s+)?([a-zA-Z_][a-zA-Z0-9_]*))?\b/ui';
+        if (preg_match_all($joinPattern, $cleanSql, $joinMatches, PREG_SET_ORDER)) {
+            foreach ($joinMatches as $m) {
+                $table = strtolower($m[1]);
+                $tablesAndAliases[$table] = true;
+                if (! empty($m[2])) {
+                    $alias = strtolower($m[2]);
+                    if (! isset($kwLookup[strtoupper($alias)])) {
+                        $tablesAndAliases[$alias] = true;
+                    }
+                }
+            }
+        }
+
+        return $tablesAndAliases;
+    }
+
+    /**
+     * Extract output column aliases defined in SELECT clauses.
+     *
+     * @return array<string, bool>
+     */
+    public function extractOutputAliases(string $sql): array
+    {
+        $aliases = [];
+        $cleanSql = preg_replace('/\'[^\']*\'|"[^"]*"/', '', $sql) ?? $sql;
+
+        if (preg_match_all('/\bAS\s+([a-zA-Z_][a-zA-Z0-9_]*)\b/ui', $cleanSql, $matches)) {
+            $sqlKeywords = [
+                'WHERE', 'JOIN', 'LEFT', 'RIGHT', 'INNER', 'OUTER', 'ON', 'GROUP',
+                'ORDER', 'LIMIT', 'UNION', 'HAVING', 'USING', 'SET',
+            ];
+            $kwLookup = array_fill_keys($sqlKeywords, true);
+
+            foreach ($matches[1] as $alias) {
+                $upper = strtoupper($alias);
+                if (! isset($kwLookup[$upper])) {
+                    $aliases[strtolower($alias)] = true;
+                }
+            }
+        }
+
+        return $aliases;
     }
 
     /**

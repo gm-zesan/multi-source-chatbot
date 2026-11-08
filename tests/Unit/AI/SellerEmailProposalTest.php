@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Unit\AI;
 
-use App\Services\AI\DTOs\SellerEmailProposal;
+use App\AI\DTOs\SellerEmailProposal;
 use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
 

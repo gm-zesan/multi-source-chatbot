@@ -1,0 +1,264 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\AI\Guards;
+
+use App\AI\DTOs\SellerEmailProposal;
+use App\Models\Conversation;
+use Illuminate\Support\Facades\Log;
+
+class ActionSafetyService
+{
+    public const DEFAULT_EXPIRATION_MINUTES = 15;
+    public const ACTION_SEND_SELLER_EMAIL = 'send_seller_email';
+
+    /**
+     * Set a pending action requiring confirmation or additional parameters.
+     *
+     * @param array<string, mixed> $parameters
+     */
+    public function setPendingAction(
+        Conversation $conversation,
+        string $action,
+        array $parameters = [],
+        ?string $promptMessage = null,
+        int $expirationMinutes = self::DEFAULT_EXPIRATION_MINUTES,
+    ): void {
+        $metadata = $conversation->metadata ?? [];
+        $metadata['pending_action'] = [
+            'action'          => $action,
+            'conversation_id' => (int) $conversation->id,
+            'parameters'      => $parameters,
+            'prompt_message'  => $promptMessage,
+            'created_at'      => now()->toIso8601String(),
+            'expires_at'      => now()->addMinutes($expirationMinutes)->toIso8601String(),
+            'status'          => 'awaiting_confirmation',
+        ];
+
+        $conversation->update(['metadata' => $metadata]);
+
+        Log::info('[ActionSafetyService] Pending action registered', [
+            'conversation_id' => $conversation->id,
+            'action'          => $action,
+            'parameters'      => $parameters,
+        ]);
+    }
+
+    /**
+     * Set a structured SEND_SELLER_EMAIL pending action with deterministic fingerprint.
+     */
+    public function setPendingSellerEmailAction(
+        Conversation $conversation,
+        SellerEmailProposal $proposal,
+        int $expirationMinutes = self::DEFAULT_EXPIRATION_MINUTES,
+    ): void {
+        $metadata = $conversation->metadata ?? [];
+        $metadata['pending_action'] = [
+            'action'          => self::ACTION_SEND_SELLER_EMAIL,
+            'conversation_id' => (int) $conversation->id,
+            'seller_id'       => $proposal->sellerId,
+            'recipient_email' => $proposal->recipientEmail,
+            'subject'         => $proposal->subject,
+            'message'         => $proposal->message,
+            'seller_name'     => $proposal->sellerName,
+            'fingerprint'     => $proposal->fingerprint,
+            'created_at'      => now()->toIso8601String(),
+            'expires_at'      => now()->addMinutes($expirationMinutes)->toIso8601String(),
+            'status'          => 'awaiting_confirmation',
+        ];
+
+        $conversation->update(['metadata' => $metadata]);
+
+        Log::info('[ActionSafetyService] Pending seller email action registered', [
+            'conversation_id' => $conversation->id,
+            'seller_id'       => $proposal->sellerId,
+            'recipient_email' => $proposal->recipientEmail,
+            'fingerprint'     => $proposal->fingerprint,
+        ]);
+    }
+
+    /**
+     * Determine if a pending action has expired.
+     */
+    public function isPendingActionExpired(?array $pendingAction): bool
+    {
+        if ($pendingAction === null) {
+            return true;
+        }
+
+        if (empty($pendingAction['expires_at'])) {
+            return false;
+        }
+
+        return now()->toIso8601String() > $pendingAction['expires_at'];
+    }
+
+    /**
+     * Recognize user confirmation intent across English, Bangla, and Banglish.
+     */
+    public function isConfirmationIntent(string $query): bool
+    {
+        $raw = trim($query);
+        $q = mb_strtolower($raw, 'UTF-8');
+        $clean = preg_replace('/[^\p{L}\p{M}\p{N}\s]/u', ' ', $q);
+        $clean = trim((string) preg_replace('/\s+/u', ' ', (string) $clean));
+
+        // 1. If the query contains negative phrases (e.g. "না, করিমকে পাঠাও", "no don't send"), it is not confirming
+        if (preg_match('/(^|\s)(no|nah|nope|dont|not|না|বাতিল|ক্যান্সেল)($|\s)/ui', $clean)) {
+            return false;
+        }
+
+        // 2. Prevent discourse markers ("ok, ...", "sure, ...") in compound questions from triggering confirmation
+        $words = preg_split('/\s+/u', $clean, -1, PREG_SPLIT_NO_EMPTY);
+        $hasQuestionMarker = str_contains($raw, '?')
+            || (bool) preg_match('/\b(koto|ki|keno|how|what|where|who|when|why|price|cost|catalogue|catalog|delivery|details)\b/ui', $clean);
+
+        if ($hasQuestionMarker && count($words) > 3) {
+            return false;
+        }
+
+        // 3. Standalone affirmative replies (exact matching 1-3 words)
+        $standalonePattern = '/^(yes|confirm|confirmed|ok|okay|yep|sure|proceed|do it|ha|haan|thik ache|thikase|yes please|ok please|ha pathao|thik ache pathan|হ্যাঁ|হ্যা|হাঁ|ঠিক আছে|কনফার্ম)$/ui';
+        if (preg_match($standalonePattern, $clean)) {
+            return true;
+        }
+
+        // 4. Explicit action-directed confirmation phrases
+        $explicitActionPhrases = [
+            '/\b(send it|send mail|send email|ok send|ok please send|tahole mail pathao|mail pathao|mail pathan)\b/ui',
+            '/\b(মেইল পাঠাও|মেইল করুন|পাঠিয়ে দাও|পাঠিয়ে দিন|পাঠান|হ্যাঁ পাঠাও|হ্যা পাঠান|তাহলে পাঠাও|মেইলটি পাঠাও|ইমেইল পাঠাও|হ্যাঁ পাঠান|হ্যাঁ পাঠাতে পারেন)\b/u',
+        ];
+
+        foreach ($explicitActionPhrases as $pattern) {
+            if (preg_match($pattern, $clean)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Recognize user rejection intent across English, Bangla, and Banglish.
+     */
+    public function isRejectionIntent(string $query): bool
+    {
+        $q = mb_strtolower(trim($query), 'UTF-8');
+        $q = preg_replace('/[^\p{L}\p{M}\p{N}\s]/u', ' ', (string) $q);
+        $q = trim((string) preg_replace('/\s+/', ' ', (string) $q));
+
+        // If the query contains explicit new action directives (e.g. "না, করিমকে পাঠাও"), treat as changed request rather than pure cancellation
+        if (preg_match('/(পাঠাও|পাঠিয়ে|পাঠান|মেইল|email|send|করিম|রহিম|salesperson)/ui', $q) && !preg_match('/(পাঠাবো না|পাঠাবেন না|পাঠাতে হবে না|পাঠিও না|দরকার নেই|দরকার নাই|প্রয়োজন নেই|প্রয়োজন নাই)/ui', $q)) {
+            return false;
+        }
+
+        $patterns = [
+            '/\b(no|cancel|cancelled|stop|reject|rejected|nah|nope|dont|dont send|not now|abort|lagbe na|pathio na|dorkar nai|dorkar nei)\b/ui',
+            '/(^|\s)(না|বাতিল|ক্যান্সেল|পাঠাবো না|পাঠাবেন না|দরকার নেই|দরকার নাই|না পাঠিও না|না পাঠান লাগবে না|থাক|পাঠাতে হবে না)($|\s)/u',
+        ];
+
+        foreach ($patterns as $pattern) {
+            if (preg_match($pattern, $q)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Clear any pending action from conversation metadata.
+     */
+    public function clearPendingAction(Conversation $conversation): void
+    {
+        $metadata = $conversation->metadata ?? [];
+        if (isset($metadata['pending_action'])) {
+            unset($metadata['pending_action']);
+            $conversation->update(['metadata' => $metadata]);
+
+            Log::info('[ActionSafetyService] Pending action cleared', [
+                'conversation_id' => $conversation->id,
+            ]);
+        }
+    }
+
+    /**
+     * Retrieve the currently pending action from conversation metadata.
+     * Enforces conversation boundary to ensure cross-conversation actions cannot bleed.
+     *
+     * @return ?array<string, mixed>
+     */
+    public function getPendingAction(Conversation $conversation): ?array
+    {
+        $pending = $conversation->metadata['pending_action'] ?? null;
+        if ($pending !== null && isset($pending['conversation_id'])) {
+            if ((int) $pending['conversation_id'] !== (int) $conversation->id) {
+                return null;
+            }
+        }
+
+        return $pending;
+    }
+
+    /**
+     * Build a structured UI confirmation response payload for frontend clients.
+     *
+     * @return array<string, mixed>
+     */
+    public function formatConfirmationPayload(
+        string $action,
+        string $message,
+        ?int $entityId = null,
+        string $language = 'bn',
+    ): array {
+        $confirmLabel = $language === 'bn' ? 'হ্যাঁ, নিশ্চিত করুন' : 'Yes, Confirm';
+        $rejectLabel  = $language === 'bn' ? 'না, বাতিল করুন'   : 'No, Cancel';
+
+        if ($action === 'cancel_order') {
+            $confirmLabel = $language === 'bn' ? 'হ্যাঁ, অর্ডার বাতিল করুন' : 'Yes, Cancel Order';
+            $rejectLabel  = $language === 'bn' ? 'না, অর্ডারটি রাখুন'       : 'No, Keep Order';
+        }
+
+        return [
+            'type'         => 'confirmation',
+            'action'       => $action,
+            'entity_id'    => $entityId,
+            'message'      => $message,
+            'options'      => [
+                ['label' => $confirmLabel, 'value' => 'confirm'],
+                ['label' => $rejectLabel,  'value' => 'reject'],
+            ],
+        ];
+    }
+
+    /**
+     * Verify server-side authorization and tenant isolation.
+     * Ensures that workspace_id and customer credentials originate from authenticated Laravel context,
+     * NEVER from untrusted LLM prompt hallucinations.
+     *
+     * @param array<string, mixed> $parameters
+     */
+    public function validateTenantAuthorization(
+        Conversation $conversation,
+        int $expectedWorkspaceId,
+        string $action,
+        array $parameters,
+    ): bool {
+        $actualWorkspaceId = $conversation->channelAccount?->workspace_id
+            ?? $expectedWorkspaceId;
+
+        // Strict Tenant Boundary Check
+        if ($actualWorkspaceId !== $expectedWorkspaceId) {
+            Log::warning('[ActionSafetyService] Tenant boundary violation prevented', [
+                'conversation_id'      => $conversation->id,
+                'actual_workspace_id'   => $actualWorkspaceId,
+                'expected_workspace_id' => $expectedWorkspaceId,
+                'action'               => $action,
+            ]);
+            return false;
+        }
+
+        return true;
+    }
+}

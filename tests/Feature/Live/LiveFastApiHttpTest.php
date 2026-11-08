@@ -11,8 +11,10 @@ use App\AI\Tools\BusinessAnalyticsTool;
 use App\Models\Channel;
 use App\Models\ChannelAccount;
 use App\Models\Conversation;
+use App\Models\User;
 use App\Models\Workspace;
-use App\Services\AI\CustomerSupportService;
+use App\Enums\RoleEnum;
+use App\AI\Orchestration\CustomerSupportService;
 use App\Services\Analytics\AnalyticsClient;
 use Tests\Feature\Live\Support\BaseLiveTestCase;
 
@@ -32,7 +34,7 @@ class LiveFastApiHttpTest extends BaseLiveTestCase
         parent::setUp();
 
         $this->workspace = Workspace::create(['name' => 'Live Store', 'slug' => 'live-store']);
-        $channel = Channel::firstOrCreate(['slug' => 'web'], ['name' => 'Web', 'driver' => 'web', 'is_active' => true]);
+        $channel = Channel::firstOrCreate(['slug' => 'simulator'], ['name' => 'Simulator', 'driver' => 'simulator', 'is_active' => true]);
 
         $this->account = ChannelAccount::create([
             'workspace_id' => $this->workspace->id,
@@ -42,6 +44,13 @@ class LiveFastApiHttpTest extends BaseLiveTestCase
             'access_token' => 'token_live_01',
             'is_active'    => true,
         ]);
+
+        \Spatie\Permission\Models\Role::firstOrCreate(['name' => 'superadmin', 'guard_name' => 'web']);
+        $owner = User::factory()->create([
+            'workspace_id' => $this->workspace->id,
+        ]);
+        $owner->assignRole('superadmin');
+        $this->actingAs($owner);
 
         $this->conversation = Conversation::create([
             'channel_account_id' => $this->account->id,

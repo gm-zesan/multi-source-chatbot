@@ -130,16 +130,27 @@ class KnowledgeDocumentManagementTest extends TestCase
         parent::tearDown();
     }
 
-    protected function createFakeXlsx(string $filename = 'test.xlsx'): UploadedFile
+    protected function createFakeXlsx(string $filename = 'test.xlsx', array $sheets = ['Sheet1']): UploadedFile
     {
         $tempPath = tempnam(sys_get_temp_dir(), 'test_xlsx_') . '.xlsx';
         $this->tempFilesToDelete[] = $tempPath;
 
-        $zip = new \ZipArchive();
-        $zip->open($tempPath, \ZipArchive::CREATE | \ZipArchive::OVERWRITE);
-        $zip->addFromString('[Content_Types].xml', '<?xml version="1.0" encoding="UTF-8"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"></Types>');
-        $zip->addFromString('xl/workbook.xml', '<?xml version="1.0" encoding="UTF-8"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"></workbook>');
-        $zip->close();
+        $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
+        $spreadsheet->removeSheetByIndex(0);
+
+        foreach ($sheets as $idx => $sheetTitle) {
+            $sheet = $spreadsheet->createSheet($idx);
+            $sheet->setTitle($sheetTitle);
+            $sheet->setCellValue('A1', 'id');
+            $sheet->setCellValue('B1', 'product_name');
+            $sheet->setCellValue('C1', 'price');
+            $sheet->setCellValue('A2', 1);
+            $sheet->setCellValue('B2', 'Item');
+            $sheet->setCellValue('C2', 100);
+        }
+
+        $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
+        $writer->save($tempPath);
 
         return new UploadedFile(
             $tempPath,
@@ -155,7 +166,7 @@ class KnowledgeDocumentManagementTest extends TestCase
      */
     public function test_authorized_admin_uploads_valid_csv_file(): void
     {
-        $file = UploadedFile::fake()->createWithContent('policies.csv', "id,policy_name,amount\n1,Return Policy,100", 'text/csv');
+        $file = UploadedFile::fake()->createWithContent('policies.csv', "id,product_name,price\n1,Panjabi,1850", 'text/csv');
 
         $response = $this->actingAs($this->adminUserA)->post(route('documents.store'), [
             'title'    => 'Company Policies',
@@ -510,7 +521,8 @@ class KnowledgeDocumentManagementTest extends TestCase
             return null;
         };
 
-        $xlsx = $this->createFakeXlsx('enterprise_data.xlsx');
+        \Illuminate\Support\Facades\Queue::fake([\App\Jobs\ProcessSpreadsheetImportJob::class]);
+        $xlsx = $this->createFakeXlsx('enterprise_data.xlsx', ['orders', 'customers', 'products']);
         $response = $this->actingAs($this->adminUserA)->post(route('documents.store'), [
             'document' => $xlsx,
         ]);
@@ -846,7 +858,7 @@ class KnowledgeDocumentManagementTest extends TestCase
             return null;
         };
 
-        $xlsx = $this->createFakeXlsx('partial_sheets.xlsx');
+        $xlsx = $this->createFakeXlsx('partial_sheets.xlsx', ['sheet1', 'sheet2']);
         $response = $this->actingAs($this->adminUserA)->post(route('documents.store'), [
             'document' => $xlsx,
         ]);

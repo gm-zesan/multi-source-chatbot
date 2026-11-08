@@ -13,7 +13,7 @@ use App\Models\ChannelAccount;
 use App\Models\Conversation;
 use App\Models\Message;
 use App\Models\Workspace;
-use App\Services\AI\CustomerSupportService;
+use App\AI\Orchestration\CustomerSupportService;
 use App\Services\Chat\ConversationService;
 use App\Services\FAQ\FAQSearch;
 use App\Services\Memory\ConversationMemoryClient;

@@ -4,8 +4,14 @@ declare(strict_types=1);
 
 namespace App\Services\Analytics;
 
+use App\Services\Analytics\DTOs\Contract3\SemanticQueryPlan;
+use App\Services\Analytics\DTOs\Contract3\PreparedQueryArtifact;
+use App\Services\Analytics\DTOs\Contract3\ExecutionAuthorizationGrant;
+use App\Services\Analytics\DTOs\Contract3\AnalyticsExecutionResponse;
+use App\Services\Spreadsheet\Relationships\DTOs\SpreadsheetRelationshipGraph;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use RuntimeException;
 use Throwable;
 
 class AnalyticsClient
@@ -41,11 +47,31 @@ class AnalyticsClient
     }
 
     /**
+     * Compute the dynamically bounded request timeout in seconds.
+     * Respects active AgentContext monotonic SLA budget if available.
+     */
+    public function effectiveTimeout(): float
+    {
+        $defaultTimeout = (float) $this->timeout();
+
+        if (\App\AI\DTOs\AgentContext::hasCurrent()) {
+            $remaining = \App\AI\DTOs\AgentContext::current()->getRemainingTimeout();
+            return max(0.1, min($defaultTimeout, $remaining));
+        }
+
+        return $defaultTimeout;
+    }
+
+    /**
      * Create an authenticated HTTP pending request with timeout and API credentials.
+     * Bounded transfer timeout and connectTimeout prevent DNS and TCP connection hangs.
      */
     protected function http(): \Illuminate\Http\Client\PendingRequest
     {
-        $req = Http::timeout($this->timeout());
+        $timeout = $this->effectiveTimeout();
+        $connectTimeout = min($timeout, 2.0);
+
+        $req = Http::timeout($timeout)->connectTimeout($connectTimeout);
         $key = $this->apiKey();
         if (! empty($key)) {
             $req = $req->withHeaders([
@@ -244,6 +270,9 @@ class AnalyticsClient
     /**
      * Query an uploaded document/spreadsheet virtual database using natural language.
      *
+     * @deprecated Direct legacy Excel query execution is permanently retired under P0-C.
+     * All Excel query executions must be authorized via Contract 3.0 virtual execution gateway.
+     *
      * @param string $question
      * @param int $workspaceId
      * @param string|null $fileId
@@ -256,42 +285,14 @@ class AnalyticsClient
         ?string $fileId = null,
         ?array $history = null,
     ): array {
-        $url = "{$this->baseUrl()}/analytics/excel/query";
-        try {
-            $payload = [
-                'question'     => $question,
-                'workspace_id' => $workspaceId,
-            ];
-            if ($fileId !== null && trim($fileId) !== '') {
-                $payload['file_id'] = $fileId;
-            }
-            if (!empty($history)) {
-                $payload['history'] = $history;
-            }
+        Log::warning('[AnalyticsClient] Deprecated queryExcel() invoked - direct legacy Excel query execution is disabled.');
 
-            $response = $this->http()
-                ->asJson()
-                ->acceptJson()
-                ->post($url, $payload);
-
-            if ($response->successful()) {
-                $data = $response->json();
-                return is_array($data) ? $data : ['success' => false, 'report' => 'Invalid response from analytics service.'];
-            }
-
-            return [
-                'success' => false,
-                'report'  => "⚠️ **Excel Query Error**: HTTP {$response->status()}",
-                'rows'    => [],
-            ];
-        } catch (Throwable $e) {
-            Log::error('[AnalyticsClient] Failed to query document source: ' . $e->getMessage());
-            return [
-                'success' => false,
-                'report'  => "⚠️ **Excel Query Unavailable**: " . $e->getMessage(),
-                'rows'    => [],
-            ];
-        }
+        return [
+            'success' => false,
+            'status'  => 'retired',
+            'report'  => 'Direct legacy Excel query execution is permanently retired. Use Contract 3.0 virtual execution gateway.',
+            'rows'    => [],
+        ];
     }
 
     /**
@@ -423,6 +424,159 @@ class AnalyticsClient
                 'status'  => 'error',
                 'message' => $e->getMessage(),
             ];
+        }
+    }
+
+    /**
+     * Stage A: Compile SemanticQueryPlan into PreparedQueryArtifact without executing it.
+     *
+     * @param SemanticQueryPlan $plan
+     * @param int $workspaceId
+     * @param string $datasetId
+     * @param string $generationId
+     * @param SpreadsheetRelationshipGraph|null $graph
+     * @param array<string, mixed> $sourceDescriptors
+     * @return PreparedQueryArtifact
+     * @throws RuntimeException
+     */
+    public function prepareVirtualQuery(
+        SemanticQueryPlan $plan,
+        int $workspaceId,
+        string $datasetId,
+        string $generationId,
+        ?SpreadsheetRelationshipGraph $graph = null,
+        array $sourceDescriptors = [],
+    ): PreparedQueryArtifact {
+        $url = "{$this->baseUrl()}/analytics/v3/prepare";
+
+        $payload = [
+            'contract_version' => PreparedQueryArtifact::CONTRACT_VERSION,
+            'workspace_id' => $workspaceId,
+            'dataset_id' => $datasetId,
+            'generation_id' => $generationId,
+            'query_plan' => $plan->toArray(),
+            'relationship_graph' => $graph?->toArray(),
+            'source_descriptors' => $sourceDescriptors,
+        ];
+
+        try {
+            $response = $this->http()
+                ->asJson()
+                ->acceptJson()
+                ->post($url, $payload);
+
+            if (!$response->successful()) {
+                $err = $response->json('detail') ?? "HTTP {$response->status()}";
+                throw new RuntimeException("Virtual query compilation failed: {$err}");
+            }
+
+            $data = $response->json();
+            if (!is_array($data) || !isset($data['query_fingerprint'])) {
+                throw new RuntimeException('Invalid prepared query artifact schema returned from analytics service.');
+            }
+
+            return PreparedQueryArtifact::fromArray($data);
+        } catch (Throwable $e) {
+            Log::error('[AnalyticsClient] prepareVirtualQuery error: ' . $e->getMessage());
+            throw $e;
+        }
+    }
+
+    /**
+     * Stage C: Execute authorized prepared query against isolated virtual SQLite database.
+     * Requires cryptographically signed ExecutionAuthorizationGrant.
+     *
+     * @param PreparedQueryArtifact $artifact
+     * @param ExecutionAuthorizationGrant $grant
+     * @return AnalyticsExecutionResponse
+     * @throws RuntimeException
+     */
+    public function executeVirtualQuery(
+        PreparedQueryArtifact $artifact,
+        ExecutionAuthorizationGrant $grant,
+    ): AnalyticsExecutionResponse {
+        $url = "{$this->baseUrl()}/analytics/v3/execute";
+
+        $payload = [
+            'contract_version' => PreparedQueryArtifact::CONTRACT_VERSION,
+            'workspace_id' => $artifact->workspaceId,
+            'dataset_id' => $artifact->datasetId,
+            'generation_id' => $artifact->generationId,
+            'query_fingerprint' => $artifact->queryFingerprint,
+            'sql' => $artifact->sqlTemplate,
+            'params' => $artifact->params,
+            'authorization_grant' => $grant->toArray(),
+        ];
+
+        try {
+            $response = $this->http()
+                ->asJson()
+                ->acceptJson()
+                ->post($url, $payload);
+
+            if (!$response->successful()) {
+                $json = $response->json();
+                $msg = is_array($json) && isset($json['detail']) ? (is_array($json['detail']) ? json_encode($json['detail']) : $json['detail']) : "HTTP {$response->status()}";
+                throw new RuntimeException("Virtual query execution rejected: {$msg}");
+            }
+
+            $data = $response->json();
+            if (!is_array($data) || !isset($data['success'])) {
+                throw new RuntimeException('Invalid execution response schema returned from analytics service.');
+            }
+
+            return AnalyticsExecutionResponse::fromArray($data);
+        } catch (Throwable $e) {
+            Log::error('[AnalyticsClient] executeVirtualQuery error: ' . $e->getMessage());
+            throw $e;
+        }
+    }
+
+    /**
+     * Plan candidate SemanticQueryPlan from natural language question without executing SQL.
+     *
+     * @param string $question
+     * @param int $workspaceId
+     * @param string $datasetId
+     * @param array<int, array<string, string>>|null $history
+     * @return SemanticQueryPlan
+     */
+    public function planCandidateQuery(
+        string $question,
+        int $workspaceId,
+        string $datasetId,
+        ?array $history = null,
+    ): SemanticQueryPlan {
+        $url = "{$this->baseUrl()}/analytics/v3/plan-candidate";
+
+        $payload = [
+            'question' => $question,
+            'workspace_id' => $workspaceId,
+            'dataset_id' => $datasetId,
+            'history' => $history,
+        ];
+
+        try {
+            $response = $this->http()
+                ->asJson()
+                ->acceptJson()
+                ->post($url, $payload);
+
+            if ($response->successful() && is_array($response->json())) {
+                return SemanticQueryPlan::fromArray($response->json());
+            }
+
+            // Fallback to default heuristic plan
+            return new SemanticQueryPlan(
+                domain: 'sales',
+                measures: [['name' => '*', 'aggregation' => 'count', 'alias' => 'total_count']],
+            );
+        } catch (Throwable $e) {
+            Log::warning('[AnalyticsClient] planCandidateQuery fallback: ' . $e->getMessage());
+            return new SemanticQueryPlan(
+                domain: 'sales',
+                measures: [['name' => '*', 'aggregation' => 'count', 'alias' => 'total_count']],
+            );
         }
     }
 }

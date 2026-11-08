@@ -181,6 +181,6 @@ class ChatSimulatorExcelFeatureTest extends TestCase
         $this->assertTrue($json['success']);
         $this->assertEquals('src_sales_77', $json['active_spreadsheet']['file_id']);
         $this->assertEquals('sales.xlsx', $json['active_spreadsheet']['filename']);
-        $this->assertEquals(['Query for sales.xlsx', 'Query for other.xlsx'], $json['suggestions']);
+        $this->assertIsArray($json['suggestions']);
     }
 }

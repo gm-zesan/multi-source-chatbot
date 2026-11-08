@@ -10,7 +10,7 @@ use App\AI\Routing\RoutingResult;
 use App\Models\Conversation;
 use App\Models\Message;
 use App\Models\Workspace;
-use App\Services\AI\CustomerSupportService;
+use App\AI\Orchestration\CustomerSupportService;
 use App\Services\Chat\ConversationService;
 use App\Services\FAQ\FAQSearch;
 use App\Services\FAQ\FAQSearchResult;
@@ -347,7 +347,7 @@ class CustomerSupportServiceTest extends TestCase
         $faqSearch = $this->createMock(FAQSearch::class);
         $faqSearch->expects($this->never())->method('search');
 
-        $sellerEmailService = $this->createMock(\App\Services\AI\SellerEmailService::class);
+        $sellerEmailService = $this->createMock(\App\AI\Orchestration\SellerEmailService::class);
         $sellerEmailService->expects($this->never())->method('sendSellerEmail');
 
         $businessService = $this->createMock(\App\Services\Business\BusinessSourceOfTruthService::class);

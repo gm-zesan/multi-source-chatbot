@@ -45,21 +45,11 @@ class AnalyticsClientTest extends TestCase
     }
 
     /**
-     * Test multi-turn history and file_id propagation in queryExcel.
+     * Test multi-turn history and file_id propagation in queryExcel is permanently retired.
      */
     public function test_query_excel_dispatches_with_history_and_workspace_id(): void
     {
-        Http::fake([
-            'http://127.0.0.1:8002/analytics/excel/query' => Http::response([
-                'success' => true,
-                'intent' => 'document_analytics',
-                'report' => 'The total sales for yesterday was ৳45,000.',
-                'sql' => 'SELECT SUM(amount) FROM sales_transactions',
-                'rows' => [['sum' => 45000]],
-                'resolved_source_id' => 'src_123',
-                'resolved_source_name' => 'sales_2026.xlsx',
-            ], 200),
-        ]);
+        Http::fake();
 
         $client = new AnalyticsClient(baseUrl: 'http://127.0.0.1:8002');
         $history = [
@@ -74,16 +64,11 @@ class AnalyticsClientTest extends TestCase
             history: $history,
         );
 
-        Http::assertSent(function ($request) use ($history) {
-            return $request->url() === 'http://127.0.0.1:8002/analytics/excel/query'
-                && $request['workspace_id'] === 5
-                && $request['file_id'] === 'src_123'
-                && $request['question'] === 'And how many orders was that?'
-                && $request['history'] === $history;
-        });
+        Http::assertNothingSent();
 
-        $this->assertTrue($result['success']);
-        $this->assertSame('sales_2026.xlsx', $result['resolved_source_name']);
+        $this->assertFalse($result['success']);
+        $this->assertSame('retired', $result['status']);
+        $this->assertStringContainsString('retired', $result['report']);
     }
 
     /**

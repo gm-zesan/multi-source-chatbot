@@ -17,7 +17,7 @@ use App\Models\Conversation;
 use App\Models\KnowledgeDocument;
 use App\Models\User;
 use App\Models\Workspace;
-use App\Services\AI\CustomerSupportService;
+use App\AI\Orchestration\CustomerSupportService;
 use App\Services\Analytics\AnalyticsClient;
 use App\Services\Knowledge\KnowledgeDocumentService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -47,6 +47,33 @@ class AutomaticSourceResolutionTest extends TestCase
             'name' => 'Other WS',
             'slug' => 'other-ws-' . Str::random(6),
         ]);
+
+        \Spatie\Permission\Models\Role::firstOrCreate(['name' => \App\Enums\RoleEnum::ADMIN->value, 'guard_name' => 'web']);
+        $owner = User::create([
+            'workspace_id' => $this->workspace->id,
+            'name'         => 'Owner',
+            'email'        => 'owner-' . Str::random(6) . '@resolver.test',
+            'password'     => bcrypt('secret'),
+            'role'         => 'admin',
+        ]);
+        $owner->assignRole(\App\Enums\RoleEnum::ADMIN->value);
+        $this->actingAs($owner);
+
+        $mockInspector = Mockery::mock(\App\Services\Spreadsheet\SpreadsheetInspectorService::class);
+        $mockInspector->shouldReceive('inspectWorkbook')
+            ->byDefault()
+            ->andReturn([
+                'success'    => true,
+                'sheets'     => ['Sheet1'],
+                'total_rows' => 10,
+                'inspection' => [
+                    'columns' => [
+                        ['name' => 'Name', 'canonical_category' => 'General', 'confidence' => 0.95],
+                        ['name' => 'Salary', 'canonical_category' => 'Financial Metric', 'confidence' => 0.90],
+                    ],
+                ],
+            ]);
+        $this->app->instance(\App\Services\Spreadsheet\SpreadsheetInspectorService::class, $mockInspector);
 
         $this->mockRouterRoute();
     }
@@ -91,8 +118,8 @@ class AutomaticSourceResolutionTest extends TestCase
     private function createConversation(Workspace $workspace, array $metadata = []): Conversation
     {
         $channel = Channel::firstOrCreate(
-            ['slug' => 'web'],
-            ['name' => 'Web Chat', 'driver' => 'web', 'is_active' => true]
+            ['slug' => 'simulator'],
+            ['name' => 'Admin Simulator', 'driver' => 'web', 'is_active' => true]
         );
 
         $channelAccount = ChannelAccount::create([
@@ -458,9 +485,9 @@ class AutomaticSourceResolutionTest extends TestCase
             'excelAnalyticsTool' => $mockExcelTool,
         ]);
 
-        // Query in workspace 1 mentioning spreadsheet intent
+        // Query in workspace 1 mentioning spreadsheet intent without explicit file extension
         $reply = $service->handleQuery(
-            query: 'sales.xlsx ফাইলে মোট বিক্রয় কত?',
+            query: 'সেলস ডেটাসেটে মোট বিক্রয় কত?',
             workspaceId: $this->workspace->id,
             conversation: $conversation,
         );

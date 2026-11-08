@@ -9,7 +9,7 @@ use App\Models\ChannelAccount;
 use App\Models\Conversation;
 use App\Models\Message;
 use App\Models\Workspace;
-use App\Services\AI\ContextualQueryBuilder;
+use App\AI\Context\ContextualQueryBuilder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
