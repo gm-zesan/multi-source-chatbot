@@ -79,7 +79,7 @@ class GrantSigner
         ?string $secret = null,
         int $ttlSeconds = 60,
     ): ExecutionAuthorizationGrant {
-        $secretKey = $secret ?? (string) config('analytics.secret_key', config('app.key', 'fallback_analytics_secret'));
+        $secretKey = $secret ?? (string) config('analytics.secret_key', 'fallback_analytics_secret');
         $now = new DateTimeImmutable('now', new DateTimeZone('UTC'));
         $authorizedAt = $now->format('Y-m-d\TH:i:s\Z');
         $expiresAt = $now->modify("+{$ttlSeconds} seconds")->format('Y-m-d\TH:i:s\Z');

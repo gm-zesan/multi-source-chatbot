@@ -449,6 +449,19 @@ class AnalyticsClient
     ): PreparedQueryArtifact {
         $url = "{$this->baseUrl()}/analytics/v3/prepare";
 
+        $normalizedDescriptors = [];
+        if (is_array($sourceDescriptors)) {
+            foreach ($sourceDescriptors as $key => $desc) {
+                if (is_array($desc) && isset($desc['name'])) {
+                    $normalizedDescriptors[$desc['name']] = $desc;
+                } elseif (is_array($desc) && isset($desc['source_column_id'])) {
+                    $normalizedDescriptors[$desc['source_column_id']] = $desc;
+                } elseif (is_string($key)) {
+                    $normalizedDescriptors[$key] = $desc;
+                }
+            }
+        }
+
         $payload = [
             'contract_version' => PreparedQueryArtifact::CONTRACT_VERSION,
             'workspace_id' => $workspaceId,
@@ -456,7 +469,7 @@ class AnalyticsClient
             'generation_id' => $generationId,
             'query_plan' => $plan->toArray(),
             'relationship_graph' => $graph?->toArray(),
-            'source_descriptors' => $sourceDescriptors,
+            'source_descriptors' => (object) $normalizedDescriptors,
         ];
 
         try {
@@ -467,7 +480,8 @@ class AnalyticsClient
 
             if (!$response->successful()) {
                 $err = $response->json('detail') ?? "HTTP {$response->status()}";
-                throw new RuntimeException("Virtual query compilation failed: {$err}");
+                $errStr = is_array($err) ? json_encode($err) : (string) $err;
+                throw new RuntimeException("Virtual query compilation failed: {$errStr}");
             }
 
             $data = $response->json();

@@ -112,8 +112,8 @@ class SpreadsheetRelationshipGraph implements Arrayable, JsonSerializable
             'document_id'   => $this->documentId,
             'job_id'        => $this->jobId,
             'generation_id' => $this->generationId,
-            'nodes'         => $this->nodes,
-            'edges'         => $edgeArrays,
+            'nodes'         => empty($this->nodes) ? (object) [] : $this->nodes,
+            'edges'         => empty($edgeArrays) ? (object) [] : $edgeArrays,
             'ambiguities'   => $this->ambiguities,
             'discovered_at' => $this->discoveredAt ?: now()->toISOString(),
         ];

@@ -45,5 +45,5 @@ return [
     | for HMAC-SHA256 signing of single-use ExecutionAuthorizationGrants.
     |
     */
-    'secret_key' => env('ANALYTICS_SECRET_KEY', env('API_KEY', env('APP_KEY', 'fallback_analytics_secret'))),
+    'secret_key' => env('ANALYTICS_SECRET_KEY', env('API_KEY', 'fallback_analytics_secret')),
 ];
