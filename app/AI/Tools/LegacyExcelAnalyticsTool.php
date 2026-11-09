@@ -97,7 +97,10 @@ class LegacyExcelAnalyticsTool extends AbstractGovernedTool
             ->whereIn('status', ['completed', 'completed_with_errors']);
 
         if ($explicitDatasetId !== null) {
-            $jobQuery->where('id', $explicitDatasetId);
+            $jobQuery->where(function ($q) use ($explicitDatasetId) {
+                $q->where('id', $explicitDatasetId)
+                  ->orWhere('document_id', $explicitDatasetId);
+            });
         }
 
         $job = $jobQuery->latest()->first();
@@ -113,7 +116,7 @@ class LegacyExcelAnalyticsTool extends AbstractGovernedTool
             ]);
         }
 
-        $datasetId = (string) $job->id;
+        $datasetId = (string) ($job->document_id ?? $job->id);
         $generationId = (string) ($job->generation_id ?: Str::uuid());
         $descriptors = is_array($job->source_descriptors) ? $job->source_descriptors : [];
         $activeGraph = $relService->loadGraph($job);
