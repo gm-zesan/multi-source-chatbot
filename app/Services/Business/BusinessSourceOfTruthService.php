@@ -362,18 +362,50 @@ class BusinessSourceOfTruthService
             // Direct name match across all sources
             foreach ($allProducts as $product) {
                 $pNameLower = mb_strtolower($product['name']);
-                if (str_contains($qLower, $pNameLower) || (strlen($pNameLower) > 3 && str_contains($qLower, str_replace(' ', '', $pNameLower)))) {
+                $isDirectMatch = str_contains($qLower, $pNameLower) || (strlen($pNameLower) > 3 && str_contains($qLower, str_replace(' ', '', $pNameLower)));
+
+                // Also check substantive product noun/keyword (e.g. "laptop" for "Laptop Pro 15", "chair" for "Ergonomic Office Chair")
+                $isKeywordMatch = false;
+                if (!$isDirectMatch) {
+                    $prodKeywords = match (true) {
+                        str_contains($pNameLower, 'laptop') => ['laptop', 'ল্যাপটপ'],
+                        str_contains($pNameLower, 'headphone') => ['headphone', 'হেডফোন'],
+                        str_contains($pNameLower, 'chair') => ['chair', 'office chair', 'চেয়ার'],
+                        str_contains($pNameLower, 'keyboard') => ['keyboard', 'mechanical keyboard', 'কীবোর্ড', 'কিবোর্ড'],
+                        str_contains($pNameLower, 'mouse') => ['mouse', 'gaming mouse', 'মাউস'],
+                        str_contains($pNameLower, 'multi-hub') || str_contains($pNameLower, 'hub') => ['hub', 'multi-hub', 'হাব'],
+                        default => [],
+                    };
+
+                    foreach ($prodKeywords as $kw) {
+                        // Use boundary check so "phone" doesn't mistakenly match "headphone"
+                        if (preg_match('/(?:^|[^\p{L}\p{N}])' . preg_quote($kw, '/') . '(?:$|[^\p{L}\p{N}])/ui', $qLower)) {
+                            $isKeywordMatch = true;
+                            break;
+                        }
+                    }
+                }
+
+                if ($isDirectMatch || $isKeywordMatch) {
                     $formattedPrice = isset($product['price']) ? '৳' . number_format((float) $product['price'], 2) : 'Price on inquiry';
                     $stockText = isset($product['stock']) && $product['stock'] !== null ? "  * Stock/Qty: {$product['stock']} units\n" : '';
+                    $specNote = '';
+                    if (preg_match('/(detail|বিস্তারিত|বিবরণ|spec|configuration|কনফিগারেশন|feature|বৈশিষ্ট্য)/ui', $query)) {
+                        $specNote = "  * Configuration / Specification Note: Detailed hardware specifications (processor, RAM, storage, etc.) beyond model name and price are not listed in the document. State the available details truthfully (model and price) and politely mention that for deeper configuration details, the customer can contact our support specialist.\n";
+                    }
+
                     $sections[] = "- Live Product Catalog Record (Authoritative Truth):\n" .
                         "  * Product: {$product['name']}\n" .
                         "  * Category: {$product['category']}\n" .
                         "  * Price: {$formattedPrice}\n" .
                         $stockText .
+                        $specNote .
                         "  * Source: {$product['source']}\n" .
                         "  * Catalog Status: Active in catalog";
                     $matchedAny = true;
-                    $matchedProduct = $product;
+                    if ($matchedProduct === null || $isDirectMatch) {
+                        $matchedProduct = $product;
+                    }
                 }
             }
 
@@ -413,13 +445,14 @@ class BusinessSourceOfTruthService
                         "  * To place an order, instruct the customer to provide the name of the desired product, their Name, Mobile Phone Number, and complete Delivery Address in the chat.";
                 }
             } elseif (!$matchedAny && $activeProduct && !empty($activeProduct['name'])) {
-                if (preg_match('/(দাম\s*কত|কত\s*দাম|dam\s*koto|price\s*koto|how\s*much|স্টকে\s*আছে|available\s*ache|stock\s*ache)/ui', $query)) {
+                if (preg_match('/(দাম\s*কত|কত\s*দাম|dam\s*koto|price\s*koto|how\s*much|স্টকে\s*আছে|available\s*ache|stock\s*ache|details|বিস্তারিত|বিবরণ|জানাও|বলো|বলুন|bolo|bolen|tell\s*me|specification|specs?|configuration|features?|বৈশিষ্ট্য|তথ্য|info)/ui', $query)) {
                     $formattedPrice = number_format((float) ($activeProduct['unit_price'] ?? 0), 2);
                     $sections[] = "- Live Product Catalog Record for Active Discussion ({$activeProduct['name']}):\n" .
                         "  * Product: {$activeProduct['name']}\n" .
                         "  * Category: " . ($activeProduct['category'] ?? 'General') . "\n" .
                         "  * Price: ৳{$formattedPrice}\n" .
-                        "  * Catalog Status: Active in catalog";
+                        "  * Catalog Status: Active in catalog\n" .
+                        "  * Configuration / Specification Note: Detailed hardware specifications (processor, RAM, storage, etc.) beyond model name and price are not specified in the database. State what is known (model name and price) and politely mention that for further configuration details, the customer can contact our support specialist.";
                 }
             }
 

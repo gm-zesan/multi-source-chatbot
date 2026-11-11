@@ -264,6 +264,7 @@ class CustomerSupportService
                 query: $query,
                 routingResult: $routingResult,
                 memoryContext: $memoryContext,
+                businessContext: $businessContext,
             ),
             RouteType::ANALYTICS => $this->executeAnalyticsRoute(
                 conversation: $conversation,
@@ -1219,6 +1220,7 @@ class CustomerSupportService
         string $query,
         RoutingResult $routingResult,
         ?string $memoryContext = null,
+        ?string $businessContext = null,
     ): string {
         $this->resetUncertainCount($conversation);
 
@@ -1232,6 +1234,7 @@ class CustomerSupportService
             conversation: $conversation,
             query: $query,
             memoryContext: $memoryContext,
+            businessContext: $businessContext,
         );
 
         return $this->processAgentFollowUp(
@@ -1239,6 +1242,7 @@ class CustomerSupportService
             route: RouteType::CHAT,
             query: $query,
             conversation: $conversation,
+            businessContext: $businessContext,
         );
     }
 
@@ -2172,13 +2176,7 @@ PROMPT;
         $clean = preg_replace('/<think>.*?<\/think>\s*/is', '', $clean);
         $clean = trim($clean);
 
-        // Strip markdown code fences ```json ... ```
-        if (preg_match('/```(?:json)?\s*(\{.*?\})\s*```/s', $clean, $matches)) {
-            $clean = $matches[1];
-        } elseif (preg_match('/(\{.*\})/s', $clean, $matches)) {
-            $clean = $matches[1];
-        }
-
+        // 1. Direct full JSON decode
         $decoded = json_decode($clean, true);
         if (is_array($decoded) && isset($decoded['answer'])) {
             return [
@@ -2188,9 +2186,46 @@ PROMPT;
             ];
         }
 
-        // Graceful fallback for plain text or malformed JSON
+        // 2. Markdown code fences ```json ... ```
+        if (preg_match('/```(?:json)?\s*(\{.*?\})\s*```/s', $clean, $matches)) {
+            $fenceDecoded = json_decode($matches[1], true);
+            if (is_array($fenceDecoded)) {
+                if (isset($fenceDecoded['answer'])) {
+                    return [
+                        'answer'             => trim((string) $fenceDecoded['answer']),
+                        'proposed_follow_up' => !empty($fenceDecoded['proposed_follow_up']) ? trim((string) $fenceDecoded['proposed_follow_up']) : null,
+                        'follow_up_type'     => !empty($fenceDecoded['follow_up_type']) ? trim((string) $fenceDecoded['follow_up_type']) : null,
+                    ];
+                } else {
+                    $ans = trim(str_replace($matches[0], '', $clean));
+                    return [
+                        'answer'             => $ans,
+                        'proposed_follow_up' => !empty($fenceDecoded['proposed_follow_up']) ? trim((string) $fenceDecoded['proposed_follow_up']) : null,
+                        'follow_up_type'     => !empty($fenceDecoded['follow_up_type']) ? trim((string) $fenceDecoded['follow_up_type']) : null,
+                    ];
+                }
+            }
+        }
+
+        // 3. Embedded or trailing JSON block {...}
+        if (preg_match('/(\{[\s\S]*\})/s', $clean, $matches)) {
+            $blockDecoded = json_decode($matches[1], true);
+            if (is_array($blockDecoded)) {
+                $ans = isset($blockDecoded['answer'])
+                    ? trim((string) $blockDecoded['answer'])
+                    : trim(str_replace($matches[1], '', $clean));
+                return [
+                    'answer'             => $ans,
+                    'proposed_follow_up' => !empty($blockDecoded['proposed_follow_up']) ? trim((string) $blockDecoded['proposed_follow_up']) : null,
+                    'follow_up_type'     => !empty($blockDecoded['follow_up_type']) ? trim((string) $blockDecoded['follow_up_type']) : null,
+                ];
+            }
+        }
+
+        // 4. Safe fallback: Strip any rogue trailing json fragments and return clean text
+        $sanitized = preg_replace('/\{[\s\S]*?"(?:proposed_follow_up|follow_up_type)"[\s\S]*?\}/u', '', $clean);
         return [
-            'answer'             => trim($rawOutput),
+            'answer'             => trim((string) $sanitized),
             'proposed_follow_up' => null,
             'follow_up_type'     => null,
         ];

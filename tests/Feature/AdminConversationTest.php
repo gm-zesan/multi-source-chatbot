@@ -78,13 +78,24 @@ class AdminConversationTest extends TestCase
         ]);
         $this->admin->assignRole('superadmin');
 
-        \App\Models\FAQ::create([
+        $faq = \App\Models\FAQ::create([
             'workspace_id'     => $workspace->id,
             'question'         => 'What are your store hours?',
             'answer'           => 'We are open Monday to Friday from 9 AM to 6 PM.',
             'lifecycle_status' => \App\Enums\FaqLifecycleStatus::ACTIVE,
             'is_active'        => true,
         ]);
+
+        $hit = new \App\Services\FAQ\FAQSearchResult(
+            faq: $faq,
+            keywordScore: 0.95,
+            semanticScore: 0.95,
+            finalScore: 0.95,
+            matchType: 'hybrid'
+        );
+        $retrievalTool = \Mockery::mock(\App\AI\Tools\KnowledgeRetrievalTool::class);
+        $retrievalTool->shouldReceive('execute')->byDefault()->andReturn(new \Illuminate\Database\Eloquent\Collection([$hit]));
+        $this->app->instance(\App\AI\Tools\KnowledgeRetrievalTool::class, $retrievalTool);
 
         $routerMock = \Mockery::mock(\App\AI\Routing\HybridRouter::class);
         $routerMock->shouldReceive('route')

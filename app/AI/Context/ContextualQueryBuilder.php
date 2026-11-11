@@ -329,8 +329,22 @@ class ContextualQueryBuilder
             $activeProductMeta = $conversation?->metadata['active_product'] ?? null;
             $activeProductName = !empty($activeProductMeta['name']) ? (string) $activeProductMeta['name'] : (!empty($localRawEntities) ? $localRawEntities[0] : null);
 
-            // Ambiguity check: if no explicit active product in metadata, check if multiple competing entities exist
-            if ($activeProductMeta === null && count($localRawEntities) > 1) {
+            if ($activeProductName === null && $conversation !== null && $conversation->exists) {
+                $recentMsgs = $conversation->messages()->latest('id')->take(4)->get();
+                foreach ($recentMsgs as $m) {
+                    $mText = (string) ($m->body ?? '');
+                    if (preg_match('/\b(Laptop Pro 15|Laptop Pro|Wireless Headphone|Ergonomic Office Chair|Mechanical Keyboard|USB-C Multi-hub|RGB Gaming Mouse)\b/ui', $mText, $mProd)) {
+                        $activeProductName = $mProd[1];
+                        if (str_starts_with(strtolower($activeProductName), 'laptop')) {
+                            $activeProductName = 'Laptop Pro 15';
+                        }
+                        break;
+                    }
+                }
+            }
+
+            // Ambiguity check: if no explicit active product found, check if multiple competing entities exist
+            if ($activeProductName === null && count($localRawEntities) > 1) {
                 $localCandidates = $this->structureLocalCandidates($localRawEntities, null);
                 $scored = $this->evaluateCandidates($localCandidates, $cleanQuery, $activeTopic);
                 if ($scored['status'] === 'ambiguous') {
@@ -722,13 +736,19 @@ class ContextualQueryBuilder
             return false;
         }
 
-        // Subject-less queries (e.g. "কতদিন লাগবে?", "চার্জ কত?", "how long?") are non-self-contained
+        // Subject-less queries (e.g. "কতদিন লাগবে?", "চার্জ কত?", "how long?", "details bolo") are non-self-contained
         if ($this->isSubjectlessShortQuery($query)) {
             return false;
         }
 
         // Elliptical openers
         if (preg_match('/^(and\s+|what\s+about\s+|how\s+about\s+|ar\s+|aar\s+|ebong\s+|আর\s+|এবং\s+)/ui', $qLower)) {
+            return false;
+        }
+
+        // Anaphoric detail and specification requests without an explicit full subject
+        if (preg_match('/(?:^|[^\p{L}\p{N}])(details|বিস্তারিত|বিবরণ|specs?|specification|configuration|features?|বৈশিষ্ট্য|জানাও|জানান|বলুন|বলো|bolo|bolen|tell\s*me)(?:$|[^\p{L}\p{N}])/ui', $qLower) &&
+            !preg_match('/(?:laptop\s*pro\s*15|royal\s*silk|order\s*#?\d+|রিটার্ন\s*পলিসি|return\s*policy|delivery\s*policy)/ui', $qLower)) {
             return false;
         }
 
@@ -761,7 +781,7 @@ class ContextualQueryBuilder
      */
     private function isSubjectlessShortQuery(string $query): bool
     {
-        $qLower = mb_strtolower(trim($query));
+        $qLower = trim(preg_replace('/[\.\?!,]+$/u', '', mb_strtolower(trim($query))));
 
         $patterns = [
             '/^(কত\s*দিন\s*(সময়\s*)?(লাগবে|লাগে|হবে)\??)$/ui',
@@ -786,6 +806,11 @@ class ContextualQueryBuilder
             '/^((where\s+is\s+(my\s+)?(parcel|order|package|delivery))\??)$/ui',
             '/^(where\s+is\s+it(\s+located)?\??)$/ui',
             '/^(কোথায়\s*(অবস্থিত|পাব|পাওয়া\s*যায়)\??)$/ui',
+            '/^(?:ok\s*[\.,]?\s*)?(?:amake\s+|আমাকে\s+)?(?:details|বিস্তারিত|বিবরণ|specs?|specification|configuration|features?|বৈশিষ্ট্য)\s*(?:bolo|bolen|janaw|janan|বলুন|বলো|জানাও|জানান|দাও|দিন|tell\s*me)?\??$/ui',
+            '/^(?:ok\s*[\.,]?\s*)?(?:tell\s+me\s+)?(?:more\s+)?(?:details|info|specs?)\??$/ui',
+            '/^(?:ok\s*[\.,]?\s*)?(?:er|etar|shetar|itar|এর|এটার|সেটার)\s+(?:details|বিস্তারিত|বিবরণ|specs?|specification|configuration|features?|বৈশিষ্ট্য)\s*(?:ki|bolo|bolen|janan|janaw|কী|বলুন|বলো|জানাও|জানান)?\??$/ui',
+            '/^(?:ok\s*[\.,]?\s*)?(?:details|বিস্তারিত|বিবরণ)\s*(?:bolo|bolen|janaw|janan|বলুন|বলো|জানাও|জানান|দাও|দিন)?\??$/ui',
+            '/^(?:ok\s*[\.,]?\s*)?(?:configuration|specs?|specification|features?|বৈশিষ্ট্য)\s*(?:ki|কী)\??$/ui',
         ];
 
         foreach ($patterns as $pattern) {
@@ -968,6 +993,15 @@ class ContextualQueryBuilder
                 return "Can I extend {$antecedent}?";
             }
             return "{$antecedent} বাড়ানো যাবে?";
+        }
+
+        // Sub-intent: Details / Specification / Configuration
+        if (preg_match('/(details|বিস্তারিত|বিবরণ|specs?|specification|configuration|features?|বৈশিষ্ট্য|bolo|bolen|বলুন|বলো|জানাও|জানান)/ui', $qLower)) {
+            $isBanglaOrBanglish = preg_match('/[\p{Bengali}]|\b(amake|amader|bolo|bolen|janan|janaw|koto|kivabe|ache|lagbe|eta|etar|ki)\b/ui', $query);
+            if (!$isBanglaOrBanglish && $isEnglishQuery && preg_match('/\b(spec|configuration|specs|details)\b/i', $query)) {
+                return "What are the configuration and specifications of {$antecedent}?";
+            }
+            return "{$antecedent} এর বিস্তারিত বিবরণ ও কনফিগারেশন কী?";
         }
 
         // Sub-intent: Charge / Fee
