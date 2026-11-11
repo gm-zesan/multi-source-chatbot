@@ -165,4 +165,23 @@ class ChatSimulatorTest extends TestCase
         $this->assertStringNotContainsString('sk-', $rawJson);
         $this->assertStringNotContainsString('You are an expert E-Commerce', $rawJson);
     }
+
+    public function test_superadmin_analytics_queries_total_sale_and_ke_koto_sale_are_never_denied(): void
+    {
+        $queries = ['Total sale koto?', 'ke koto taka sale korche?'];
+
+        foreach ($queries as $q) {
+            $response = $this->actingAs($this->admin)->postJson('/dashboard/simulator/send', [
+                'message' => $q,
+            ]);
+
+            $response->assertOk();
+            $reply = $response->json('reply') ?? '';
+            $route = $response->json('decision_trace.route') ?? '';
+
+            // MUST NEVER be denied as a customer
+            $this->assertNotSame('analytics_denied', $route);
+            $this->assertStringNotContainsString('অভ্যন্তরীণ ব্যবসায়িক হিসাব প্রকাশের অনুমতি নেই', $reply);
+        }
+    }
 }

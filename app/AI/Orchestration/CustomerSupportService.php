@@ -913,12 +913,17 @@ class CustomerSupportService
 
         // ── Generation / Agent Dispatch (LLM) ─────────────────────────────────────────
         $t_llm_start = microtime(true);
+        $hasProductContext = $this->isProductOrInventoryQuery($query)
+            || $this->isProductOrInventoryQuery($contextualSignal ?? '')
+            || ($contextResult !== null && $contextResult->isResolved())
+            || !empty($conversation?->metadata['active_product']);
+
         $replyText = match ($routingResult->route) {
             RouteType::KNOWLEDGE => (
                 $answerabilityDecision !== null && $answerabilityDecision->isAmbiguous()
                     ? $this->executeUncertainRoute($conversation ?? new Conversation(), $query, $routingResult)
                     : (
-                        $answerabilityDecision !== null && $answerabilityDecision->isUnanswerable() && empty($businessContext) && empty($memoryContext) && !$this->isMemoryOrIdentityQuery($query) && !$this->isProductOrInventoryQuery($query)
+                        $answerabilityDecision !== null && $answerabilityDecision->isUnanswerable() && empty($businessContext) && empty($memoryContext) && !$this->isMemoryOrIdentityQuery($query) && !$hasProductContext
                             ? $this->executeOodRoute($conversation, $query)
                             : $this->processAgentFollowUp(
                                 rawAgentOutput: $this->promptKnowledgeAgent(
@@ -1192,7 +1197,11 @@ class CustomerSupportService
             );
         }
 
-        if ($decision->isUnanswerable() && empty($businessContext)) {
+        $hasProductContext = $this->isProductOrInventoryQuery($query)
+            || $this->isProductOrInventoryQuery($contextualSignal ?? '')
+            || !empty($conversation->metadata['active_product']);
+
+        if ($decision->isUnanswerable() && empty($businessContext) && !$hasProductContext) {
             return $this->executeOodRoute($conversation, $query);
         }
 
@@ -1687,10 +1696,11 @@ PROMPT;
 
     /**
      * Determine if a query asks about products, catalog availability, inventory, or uploaded files.
+     * Scalable and domain-agnostic for any business vertical.
      */
     public function isProductOrInventoryQuery(string $query): bool
     {
-        return (bool) preg_match('/(?:^|[^\p{L}\p{N}])(phone|mobile|smartphone|ল্যাপটপ|laptop|স্মার্টফোন|ফোন|মোবাইল|product|প্রোডাক্ট|পণ্য|আইটেম|item|kache\s*ki\s*ki\s*ache|ki\s*ki\s*ache|ki\s*ache|ache\s*kina|stock|স্টক|দাম|price|dam|available|কি\s*কি\s*আছে|আছে\s*কিনা|ফাইলে|ফাইল\s*এ|upload|file|sheet|excel|inventory|ইনভেনটরি)(?:$|[^\p{L}\p{N}])/ui', $query);
+        return (bool) preg_match('/(?:^|[^\p{L}\p{N}])(?:(?:ki\s*ki|কি\s*কি|kono|কোনো|কোন)\s+[\p{L}\p{N}\-_]+(?:\s+[\p{L}\p{N}\-_]+)?\s+(?:ache|pawa\s*jabe|available|আছে|পাওয়া\s*যাবে)|[\p{L}\p{N}\-_]+\s+(?:ache\s*kina|pawa\s*jabe|pawa\s*jay|available\s*ache|আছে\s*কিনা|পাওয়া\s*যাবে|পাওয়া\s*যায়)|product|প্রোডাক্ট|পণ্য|আইটেম|item|items|stock|স্টক|দাম|price|dam|মূল্য|cost|rate|available|এভেইলেবল|upload|file|sheet|excel|inventory|ইনভেনটরি|catalog|ক্যাটালগ|collection|কালেকশন|tell\s*me\s*about|do\s*you\s*have)(?:$|[^\p{L}\p{N}])/ui', $query);
     }
 
     /**
@@ -1716,17 +1726,27 @@ PROMPT;
             $channelSlug = $channelAccount->channel?->slug ?? null;
         }
 
+        $workspaceId = $conversation->workspace_id ?? $channelAccount?->workspace_id;
+        $isAuthOwnerOrSuper = $this->isAuthenticatedOwnerOrManager($workspaceId);
+
+        // Authenticated Superadmin / Owner testing in simulator or admin session is NEVER a customer channel
+        if ($isAuthOwnerOrSuper && (!empty($meta['is_simulator']) || ($channelSlug !== null && in_array(mb_strtolower(trim($channelSlug)), ['simulator', 'admin', 'dashboard', 'internal', 'console'], true)))) {
+            return false;
+        }
+
         // Public customer channels are strictly customer channels — client metadata CANNOT bypass this (AC-14, AC-21, AC-38)
         if ($channelSlug !== null) {
             $slug = mb_strtolower(trim($channelSlug));
             if (in_array($slug, ['facebook', 'messenger', 'whatsapp', 'instagram', 'telegram', 'web', 'website', 'web_widget', 'widget', 'public'], true)) {
+                if (!empty($meta['is_simulator']) && $isAuthOwnerOrSuper) {
+                    return false;
+                }
                 return true;
             }
 
             // Administrative channels (simulator, admin, dashboard, console)
             if (in_array($slug, ['simulator', 'admin', 'dashboard', 'internal', 'console'], true)) {
-                $workspaceId = $channelAccount?->workspace_id ?? null;
-                if ($this->isAuthenticatedOwnerOrManager($workspaceId)) {
+                if ($isAuthOwnerOrSuper) {
                     return false;
                 }
                 if (!empty($meta['is_simulator']) && $meta['is_simulator'] === true) {
@@ -2179,8 +2199,9 @@ PROMPT;
         // 1. Direct full JSON decode
         $decoded = json_decode($clean, true);
         if (is_array($decoded) && isset($decoded['answer'])) {
+            $ans = preg_replace('/\{[\s\S]*?"(?:proposed_follow_up|follow_up_type)"[\s\S]*?\}/u', '', (string) $decoded['answer']);
             return [
-                'answer'             => trim((string) $decoded['answer']),
+                'answer'             => trim((string) $ans),
                 'proposed_follow_up' => !empty($decoded['proposed_follow_up']) ? trim((string) $decoded['proposed_follow_up']) : null,
                 'follow_up_type'     => !empty($decoded['follow_up_type']) ? trim((string) $decoded['follow_up_type']) : null,
             ];
@@ -2190,20 +2211,15 @@ PROMPT;
         if (preg_match('/```(?:json)?\s*(\{.*?\})\s*```/s', $clean, $matches)) {
             $fenceDecoded = json_decode($matches[1], true);
             if (is_array($fenceDecoded)) {
-                if (isset($fenceDecoded['answer'])) {
-                    return [
-                        'answer'             => trim((string) $fenceDecoded['answer']),
-                        'proposed_follow_up' => !empty($fenceDecoded['proposed_follow_up']) ? trim((string) $fenceDecoded['proposed_follow_up']) : null,
-                        'follow_up_type'     => !empty($fenceDecoded['follow_up_type']) ? trim((string) $fenceDecoded['follow_up_type']) : null,
-                    ];
-                } else {
-                    $ans = trim(str_replace($matches[0], '', $clean));
-                    return [
-                        'answer'             => $ans,
-                        'proposed_follow_up' => !empty($fenceDecoded['proposed_follow_up']) ? trim((string) $fenceDecoded['proposed_follow_up']) : null,
-                        'follow_up_type'     => !empty($fenceDecoded['follow_up_type']) ? trim((string) $fenceDecoded['follow_up_type']) : null,
-                    ];
-                }
+                $rawAns = isset($fenceDecoded['answer'])
+                    ? (string) $fenceDecoded['answer']
+                    : (string) str_replace($matches[0], '', $clean);
+                $ans = preg_replace('/\{[\s\S]*?"(?:proposed_follow_up|follow_up_type)"[\s\S]*?\}/u', '', $rawAns);
+                return [
+                    'answer'             => trim((string) $ans),
+                    'proposed_follow_up' => !empty($fenceDecoded['proposed_follow_up']) ? trim((string) $fenceDecoded['proposed_follow_up']) : null,
+                    'follow_up_type'     => !empty($fenceDecoded['follow_up_type']) ? trim((string) $fenceDecoded['follow_up_type']) : null,
+                ];
             }
         }
 
@@ -2211,11 +2227,12 @@ PROMPT;
         if (preg_match('/(\{[\s\S]*\})/s', $clean, $matches)) {
             $blockDecoded = json_decode($matches[1], true);
             if (is_array($blockDecoded)) {
-                $ans = isset($blockDecoded['answer'])
-                    ? trim((string) $blockDecoded['answer'])
-                    : trim(str_replace($matches[1], '', $clean));
+                $rawAns = isset($blockDecoded['answer'])
+                    ? (string) $blockDecoded['answer']
+                    : (string) str_replace($matches[1], '', $clean);
+                $ans = preg_replace('/\{[\s\S]*?"(?:proposed_follow_up|follow_up_type)"[\s\S]*?\}/u', '', $rawAns);
                 return [
-                    'answer'             => $ans,
+                    'answer'             => trim((string) $ans),
                     'proposed_follow_up' => !empty($blockDecoded['proposed_follow_up']) ? trim((string) $blockDecoded['proposed_follow_up']) : null,
                     'follow_up_type'     => !empty($blockDecoded['follow_up_type']) ? trim((string) $blockDecoded['follow_up_type']) : null,
                 ];

@@ -504,7 +504,9 @@ class ChatSimulatorController extends Controller
         );
 
         $currentUser = Auth::user();
-        $isOwnerOrAdmin = $currentUser?->hasRole('owner') || $currentUser?->hasRole('admin');
+        $isOwnerOrAdmin = $currentUser?->hasRole('owner')
+            || $currentUser?->hasRole('admin')
+            || $currentUser?->hasRole('superadmin');
 
         $conversation = Conversation::firstOrCreate(
             [
@@ -523,15 +525,13 @@ class ChatSimulatorController extends Controller
             ]
         );
 
-        // Ensure metadata is populated for existing conversations
+        // Ensure metadata is populated and up-to-date for simulator conversations
         $meta = $conversation->metadata ?? [];
-        if (! isset($meta['is_simulator']) || ! isset($meta['is_customer'])) {
-            $meta['is_simulator'] = true;
-            $meta['is_customer'] = false;
-            $meta['role'] = $isOwnerOrAdmin ? 'owner' : 'manager';
-            $conversation->metadata = $meta;
-            $conversation->save();
-        }
+        $meta['is_simulator'] = true;
+        $meta['is_customer'] = false;
+        $meta['role'] = $isOwnerOrAdmin ? 'owner' : 'manager';
+        $conversation->metadata = $meta;
+        $conversation->save();
 
         return $conversation;
     }

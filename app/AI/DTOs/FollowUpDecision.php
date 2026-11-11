@@ -29,13 +29,18 @@ class FollowUpDecision
 
     public function finalReply(): string
     {
+        $cleanAnswer = preg_replace('/\{[\s\S]*?"(?:proposed_follow_up|follow_up_type)"[\s\S]*?\}/u', '', $this->answer);
+        $cleanAnswer = trim((string) $cleanAnswer);
+
         if ($this->allowed && !empty($this->followUpText)) {
-            $trimmedAnswer = trim($this->answer);
-            $trimmedFollowUp = trim($this->followUpText);
-            return $trimmedAnswer . "\n\n" . $trimmedFollowUp;
+            $trimmedFollowUp = preg_replace('/\{[\s\S]*?"(?:proposed_follow_up|follow_up_type)"[\s\S]*?\}/u', '', $this->followUpText);
+            $trimmedFollowUp = trim((string) $trimmedFollowUp);
+            if ($trimmedFollowUp !== '') {
+                return $cleanAnswer !== '' ? $cleanAnswer . "\n\n" . $trimmedFollowUp : $trimmedFollowUp;
+            }
         }
 
-        return trim($this->answer);
+        return $cleanAnswer;
     }
 
     /**

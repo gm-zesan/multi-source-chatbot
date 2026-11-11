@@ -381,4 +381,30 @@ class FollowUpPolicyManagerTest extends TestCase
             $this->assertSame('forbidden_action_guard', $decision->suppressionReason);
         }
     }
+
+    /**
+     * 16. Strips rogue or nested JSON blocks containing proposed_follow_up from finalReply.
+     */
+    public function test_strips_rogue_or_nested_json_blocks_from_final_reply(): void
+    {
+        $rawOutputWithLeakedJson = "আমাদের স্টোরে বর্তমানে Laptop Pro 15 রয়েছে, যার দাম ৳৮৫,০০০। এছাড়া ল্যাপটপের সাথে মানানসই কীবোর্ড, মাউস ও মনিটরও আমাদের কাছে পাওয়া যায়。\n\n{\"proposed_follow_up\": \"আপনি কি Laptop Pro 15 সম্পর্কে বিস্তারিত জানতে চান বা অর্ডার করতে চান?\", \"follow_up_type\": \"purchase_interest\"}";
+
+        $css = app(\App\AI\Orchestration\CustomerSupportService::class);
+        $parsed = $css->parseAgentOutput($rawOutputWithLeakedJson);
+
+        $this->assertStringNotContainsString('{"proposed_follow_up"', $parsed['answer']);
+        $this->assertSame('আপনি কি Laptop Pro 15 সম্পর্কে বিস্তারিত জানতে চান বা অর্ডার করতে চান?', $parsed['proposed_follow_up']);
+
+        $decision = new FollowUpDecision(
+            allowed: false,
+            answer: $parsed['answer'],
+            followUpText: $parsed['proposed_follow_up'],
+            followUpType: 'purchase_interest',
+            suppressionReason: 'suppressed'
+        );
+
+        $finalReply = $decision->finalReply();
+        $this->assertStringNotContainsString('{"proposed_follow_up"', $finalReply);
+        $this->assertStringNotContainsString('follow_up_type', $finalReply);
+    }
 }

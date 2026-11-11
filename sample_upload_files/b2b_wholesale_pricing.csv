@@ -1,0 +1,4 @@
+Tier_Level,Minimum_Quantity,Discount_Percentage,Eligible_Categories,Free_Delivery,Payment_Terms
+Tier 1 (Small Business),5 - 19 units,5%,"Laptops, Accessories, Audio",Applicable on 10+ units,"50% advance, 50% on delivery"
+Tier 2 (Corporate Bulk),20 - 49 units,10%,All Categories (including Furniture),100% Free Nationwide,"30% advance, 70% within 15 days of invoice"
+Tier 3 (Enterprise Partner),50+ units,15%,All Categories,100% Free Nationwide + Dedicated Account Manager,Net 30 days corporate credit facility

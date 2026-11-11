@@ -326,25 +326,8 @@ class ContextualQueryBuilder
         // 5. Subject-less Elliptical / Topic Continuation Queries
         // E.g., "কতদিন লাগবে?", "চার্জ কত?", "koto din lagbe?", "how much is the fee?", "kivabe order korbo?"
         if ($this->isSubjectlessShortQuery($cleanQuery)) {
-            $activeProductMeta = $conversation?->metadata['active_product'] ?? null;
-            $activeProductName = !empty($activeProductMeta['name']) ? (string) $activeProductMeta['name'] : (!empty($localRawEntities) ? $localRawEntities[0] : null);
-
-            if ($activeProductName === null && $conversation !== null && $conversation->exists) {
-                $recentMsgs = $conversation->messages()->latest('id')->take(4)->get();
-                foreach ($recentMsgs as $m) {
-                    $mText = (string) ($m->body ?? '');
-                    if (preg_match('/\b(Laptop Pro 15|Laptop Pro|Wireless Headphone|Ergonomic Office Chair|Mechanical Keyboard|USB-C Multi-hub|RGB Gaming Mouse)\b/ui', $mText, $mProd)) {
-                        $activeProductName = $mProd[1];
-                        if (str_starts_with(strtolower($activeProductName), 'laptop')) {
-                            $activeProductName = 'Laptop Pro 15';
-                        }
-                        break;
-                    }
-                }
-            }
-
-            // Ambiguity check: if no explicit active product found, check if multiple competing entities exist
-            if ($activeProductName === null && count($localRawEntities) > 1) {
+            // Ambiguity check: if multiple competing entities exist, evaluate candidates without guessing
+            if (count($localRawEntities) > 1) {
                 $localCandidates = $this->structureLocalCandidates($localRawEntities, null);
                 $scored = $this->evaluateCandidates($localCandidates, $cleanQuery, $activeTopic);
                 if ($scored['status'] === 'ambiguous') {
@@ -360,8 +343,44 @@ class ContextualQueryBuilder
                         diagnostics: ['reason' => 'competing_entities_for_subjectless_query']
                     );
                 }
-                if ($scored['status'] === 'resolved' && $scored['winner'] !== null) {
-                    $activeProductName = $scored['winner']['name'];
+            }
+
+            $activeProductMeta = $conversation?->metadata['active_product'] ?? null;
+            $activeProductName = !empty($activeProductMeta['name'])
+                ? (string) $activeProductMeta['name']
+                : (count($localRawEntities) === 1 ? $localRawEntities[0] : null);
+
+            if ($activeProductName === null && $conversation !== null && $conversation->exists) {
+                $workspaceId = $conversation->workspace_id ?? $conversation->channelAccount?->workspace_id;
+                $wsProducts = [];
+                if ($workspaceId) {
+                    try {
+                        $wsProducts = app(\App\Services\Business\BusinessSourceOfTruthService::class)->getAllWorkspaceProducts((int) $workspaceId);
+                    } catch (\Throwable) {}
+                }
+
+                $recentMsgs = $conversation->messages()->latest('id')->take(6)->get();
+                foreach ($recentMsgs as $m) {
+                    $mText = (string) ($m->body ?? '');
+                    if ($mText === '') {
+                        continue;
+                    }
+
+                    // 1. Dynamic workspace product match
+                    foreach ($wsProducts as $p) {
+                        $pName = (string) ($p['name'] ?? '');
+                        if (strlen($pName) > 2 && stripos($mText, $pName) !== false) {
+                            $activeProductName = $pName;
+                            break 2;
+                        }
+                    }
+
+                    // 2. Dynamic candidate entity extraction from turn
+                    $extracted = $this->extractCandidateEntitiesFromTurn($mText);
+                    if (count($extracted) === 1) {
+                        $activeProductName = $extracted[0];
+                        break;
+                    }
                 }
             }
 
@@ -747,9 +766,12 @@ class ContextualQueryBuilder
         }
 
         // Anaphoric detail and specification requests without an explicit full subject
-        if (preg_match('/(?:^|[^\p{L}\p{N}])(details|বিস্তারিত|বিবরণ|specs?|specification|configuration|features?|বৈশিষ্ট্য|জানাও|জানান|বলুন|বলো|bolo|bolen|tell\s*me)(?:$|[^\p{L}\p{N}])/ui', $qLower) &&
-            !preg_match('/(?:laptop\s*pro\s*15|royal\s*silk|order\s*#?\d+|রিটার্ন\s*পলিসি|return\s*policy|delivery\s*policy)/ui', $qLower)) {
-            return false;
+        if (preg_match('/(?:^|[^\p{L}\p{N}])(details|বিস্তারিত|বিবরণ|specs?|specification|configuration|features?|বৈশিষ্ট্য|জানাও|জানান|বলুন|বলো|bolo|bolen|tell\s*me)(?:$|[^\p{L}\p{N}])/ui', $qLower)) {
+            $hasExplicitSubject = !empty($this->extractCandidateEntitiesFromTurn($query))
+                || preg_match('/(?:order\s*#?\d+|রিটার্ন\s*পলিসি|return\s*policy|delivery\s*policy|shipping\s*policy|exchange\s*policy|ওয়ারেন্টি\s*পলিসি|warranty\s*policy)/ui', $qLower);
+            if (!$hasExplicitSubject) {
+                return false;
+            }
         }
 
         $words = preg_split('/\s+/u', $qLower, -1, PREG_SPLIT_NO_EMPTY) ?: [];

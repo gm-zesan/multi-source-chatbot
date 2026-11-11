@@ -353,32 +353,49 @@ class BusinessSourceOfTruthService
             $allDocNames = $wsProductsData['doc_names'] ?? [];
             $allCategories = $wsProductsData['categories'] ?? [];
 
-            $allProducts = array_merge($catalogProds, $structuredProds, $fileProds);
+            // Merge products with deduplication across catalog, structured records, and file databases
+            $mergedProducts = [];
+            foreach (array_merge($catalogProds, $structuredProds, $fileProds) as $p) {
+                $k = mb_strtolower(trim($p['name']));
+                if (!isset($mergedProducts[$k])) {
+                    $mergedProducts[$k] = $p;
+                } else {
+                    if (empty($mergedProducts[$k]['price']) && !empty($p['price'])) {
+                        $mergedProducts[$k]['price'] = $p['price'];
+                    }
+                    if (empty($mergedProducts[$k]['stock']) && !empty($p['stock'])) {
+                        $mergedProducts[$k]['stock'] = $p['stock'];
+                    }
+                    if (empty($mergedProducts[$k]['specs']) && !empty($p['specs'])) {
+                        $mergedProducts[$k]['specs'] = $p['specs'];
+                    }
+                    if (empty($mergedProducts[$k]['description']) && !empty($p['description'])) {
+                        $mergedProducts[$k]['description'] = $p['description'];
+                    }
+                    if (($mergedProducts[$k]['category'] ?? 'General') === 'General' && !empty($p['category']) && $p['category'] !== 'General') {
+                        $mergedProducts[$k]['category'] = $p['category'];
+                    }
+                }
+            }
+            $allProducts = array_values($mergedProducts);
 
             $qLower = mb_strtolower($query);
             $matchedAny = false;
             $matchedProduct = null;
 
-            // Direct name match across all sources
+            // Direct name and category/keyword match across all sources
             foreach ($allProducts as $product) {
                 $pNameLower = mb_strtolower($product['name']);
+                $pCatLower = mb_strtolower($product['category'] ?? '');
+
                 $isDirectMatch = str_contains($qLower, $pNameLower) || (strlen($pNameLower) > 3 && str_contains($qLower, str_replace(' ', '', $pNameLower)));
 
-                // Also check substantive product noun/keyword (e.g. "laptop" for "Laptop Pro 15", "chair" for "Ergonomic Office Chair")
+                // Also check substantive product noun/keyword and category dynamically
                 $isKeywordMatch = false;
                 if (!$isDirectMatch) {
-                    $prodKeywords = match (true) {
-                        str_contains($pNameLower, 'laptop') => ['laptop', 'ল্যাপটপ'],
-                        str_contains($pNameLower, 'headphone') => ['headphone', 'হেডফোন'],
-                        str_contains($pNameLower, 'chair') => ['chair', 'office chair', 'চেয়ার'],
-                        str_contains($pNameLower, 'keyboard') => ['keyboard', 'mechanical keyboard', 'কীবোর্ড', 'কিবোর্ড'],
-                        str_contains($pNameLower, 'mouse') => ['mouse', 'gaming mouse', 'মাউস'],
-                        str_contains($pNameLower, 'multi-hub') || str_contains($pNameLower, 'hub') => ['hub', 'multi-hub', 'হাব'],
-                        default => [],
-                    };
+                    $prodKeywords = $this->extractProductKeywords($product['name'], $product['category'] ?? null);
 
                     foreach ($prodKeywords as $kw) {
-                        // Use boundary check so "phone" doesn't mistakenly match "headphone"
                         if (preg_match('/(?:^|[^\p{L}\p{N}])' . preg_quote($kw, '/') . '(?:$|[^\p{L}\p{N}])/ui', $qLower)) {
                             $isKeywordMatch = true;
                             break;
@@ -387,19 +404,20 @@ class BusinessSourceOfTruthService
                 }
 
                 if ($isDirectMatch || $isKeywordMatch) {
-                    $formattedPrice = isset($product['price']) ? '৳' . number_format((float) $product['price'], 2) : 'Price on inquiry';
+                    $formattedPrice = isset($product['price']) && (float) $product['price'] > 0
+                        ? '৳' . number_format((float) $product['price'], 2)
+                        : 'Price on inquiry';
                     $stockText = isset($product['stock']) && $product['stock'] !== null ? "  * Stock/Qty: {$product['stock']} units\n" : '';
-                    $specNote = '';
-                    if (preg_match('/(detail|বিস্তারিত|বিবরণ|spec|configuration|কনফিগারেশন|feature|বৈশিষ্ট্য)/ui', $query)) {
-                        $specNote = "  * Configuration / Specification Note: Detailed hardware specifications (processor, RAM, storage, etc.) beyond model name and price are not listed in the document. State the available details truthfully (model and price) and politely mention that for deeper configuration details, the customer can contact our support specialist.\n";
-                    }
+                    $specsText = !empty($product['specs']) ? "  * Configuration & Specs: {$product['specs']}\n" : '';
+                    $descText = !empty($product['description']) ? "  * Description: {$product['description']}\n" : '';
 
                     $sections[] = "- Live Product Catalog Record (Authoritative Truth):\n" .
                         "  * Product: {$product['name']}\n" .
                         "  * Category: {$product['category']}\n" .
                         "  * Price: {$formattedPrice}\n" .
                         $stockText .
-                        $specNote .
+                        $specsText .
+                        $descText .
                         "  * Source: {$product['source']}\n" .
                         "  * Catalog Status: Active in catalog";
                     $matchedAny = true;
@@ -413,12 +431,15 @@ class BusinessSourceOfTruthService
             if ($matchedAny && $matchedProduct !== null && $conversation !== null && $conversation->exists) {
                 $metadata = $conversation->metadata ?? [];
                 $metadata['active_product'] = [
-                    'id'         => $matchedProduct['id'] ?? null,
-                    'name'       => $matchedProduct['name'],
-                    'category'   => $matchedProduct['category'],
-                    'unit_price' => (float) ($matchedProduct['price'] ?? 0),
-                    'source'     => $matchedProduct['source'] ?? 'Catalog',
-                    'updated_at' => now()->toIso8601String(),
+                    'id'          => $matchedProduct['id'] ?? null,
+                    'name'        => $matchedProduct['name'],
+                    'category'    => $matchedProduct['category'] ?? 'General',
+                    'unit_price'  => (float) ($matchedProduct['price'] ?? 0),
+                    'stock'       => $matchedProduct['stock'] ?? null,
+                    'specs'       => $matchedProduct['specs'] ?? null,
+                    'description' => $matchedProduct['description'] ?? null,
+                    'source'      => $matchedProduct['source'] ?? 'Catalog',
+                    'updated_at'  => now()->toIso8601String(),
                 ];
                 $conversation->metadata = $metadata;
                 $conversation->save();
@@ -447,12 +468,21 @@ class BusinessSourceOfTruthService
             } elseif (!$matchedAny && $activeProduct && !empty($activeProduct['name'])) {
                 if (preg_match('/(দাম\s*কত|কত\s*দাম|dam\s*koto|price\s*koto|how\s*much|স্টকে\s*আছে|available\s*ache|stock\s*ache|details|বিস্তারিত|বিবরণ|জানাও|বলো|বলুন|bolo|bolen|tell\s*me|specification|specs?|configuration|features?|বৈশিষ্ট্য|তথ্য|info)/ui', $query)) {
                     $formattedPrice = number_format((float) ($activeProduct['unit_price'] ?? 0), 2);
+                    $stockLine = isset($activeProduct['stock']) && $activeProduct['stock'] !== null ? "  * Stock/Qty: {$activeProduct['stock']} units\n" : '';
+                    $specsLine = !empty($activeProduct['specs'])
+                        ? "  * Configuration & Specs: {$activeProduct['specs']}\n"
+                        : "  * Configuration / Specification Note: Detailed specifications beyond model name and price are not specified in the database. State what is known (model name and price) and politely mention that for further configuration details, the customer can contact our support specialist.\n";
+                    $descLine = !empty($activeProduct['description']) ? "  * Description: {$activeProduct['description']}\n" : '';
+
                     $sections[] = "- Live Product Catalog Record for Active Discussion ({$activeProduct['name']}):\n" .
                         "  * Product: {$activeProduct['name']}\n" .
                         "  * Category: " . ($activeProduct['category'] ?? 'General') . "\n" .
                         "  * Price: ৳{$formattedPrice}\n" .
+                        $stockLine .
+                        $specsLine .
+                        $descLine .
                         "  * Catalog Status: Active in catalog\n" .
-                        "  * Configuration / Specification Note: Detailed hardware specifications (processor, RAM, storage, etc.) beyond model name and price are not specified in the database. State what is known (model name and price) and politely mention that for further configuration details, the customer can contact our support specialist.";
+                        "  * Instruction to Assistant: Answer the customer's question directly using the verified specifications, price, and details above. Do not claim information is missing if it is listed above.";
                 }
             }
 
@@ -469,31 +499,17 @@ class BusinessSourceOfTruthService
                     }
                 }
 
-                $sheetOffice = [];
-                $sheetGroceries = [];
-                foreach (array_merge($structuredProds, $fileProds) as $fp) {
-                    $cat = mb_strtolower($fp['category'] ?? '');
+                $sheetItems = [];
+                foreach ($allProducts as $fp) {
                     $pStr = isset($fp['price']) && $fp['price'] ? '৳' . number_format((float) $fp['price'], 2) : '';
                     $stStr = isset($fp['stock']) && $fp['stock'] ? " (Stock: {$fp['stock']})" : '';
-                    $itemText = "{$fp['name']}" . ($pStr ? " — {$pStr}" : "") . $stStr;
-
-                    if (in_array($cat, ['grains', 'edible oil', 'groceries', 'pulses', 'beverages', 'commodities', 'flour & grains', 'pulses & lentils'])) {
-                        $sheetGroceries[$fp['name']] = $itemText;
-                    } else {
-                        $sheetOffice[$fp['name']] = $itemText . " [{$fp['category']}]";
-                    }
+                    $catStr = !empty($fp['category']) ? " [{$fp['category']}]" : "";
+                    $sheetItems[] = "{$fp['name']}{$catStr}" . ($pStr ? " — {$pStr}" : "") . $stStr;
                 }
 
-                if (!empty($sheetOffice)) {
-                    $lines[] = "  * Products in Uploaded Spreadsheets & Records (Electronics, Office & Accessories):";
-                    foreach (array_slice($sheetOffice, 0, 8) as $itemText) {
-                        $lines[] = "    - {$itemText}";
-                    }
-                }
-
-                if (!empty($sheetGroceries)) {
-                    $lines[] = "  * Inventory & Commodities in Uploaded Files (from annual_sales_report.xlsx):";
-                    foreach (array_slice($sheetGroceries, 0, 10) as $itemText) {
+                if (!empty($sheetItems)) {
+                    $lines[] = "  * Available Products in Store & Uploaded Documents:";
+                    foreach (array_slice($sheetItems, 0, 12) as $itemText) {
                         $lines[] = "    - {$itemText}";
                     }
                 }
@@ -506,20 +522,31 @@ class BusinessSourceOfTruthService
                     "  * Instruction to Assistant: When answering what products are in store or in uploaded files, summarize the actual categories and items truthfully. Do NOT invent items not listed here.";
             }
 
-            // Negative Category Verification: If customer asks about a category or product NOT present in our store or files
-            // (e.g. "ki ki phone ache?", "tell me about mobile phone", "smartphone ache?", "tv ache?", "ঘড়ি আছে?")
-            $missingCatRegex = '/(?:^|[^\p{L}\p{N}])(phone|mobile|smartphone|স্মার্টফোন|ফোন|মোবাইল|watch|ঘড়ি|tv|television|টেলিভিশন|camera|ক্যামেরা|tablet|ট্যাবলেট|headset)(?:$|[^\p{L}\p{N}])/ui';
-            if (!$matchedAny && preg_match($missingCatRegex, $query, $mCat)) {
-                $targetTerm = $mCat[1];
-                $docsChecked = !empty($allDocNames) ? implode(', ', $allDocNames) : 'annual_sales_report.xlsx, uploaded spreadsheets';
+            // Negative Product/Category Verification: If customer asks about an item or category NOT present in our store or files
+            // Dynamically detects the inquired item/category from the inquiry sentence
+            $inquiredItem = !$matchedAny ? $this->detectInquiredItemOrCategory($query) : null;
+            if ($inquiredItem !== null) {
+                $targetTerm = $inquiredItem;
+                $docsChecked = !empty($allDocNames) ? implode(', ', $allDocNames) : 'uploaded documents and product catalog';
+
+                $availCats = !empty($allCategories)
+                    ? implode(', ', $allCategories)
+                    : (!empty($allProducts) ? implode(', ', array_unique(array_filter(array_column($allProducts, 'category')))) : 'catalog items');
+
+                $availSummary = [];
+                foreach (array_slice($allProducts, 0, 8) as $ap) {
+                    $catSuffix = !empty($ap['category']) && $ap['category'] !== 'General' ? " ({$ap['category']})" : "";
+                    $availSummary[] = $ap['name'] . $catSuffix;
+                }
+                $availList = !empty($availSummary) ? implode(', ', $availSummary) : 'currently available products';
 
                 $sections[] = "- Authoritative Product Availability Truth (Live Truth):\n" .
-                    "  * Requested Item/Category: '{$targetTerm}' (Mobile Phone / Smartphone)\n" .
+                    "  * Requested Item/Category: '{$targetTerm}'\n" .
                     "  * Status: UNAVAILABLE / NOT FOUND in product catalog or any uploaded document.\n" .
                     "  * Sources Inspected: Live Product Catalog, Structured Records, and all uploaded files ({$docsChecked}).\n" .
-                    "  * Fact: Our store and uploaded documents do NOT have any {$targetTerm}, smartphones, or mobile phones.\n" .
-                    "  * Available Categories: Electronics (Laptop Pro 15, Keychron & Mechanical Keyboards, Logitech MX Master 3S Mouse, Wireless Headphones, Monitors, Anker Charger, Multi-hub), Office Furniture (Ergonomic Chairs, Desk Mat), and Groceries from annual_sales_report.xlsx (Rice, Oil, Sugar, Atta, Lentils, Tea Leaf).\n" .
-                    "  * Instruction to Assistant: Truthfully and politely inform the customer that we do not have {$targetTerm} or smartphones in our store or uploaded files. Mention the actual available categories/products (Laptops, Keyboards, Mice, Monitors, Headphones, Chairs, Groceries) and ask how else you can assist.";
+                    "  * Fact: Our store and uploaded documents do NOT have {$targetTerm}.\n" .
+                    "  * Available Categories: {$availCats} (e.g. {$availList}).\n" .
+                    "  * Instruction to Assistant: Truthfully and politely inform the customer that we do not have {$targetTerm} in our store or uploaded files. Mention the actual available categories/products ({$availCats}) and ask how else you can assist.";
             }
         } catch (\Throwable $e) {
             Log::warning('[BusinessSourceOfTruth] Product lookup skipped: ' . $e->getMessage());
@@ -561,8 +588,7 @@ class BusinessSourceOfTruthService
             try {
                 $srRecords = StructuredRecord::where('workspace_id', $workspaceId)
                     ->whereNotNull('canonical_entity_name')
-                    ->select('document_id', 'canonical_entity_name', 'canonical_category', 'raw_values')
-                    ->get();
+                    ->get(['document_id', 'canonical_entity_name', 'canonical_category', 'canonical_amount', 'canonical_quantity', 'mapped_attributes', 'semantic_projections']);
                 $seenSr = [];
                 foreach ($srRecords as $sr) {
                     $name = trim((string) $sr->canonical_entity_name);
@@ -570,12 +596,41 @@ class BusinessSourceOfTruthService
                         continue;
                     }
                     $seenSr[mb_strtolower($name)] = true;
-                    $raw = is_array($sr->raw_values) ? $sr->raw_values : json_decode($sr->raw_values ?? '[]', true);
-                    $price = isset($raw['unit_price']) ? (float) $raw['unit_price'] : (isset($raw['price']) ? (float) $raw['price'] : null);
+
+                    $price = $sr->canonical_amount !== null && (float) $sr->canonical_amount > 0 ? (float) $sr->canonical_amount : null;
+                    $stock = $sr->canonical_quantity !== null ? (int) $sr->canonical_quantity : null;
+
+                    $specs = null;
+                    $desc = null;
+                    $mapped = is_array($sr->mapped_attributes) ? $sr->mapped_attributes : (json_decode($sr->mapped_attributes ?? '[]', true) ?: []);
+                    $projections = is_array($sr->semantic_projections) ? $sr->semantic_projections : (json_decode($sr->semantic_projections ?? '[]', true) ?: []);
+
+                    foreach ($mapped as $colKey => $colData) {
+                        if (!is_array($colData)) continue;
+                        $hdr = mb_strtolower($colData['header'] ?? '');
+                        $val = $colData['value'] ?? $colData['raw_value'] ?? null;
+                        if ($val === null || trim((string) $val) === '') continue;
+
+                        if (str_contains($hdr, 'config') || str_contains($hdr, 'spec')) {
+                            $specs = (string) $val;
+                        } elseif ($hdr === 'description' || (str_contains($hdr, 'desc') && !$specs)) {
+                            $desc = (string) $val;
+                        }
+                    }
+                    if (!$specs && !empty($projections['description_col_005'])) {
+                        $specs = (string) $projections['description_col_005'];
+                    }
+                    if (!$desc && !empty($projections['description_col_006'])) {
+                        $desc = (string) $projections['description_col_006'];
+                    }
+
                     $structuredProducts[] = [
                         'name'        => $name,
                         'category'    => $sr->canonical_category ?? 'General',
                         'price'       => $price,
+                        'stock'       => $stock,
+                        'specs'       => $specs,
+                        'description' => $desc,
                         'source'      => 'Uploaded Spreadsheet Records',
                         'source_type' => 'structured_record',
                     ];
@@ -591,10 +646,12 @@ class BusinessSourceOfTruthService
                     ->where('is_active', true)
                     ->get(['id', 'title', 'original_filename', 'metadata']);
                 $docMap = [];
+                $activeDocIds = [];
                 foreach ($docs as $d) {
                     $fn = $d->original_filename ?: $d->title;
                     $docMap[$d->id] = $fn;
                     $docNames[] = $fn;
+                    $activeDocIds[] = (string) $d->id;
                 }
 
                 $sqliteDir = realpath(base_path('../python-ai-service/storage/excel_databases'));
@@ -603,6 +660,19 @@ class BusinessSourceOfTruthService
                     $seenFileProd = [];
                     foreach ($dbs as $db) {
                         try {
+                            $base = basename($db);
+                            // Only load databases that belong to active KnowledgeDocuments in this workspace
+                            $isActive = false;
+                            foreach ($activeDocIds as $docId) {
+                                if (str_contains($base, $docId)) {
+                                    $isActive = true;
+                                    break;
+                                }
+                            }
+                            if (!$isActive && !empty($activeDocIds)) {
+                                continue;
+                            }
+
                             $pdo = new PDO("sqlite:" . $db);
                             $tablesStmt = $pdo->query("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'");
                             $tables = $tablesStmt ? $tablesStmt->fetchAll(PDO::FETCH_COLUMN) : [];
@@ -639,8 +709,9 @@ class BusinessSourceOfTruthService
                                 if (!$prodCol) continue;
 
                                 $catCol = in_array('category', $cols) ? "category" : "NULL";
+
                                 $priceCol = null;
-                                foreach (['unit_price', 'selling_price', 'price', 'unit_cost_price', 'total_net'] as $candPrice) {
+                                foreach (['unit_price_bdt', 'price_bdt', 'unit_price', 'selling_price', 'price', 'unit_cost_price', 'total_net', 'mrp', 'rate'] as $candPrice) {
                                     if (in_array($candPrice, $cols)) {
                                         $priceCol = $candPrice;
                                         break;
@@ -649,7 +720,7 @@ class BusinessSourceOfTruthService
                                 $priceSql = $priceCol ? "\"{$priceCol}\"" : "NULL";
 
                                 $stockCol = null;
-                                foreach (['stock_quantity', 'stock', 'quantity', 'units'] as $candStock) {
+                                foreach (['stock_qty', 'stock_quantity', 'stock', 'quantity', 'units', 'qty', 'stock_count'] as $candStock) {
                                     if (in_array($candStock, $cols)) {
                                         $stockCol = $candStock;
                                         break;
@@ -657,7 +728,25 @@ class BusinessSourceOfTruthService
                                 }
                                 $stockSql = $stockCol ? "\"{$stockCol}\"" : "NULL";
 
-                                $stmt = $pdo->query("SELECT DISTINCT \"{$prodCol}\" as p_name, {$catCol} as p_cat, {$priceSql} as p_price, {$stockSql} as p_stock FROM \"{$tbl}\" WHERE \"{$prodCol}\" IS NOT NULL AND TRIM(\"{$prodCol}\") != '' LIMIT 30");
+                                $specsCol = null;
+                                foreach (['configuration_specs', 'specs', 'specification', 'specifications', 'config', 'hardware_specs'] as $candSpec) {
+                                    if (in_array($candSpec, $cols)) {
+                                        $specsCol = $candSpec;
+                                        break;
+                                    }
+                                }
+                                $specsSql = $specsCol ? "\"{$specsCol}\"" : "NULL";
+
+                                $descCol = null;
+                                foreach (['description', 'desc', 'details', 'product_description'] as $candDesc) {
+                                    if (in_array($candDesc, $cols)) {
+                                        $descCol = $candDesc;
+                                        break;
+                                    }
+                                }
+                                $descSql = $descCol ? "\"{$descCol}\"" : "NULL";
+
+                                $stmt = $pdo->query("SELECT DISTINCT \"{$prodCol}\" as p_name, {$catCol} as p_cat, {$priceSql} as p_price, {$stockSql} as p_stock, {$specsSql} as p_specs, {$descSql} as p_desc FROM \"{$tbl}\" WHERE \"{$prodCol}\" IS NOT NULL AND TRIM(\"{$prodCol}\") != '' LIMIT 50");
                                 if ($stmt) {
                                     while ($r = $stmt->fetch(PDO::FETCH_ASSOC)) {
                                         $nm = trim((string) $r['p_name']);
@@ -668,8 +757,10 @@ class BusinessSourceOfTruthService
                                             $fileProducts[] = [
                                                 'name'        => $nm,
                                                 'category'    => $r['p_cat'] ?? 'General',
-                                                'price'       => $r['p_price'] ? (float) $r['p_price'] : null,
-                                                'stock'       => $r['p_stock'] ? (int) $r['p_stock'] : null,
+                                                'price'       => $r['p_price'] !== null ? (float) $r['p_price'] : null,
+                                                'stock'       => $r['p_stock'] !== null ? (int) $r['p_stock'] : null,
+                                                'specs'       => $r['p_specs'] ? (string) $r['p_specs'] : null,
+                                                'description' => $r['p_desc'] ? (string) $r['p_desc'] : null,
                                                 'source'      => "Uploaded File: {$inferredFile} ({$tbl})",
                                                 'source_file' => $inferredFile,
                                                 'source_type' => 'uploaded_file',
@@ -701,5 +792,139 @@ class BusinessSourceOfTruthService
                 'doc_names'  => array_values(array_unique($docNames)),
             ];
         });
+    }
+
+    /**
+     * Dynamically detect if a query is inquiring about the availability of an item or category.
+     * Scaleable and domain-agnostic for any business.
+     */
+    private function detectInquiredItemOrCategory(string $query): ?string
+    {
+        $q = trim($query);
+
+        // Pattern 1: Inquiries with "ki ki" or "kono" e.g., "ki ki phone ache?", "kono sharee ache kina?"
+        if (preg_match('/(?:^|[^\p{L}\p{N}])(?:ki\s*ki|কি\s*কি|kono|কোনো|কোন)\s+([\p{L}\p{N}\-_]+(?:\s+[\p{L}\p{N}\-_]+){0,2})\s*(?:ache|pawa\s*jabe|available|আছে|পাওয়া\s*যাবে|পাব)/ui', $q, $m)) {
+            $term = trim($m[1]);
+            if (!$this->isGenericFillerTerm($term)) {
+                return $term;
+            }
+        }
+
+        // Pattern 2: Availability suffixes: "<item> ache?", "<item> ache kina?", "<item> pawa jabe?", "<item> কি পাওয়া যায়?"
+        if (preg_match('/(?:^|[^\p{L}\p{N}])([\p{L}\p{N}\-_]+(?:\s+[\p{L}\p{N}\-_]+){0,2})\s+(?:ache\s*kina|pawa\s*jabe|pawa\s*jay|available\s*ache|ache|আছে\s*কিনা|পাওয়া\s*যাবে|পাওয়া\s*যায়|আছে\s*কি|আছে)(?:$|[^\p{L}\p{N}])/ui', $q, $m)) {
+            $term = trim($m[1]);
+            if (!$this->isGenericFillerTerm($term)) {
+                return $term;
+            }
+        }
+
+        // Pattern 3: English availability inquiries: "do you have (any)? <item>?", "is <item> available?", "tell me about <item>"
+        if (preg_match('/(?:do\s+you\s+have|is\s+there\s+any|are\s+there\s+any|tell\s+me\s+about)\s+(?:a|an|any)?\s*([\p{L}\p{N}\-_]+(?:\s+[\p{L}\p{N}\-_]+){0,2})/ui', $q, $m)) {
+            $term = trim($m[1]);
+            if (!$this->isGenericFillerTerm($term)) {
+                return $term;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Check if an extracted token is just generic filler or stop words rather than a product or category name.
+     */
+    private function isGenericFillerTerm(string $term): bool
+    {
+        $lower = mb_strtolower(trim($term));
+        $genericTerms = [
+            'product', 'products', 'item', 'items', 'file', 'files', 'sheet', 'sheets',
+            'store', 'shop', 'kono', 'kichu', 'shob', 'eta', 'ota', 'ei', 'oi',
+            'apnader', 'amader', 'amar', 'tomar', 'kache', 'details', 'info',
+            'দাম', 'প্রোডাক্ট', 'পণ্য', 'আইটেম', 'ফাইল', 'নথি', 'দোকান', 'স্টোর',
+            'কিছু', 'সব', 'আমাদের', 'আপনার', 'কাছে', 'তথ্য',
+        ];
+
+        return mb_strlen($lower) < 2 || in_array($lower, $genericTerms, true);
+    }
+
+    /**
+     * Extract substantive keywords and tokens dynamically from a product name and category.
+     * Scalable and domain-agnostic for any business vertical (apparel, electronics, food, medicine, services, etc.)
+     *
+     * @return string[]
+     */
+    private function extractProductKeywords(string $productName, ?string $category = null): array
+    {
+        $keywords = [];
+
+        // Common multi-lingual phonetic cross-references (domain-neutral transliterations)
+        static $crossLingualMap = [
+            'laptop'     => ['ল্যাপটপ'],
+            'headphone'  => ['হেডফোন', 'ইয়ারফোন'],
+            'earphone'   => ['ইয়ারফোন', 'হেডফোন'],
+            'keyboard'   => ['কীবোর্ড', 'কিবোর্ড'],
+            'mouse'      => ['মাউস'],
+            'chair'      => ['চেয়ার', 'চেয়ার'],
+            'furniture'  => ['আসবাবপত্র', 'ফার্নিচার'],
+            'watch'      => ['ঘড়ি', 'ঘড়ি', 'স্মার্টওয়াচ'],
+            'smartwatch' => ['স্মার্টওয়াচ', 'ঘড়ি', 'ঘড়ি'],
+            'shirt'      => ['শার্ট'],
+            'pant'       => ['প্যান্ট'],
+            'jeans'      => ['জিন্স'],
+            'shoe'       => ['জুতো', 'জুতা'],
+            'shoes'      => ['জুতো', 'জুতা'],
+            'bag'        => ['ব্যাগ'],
+            'food'       => ['খাবার'],
+            'burger'     => ['বার্গার'],
+            'medicine'   => ['ওষুধ', 'ঔষধ'],
+            'tablet'     => ['ট্যাবলেট'],
+            'hub'        => ['হাব'],
+            'phone'      => ['ফোন', 'মোবাইল'],
+            'mobile'     => ['মোবাইল', 'ফোন'],
+        ];
+
+        // 1. Process category tokens if present and not 'General'
+        if ($category && mb_strtolower($category) !== 'general') {
+            $catLower = mb_strtolower(trim($category));
+            $keywords[] = $catLower;
+            $catWords = preg_split('/[\s\-_,\/]+/u', $catLower, -1, PREG_SPLIT_NO_EMPTY) ?: [];
+            foreach ($catWords as $cw) {
+                if (mb_strlen($cw) >= 3) {
+                    $keywords[] = $cw;
+                    if (isset($crossLingualMap[$cw])) {
+                        $keywords = array_merge($keywords, $crossLingualMap[$cw]);
+                    }
+                }
+            }
+        }
+
+        // 2. Extract substantive tokens from product name
+        $nameLower = mb_strtolower(trim($productName));
+        $tokens = preg_split('/[\s\-_,\/]+/u', $nameLower, -1, PREG_SPLIT_NO_EMPTY) ?: [];
+
+        // Generic stop/noise tokens to ignore as standalone keywords
+        $noiseTokens = [
+            'the', 'and', 'for', 'with', 'from', 'pro', 'max', 'plus', 'mini', 'ultra',
+            'edition', 'series', 'gen', 'version', 'pack', 'set', 'combo', 'v1', 'v2', 'v3',
+            'new', 'all', 'one', 'two', 'original', 'official', 'premium', 'deluxe',
+            'সেরা', 'নতুন', 'ভালো', 'প্যাক', 'সেট',
+        ];
+
+        foreach ($tokens as $token) {
+            if (is_numeric($token)) {
+                continue;
+            }
+            if (mb_strlen($token) < 3 || in_array($token, $noiseTokens, true)) {
+                continue;
+            }
+
+            $keywords[] = $token;
+
+            // Add cross-lingual synonyms if available
+            if (isset($crossLingualMap[$token])) {
+                $keywords = array_merge($keywords, $crossLingualMap[$token]);
+            }
+        }
+
+        return array_values(array_unique($keywords));
     }
 }

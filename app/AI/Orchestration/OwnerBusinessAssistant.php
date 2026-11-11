@@ -41,6 +41,7 @@ class OwnerBusinessAssistant
         private readonly CrossSheetRelationshipService $relationshipService = new CrossSheetRelationshipService(),
         private readonly FieldLevelProjectionService $projectionService = new FieldLevelProjectionService(),
         private readonly AnalyticsAstAuthorizer $astAuthorizer = new AnalyticsAstAuthorizer(),
+        private readonly ?\App\AI\Routing\HybridRouter $hybridRouter = null,
     ) {}
 
     /**
@@ -100,12 +101,12 @@ class OwnerBusinessAssistant
         $activeGraph = $latestJob ? $this->relationshipService->loadGraph($latestJob) : null;
 
         // 5. Detect if query is a structured business analytics inquiry
-        if ($this->isBusinessAnalyticsIntent($query)) {
+        if ($this->isBusinessAnalyticsIntent($query, $conversation, $workspaceId)) {
             return $this->executeOwnerAnalyticsQuery($query, $workspaceId, $conversation, $context, $latestJob, $activeGraph);
         }
 
         // 6. Otherwise route through general knowledge / FAQ / dialogue without customer denials
-        return $this->executeOwnerKnowledgeOrDialogueQuery($query, $workspaceId, $conversation);
+        return $this->executeOwnerKnowledgeOrDialogueQuery($query, $workspaceId, $conversation, $context, $latestJob, $activeGraph);
     }
 
     /**
@@ -288,10 +289,24 @@ class OwnerBusinessAssistant
     private function executeOwnerKnowledgeOrDialogueQuery(
         string $query,
         int $workspaceId,
-        Conversation $conversation
+        Conversation $conversation,
+        ?ServerControlledContext $context = null,
+        ?SpreadsheetImportJob $job = null,
+        ?SpreadsheetRelationshipGraph $graph = null
     ): array {
         $result = $this->customerSupportService->handleQuery($query, $workspaceId, $conversation);
         $result['is_owner_pipeline'] = true;
+
+        // If the query was classified as analytics by CustomerSupportService or was intercepted as customer-facing:
+        if (($result['route'] ?? '') === 'analytics_denied'
+            || ($result['route'] ?? '') === 'analytics'
+            || ($result['reply'] ?? '') === CustomerSupportService::CUSTOMER_ANALYTICS_DENIAL_MESSAGE
+        ) {
+            if ($context !== null) {
+                return $this->executeOwnerAnalyticsQuery($query, $workspaceId, $conversation, $context, $job, $graph);
+            }
+        }
+
         return $result;
     }
 
@@ -324,17 +339,21 @@ class OwnerBusinessAssistant
     /**
      * Detect if query has business analytics intent.
      */
-    private function isBusinessAnalyticsIntent(string $query): bool
+    private function isBusinessAnalyticsIntent(string $query, ?Conversation $conversation = null, ?int $workspaceId = null): bool
     {
-        $lower = mb_strtolower($query);
+        $lower = mb_strtolower(trim($query));
+
+        // 1. Direct keyword detection for common analytics inquiries (bilingual Bengali, English, Banglish)
         $keywords = [
-            'বিক্রি', 'বিক্রয়', 'সেলস', 'sales', 'revenue', 'টাকা', 'মোট',
-            'লাভ', 'মার্জিন', 'margin', 'profit', 'gross', 'net',
-            'খরচ', 'ব্যয়', 'ক্রয়মূল্য', 'cost', 'purchase', 'expense',
-            'বেতন', 'কর্মচারী', 'সেলসম্যান', 'employee', 'salary', 'target',
-            'অর্ডার', 'কাস্টমার', 'customer', 'order', 'client',
-            'স্টক', 'ইনভেন্টরি', 'stock', 'inventory', 'quantity', 'পরিমাণ',
+            'বিক্রি', 'বিক্রয়', 'সেলস', 'sales', 'sale', 'sell', 'sold', 'revenue', 'টাকা', 'taka', 'মোট', 'total',
+            'লাভ', 'মার্জিন', 'margin', 'profit', 'gross', 'net', 'earnings',
+            'খরচ', 'ব্যয়', 'ক্রয়মূল্য', 'cost', 'purchase', 'expense', 'due', 'বকেয়া',
+            'বেতন', 'কর্মচারী', 'সেলসম্যান', 'employee', 'salary', 'target', 'staff', 'salesman', 'seller',
+            'অর্ডার', 'কাস্টমার', 'customer', 'order', 'orders', 'client',
+            'স্টক', 'ইনভেন্টরি', 'stock', 'inventory', 'quantity', 'পরিমাণ', 'qty',
             'রিপোর্ট', 'পরিসংখ্যান', 'হিসাব', 'analytics', 'report', 'summary',
+            'কালেকশন', 'collection', 'লেনদেন', 'transaction', 'performance',
+            'highest', 'lowest', 'top',
         ];
 
         foreach ($keywords as $kw) {
@@ -342,6 +361,19 @@ class OwnerBusinessAssistant
                 return true;
             }
         }
+
+        // 2. Common analytics sentence patterns ("ke koto taka...", "who sold...", "total sale...")
+        if (preg_match('/(?:ke\s+koto|who\s+(?:sold|made)|how\s+much\s+(?:sale|sales|revenue|profit)|total\s+(?:sale|sales)|আজকে\s+মোট|kar\s+sale)/ui', $lower)) {
+            return true;
+        }
+
+        // 3. Fallback to HybridRouter
+        try {
+            $router = $this->hybridRouter ?? app(\App\AI\Routing\HybridRouter::class);
+            if ($router->route($query, $conversation, $workspaceId)->isAnalytics()) {
+                return true;
+            }
+        } catch (\Throwable) {}
 
         return false;
     }

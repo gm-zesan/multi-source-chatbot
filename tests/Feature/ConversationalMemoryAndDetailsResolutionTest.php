@@ -133,4 +133,106 @@ class ConversationalMemoryAndDetailsResolutionTest extends TestCase
         $this->assertStringContainsString('phone', $ctxPhone);
         $this->assertStringContainsString('Laptop Pro 15', $ctxPhone);
     }
+
+    public function test_scales_to_fashion_vertical_dynamically_without_static_mapping(): void
+    {
+        $apparelWs = Workspace::create(['name' => 'Fashion Boutique', 'slug' => 'fashion-boutique']);
+        $channel = Channel::first() ?? Channel::create(['slug' => 'web', 'name' => 'Web Widget', 'is_active' => true]);
+        $apparelAccount = ChannelAccount::create([
+            'channel_id'   => $channel->id,
+            'workspace_id' => $apparelWs->id,
+            'name'         => 'Fashion Account',
+            'external_id'  => 'fashion_001',
+            'access_token' => 'token_fashion',
+        ]);
+        $apparelConv = Conversation::create([
+            'channel_account_id' => $apparelAccount->id,
+            'external_user_id'   => 'user_fashion_1',
+            'status'             => 'active',
+            'last_direction'     => 'inbound',
+            'metadata'           => [],
+        ]);
+
+        AnalyticsProduct::create([
+            'workspace_id' => $apparelWs->id,
+            'name'         => 'Royal Silk Panjabi',
+            'category'     => 'Men Apparel',
+            'unit_price'   => 4500.00,
+            'cost_price'   => 3000.00,
+            'is_active'    => true,
+        ]);
+
+        $sot = app(BusinessSourceOfTruthService::class);
+
+        // 1. Dynamic product matching for apparel
+        $ctxPanjabi = $sot->buildBusinessContext('ki ki panjabi ache?', $apparelConv, $apparelWs->id);
+        $this->assertNotNull($ctxPanjabi);
+        $this->assertStringContainsString('Royal Silk Panjabi', $ctxPanjabi);
+        $this->assertStringContainsString('4,500', $ctxPanjabi);
+
+        // Verify active product persisted in conversation metadata
+        $apparelConv->refresh();
+        $this->assertSame('Royal Silk Panjabi', $apparelConv->metadata['active_product']['name'] ?? null);
+
+        // 2. Anaphoric detail resolution for apparel
+        $builder = app(ContextualQueryBuilder::class);
+        $res = $builder->resolveContext('er details bolo', $apparelConv);
+        $this->assertTrue($res->isResolved());
+        $this->assertStringContainsString('Royal Silk Panjabi', (string) $res->resolvedQuery);
+
+        // 3. Dynamic negative availability check for an unstocked item (e.g. Saree)
+        $ctxSaree = $sot->buildBusinessContext('saree ache kina?', $apparelConv, $apparelWs->id);
+        $this->assertNotNull($ctxSaree);
+        $this->assertStringContainsString('UNAVAILABLE / NOT FOUND', $ctxSaree);
+        $this->assertStringContainsString('saree', $ctxSaree);
+        $this->assertStringContainsString('Royal Silk Panjabi', $ctxSaree);
+        $this->assertStringNotContainsString('smartphone', mb_strtolower($ctxSaree));
+        $this->assertStringNotContainsString('laptop', mb_strtolower($ctxSaree));
+    }
+
+    public function test_scales_to_pharmacy_vertical_dynamically_without_static_mapping(): void
+    {
+        $pharmaWs = Workspace::create(['name' => 'City Pharmacy', 'slug' => 'city-pharma']);
+        $channel = Channel::first() ?? Channel::create(['slug' => 'web', 'name' => 'Web Widget', 'is_active' => true]);
+        $pharmaAccount = ChannelAccount::create([
+            'channel_id'   => $channel->id,
+            'workspace_id' => $pharmaWs->id,
+            'name'         => 'Pharma Account',
+            'external_id'  => 'pharma_001',
+            'access_token' => 'token_pharma',
+        ]);
+        $pharmaConv = Conversation::create([
+            'channel_account_id' => $pharmaAccount->id,
+            'external_user_id'   => 'user_pharma_1',
+            'status'             => 'active',
+            'last_direction'     => 'inbound',
+            'metadata'           => [],
+        ]);
+
+        AnalyticsProduct::create([
+            'workspace_id' => $pharmaWs->id,
+            'name'         => 'Napa Extra 500mg',
+            'category'     => 'Medicine',
+            'unit_price'   => 25.00,
+            'cost_price'   => 18.00,
+            'is_active'    => true,
+        ]);
+
+        $sot = app(BusinessSourceOfTruthService::class);
+
+        // 1. Dynamic product matching for pharmacy
+        $ctxNapa = $sot->buildBusinessContext('napa extra er dam koto?', $pharmaConv, $pharmaWs->id);
+        $this->assertNotNull($ctxNapa);
+        $this->assertStringContainsString('Napa Extra 500mg', $ctxNapa);
+        $this->assertStringContainsString('25.00', $ctxNapa);
+
+        // 2. Dynamic negative availability check for an unstocked medicine (e.g. insulin)
+        $ctxInsulin = $sot->buildBusinessContext('insulin ache kina?', $pharmaConv, $pharmaWs->id);
+        $this->assertNotNull($ctxInsulin);
+        $this->assertStringContainsString('UNAVAILABLE / NOT FOUND', $ctxInsulin);
+        $this->assertStringContainsString('insulin', $ctxInsulin);
+        $this->assertStringContainsString('Napa Extra 500mg', $ctxInsulin);
+        $this->assertStringNotContainsString('smartphone', mb_strtolower($ctxInsulin));
+        $this->assertStringNotContainsString('laptop', mb_strtolower($ctxInsulin));
+    }
 }
