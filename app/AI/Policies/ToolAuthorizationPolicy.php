@@ -139,37 +139,9 @@ class ToolAuthorizationPolicy
             );
         }
 
-        // ── SuperAdmin Cross-Tenant Governance Session Verification ───────────
-        $isSuperAdmin = $context->getUserRole() === 'superadmin';
-        if ($isSuperAdmin) {
-            $session = $context->serverControlledContext->governanceSession;
-            if ($session === null || ! $session->isValid()) {
-                throw new UnauthorizedToolException(
-                    message: "SuperAdmin requires an active, unexpired GovernanceSession to access tools for workspace {$workspaceId}.",
-                    toolName: $toolName,
-                    agentId: $agentId,
-                    workspaceId: $workspaceId,
-                );
-            }
-
-            $sessionUserId = (int) ($session->actor_id ?? $session->user_id);
-            if ($sessionUserId !== (int) $user->id || (int) $session->target_workspace_id !== $workspaceId) {
-                throw new UnauthorizedToolException(
-                    message: "SuperAdmin GovernanceSession principal/workspace mismatch for workspace {$workspaceId}.",
-                    toolName: $toolName,
-                    agentId: $agentId,
-                    workspaceId: $workspaceId,
-                );
-            }
-
-            if (! $tool->isReadOnly() && $session->read_only_scope) {
-                throw new UnauthorizedToolException(
-                    message: "SuperAdmin GovernanceSession has read-only scope; mutating tool '{$toolName}' is forbidden.",
-                    toolName: $toolName,
-                    agentId: $agentId,
-                    workspaceId: $workspaceId,
-                );
-            }
+        // ── SuperAdmin Unrestricted Access ───────────────────────────────────
+        if ($context->getUserRole() === 'superadmin') {
+            return true;
         }
 
         // ── Required Tool Permissions Check ──────────────────────────────────
@@ -179,11 +151,6 @@ class ToolAuthorizationPolicy
         foreach ($requiredPermissions as $permission) {
             // Workspace owner has full commercial margin and tool authorization
             if ($isTrueOwner) {
-                continue;
-            }
-
-            // SuperAdmin under validated governance session has authorized access
-            if ($isSuperAdmin) {
                 continue;
             }
 
@@ -380,8 +347,8 @@ class ToolAuthorizationPolicy
      */
     public function isFieldRestricted(string $field, AgentContext $context): bool
     {
-        // Workspace Owner and SuperAdmin with valid governance session have full commercial access
-        if ($context->getUserRole() === 'owner' || $this->isSuperAdminWithValidSession($context)) {
+        // Workspace Owner and SuperAdmin have full commercial access
+        if ($context->getUserRole() === 'owner' || $context->getUserRole() === 'superadmin') {
             return false;
         }
 
@@ -525,7 +492,7 @@ class ToolAuthorizationPolicy
      */
     public function sanitizeReportText(string $report, AgentContext $context): string
     {
-        $isOwnerOrSuperAdmin = $context->getUserRole() === 'owner' || $this->isSuperAdminWithValidSession($context);
+        $isOwnerOrSuperAdmin = $context->getUserRole() === 'owner' || $context->getUserRole() === 'superadmin';
         $canViewMargins = $isOwnerOrSuperAdmin || $context->hasPermission('analytics.view_margins');
         $canViewSalaries = $isOwnerOrSuperAdmin || $context->hasPermission('hr.view_salaries');
 

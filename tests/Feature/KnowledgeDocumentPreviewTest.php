@@ -206,8 +206,13 @@ class KnowledgeDocumentPreviewTest extends TestCase
         $response->assertUnauthorized();
     }
 
-    public function test_superadmin_without_active_governance_session_is_denied_cross_workspace_preview(): void
+    public function test_superadmin_with_null_workspace_can_preview_and_stream_across_workspaces_unrestricted(): void
     {
+        $globalSuperAdmin = User::factory()->create([
+            'workspace_id' => null,
+        ]);
+        $globalSuperAdmin->assignRole(RoleEnum::SUPERADMIN->value);
+
         $csvContent = "Col1,Col2\nVal1,Val2";
         $filePath = "documents/{$this->workspaceB->id}/" . (string) Str::uuid() . '.csv';
         Storage::disk('local')->put($filePath, $csvContent);
@@ -224,50 +229,21 @@ class KnowledgeDocumentPreviewTest extends TestCase
             'purpose'           => IngestionPurpose::DATA_ANALYTICS,
         ]);
 
-        // SuperAdmin has NO governance session for Workspace B -> MUST be 403 Forbidden
-        $response = $this->actingAs($this->superAdmin)
-            ->getJson(route('documents.preview', ['document' => $doc->id]));
+        // Both global SuperAdmin (workspace_id = null) and Workspace A SuperAdmin access Workspace B directly without any governance session
+        foreach ([$globalSuperAdmin, $this->superAdmin] as $actor) {
+            $response = $this->actingAs($actor)
+                ->getJson(route('documents.preview', ['document' => $doc->id]));
 
-        $response->assertStatus(403);
-    }
+            $response->assertOk()
+                ->assertJson([
+                    'success' => true,
+                    'type'    => 'spreadsheet',
+                ]);
 
-    public function test_superadmin_with_active_governance_session_can_preview_documents_across_workspaces(): void
-    {
-        $csvContent = "Col1,Col2\nVal1,Val2";
-        $filePath = "documents/{$this->workspaceB->id}/" . (string) Str::uuid() . '.csv';
-        Storage::disk('local')->put($filePath, $csvContent);
+            $streamResponse = $this->actingAs($actor)
+                ->get(route('documents.preview', ['document' => $doc->id, 'stream' => 1]));
 
-        $doc = KnowledgeDocument::create([
-            'workspace_id'      => $this->workspaceB->id,
-            'title'             => 'Workspace B Doc',
-            'original_filename' => 'data.csv',
-            'file_path'         => $filePath,
-            'content_hash'      => hash('sha256', $csvContent),
-            'mime_type'         => 'text/csv',
-            'file_size'         => strlen($csvContent),
-            'lifecycle_status'  => DocumentLifecycleStatus::ACTIVE,
-            'purpose'           => IngestionPurpose::DATA_ANALYTICS,
-        ]);
-
-        $session = \App\Models\SuperAdminGovernanceSession::createSession(
-            $this->superAdmin,
-            $this->workspaceB->id,
-            'Audited investigation for cross-tenant document preview'
-        );
-
-        $response = $this->actingAs($this->superAdmin)
-            ->getJson(route('documents.preview', ['document' => $doc->id]));
-
-        $response->assertOk()
-            ->assertJson([
-                'success' => true,
-                'type'    => 'spreadsheet',
-            ]);
-
-        // Verify permanent audit event logging
-        $session->refresh();
-        $this->assertNotEmpty($session->audit_log);
-        $actions = array_column($session->audit_log, 'action');
-        $this->assertContains('document_accessed', $actions);
+            $streamResponse->assertOk();
+        }
     }
 }

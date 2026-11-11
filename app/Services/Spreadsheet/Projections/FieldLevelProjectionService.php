@@ -57,12 +57,14 @@ class FieldLevelProjectionService
         // 1. Strict Tenant Boundary Verification
         $recordWorkspaceId = (int) $record->workspace_id;
         if ($recordWorkspaceId !== (int) $context->workspaceId) {
-            if ($context->userRole === 'superadmin' && $context->governanceSession !== null && $context->governanceSession->isValid()) {
-                $context->governanceSession->recordAction('cross_tenant_record_projection', [
-                    'record_id'    => $record->id,
-                    'document_id'  => $record->document_id,
-                    'workspace_id' => $recordWorkspaceId,
-                ]);
+            if ($context->userRole === 'superadmin') {
+                if ($context->governanceSession !== null && $context->governanceSession->isValid()) {
+                    $context->governanceSession->recordAction('cross_tenant_record_projection', [
+                        'record_id'    => $record->id,
+                        'document_id'  => $record->document_id,
+                        'workspace_id' => $recordWorkspaceId,
+                    ]);
+                }
             } else {
                 throw new TenantScopeViolationException(
                     message: "Cross-tenant record projection denied: Record belongs to workspace {$recordWorkspaceId}, context is {$context->workspaceId}.",
@@ -222,12 +224,33 @@ class FieldLevelProjectionService
     public function projectRawRow(array $rawRow, array $sourceDescriptors, ServerControlledContext $context): array
     {
         $projected = [];
+        $descriptorsByIndex = [];
+
+        foreach ($sourceDescriptors as $key => $item) {
+            if (! is_array($item)) {
+                continue;
+            }
+            if (is_int($key)) {
+                $descriptorsByIndex[$key] = $item;
+            } elseif (isset($item['column_index']) && is_numeric($item['column_index'])) {
+                $descriptorsByIndex[(int) $item['column_index']] = $item;
+            }
+        }
 
         foreach ($rawRow as $idx => $cellVal) {
-            $desc = $sourceDescriptors[$idx] ?? null;
+            $colKey = 'col_' . str_pad((string) $idx, 3, '0', STR_PAD_LEFT);
+            $desc = $sourceDescriptors[$idx]
+                ?? $descriptorsByIndex[$idx]
+                ?? $sourceDescriptors[$colKey]
+                ?? null;
+
             if (! is_array($desc)) {
                 // Unclassified column defaults to RESTRICTED (fail-closed)
-                if ($context->isCustomer() || ! $context->isOwner()) {
+                if ($context->isCustomer()) {
+                    continue;
+                }
+                if (! $context->isOwner()) {
+                    $projected[$idx] = '***';
                     continue;
                 }
                 $projected[$idx] = $cellVal;

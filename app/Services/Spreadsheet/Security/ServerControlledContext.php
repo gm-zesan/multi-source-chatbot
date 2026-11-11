@@ -85,17 +85,6 @@ final class ServerControlledContext
         // Strict Tenant Scoping:
         if ($isSuperAdmin) {
             $userRole = 'superadmin';
-            // Cross-tenant access mandates an active, unexpired governance session
-            if ($userWorkspaceId !== $workspaceId) {
-                if ($session === null || ! $session->isValid() || (int) $session->target_workspace_id !== $workspaceId || (int) $session->user_id !== (int) $user->id) {
-                    throw new TenantScopeViolationException(
-                        message: "Cross-tenant access to workspace {$workspaceId} denied: SuperAdmin requires an active SuperAdminGovernanceSession.",
-                        requestWorkspaceId: $userWorkspaceId,
-                        targetWorkspaceId: $workspaceId,
-                        userId: $user->id,
-                    );
-                }
-            }
         } else {
             // Non-superadmins are strictly locked to their assigned workspace
             if ($userWorkspaceId !== $workspaceId) {
@@ -165,7 +154,7 @@ final class ServerControlledContext
             return true;
         }
 
-        if ($this->userRole === 'superadmin' && $this->governanceSession !== null && $this->governanceSession->isValid()) {
+        if ($this->userRole === 'superadmin') {
             return true;
         }
 
@@ -185,7 +174,7 @@ final class ServerControlledContext
      */
     public function isOwner(): bool
     {
-        return $this->userRole === 'owner' || ($this->userRole === 'superadmin' && $this->governanceSession !== null && $this->governanceSession->isValid());
+        return $this->userRole === 'owner' || $this->userRole === 'superadmin';
     }
 
     /**

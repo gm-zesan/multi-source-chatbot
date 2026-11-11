@@ -136,7 +136,7 @@ class KnowledgeDocumentService
      */
     public function getDataTables(?Request $request = null): JsonResponse
     {
-        $query = $this->workspaceQuery();
+        $query = $this->workspaceQuery()->with('workspace:id,name');
 
         $status = $request?->input('status');
         if ($status === 'trashed') {
@@ -276,6 +276,8 @@ class KnowledgeDocumentService
 
                 return [
                     'id'                    => (string) $doc->id,
+                    'workspace_id'          => (int) $doc->workspace_id,
+                    'workspace_name'        => $doc->workspace?->name ?? "Workspace #{$doc->workspace_id}",
                     'title'                 => $doc->title,
                     'filename'              => $doc->original_filename,
                     'purpose'               => $purpose->value,

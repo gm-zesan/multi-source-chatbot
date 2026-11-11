@@ -43,7 +43,14 @@ class KnowledgeDocumentController extends Controller
     {
         $this->authorizeAction(KnowledgeDocumentPermission::CREATE->value);
 
-        return view('admin.documents.create');
+        /** @var User|null $user */
+        $user = Auth::user();
+        $isSuperAdmin = $user && $user->hasRole(RoleEnum::SUPERADMIN->value);
+
+        return view('admin.documents.create', [
+            'isSuperAdmin' => $isSuperAdmin,
+            'workspaces'   => $isSuperAdmin ? \App\Models\Workspace::orderBy('name')->get(['id', 'name']) : collect(),
+        ]);
     }
 
     /**
@@ -126,20 +133,20 @@ class KnowledgeDocumentController extends Controller
         /** @var User|null $user */
         $user = Auth::user();
         if (! empty($previewData['success']) && ($previewData['type'] ?? '') === 'spreadsheet' && $user) {
-            $latestJob = \App\Models\SpreadsheetImportJob::where('document_id', $document->id)
-                ->where('workspace_id', $document->workspace_id)
-                ->latest()
-                ->first();
+            $jobQuery = \App\Models\SpreadsheetImportJob::where('document_id', $document->id)
+                ->where('workspace_id', $document->workspace_id);
+            $activeSheet = $previewData['active_sheet'] ?? null;
+            $latestJob = $activeSheet
+                ? ((clone $jobQuery)->where('sheet_name', (string) $activeSheet)->latest()->first() ?? $jobQuery->latest()->first())
+                : $jobQuery->latest()->first();
 
             $descriptors = $latestJob?->source_descriptors ?? [];
             if (! empty($descriptors) && ! empty($previewData['rows'])) {
-                $session = \App\Models\SuperAdminGovernanceSession::activeFor((int) $user->id, (int) $document->workspace_id)->latest()->first();
                 $context = \App\Services\Spreadsheet\Security\ServerControlledContext::forUser(
                     user: $user,
                     workspaceId: (int) $document->workspace_id,
                     purpose: \App\Services\Spreadsheet\Security\ServerControlledContext::PURPOSE_ANALYTICS_REPORTING,
-                    channel: \App\Services\Spreadsheet\Security\ServerControlledContext::CHANNEL_DASHBOARD,
-                    session: $session
+                    channel: \App\Services\Spreadsheet\Security\ServerControlledContext::CHANNEL_DASHBOARD
                 );
                 $projectionService = app(\App\Services\Spreadsheet\Projections\FieldLevelProjectionService::class);
                 $projectedRows = [];
@@ -235,7 +242,7 @@ class KnowledgeDocumentController extends Controller
 
     /**
      * Ensure the document belongs to the authenticated user's workspace.
-     * Superadmins are allowed across workspaces ONLY with an active SuperAdminGovernanceSession.
+     * Superadmins have unrestricted access across all workspaces.
      */
     private function authorizeWorkspace(KnowledgeDocument $document): void
     {
@@ -243,13 +250,6 @@ class KnowledgeDocumentController extends Controller
         $user = Auth::user();
 
         if ($user && $user->hasRole(RoleEnum::SUPERADMIN->value)) {
-            if ((int) $user->workspace_id !== (int) $document->workspace_id) {
-                $session = \App\Models\SuperAdminGovernanceSession::activeFor((int) $user->id, (int) $document->workspace_id)->latest()->first();
-                if (! $session || ! $session->isValid()) {
-                    abort(403, 'Cross-tenant document access denied: SuperAdmin requires an active SuperAdminGovernanceSession.');
-                }
-                $session->recordAction('document_accessed', ['document_id' => $document->id]);
-            }
             return;
         }
 

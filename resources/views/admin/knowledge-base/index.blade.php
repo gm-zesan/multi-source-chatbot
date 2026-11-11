@@ -272,8 +272,12 @@
                             <div>
                                 <h5 class="modal-title fw-bold text-dark mb-0" id="documentDetailsModalLabel">Document
                                     Preview & Details</h5>
-                                <span class="badge bg-secondary-subtle text-secondary border px-2 py-0 font-monospace"
-                                    id="modalDocFilename" style="font-size: 11px;"></span>
+                                <div class="d-flex align-items-center gap-1 flex-wrap mt-1">
+                                    <span class="badge bg-secondary-subtle text-secondary border px-2 py-0 font-monospace"
+                                        id="modalDocFilename" style="font-size: 11px;"></span>
+                                    <span class="badge bg-info-subtle text-info-emphasis border px-2 py-0 d-none"
+                                        id="modalDocWorkspace" style="font-size: 11px;"></span>
+                                </div>
                             </div>
                         </div>
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
@@ -917,6 +921,7 @@
                         }
                     ]
                 });
+                window.knowledgeDocumentsTable = docDataTable;
                 @endif
 
                 // Delegate click on view buttons and title links to open the document details modal
@@ -944,8 +949,14 @@
                 }
 
                 window.currentViewingDocId = doc.id;
+
                 $('#modalDocTitle').text(doc.title || '-');
                 $('#modalDocFilename').text(doc.filename || '');
+                if (doc.workspace_name) {
+                    $('#modalDocWorkspace').text(doc.workspace_name).removeClass('d-none');
+                } else {
+                    $('#modalDocWorkspace').text('').addClass('d-none');
+                }
                 $('#modalDocRows').text((doc.file_size || '') + (doc.total_rows ? ' • ' + doc.total_rows + ' rows' : ''));
                 $('#modalSourceIdText').text(doc.source_id ? 'Source ID: ' + doc.source_id : '');
 
@@ -1100,6 +1111,10 @@
                 $.ajax({
                     url: SITEURL + '/dashboard/documents/' + docId + '/preview',
                     type: 'GET',
+                    headers: {
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
                     data: {
                         sheet: sheetName || undefined,
                         max_rows: 100
@@ -1128,6 +1143,7 @@
                     },
                     error: function (xhr) {
                         $('#previewLoader').addClass('d-none');
+
                         var msg = 'Failed to load document preview.';
                         if (xhr.responseJSON && xhr.responseJSON.message) {
                             msg = xhr.responseJSON.message;
@@ -1218,7 +1234,8 @@
                 rows.forEach(function (row, idx) {
                     var tr = $('<tr></tr>');
                     tr.append('<td class="text-muted small py-1 text-center border-end bg-light-subtle">' + (idx + 1) + '</td>');
-                    row.forEach(function (cell) {
+                    var cells = Array.isArray(row) ? row : Object.values(row || {});
+                    cells.forEach(function (cell) {
                         var safeCell = $('<div>').text(cell !== null && cell !== undefined ? cell : '').html();
                         tr.append('<td class="py-1 px-2">' + safeCell + '</td>');
                     });
@@ -1236,7 +1253,8 @@
                 }
 
                 var filtered = window.previewRowsCache.filter(function (row) {
-                    return row.some(function (cell) {
+                    var cells = Array.isArray(row) ? row : Object.values(row || {});
+                    return cells.some(function (cell) {
                         return String(cell || '').toLowerCase().indexOf(q) !== -1;
                     });
                 });
@@ -1265,7 +1283,10 @@
                 $.ajax({
                     url: `${SITEURL}/dashboard/documents/${docId}/spreadsheet/suggestions`,
                     type: 'GET',
-                    headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                    headers: {
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
                     success: function (res) {
                         $('#mappingModalLoader').addClass('d-none');
                         if (!res.success) {

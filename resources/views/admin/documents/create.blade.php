@@ -94,6 +94,29 @@
                                 </a>
                             </div>
 
+                            @if (!empty($isSuperAdmin) && isset($workspaces) && count($workspaces) > 0)
+                                {{-- SuperAdmin Target Workspace Selection --}}
+                                <div class="mb-3">
+                                    <label for="workspace_id" class="form-label custom-label">
+                                        Target Workspace <span class="text-danger">*</span>
+                                    </label>
+                                    <select name="workspace_id" id="workspace_id" class="form-control custom-input @error('workspace_id') is-invalid @enderror @error('workspace') is-invalid @enderror" required>
+                                        <option value="">-- Select Target Workspace --</option>
+                                        @foreach ($workspaces as $ws)
+                                            <option value="{{ $ws->id }}" {{ old('workspace_id') == $ws->id ? 'selected' : '' }}>
+                                                {{ $ws->name }}
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                    @error('workspace_id')
+                                        <div class="error_msg text-danger mt-1 small">{{ $message }}</div>
+                                    @enderror
+                                    @error('workspace')
+                                        <div class="error_msg text-danger mt-1 small">{{ $message }}</div>
+                                    @enderror
+                                </div>
+                            @endif
+
                             {{-- Title Field --}}
                             <div class="mb-3">
                                 <label for="title" class="form-label custom-label">

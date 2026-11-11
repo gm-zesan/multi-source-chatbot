@@ -196,7 +196,7 @@ class ToolAuthorizationPolicyTest extends TestCase
         $this->policy->authorizeToolForContext($financialTool, $context);
     }
 
-    public function test_superadmin_without_valid_session_is_denied_margins(): void
+    public function test_superadmin_without_session_is_authorized_for_margins_across_workspaces(): void
     {
         $financialTool = $this->createMockTool('bi_margins', isReadOnly: true, permissions: ['analytics.view_margins']);
 
@@ -212,26 +212,18 @@ class ToolAuthorizationPolicyTest extends TestCase
         $user->id = 99;
         $context = AgentContext::fromServerControlledContext($scc, user: $user);
 
-        $this->expectException(UnauthorizedToolException::class);
-        $this->expectExceptionMessage("SuperAdmin requires an active, unexpired GovernanceSession");
+        $authorized = $this->policy->authorizeToolForContext($financialTool, $context);
+        $this->assertTrue($authorized);
+        $this->assertFalse($this->policy->isFieldRestricted('cost_price', $context));
+        $this->assertFalse($this->policy->isFieldRestricted('salary', $context));
 
-        $this->policy->authorizeToolForContext($financialTool, $context);
+        $report = "Selling Price: 1500\nPurchase Cost: 800\nSalary: 50000";
+        $this->assertSame($report, $this->policy->sanitizeReportText($report, $context));
     }
 
-    public function test_superadmin_with_valid_governance_session_is_authorized_for_margins(): void
+    public function test_superadmin_with_null_workspace_is_authorized_unrestricted(): void
     {
         $financialTool = $this->createMockTool('bi_margins', isReadOnly: true, permissions: ['analytics.view_margins']);
-
-        $session = new SuperAdminGovernanceSession([
-            'actor_id'            => 99,
-            'user_id'             => 99,
-            'target_workspace_id' => 5,
-            'justification'       => 'Authorized security audit SEC-101',
-            'read_only_scope'     => true,
-            'started_at'          => Carbon::now(),
-            'expires_at'          => Carbon::now()->addHour(),
-            'revoked_at'          => null,
-        ]);
 
         $scc = new ServerControlledContext(
             workspaceId: 5,
@@ -239,9 +231,9 @@ class ToolAuthorizationPolicyTest extends TestCase
             userRole: 'superadmin',
             channel: ServerControlledContext::CHANNEL_DASHBOARD,
             purpose: ServerControlledContext::PURPOSE_ANALYTICS_REPORTING,
-            governanceSession: $session,
+            governanceSession: null,
         );
-        $user = new User(['id' => 99, 'workspace_id' => 1]);
+        $user = new User(['id' => 99, 'workspace_id' => null]);
         $user->id = 99;
         $context = AgentContext::fromServerControlledContext($scc, user: $user);
 
@@ -249,18 +241,38 @@ class ToolAuthorizationPolicyTest extends TestCase
         $this->assertTrue($authorized);
     }
 
-    public function test_superadmin_with_expired_governance_session_fails_closed(): void
+    public function test_superadmin_is_authorized_for_mutating_tools_without_governance_session(): void
     {
-        $financialTool = $this->createMockTool('bi_margins', isReadOnly: true, permissions: ['analytics.view_margins']);
+        $mutatingTool = $this->createMockTool('cancel_order_tool', isReadOnly: false, permissions: ['orders.manage']);
+
+        $scc = new ServerControlledContext(
+            workspaceId: 5,
+            userId: 99,
+            userRole: 'superadmin',
+            channel: ServerControlledContext::CHANNEL_DASHBOARD,
+            purpose: ServerControlledContext::PURPOSE_ANALYTICS_REPORTING,
+            governanceSession: null,
+        );
+        $user = new User(['id' => 99, 'workspace_id' => 1]);
+        $user->id = 99;
+        $context = AgentContext::fromServerControlledContext($scc, user: $user);
+
+        $authorized = $this->policy->authorizeToolForContext($mutatingTool, $context);
+        $this->assertTrue($authorized);
+    }
+
+    public function test_superadmin_remains_unrestricted_even_if_expired_or_read_only_legacy_session_is_present(): void
+    {
+        $mutatingTool = $this->createMockTool('cancel_order_tool', isReadOnly: false, permissions: ['orders.manage']);
 
         $session = new SuperAdminGovernanceSession([
-            'actor_id'            => 99,
-            'user_id'             => 99,
-            'target_workspace_id' => 5,
-            'justification'       => 'Old audit session',
+            'actor_id'            => 100,
+            'user_id'             => 100,
+            'target_workspace_id' => 99,
+            'justification'       => 'Legacy session object',
             'read_only_scope'     => true,
             'started_at'          => Carbon::now()->subHours(2),
-            'expires_at'          => Carbon::now()->subMinute(), // Expired
+            'expires_at'          => Carbon::now()->subMinute(),
             'revoked_at'          => null,
         ]);
 
@@ -276,76 +288,8 @@ class ToolAuthorizationPolicyTest extends TestCase
         $user->id = 99;
         $context = AgentContext::fromServerControlledContext($scc, user: $user);
 
-        $this->expectException(UnauthorizedToolException::class);
-        $this->expectExceptionMessage("SuperAdmin requires an active, unexpired GovernanceSession");
-
-        $this->policy->authorizeToolForContext($financialTool, $context);
-    }
-
-    public function test_superadmin_with_wrong_principal_session_fails_closed(): void
-    {
-        $financialTool = $this->createMockTool('bi_margins', isReadOnly: true, permissions: ['analytics.view_margins']);
-
-        $session = new SuperAdminGovernanceSession([
-            'actor_id'            => 100, // Different user
-            'user_id'             => 100,
-            'target_workspace_id' => 5,
-            'justification'       => 'Another admin session',
-            'read_only_scope'     => true,
-            'started_at'          => Carbon::now(),
-            'expires_at'          => Carbon::now()->addHour(),
-            'revoked_at'          => null,
-        ]);
-
-        $scc = new ServerControlledContext(
-            workspaceId: 5,
-            userId: 99,
-            userRole: 'superadmin',
-            channel: ServerControlledContext::CHANNEL_DASHBOARD,
-            purpose: ServerControlledContext::PURPOSE_ANALYTICS_REPORTING,
-            governanceSession: $session,
-        );
-        $user = new User(['id' => 99, 'workspace_id' => 1]);
-        $user->id = 99;
-        $context = AgentContext::fromServerControlledContext($scc, user: $user);
-
-        $this->expectException(UnauthorizedToolException::class);
-        $this->expectExceptionMessage("SuperAdmin GovernanceSession principal/workspace mismatch");
-
-        $this->policy->authorizeToolForContext($financialTool, $context);
-    }
-
-    public function test_superadmin_with_read_only_session_denied_mutating_tool(): void
-    {
-        $mutatingTool = $this->createMockTool('cancel_order_tool', isReadOnly: false, permissions: []);
-
-        $session = new SuperAdminGovernanceSession([
-            'actor_id'            => 99,
-            'user_id'             => 99,
-            'target_workspace_id' => 5,
-            'justification'       => 'Read-only audit session',
-            'read_only_scope'     => true,
-            'started_at'          => Carbon::now(),
-            'expires_at'          => Carbon::now()->addHour(),
-            'revoked_at'          => null,
-        ]);
-
-        $scc = new ServerControlledContext(
-            workspaceId: 5,
-            userId: 99,
-            userRole: 'superadmin',
-            channel: ServerControlledContext::CHANNEL_DASHBOARD,
-            purpose: ServerControlledContext::PURPOSE_ANALYTICS_REPORTING,
-            governanceSession: $session,
-        );
-        $user = new User(['id' => 99, 'workspace_id' => 1]);
-        $user->id = 99;
-        $context = AgentContext::fromServerControlledContext($scc, user: $user);
-
-        $this->expectException(UnauthorizedToolException::class);
-        $this->expectExceptionMessage("SuperAdmin GovernanceSession has read-only scope; mutating tool 'cancel_order_tool' is forbidden.");
-
-        $this->policy->authorizeToolForContext($mutatingTool, $context);
+        $authorized = $this->policy->authorizeToolForContext($mutatingTool, $context);
+        $this->assertTrue($authorized);
     }
 
     // ─── Central Output Projection Tests (BO1-FIND-04) ───────────────────────

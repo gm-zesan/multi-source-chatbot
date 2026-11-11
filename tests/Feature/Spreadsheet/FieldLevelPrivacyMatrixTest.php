@@ -476,44 +476,57 @@ class FieldLevelPrivacyMatrixTest extends TestCase
     }
 
     /**
-     * 5. SuperAdmin Cross-Tenant Access Requires Valid Governance Session.
+     * 5. SuperAdmin Has Unrestricted Cross-Tenant Access Without Governance Session.
      */
-    public function test_superadmin_access_requires_valid_governance_session_and_records_audit_trail(): void
+    public function test_superadmin_has_unrestricted_cross_tenant_access_without_governance_session(): void
     {
         $recordA = $this->createMultiMetricRecord();
 
-        // 1. SuperAdmin accessing own workspace succeeds without a governance session
+        // 1. SuperAdmin accessing Workspace A directly succeeds without a governance session
         $ownContext = ServerControlledContext::forUser(
             user: $this->superAdmin,
             workspaceId: (int) $this->workspaceA->id,
             purpose: ServerControlledContext::PURPOSE_SYSTEM_SYNC
         );
         $this->assertEquals('superadmin', $ownContext->userRole);
+        $this->assertTrue($ownContext->isOwner());
 
-        // Superadmin accessing foreign workspace without session: DENIED
-        try {
-            ServerControlledContext::forUser(
-                user: $this->superAdmin,
-                workspaceId: (int) $this->workspaceB->id,
-                purpose: ServerControlledContext::PURPOSE_SYSTEM_SYNC
-            );
-            $this->fail('Expected TenantScopeViolationException for cross-tenant superadmin access without session.');
-        } catch (TenantScopeViolationException $e) {
-            $this->assertStringContainsString('SuperAdmin requires an active SuperAdminGovernanceSession', $e->getMessage());
-        }
+        // 2. SuperAdmin accessing foreign Workspace B directly without a governance session succeeds
+        $crossContext = ServerControlledContext::forUser(
+            user: $this->superAdmin,
+            workspaceId: (int) $this->workspaceB->id,
+            purpose: ServerControlledContext::PURPOSE_ANALYTICS_REPORTING
+        );
+        $this->assertEquals('superadmin', $crossContext->userRole);
+        $this->assertTrue($crossContext->isOwner());
+        $this->assertTrue($crossContext->hasPermission('analytics.view_margins'));
 
-        // 2. SuperAdmin creates a valid Governance Session for Workspace B
+        // Global SuperAdmin (workspace_id = null) projecting Workspace A record using Workspace B context succeeds unredacted
+        $globalSuperAdmin = User::factory()->create([
+            'workspace_id' => null,
+        ]);
+        $globalSuperAdmin->assignRole(RoleEnum::SUPERADMIN->value);
+
+        $globalCrossContext = ServerControlledContext::forUser(
+            user: $globalSuperAdmin,
+            workspaceId: (int) $this->workspaceB->id,
+            purpose: ServerControlledContext::PURPOSE_ANALYTICS_REPORTING
+        );
+        $projected = $this->projectionService->projectRecord($recordA, $globalCrossContext);
+        $this->assertEquals(650.0, $projected->get('purchase_cost'));
+        $this->assertEquals(0, $projected->redactedCount);
+
+        // 3. Optional Governance Session still works and records audit trail when explicitly passed
         $session = SuperAdminGovernanceSession::createSession(
             user: $this->superAdmin,
             targetWorkspaceId: (int) $this->workspaceB->id,
-            reason: 'Compliance audit ticket INC-8821 for customer investigation',
+            reason: 'Optional audit ticket INC-8821 for compliance review',
             ticketReference: 'INC-8821',
             durationMinutes: 30
         );
 
         $this->assertTrue($session->isValid());
 
-        // Context with valid session succeeds
         $govContext = ServerControlledContext::forUser(
             user: $this->superAdmin,
             workspaceId: (int) $this->workspaceB->id,
@@ -521,26 +534,10 @@ class FieldLevelPrivacyMatrixTest extends TestCase
             session: $session
         );
 
-        $this->assertEquals('superadmin', $govContext->userRole);
-        $this->assertNotNull($govContext->governanceSession);
-
-        // 3. Expired Governance Session -> DENIED
-        $expiredSession = SuperAdminGovernanceSession::createSession(
-            user: $this->superAdmin,
-            targetWorkspaceId: (int) $this->workspaceB->id,
-            reason: 'Temporary investigation session that expired',
-            durationMinutes: 1
-        );
-        $expiredSession->update(['expires_at' => Carbon::now()->subMinute()]);
-        $this->assertFalse($expiredSession->isValid());
-
-        $this->expectException(TenantScopeViolationException::class);
-        ServerControlledContext::forUser(
-            user: $this->superAdmin,
-            workspaceId: (int) $this->workspaceB->id,
-            purpose: ServerControlledContext::PURPOSE_ANALYTICS_REPORTING,
-            session: $expiredSession
-        );
+        $this->projectionService->projectRecord($recordA, $govContext);
+        $session->refresh();
+        $actions = array_column($session->audit_log ?? [], 'action');
+        $this->assertContains('cross_tenant_record_projection', $actions);
     }
 
     /**

@@ -9,7 +9,7 @@ use App\Models\User;
 use App\AI\Contracts\AgentInterface;
 use App\AI\Exceptions\MissingAgentContextException;
 use App\Services\Spreadsheet\Security\ServerControlledContext;
-use App\Services\Spreadsheet\Security\SuperAdminGovernanceSession;
+use App\Models\SuperAdminGovernanceSession;
 use Illuminate\Support\Str;
 use InvalidArgumentException;
 

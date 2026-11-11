@@ -381,7 +381,7 @@ class SpreadsheetImportController extends Controller
 
     /**
      * Ensure the document belongs to the authenticated user's workspace.
-     * Superadmins are allowed across workspaces ONLY with an active SuperAdminGovernanceSession.
+     * Superadmins have unrestricted access across all workspaces.
      */
     private function authorizeWorkspace(KnowledgeDocument $document): void
     {
@@ -389,13 +389,6 @@ class SpreadsheetImportController extends Controller
         $user = Auth::user();
 
         if ($user && $user->hasRole(RoleEnum::SUPERADMIN->value)) {
-            if ((int) $user->workspace_id !== (int) $document->workspace_id) {
-                $session = \App\Models\SuperAdminGovernanceSession::activeFor((int) $user->id, (int) $document->workspace_id)->latest()->first();
-                if (! $session || ! $session->isValid()) {
-                    abort(403, 'Cross-tenant access denied: SuperAdmin requires an active SuperAdminGovernanceSession.');
-                }
-                $session->recordAction('spreadsheet_job_accessed', ['document_id' => $document->id]);
-            }
             return;
         }
 
