@@ -917,7 +917,7 @@ class CustomerSupportService
                 $answerabilityDecision !== null && $answerabilityDecision->isAmbiguous()
                     ? $this->executeUncertainRoute($conversation ?? new Conversation(), $query, $routingResult)
                     : (
-                        $answerabilityDecision !== null && $answerabilityDecision->isUnanswerable() && empty($businessContext) && empty($memoryContext) && !$this->isMemoryOrIdentityQuery($query)
+                        $answerabilityDecision !== null && $answerabilityDecision->isUnanswerable() && empty($businessContext) && empty($memoryContext) && !$this->isMemoryOrIdentityQuery($query) && !$this->isProductOrInventoryQuery($query)
                             ? $this->executeOodRoute($conversation, $query)
                             : $this->processAgentFollowUp(
                                 rawAgentOutput: $this->promptKnowledgeAgent(
@@ -942,11 +942,13 @@ class CustomerSupportService
                     conversation: $conversation,
                     query: $query,
                     memoryContext: $memoryContext,
+                    businessContext: $businessContext,
                 ),
                 route: RouteType::CHAT,
                 query: $query,
                 conversation: $conversation,
                 contextResult: $contextResult,
+                businessContext: $businessContext,
             ),
             RouteType::ANALYTICS => $this->executeAnalyticsRoute(
                 conversation: $conversation ?? new Conversation(),
@@ -1680,6 +1682,14 @@ PROMPT;
     }
 
     /**
+     * Determine if a query asks about products, catalog availability, inventory, or uploaded files.
+     */
+    public function isProductOrInventoryQuery(string $query): bool
+    {
+        return (bool) preg_match('/(?:^|[^\p{L}\p{N}])(phone|mobile|smartphone|ল্যাপটপ|laptop|স্মার্টফোন|ফোন|মোবাইল|product|প্রোডাক্ট|পণ্য|আইটেম|item|kache\s*ki\s*ki\s*ache|ki\s*ki\s*ache|ki\s*ache|ache\s*kina|stock|স্টক|দাম|price|dam|available|কি\s*কি\s*আছে|আছে\s*কিনা|ফাইলে|ফাইল\s*এ|upload|file|sheet|excel|inventory|ইনভেনটরি)(?:$|[^\p{L}\p{N}])/ui', $query);
+    }
+
+    /**
      * Determine if a conversation originates from an inbound customer-facing channel.
      * Enforces AC-14, AC-20, AC-21, AC-38.
      */
@@ -2035,6 +2045,7 @@ PROMPT;
         ?Conversation $conversation,
         string $query,
         ?string $memoryContext = null,
+        ?string $businessContext = null,
     ): string {
         $primaryProvider = config('ai.default', 'deepseek');
         $primaryModel = config('ai.default_model', 'deepseek-chat');
@@ -2044,6 +2055,7 @@ PROMPT;
         $agent = new ConversationalSupportAgent(
             conversation: $conversation,
             memoryContext: $memoryContext,
+            businessContext: $businessContext,
         );
 
         // Tier 1: Try Primary Provider

@@ -22,6 +22,7 @@ return new class extends Migration
             $table->string('status', 32)->default('queued'); // queued, inspecting, awaiting_mapping, processing, completed, completed_with_errors, failed, cancelled
             $table->string('conflict_mode', 32)->default('skip'); // skip, overwrite, append
             $table->string('generation_id', 36); // Fencing token to invalidate stale attempts
+            $table->string('schema_version', 16)->default('2.1.0');
             $table->unsignedInteger('header_row_index')->default(0); // 0-based row index of header
             $table->unsignedInteger('total_rows')->default(0);
             $table->unsignedInteger('processed_rows')->default(0);
@@ -29,6 +30,7 @@ return new class extends Migration
             $table->unsignedInteger('failed_rows')->default(0);
             $table->unsignedInteger('checkpoint_row')->default(0);
             $table->json('detected_schema')->nullable(); // Sheets, columns, candidate headers, types
+            $table->json('source_descriptors')->nullable();
             $table->json('mapping_config')->nullable(); // Confirmed column -> canonical category mapping
             $table->json('validation_errors')->nullable(); // Detailed row-level errors [{row, col, reason, value}]
             $table->text('error_message')->nullable();

@@ -38,7 +38,10 @@ return new class extends Migration
 
             // Payload & Preserved Attributes
             $table->json('raw_values'); // Exact unmutated cell values by original column name
+            $table->json('source_values')->nullable();
             $table->json('mapped_attributes')->nullable(); // Canonical fields normalized
+            $table->json('semantic_projections')->nullable();
+            $table->json('field_sensitivities')->nullable();
             $table->json('custom_attributes')->nullable(); // All unmapped columns preserved safely
             $table->string('content_fingerprint', 64)->nullable(); // Hash of row values for duplicate detection
             $table->boolean('is_public')->default(false); // Only public catalog descriptions may be exposed to retrieval

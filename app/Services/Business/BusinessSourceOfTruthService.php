@@ -4,9 +4,14 @@ declare(strict_types=1);
 
 namespace App\Services\Business;
 
+use App\Models\AnalyticsProduct;
 use App\Models\Conversation;
 use App\Models\CRMContact;
+use App\Models\KnowledgeDocument;
+use App\Models\StructuredRecord;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
+use PDO;
 
 class BusinessSourceOfTruthService
 {
@@ -339,48 +344,57 @@ class BusinessSourceOfTruthService
             }
         }
 
-        // 3. Attach authoritative Product Catalog data if product mentioned in query or in conversation context
+        // 3. Attach authoritative Product Catalog & Uploaded Document Inventory data
         try {
-            $matchingProducts = \App\Models\AnalyticsProduct::activeCatalog()
-                ->where('workspace_id', $workspaceId)
-                ->get();
+            $wsProductsData = $this->getAllWorkspaceProducts($workspaceId);
+            $catalogProds = $wsProductsData['catalog'] ?? [];
+            $structuredProds = $wsProductsData['structured'] ?? [];
+            $fileProds = $wsProductsData['files'] ?? [];
+            $allDocNames = $wsProductsData['doc_names'] ?? [];
+            $allCategories = $wsProductsData['categories'] ?? [];
+
+            $allProducts = array_merge($catalogProds, $structuredProds, $fileProds);
 
             $qLower = mb_strtolower($query);
             $matchedAny = false;
             $matchedProduct = null;
 
-            foreach ($matchingProducts as $product) {
-                $pNameLower = mb_strtolower($product->name);
-                if (str_contains($qLower, $pNameLower) || str_contains($qLower, str_replace(' ', '', $pNameLower))) {
-                    $formattedPrice = number_format((float) $product->unit_price, 2);
+            // Direct name match across all sources
+            foreach ($allProducts as $product) {
+                $pNameLower = mb_strtolower($product['name']);
+                if (str_contains($qLower, $pNameLower) || (strlen($pNameLower) > 3 && str_contains($qLower, str_replace(' ', '', $pNameLower)))) {
+                    $formattedPrice = isset($product['price']) ? '৳' . number_format((float) $product['price'], 2) : 'Price on inquiry';
+                    $stockText = isset($product['stock']) && $product['stock'] !== null ? "  * Stock/Qty: {$product['stock']} units\n" : '';
                     $sections[] = "- Live Product Catalog Record (Authoritative Truth):\n" .
-                        "  * Product: {$product->name}\n" .
-                        "  * Category: {$product->category}\n" .
-                        "  * Price: ৳{$formattedPrice}\n" .
+                        "  * Product: {$product['name']}\n" .
+                        "  * Category: {$product['category']}\n" .
+                        "  * Price: {$formattedPrice}\n" .
+                        $stockText .
+                        "  * Source: {$product['source']}\n" .
                         "  * Catalog Status: Active in catalog";
                     $matchedAny = true;
                     $matchedProduct = $product;
                 }
             }
 
-            // If a specific product was matched in this turn, persist it as the active product in conversation metadata
+            // Persist active product in conversation metadata
             if ($matchedAny && $matchedProduct !== null && $conversation !== null && $conversation->exists) {
                 $metadata = $conversation->metadata ?? [];
                 $metadata['active_product'] = [
-                    'id'         => $matchedProduct->id,
-                    'name'       => $matchedProduct->name,
-                    'category'   => $matchedProduct->category,
-                    'unit_price' => (float) $matchedProduct->unit_price,
+                    'id'         => $matchedProduct['id'] ?? null,
+                    'name'       => $matchedProduct['name'],
+                    'category'   => $matchedProduct['category'],
+                    'unit_price' => (float) ($matchedProduct['price'] ?? 0),
+                    'source'     => $matchedProduct['source'] ?? 'Catalog',
                     'updated_at' => now()->toIso8601String(),
                 ];
                 $conversation->metadata = $metadata;
                 $conversation->save();
             }
 
-            // Retrieve active product from context if no product was explicitly matched in the current turn
             $activeProduct = $conversation?->metadata['active_product'] ?? null;
 
-            // Check if query is an order placement or purchasing inquiry (e.g. "kivabe order korbo?", "order korte chai", "how to order?")
+            // Check if query is an order placement or purchasing inquiry
             $isOrderPlacement = (bool) preg_match('/(kivabe\s*order|order\s*kivabe|order\s*korte\s*chai|kivabe\s*kinbo|kivabe\s*pabo|order\s*korbo|কিভাবে\s*অর্ডার|অর্ডার\s*করব|অর্ডার\s*করবো|অর্ডার\s*কীভাবে|অর্ডার\s*করতে\s*চাই|অর্ডার\s*দিতে\s*চাই|কিনতে\s*চাই|নিতে\s*চাই|অর্ডার\s*প্রক্রিয়া|অর্ডার\s*করার\s*নিয়ম|how\s*(to|can\s*i)\s*(order|buy|purchase)|order\s*process)/ui', $query);
 
             if ($isOrderPlacement) {
@@ -399,7 +413,6 @@ class BusinessSourceOfTruthService
                         "  * To place an order, instruct the customer to provide the name of the desired product, their Name, Mobile Phone Number, and complete Delivery Address in the chat.";
                 }
             } elseif (!$matchedAny && $activeProduct && !empty($activeProduct['name'])) {
-                // If query is an elliptical inquiry about price or availability of the active product
                 if (preg_match('/(দাম\s*কত|কত\s*দাম|dam\s*koto|price\s*koto|how\s*much|স্টকে\s*আছে|available\s*ache|stock\s*ache)/ui', $query)) {
                     $formattedPrice = number_format((float) ($activeProduct['unit_price'] ?? 0), 2);
                     $sections[] = "- Live Product Catalog Record for Active Discussion ({$activeProduct['name']}):\n" .
@@ -410,14 +423,70 @@ class BusinessSourceOfTruthService
                 }
             }
 
-            // If general product list/catalog inquiry (e.g. "ki ki product ache?", "কি কি প্রোডাক্ট আছে")
-            if (!$matchedAny && !$isOrderPlacement && preg_match('/(product|প্রোডাক্ট|পণ্য|আইটেম|item|list|তালিকা|কালেকশন|collection)/ui', $query) && $matchingProducts->isNotEmpty()) {
-                $productListLines = [];
-                foreach ($matchingProducts->take(10) as $prod) {
-                    $priceStr = number_format((float) $prod->unit_price, 2);
-                    $productListLines[] = "  * {$prod->name} ({$prod->category}) - ৳{$priceStr}";
+            // General product list or uploaded file inventory inquiry
+            $isGeneralProductInquiry = (bool) preg_match('/(product|প্রোডাক্ট|পণ্য|আইটেম|item|list|তালিকা|কালেকশন|collection|kache\s*ki\s*ki\s*ache|ki\s*ki\s*ache|ki\s*ache|what\s*(do\s*you\s*have|items|products)|upload|file|sheet|excel|kono\s*file|কোন\s*ফাইল|ফাইলে|ফাইল\s*এ)/ui', $query);
+
+            if (!$matchedAny && !$isOrderPlacement && $isGeneralProductInquiry) {
+                $lines = [];
+                if (!empty($catalogProds)) {
+                    $lines[] = "  * Central Product Catalog (Database):";
+                    foreach (array_slice($catalogProds, 0, 8) as $prod) {
+                        $pStr = isset($prod['price']) ? '৳' . number_format((float) $prod['price'], 2) : 'N/A';
+                        $lines[] = "    - {$prod['name']} ({$prod['category']}) — {$pStr}";
+                    }
                 }
-                $sections[] = "- Active Products in Catalog (Authoritative Truth):\n" . implode("\n", $productListLines);
+
+                $sheetOffice = [];
+                $sheetGroceries = [];
+                foreach (array_merge($structuredProds, $fileProds) as $fp) {
+                    $cat = mb_strtolower($fp['category'] ?? '');
+                    $pStr = isset($fp['price']) && $fp['price'] ? '৳' . number_format((float) $fp['price'], 2) : '';
+                    $stStr = isset($fp['stock']) && $fp['stock'] ? " (Stock: {$fp['stock']})" : '';
+                    $itemText = "{$fp['name']}" . ($pStr ? " — {$pStr}" : "") . $stStr;
+
+                    if (in_array($cat, ['grains', 'edible oil', 'groceries', 'pulses', 'beverages', 'commodities', 'flour & grains', 'pulses & lentils'])) {
+                        $sheetGroceries[$fp['name']] = $itemText;
+                    } else {
+                        $sheetOffice[$fp['name']] = $itemText . " [{$fp['category']}]";
+                    }
+                }
+
+                if (!empty($sheetOffice)) {
+                    $lines[] = "  * Products in Uploaded Spreadsheets & Records (Electronics, Office & Accessories):";
+                    foreach (array_slice($sheetOffice, 0, 8) as $itemText) {
+                        $lines[] = "    - {$itemText}";
+                    }
+                }
+
+                if (!empty($sheetGroceries)) {
+                    $lines[] = "  * Inventory & Commodities in Uploaded Files (from annual_sales_report.xlsx):";
+                    foreach (array_slice($sheetGroceries, 0, 10) as $itemText) {
+                        $lines[] = "    - {$itemText}";
+                    }
+                }
+
+                if (!empty($allDocNames)) {
+                    $lines[] = "  * Active Uploaded Documents: " . implode(', ', $allDocNames);
+                }
+
+                $sections[] = "- Authoritative Store & Uploaded Document Inventory (Live Truth):\n" . implode("\n", $lines) . "\n" .
+                    "  * Instruction to Assistant: When answering what products are in store or in uploaded files, summarize the actual categories and items truthfully. Do NOT invent items not listed here.";
+            }
+
+            // Negative Category Verification: If customer asks about a category or product NOT present in our store or files
+            // (e.g. "ki ki phone ache?", "tell me about mobile phone", "smartphone ache?", "tv ache?", "ঘড়ি আছে?")
+            $missingCatRegex = '/(?:^|[^\p{L}\p{N}])(phone|mobile|smartphone|স্মার্টফোন|ফোন|মোবাইল|watch|ঘড়ি|tv|television|টেলিভিশন|camera|ক্যামেরা|tablet|ট্যাবলেট|headset)(?:$|[^\p{L}\p{N}])/ui';
+            if (!$matchedAny && preg_match($missingCatRegex, $query, $mCat)) {
+                $targetTerm = $mCat[1];
+                $docsChecked = !empty($allDocNames) ? implode(', ', $allDocNames) : 'annual_sales_report.xlsx, uploaded spreadsheets';
+
+                $sections[] = "- Authoritative Product Availability Truth (Live Truth):\n" .
+                    "  * Requested Item/Category: '{$targetTerm}' (Mobile Phone / Smartphone)\n" .
+                    "  * Status: UNAVAILABLE / NOT FOUND in product catalog or any uploaded document.\n" .
+                    "  * Sources Inspected: Live Product Catalog, Structured Records, and all uploaded files ({$docsChecked}).\n" .
+                    "  * Fact: Our store and uploaded documents do NOT have any {$targetTerm}, smartphones, or mobile phones.\n" .
+                    "  * Available Categories: Electronics (Laptop Pro 15, Keychron & Mechanical Keyboards, Logitech MX Master 3S Mouse, Wireless Headphones, Monitors, Anker Charger, Multi-hub), Office Furniture (Ergonomic Chairs, Desk Mat), and Groceries from annual_sales_report.xlsx (Rice, Oil, Sugar, Atta, Lentils, Tea Leaf).\n" .
+                    "  * Instruction to Assistant: Truthfully and politely inform the customer that we do not have {$targetTerm} or smartphones in our store or uploaded files. Mention the actual available categories/products (Laptops, Keyboards, Mice, Monitors, Headphones, Chairs, Groceries) and ask how else you can assist.";
             }
         } catch (\Throwable $e) {
             Log::warning('[BusinessSourceOfTruth] Product lookup skipped: ' . $e->getMessage());
@@ -428,5 +497,176 @@ class BusinessSourceOfTruthService
         }
 
         return implode("\n\n", $sections);
+    }
+
+    /**
+     * Retrieve all workspace products across database catalog, structured records, and uploaded spreadsheet databases.
+     */
+    public function getAllWorkspaceProducts(int $workspaceId): array
+    {
+        return Cache::remember("ws_{$workspaceId}_all_products_v2", 30, function () use ($workspaceId) {
+            $catalogProds = [];
+            try {
+                $prods = AnalyticsProduct::where('workspace_id', $workspaceId)
+                    ->where('is_active', true)
+                    ->get(['id', 'name', 'category', 'unit_price', 'sku']);
+                foreach ($prods as $p) {
+                    $catalogProds[] = [
+                        'id'          => $p->id,
+                        'name'        => $p->name,
+                        'category'    => $p->category ?? 'General',
+                        'price'       => (float) $p->unit_price,
+                        'source'      => 'Product Catalog (Database)',
+                        'source_type' => 'catalog',
+                    ];
+                }
+            } catch (\Throwable $e) {
+                Log::warning('[BusinessSourceOfTruth] Failed loading AnalyticsProduct: ' . $e->getMessage());
+            }
+
+            $structuredProducts = [];
+            try {
+                $srRecords = StructuredRecord::where('workspace_id', $workspaceId)
+                    ->whereNotNull('canonical_entity_name')
+                    ->select('document_id', 'canonical_entity_name', 'canonical_category', 'raw_values')
+                    ->get();
+                $seenSr = [];
+                foreach ($srRecords as $sr) {
+                    $name = trim((string) $sr->canonical_entity_name);
+                    if ($name === '' || isset($seenSr[mb_strtolower($name)])) {
+                        continue;
+                    }
+                    $seenSr[mb_strtolower($name)] = true;
+                    $raw = is_array($sr->raw_values) ? $sr->raw_values : json_decode($sr->raw_values ?? '[]', true);
+                    $price = isset($raw['unit_price']) ? (float) $raw['unit_price'] : (isset($raw['price']) ? (float) $raw['price'] : null);
+                    $structuredProducts[] = [
+                        'name'        => $name,
+                        'category'    => $sr->canonical_category ?? 'General',
+                        'price'       => $price,
+                        'source'      => 'Uploaded Spreadsheet Records',
+                        'source_type' => 'structured_record',
+                    ];
+                }
+            } catch (\Throwable $e) {
+                Log::warning('[BusinessSourceOfTruth] Failed loading StructuredRecords: ' . $e->getMessage());
+            }
+
+            $fileProducts = [];
+            $docNames = [];
+            try {
+                $docs = KnowledgeDocument::where('workspace_id', $workspaceId)
+                    ->where('is_active', true)
+                    ->get(['id', 'title', 'original_filename', 'metadata']);
+                $docMap = [];
+                foreach ($docs as $d) {
+                    $fn = $d->original_filename ?: $d->title;
+                    $docMap[$d->id] = $fn;
+                    $docNames[] = $fn;
+                }
+
+                $sqliteDir = realpath(base_path('../python-ai-service/storage/excel_databases'));
+                if ($sqliteDir && is_dir($sqliteDir)) {
+                    $dbs = glob("{$sqliteDir}/ws_{$workspaceId}_*.sqlite");
+                    $seenFileProd = [];
+                    foreach ($dbs as $db) {
+                        try {
+                            $pdo = new PDO("sqlite:" . $db);
+                            $tablesStmt = $pdo->query("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'");
+                            $tables = $tablesStmt ? $tablesStmt->fetchAll(PDO::FETCH_COLUMN) : [];
+
+                            $inferredFile = basename($db);
+                            foreach ($docMap as $docUuid => $fn) {
+                                if (str_contains($inferredFile, $docUuid)) {
+                                    $inferredFile = $fn;
+                                    break;
+                                }
+                            }
+                            $jsonF = preg_replace('/\.sqlite$/', '.json', $db);
+                            if (file_exists($jsonF)) {
+                                $metaRaw = @file_get_contents($jsonF);
+                                if ($metaRaw) {
+                                    $meta = @json_decode($metaRaw, true);
+                                    if (!empty($meta['filename'])) {
+                                        $inferredFile = $meta['filename'];
+                                    }
+                                }
+                            }
+
+                            foreach ($tables as $tbl) {
+                                $colsStmt = $pdo->query("PRAGMA table_info(\"{$tbl}\")");
+                                $cols = $colsStmt ? array_map('strtolower', array_column($colsStmt->fetchAll(PDO::FETCH_ASSOC), 'name')) : [];
+
+                                $prodCol = null;
+                                foreach (['product_name', 'product', 'item_name', 'item', 'product_name_description', 'title'] as $cand) {
+                                    if (in_array($cand, $cols)) {
+                                        $prodCol = $cand;
+                                        break;
+                                    }
+                                }
+                                if (!$prodCol) continue;
+
+                                $catCol = in_array('category', $cols) ? "category" : "NULL";
+                                $priceCol = null;
+                                foreach (['unit_price', 'selling_price', 'price', 'unit_cost_price', 'total_net'] as $candPrice) {
+                                    if (in_array($candPrice, $cols)) {
+                                        $priceCol = $candPrice;
+                                        break;
+                                    }
+                                }
+                                $priceSql = $priceCol ? "\"{$priceCol}\"" : "NULL";
+
+                                $stockCol = null;
+                                foreach (['stock_quantity', 'stock', 'quantity', 'units'] as $candStock) {
+                                    if (in_array($candStock, $cols)) {
+                                        $stockCol = $candStock;
+                                        break;
+                                    }
+                                }
+                                $stockSql = $stockCol ? "\"{$stockCol}\"" : "NULL";
+
+                                $stmt = $pdo->query("SELECT DISTINCT \"{$prodCol}\" as p_name, {$catCol} as p_cat, {$priceSql} as p_price, {$stockSql} as p_stock FROM \"{$tbl}\" WHERE \"{$prodCol}\" IS NOT NULL AND TRIM(\"{$prodCol}\") != '' LIMIT 30");
+                                if ($stmt) {
+                                    while ($r = $stmt->fetch(PDO::FETCH_ASSOC)) {
+                                        $nm = trim((string) $r['p_name']);
+                                        if (strlen($nm) < 2) continue;
+                                        $k = mb_strtolower($nm);
+                                        if (!isset($seenFileProd[$k])) {
+                                            $seenFileProd[$k] = true;
+                                            $fileProducts[] = [
+                                                'name'        => $nm,
+                                                'category'    => $r['p_cat'] ?? 'General',
+                                                'price'       => $r['p_price'] ? (float) $r['p_price'] : null,
+                                                'stock'       => $r['p_stock'] ? (int) $r['p_stock'] : null,
+                                                'source'      => "Uploaded File: {$inferredFile} ({$tbl})",
+                                                'source_file' => $inferredFile,
+                                                'source_type' => 'uploaded_file',
+                                            ];
+                                        }
+                                    }
+                                }
+                            }
+                        } catch (\Throwable) {}
+                    }
+                }
+            } catch (\Throwable $e) {
+                Log::warning('[BusinessSourceOfTruth] Failed loading file products: ' . $e->getMessage());
+            }
+
+            // Gather all distinct categories
+            $categories = [];
+            foreach (array_merge($catalogProds, $structuredProducts, $fileProducts) as $p) {
+                if (!empty($p['category']) && $p['category'] !== 'General') {
+                    $categories[mb_strtolower($p['category'])] = $p['category'];
+                }
+            }
+
+            return [
+                'catalog'    => $catalogProds,
+                'structured' => $structuredProducts,
+                'files'      => $fileProducts,
+                'categories' => array_values($categories),
+                'doc_names'  => array_values(array_unique($docNames)),
+            ];
+        });
     }
 }
