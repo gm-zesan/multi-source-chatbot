@@ -223,6 +223,10 @@ class LegacyExcelAnalyticsTool extends AbstractGovernedTool
                 );
             }
 
+            /** @var SpreadsheetImportJob $liveFreshJob */
+            $liveFreshJob = $liveRevalidation['job'];
+            $livePartial = $this->resolvePartialImportProvenance($liveFreshJob, $recordCount);
+
             // 7. Format Deterministic Bengali Report
             $formattedReport = $reportFormatter->formatExecution(
                 query: $question,
@@ -230,23 +234,37 @@ class LegacyExcelAnalyticsTool extends AbstractGovernedTool
                 recordCount: $recordCount > 0 ? $recordCount : null,
                 activeEdges: $activeEdges,
                 executionResponse: $executionResponse,
+                isOfflineFallback: false,
+                isPartialDataset: $livePartial['is_partial_dataset'],
+                importedRows: $livePartial['imported_rows'],
+                failedRows: $livePartial['failed_rows'],
+                totalRows: $livePartial['total_rows'],
             );
 
             return ToolResult::success([
-                'status'       => 'executed',
-                'dataset_id'   => $datasetId,
-                'report'       => $formattedReport,
-                'row_count'    => $executionResponse->rowCount,
-                'columns'      => $executionResponse->columns,
-                'rows'         => $executionResponse->rows,
-                'latency_ms'   => $executionResponse->latencyMs,
+                'status'             => 'executed',
+                'dataset_id'         => $datasetId,
+                'report'             => $formattedReport,
+                'row_count'          => $executionResponse->rowCount,
+                'columns'            => $executionResponse->columns,
+                'rows'               => $executionResponse->rows,
+                'latency_ms'         => $executionResponse->latencyMs,
+                'is_partial_dataset' => $livePartial['is_partial_dataset'],
+                'imported_rows'      => $livePartial['imported_rows'],
+                'failed_rows'        => $livePartial['failed_rows'],
             ], [
-                'execution_time_ms'    => $context->getElapsedMs(),
-                'tool_name'            => $this->name(),
-                'query_fingerprint'    => $artifact->queryFingerprint,
-                'contract_version'     => '3.0.0',
-                'sources'              => array_merge([$filename], $edgeDescriptions),
-                'relationships_active' => count($activeEdges),
+                'execution_time_ms'       => $context->getElapsedMs(),
+                'tool_name'               => $this->name(),
+                'query_fingerprint'       => $artifact->queryFingerprint,
+                'contract_version'        => '3.0.0',
+                'sources'                 => array_merge([$filename], $edgeDescriptions),
+                'relationships_active'    => count($activeEdges),
+                'dataset_status'          => $livePartial['dataset_status'],
+                'is_partial_dataset'      => $livePartial['is_partial_dataset'],
+                'imported_rows'           => $livePartial['imported_rows'],
+                'failed_rows'             => $livePartial['failed_rows'],
+                'total_rows'              => $livePartial['total_rows'],
+                'partial_dataset_warning' => $livePartial['partial_dataset_warning'],
             ]);
         } catch (UnauthorizedDataAccessException $e) {
             Log::warning("[{$this->name()}] Security rejection during AST authorization", [
@@ -295,6 +313,7 @@ class LegacyExcelAnalyticsTool extends AbstractGovernedTool
                 $datasetFreshness = $freshJob->completed_at?->toIso8601String();
                 $freshnessKnown = $datasetFreshness !== null;
                 $provenanceWarning = $freshnessKnown ? null : 'dataset_freshness_unknown';
+                $offlinePartial = $this->resolvePartialImportProvenance($freshJob, $verifiedRecordCount);
 
                 $fallbackReport = $reportFormatter->formatExecution(
                     query: $question,
@@ -303,15 +322,22 @@ class LegacyExcelAnalyticsTool extends AbstractGovernedTool
                     activeEdges: $activeEdges,
                     executionResponse: null,
                     isOfflineFallback: true,
+                    isPartialDataset: $offlinePartial['is_partial_dataset'],
+                    importedRows: $offlinePartial['imported_rows'],
+                    failedRows: $offlinePartial['failed_rows'],
+                    totalRows: $offlinePartial['total_rows'],
                 );
 
                 return ToolResult::success([
-                    'status'       => 'synthesized_fallback',
-                    'dataset_id'   => $datasetId,
-                    'report'       => $fallbackReport,
-                    'row_count'    => $verifiedRecordCount,
-                    'columns'      => [],
-                    'rows'         => [],
+                    'status'             => 'synthesized_fallback',
+                    'dataset_id'         => $datasetId,
+                    'report'             => $fallbackReport,
+                    'row_count'          => $verifiedRecordCount,
+                    'columns'            => [],
+                    'rows'               => [],
+                    'is_partial_dataset' => $offlinePartial['is_partial_dataset'],
+                    'imported_rows'      => $offlinePartial['imported_rows'],
+                    'failed_rows'        => $offlinePartial['failed_rows'],
                 ], [
                     'execution_time_ms'       => $context->getElapsedMs(),
                     'tool_name'               => $this->name(),
@@ -328,6 +354,12 @@ class LegacyExcelAnalyticsTool extends AbstractGovernedTool
                     'sources'                 => array_merge([$filename], $edgeDescriptions),
                     'relationships_active'    => count($activeEdges),
                     'contract_version'        => '3.0.0',
+                    'dataset_status'          => $offlinePartial['dataset_status'],
+                    'is_partial_dataset'      => $offlinePartial['is_partial_dataset'],
+                    'imported_rows'           => $offlinePartial['imported_rows'],
+                    'failed_rows'             => $offlinePartial['failed_rows'],
+                    'total_rows'              => $offlinePartial['total_rows'],
+                    'partial_dataset_warning' => $offlinePartial['partial_dataset_warning'],
                 ]);
             }
 

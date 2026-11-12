@@ -28,6 +28,10 @@ class LegacyExcelAnalyticsReportFormatter
      * @param array<int, mixed> $activeEdges Active cross-sheet relationship edges
      * @param AnalyticsExecutionResponse|null $executionResponse Downstream Contract 3.0 execution response
      * @param bool $isOfflineFallback Whether result is derived from offline persisted structured dataset
+     * @param bool $isPartialDataset Whether the active spreadsheet import completed with row errors
+     * @param int|null $importedRows Number of rows successfully imported
+     * @param int|null $failedRows Number of rows that failed during import
+     * @param int|null $totalRows Total rows detected in source spreadsheet
      * @return string Formatted Bengali Markdown response
      */
     public function formatExecution(
@@ -37,6 +41,10 @@ class LegacyExcelAnalyticsReportFormatter
         array $activeEdges = [],
         ?AnalyticsExecutionResponse $executionResponse = null,
         bool $isOfflineFallback = false,
+        bool $isPartialDataset = false,
+        ?int $importedRows = null,
+        ?int $failedRows = null,
+        ?int $totalRows = null,
     ): string {
         $resolvedFilename = !empty($filename) ? trim($filename) : 'অ্যাক্টিভ স্প্রেডশিট';
         $lines = [];
@@ -48,6 +56,23 @@ class LegacyExcelAnalyticsReportFormatter
         // 1.5. Transparent Offline Fallback Disclosure
         if ($isOfflineFallback) {
             $lines[] = "ℹ️ লাইভ ভার্চুয়াল অ্যানালিটিক্স গেটওয়ে সাময়িকভাবে অনুপলব্ধ থাকায় সংরক্ষিত স্ট্রাকচার্ড ডেটাসেটের ({$resolvedFilename}) ভিত্তিতে এই প্রতিবেদন প্রস্তুত করা হয়েছে।";
+        }
+
+        // 1.6. Partial Dataset Disclosure (completed_with_errors)
+        if ($isPartialDataset) {
+            $partialDetails = [];
+            if ($importedRows !== null && $importedRows >= 0) {
+                $partialDetails[] = 'সফলভাবে ইমপোর্টকৃত সারি: ' . number_format($importedRows) . ' টি';
+            }
+            if ($failedRows !== null && $failedRows > 0) {
+                $partialDetails[] = 'ব্যর্থ সারি: ' . number_format($failedRows) . ' টি';
+            }
+            if ($totalRows !== null && $totalRows > 0) {
+                $partialDetails[] = 'মোট সারি: ' . number_format($totalRows) . ' টি';
+            }
+
+            $countsSegment = !empty($partialDetails) ? ' (' . implode(', ', $partialDetails) . ')' : '';
+            $lines[] = "⚠️ **আংশিক ডেটাসেট সতর্কতা (Partial Dataset)**{$countsSegment}: স্প্রেডশিট ইমপোর্ট আংশিকভাবে সম্পন্ন হওয়ায় এই অ্যানালিটিক্স ফলাফল সম্পূর্ণ ডেটাসেটের প্রতিনিধিত্ব নাও করতে পারে।";
         }
 
         // 2. Verified Processed Records
