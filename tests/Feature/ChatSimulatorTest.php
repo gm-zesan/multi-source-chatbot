@@ -33,12 +33,6 @@ class ChatSimulatorTest extends TestCase
             'workspace_id' => $this->workspace->id,
         ]);
         $this->admin->assignRole('superadmin');
-
-        $routerMock = \Mockery::mock(\App\AI\Routing\HybridRouter::class);
-        $routerMock->shouldReceive('route')
-            ->byDefault()
-            ->andReturn(new \App\AI\Routing\RoutingResult(\App\AI\Routing\RouteType::KNOWLEDGE, 0.95, 'delivery_info'));
-        $this->app->instance(\App\AI\Routing\HybridRouter::class, $routerMock);
     }
 
     public function test_simulator_page_can_be_rendered(): void

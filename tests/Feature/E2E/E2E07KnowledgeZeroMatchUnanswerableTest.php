@@ -4,9 +4,6 @@ declare(strict_types=1);
 
 namespace Tests\Feature\E2E;
 
-use App\AI\Routing\HybridRouter;
-use App\AI\Routing\RouteType;
-use App\AI\Routing\RoutingResult;
 use App\Models\Channel;
 use App\Models\ChannelAccount;
 use App\Models\Conversation;
@@ -20,7 +17,7 @@ use Tests\TestCase;
 /**
  * E2E-07: Knowledge Zero Match / Unanswerable
  *
- * Pathway: Valid In-Domain Query -> HybridRouter (KNOWLEDGE) -> Empty Retrieval -> SemanticAnswerabilityGate -> Deterministic Fallback (NO Hallucination)
+ * Pathway: Valid In-Domain Query -> UnifiedOrchestrator -> Empty Retrieval -> SemanticAnswerabilityGate -> Deterministic Fallback (NO Hallucination)
  */
 class E2E07KnowledgeZeroMatchUnanswerableTest extends TestCase
 {
@@ -58,26 +55,11 @@ class E2E07KnowledgeZeroMatchUnanswerableTest extends TestCase
     {
         $query = 'আপনাদের কি মঙ্গল গ্রহে ফ্রি হোম ডেলিভারি সুবিধা আছে?';
 
-        $mockRouter = \Mockery::mock(HybridRouter::class);
-        $mockRouter->shouldReceive('route')
-            ->once()
-            ->andReturn(new RoutingResult(
-                route: RouteType::KNOWLEDGE,
-                confidence: 0.90,
-                intent: 'unsupported_delivery_inquiry',
-                signals: [],
-                entities: [],
-                routerLatencyMs: 20.0,
-                isFallback: false,
-                securityStatus: 'allowed'
-            ));
-
         $mockSearch = \Mockery::mock(FAQSearch::class);
         $mockSearch->shouldReceive('search')
             ->once()
             ->andReturn(new Collection([])); // Zero matches found in vector DB
 
-        $this->app->instance(HybridRouter::class, $mockRouter);
         $this->app->instance(FAQSearch::class, $mockSearch);
 
         $service = $this->app->make(CustomerSupportService::class);

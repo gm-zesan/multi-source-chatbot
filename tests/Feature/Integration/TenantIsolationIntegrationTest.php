@@ -4,9 +4,6 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Integration;
 
-use App\AI\Routing\HybridRouter;
-use App\AI\Routing\RouteType;
-use App\AI\Routing\RoutingResult;
 use App\Models\Channel;
 use App\Models\ChannelAccount;
 use App\Models\Conversation;
@@ -94,27 +91,8 @@ class TenantIsolationIntegrationTest extends TestCase
         $this->supportService = app(CustomerSupportService::class);
     }
 
-    private function mockRouterRoute(RouteType $route, string $intent = 'cash_collection'): void
-    {
-        $mockRouter = \Mockery::mock(HybridRouter::class);
-        $mockRouter->shouldReceive('route')
-            ->andReturn(new RoutingResult(
-                route: $route,
-                confidence: 0.95,
-                intent: $intent,
-                signals: [],
-                entities: [],
-                routerLatencyMs: 15.0,
-                isFallback: false,
-                securityStatus: 'allowed'
-            ));
-
-        $this->app->instance(HybridRouter::class, $mockRouter);
-    }
-
     public function test_workspace_1_today_cash_collection_returns_32000_never_combined_52000(): void
     {
-        $this->mockRouterRoute(RouteType::ANALYTICS, 'cash_collection');
         $baseUrl = rtrim(config('analytics.base_url', 'http://127.0.0.1:8001'), '/');
 
         // Verify Workspace 1 sends workspace_id = 1 strictly to python analytics service
@@ -156,7 +134,6 @@ class TenantIsolationIntegrationTest extends TestCase
 
     public function test_workspace_2_today_cash_collection_returns_20000_isolated(): void
     {
-        $this->mockRouterRoute(RouteType::ANALYTICS, 'cash_collection');
         $baseUrl = rtrim(config('analytics.base_url', 'http://127.0.0.1:8001'), '/');
 
         Http::fake([
@@ -196,7 +173,6 @@ class TenantIsolationIntegrationTest extends TestCase
 
     public function test_workspace_1_cannot_query_or_expose_workspace_2_salesperson_nasir(): void
     {
-        $this->mockRouterRoute(RouteType::ANALYTICS, 'salesperson_query');
         $baseUrl = rtrim(config('analytics.base_url', 'http://127.0.0.1:8001'), '/');
 
         Http::fake([

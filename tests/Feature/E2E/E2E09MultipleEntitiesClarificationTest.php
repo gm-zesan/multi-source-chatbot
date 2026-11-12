@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace Tests\Feature\E2E;
 
-use App\AI\Routing\RouteType;
-use App\AI\Routing\RoutingResult;
 use Tests\Feature\E2E\Support\BaseE2ETestCase;
 use Tests\Feature\E2E\Support\E2EObservabilityTracer;
 
@@ -34,10 +32,6 @@ class E2E09MultipleEntitiesClarificationTest extends BaseE2ETestCase
 
         // Turn 2: Ambiguous order inquiry
         $query = 'ওটা কবে পাবো?';
-
-        $this->routerMock->shouldReceive('route')
-            ->once()
-            ->andReturn(new RoutingResult(RouteType::UNCERTAIN, 0.88, 'order_ambiguity'));
 
         // M4-A must halt immediately: ZERO FAQ search, ZERO LLM calls
         $this->faqSearchMock->shouldNotReceive('search');
@@ -71,10 +65,6 @@ class E2E09MultipleEntitiesClarificationTest extends BaseE2ETestCase
         ]);
 
         // ── Turn 3: User answers with selection "#1042" ──
-        $this->routerMock->shouldReceive('route')
-            ->once()
-            ->andReturn(new RoutingResult(RouteType::KNOWLEDGE, 0.95, 'order_tracking'));
-
         $this->faqSearchMock->shouldReceive('search')
             ->once()
             ->withArgs(function ($q, $perPage, $wsId, $conv, $signal) {
@@ -104,10 +94,6 @@ class E2E09MultipleEntitiesClarificationTest extends BaseE2ETestCase
         );
 
         $query = 'ওটার দাম কত?';
-
-        $this->routerMock->shouldReceive('route')
-            ->once()
-            ->andReturn(new RoutingResult(RouteType::UNCERTAIN, 0.88, 'product_ambiguity'));
 
         $this->faqSearchMock->shouldNotReceive('search');
 

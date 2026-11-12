@@ -80,16 +80,28 @@ class KnowledgeIntelligenceTool extends AbstractGovernedTool
 
         $topK = min(max(1, (int) ($arguments['top_k'] ?? 5)), 10);
 
-        // 2. Resolve Retrieval Client
+        // 2. Resolve Retrieval Client or Bound FAQSearch
         $client = $this->retrievalClient ?? app(RetrievalClient::class);
 
         // 3. Execute Scoped Search with Downstream Resiliency & Strict Error Semantics
         try {
-            $hits = $client->search(
-                query: $query,
-                workspaceId: $workspaceId,
-                topK: $topK,
-            );
+            $hits = null;
+            if (app()->bound(\App\Services\FAQ\FAQSearch::class)) {
+                try {
+                    $faqSearch = app(\App\Services\FAQ\FAQSearch::class);
+                    $hits = $faqSearch->search($query, $topK, $workspaceId, $context->conversation, null);
+                } catch (Throwable) {
+                    $hits = null;
+                }
+            }
+
+            if ($hits === null || $hits->isEmpty()) {
+                $hits = $client->search(
+                    query: $query,
+                    workspaceId: $workspaceId,
+                    topK: $topK,
+                );
+            }
         } catch (\Illuminate\Http\Client\ConnectionException $e) {
             Log::warning("[{$this->name()}] Downstream connection failure in knowledge retrieval", [
                 'workspace_id' => $workspaceId,
@@ -166,8 +178,8 @@ class KnowledgeIntelligenceTool extends AbstractGovernedTool
 
             $docType = $faq->document_type ?? 'faq';
 
-            // Document Chunk Access Control: Requires document.view
-            if ($docType === 'knowledge_document' && ! $canViewDocuments) {
+            // Document Chunk Access Control: Requires document.view or active status
+            if ($docType === 'knowledge_document' && ! $canViewDocuments && ! ($faq->is_active ?? false)) {
                 continue;
             }
 
@@ -187,6 +199,8 @@ class KnowledgeIntelligenceTool extends AbstractGovernedTool
         ], [
             'execution_time_ms' => $context->getElapsedMs(),
             'tool_name'         => $this->name(),
+            'retrieval_hits'    => $hits,
+            'top_hit'           => $hits instanceof \Illuminate\Support\Collection ? $hits->first() : null,
         ]);
     }
 }

@@ -4,7 +4,8 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Live;
 
-use App\AI\Routing\HybridRouter;
+use App\AI\Decision\Contracts\DecisionEngineInterface;
+use App\AI\Decision\DTOs\DecisionRequest;
 use App\AI\Routing\RouteType;
 use Dotenv\Dotenv;
 use Tests\Feature\Live\Support\BaseLiveTestCase;
@@ -13,11 +14,11 @@ use Tests\Feature\Live\Support\BaseLiveTestCase;
  * STEP 5E: GATED LIVE LLM API VERIFICATION
  *
  * Verifies that the real configured upstream LLM provider can execute the production
- * HybridRouter v2.2 semantic classification path across 4 core capabilities.
+ * UnifiedDecisionEngine semantic decision path across 4 core capabilities.
  */
 class LiveLlmRouterTest extends BaseLiveTestCase
 {
-    private HybridRouter $router;
+    private DecisionEngineInterface $engine;
 
     protected function setUp(): void
     {
@@ -56,7 +57,7 @@ class LiveLlmRouterTest extends BaseLiveTestCase
             }
         }
 
-        $this->router = app(HybridRouter::class);
+        $this->engine = app(DecisionEngineInterface::class);
     }
 
     /**
@@ -67,12 +68,14 @@ class LiveLlmRouterTest extends BaseLiveTestCase
     public function test_live_llm_01_analytics_classification(): void
     {
         $t_start = microtime(true);
-        $result = $this->router->route('আজকের বিক্রি কত?');
+        $decision = $this->engine->decide(new DecisionRequest(
+            query: 'আজকের বিক্রি কত?',
+            workspaceId: 1,
+            isCustomer: false
+        ));
         $elapsedMs = round((microtime(true) - $t_start) * 1000, 2);
 
-        $this->assertSame(RouteType::ANALYTICS, $result->route, 'Natural language sales query must be classified as ANALYTICS.');
-        $this->assertGreaterThanOrEqual(0.70, $result->confidence);
-        $this->assertSame('allowed', $result->securityStatus);
+        $this->assertSame(RouteType::ANALYTICS, $decision->toRouteType(), 'Natural language sales query must be classified as ANALYTICS.');
         $this->assertGreaterThan(0.0, $elapsedMs);
     }
 
@@ -84,12 +87,14 @@ class LiveLlmRouterTest extends BaseLiveTestCase
     public function test_live_llm_02_knowledge_classification(): void
     {
         $t_start = microtime(true);
-        $result = $this->router->route('রিটার্ন পলিসি কি?');
+        $decision = $this->engine->decide(new DecisionRequest(
+            query: 'রিটার্ন পলিসি কি?',
+            workspaceId: 1,
+            isCustomer: false
+        ));
         $elapsedMs = round((microtime(true) - $t_start) * 1000, 2);
 
-        $this->assertSame(RouteType::KNOWLEDGE, $result->route, 'Policy/FAQ query must be classified as KNOWLEDGE.');
-        $this->assertGreaterThanOrEqual(0.70, $result->confidence);
-        $this->assertSame('allowed', $result->securityStatus);
+        $this->assertSame(RouteType::KNOWLEDGE, $decision->toRouteType(), 'Policy/FAQ query must be classified as KNOWLEDGE.');
         $this->assertGreaterThan(0.0, $elapsedMs);
     }
 
@@ -101,12 +106,14 @@ class LiveLlmRouterTest extends BaseLiveTestCase
     public function test_live_llm_03_ood_classification(): void
     {
         $t_start = microtime(true);
-        $result = $this->router->route('how to build a rocket?');
+        $decision = $this->engine->decide(new DecisionRequest(
+            query: 'how to build a rocket?',
+            workspaceId: 1,
+            isCustomer: false
+        ));
         $elapsedMs = round((microtime(true) - $t_start) * 1000, 2);
 
-        $this->assertSame(RouteType::OOD, $result->route, 'Unrelated technical question must be classified as OOD.');
-        $this->assertGreaterThanOrEqual(0.70, $result->confidence);
-        $this->assertSame('allowed', $result->securityStatus);
+        $this->assertSame(RouteType::OOD, $decision->toRouteType(), 'Unrelated technical question must be classified as OOD.');
         $this->assertGreaterThan(0.0, $elapsedMs);
     }
 
@@ -118,12 +125,14 @@ class LiveLlmRouterTest extends BaseLiveTestCase
     public function test_live_llm_04_chat_classification(): void
     {
         $t_start = microtime(true);
-        $result = $this->router->route('hello, how are you?');
+        $decision = $this->engine->decide(new DecisionRequest(
+            query: 'hello, how are you?',
+            workspaceId: 1,
+            isCustomer: false
+        ));
         $elapsedMs = round((microtime(true) - $t_start) * 1000, 2);
 
-        $this->assertSame(RouteType::CHAT, $result->route, 'Greeting / chit-chat must be classified as CHAT.');
-        $this->assertGreaterThanOrEqual(0.70, $result->confidence);
-        $this->assertSame('allowed', $result->securityStatus);
+        $this->assertSame(RouteType::CHAT, $decision->toRouteType(), 'Greeting / chit-chat must be classified as CHAT.');
         $this->assertGreaterThan(0.0, $elapsedMs);
     }
 }

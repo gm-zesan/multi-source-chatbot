@@ -4,9 +4,6 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Security;
 
-use App\AI\Routing\HybridRouter;
-use App\AI\Routing\RouteType;
-use App\AI\Routing\RoutingResult;
 use App\Models\AnalyticsSalesperson;
 use App\Models\Channel;
 use App\Models\ChannelAccount;
@@ -74,19 +71,11 @@ class ActionSafetyTopicDriftTest extends TestCase
         ]);
     }
 
-    private function createSupportService(SellerEmailService $mockEmailService, ?HybridRouter $router = null): CustomerSupportService
+    private function createSupportService(SellerEmailService $mockEmailService): CustomerSupportService
     {
-        $mockRouter = $router ?? Mockery::mock(HybridRouter::class);
-        if ($router === null) {
-            $mockRouter->shouldReceive('route')->andReturn(
-                new RoutingResult(route: RouteType::CHAT, confidence: 1.0, intent: 'chat')
-            );
-        }
-
         return new CustomerSupportService(
             faqSearch: $this->app->make(\App\Services\FAQ\FAQSearch::class),
             conversationService: $this->app->make(\App\Services\Chat\ConversationService::class),
-            router: $mockRouter,
             actionSafety: $this->safetyService,
             sellerEmailService: $mockEmailService,
         );

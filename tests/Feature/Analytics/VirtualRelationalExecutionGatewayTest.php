@@ -9,8 +9,8 @@ use App\Models\KnowledgeDocument;
 use App\Models\SpreadsheetImportJob;
 use App\Models\StructuredRecord;
 use App\Models\User;
+use App\AI\Decision\UnifiedOrchestrator;
 use App\AI\Orchestration\CustomerSupportService;
-use App\AI\Orchestration\OwnerBusinessAssistant;
 use App\Services\Analytics\AnalyticsClient;
 use App\Services\Analytics\DTOs\Contract3\AnalyticsExecutionResponse;
 use App\Services\Analytics\DTOs\Contract3\ExecutionAuthorizationGrant;
@@ -257,12 +257,14 @@ class VirtualRelationalExecutionGatewayTest extends TestCase
             'metadata'           => ['is_simulator' => true, 'is_customer' => false, 'role' => 'owner'],
         ]);
 
-        $assistant = app(OwnerBusinessAssistant::class);
-        $result = $assistant->handleOwnerQuery(
+        $orchestrator = app(UnifiedOrchestrator::class);
+        $result = $orchestrator->process(
             query: 'আমাদের মোট সেলস কত?',
             workspaceId: $wsId,
+            user: $owner,
             conversation: $conversation,
-            user: $owner
+            channelSlug: 'simulator',
+            isCustomer: false
         );
 
         $this->assertTrue($result['answered']);
@@ -284,23 +286,25 @@ class VirtualRelationalExecutionGatewayTest extends TestCase
                 'measures' => [['name' => 'amount', 'aggregation' => 'sum']],
             ], 200),
 
-            '*/analytics/v3/prepare' => Http::response([
-                'contract_version' => '3.0.0',
-                'request_id' => 'req_fail_test',
-                'workspace_id' => $this->workspaceId,
-                'dataset_id' => 'doc_fail',
-                'generation_id' => 'gen_fail',
-                'query_fingerprint' => str_repeat('1', 64),
-                'schema_fingerprint' => str_repeat('2', 64),
-                'sql_template' => 'SELECT SUM(amount) FROM orders',
-                'params' => [],
-                'referenced_tables' => ['orders'],
-                'referenced_columns' => ['amount'],
-                'confirmed_edge_ids' => [],
-                'compiler_version' => '3.0.0',
-                'status' => 'prepared',
-                'created_at' => gmdate('c'),
-            ], 200),
+            '*/analytics/v3/prepare' => function ($request) {
+                return Http::response([
+                    'contract_version' => '3.0.0',
+                    'request_id' => 'req_fail_test',
+                    'workspace_id' => $request['workspace_id'] ?? $this->workspaceId,
+                    'dataset_id' => 'doc_fail',
+                    'generation_id' => 'gen_fail',
+                    'query_fingerprint' => str_repeat('1', 64),
+                    'schema_fingerprint' => str_repeat('2', 64),
+                    'sql_template' => 'SELECT SUM(amount) FROM orders',
+                    'params' => [],
+                    'referenced_tables' => ['orders'],
+                    'referenced_columns' => ['amount'],
+                    'confirmed_edge_ids' => [],
+                    'compiler_version' => '3.0.0',
+                    'status' => 'prepared',
+                    'created_at' => gmdate('c'),
+                ], 200);
+            },
 
             '*/analytics/v3/execute' => Http::response([
                 'detail' => 'Database timeout or execution error',
@@ -347,6 +351,7 @@ class VirtualRelationalExecutionGatewayTest extends TestCase
         StructuredRecord::create([
             'workspace_id'   => $wsId,
             'document_id'    => (string) $doc->id,
+            'import_job_id'  => $job->id,
             'sheet_name'     => 'Orders',
             'row_index'      => 1,
             'payload'        => ['amount' => 1000],
@@ -369,12 +374,14 @@ class VirtualRelationalExecutionGatewayTest extends TestCase
             'metadata'           => ['is_simulator' => true, 'is_customer' => false, 'role' => 'owner'],
         ]);
 
-        $assistant = app(OwnerBusinessAssistant::class);
-        $result = $assistant->handleOwnerQuery(
+        $orchestrator = app(UnifiedOrchestrator::class);
+        $result = $orchestrator->process(
             query: 'আমাদের মোট সেলস কত?',
             workspaceId: $wsId,
+            user: $owner,
             conversation: $conversation,
-            user: $owner
+            channelSlug: 'simulator',
+            isCustomer: false
         );
 
         // Assistant must fall back gracefully without failing or returning customer denial message

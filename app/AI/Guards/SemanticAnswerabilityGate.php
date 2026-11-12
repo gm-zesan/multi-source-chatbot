@@ -36,7 +36,7 @@ class SemanticAnswerabilityGate
      *
      * @param string             $query         Raw user query
      * @param Collection         $retrievalHits Typesense hybrid hits
-     * @param RoutingResult|null $routingResult Output of HybridRouter
+     * @param RoutingResult|null $routingResult Output of Decision Engine / Routing
      * @param int|null           $workspaceId   Multi-tenant workspace ID (fail-closed guard)
      * @return AnswerabilityDecision
      */
@@ -324,7 +324,7 @@ class SemanticAnswerabilityGate
     }
 
     /**
-     * Determine if HybridRouter flagged the query as Out-Of-Domain.
+     * Determine if decision engine flagged the query as Out-Of-Domain.
      */
     public function isRouterOod(?RoutingResult $routingResult): bool
     {

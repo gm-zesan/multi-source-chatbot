@@ -4,9 +4,6 @@ declare(strict_types=1);
 
 namespace Tests\Feature;
 
-use App\AI\Routing\HybridRouter;
-use App\AI\Routing\RouteType;
-use App\AI\Routing\RoutingResult;
 use App\Jobs\IngestConversationMemoryJob;
 use App\Models\Channel;
 use App\Models\ChannelAccount;
@@ -29,7 +26,7 @@ use Tests\TestCase;
  * Verifies the complete end-to-end production flow:
  * User Query
  *    ↓
- * HybridRouter
+ * UnifiedDecisionEngine
  *    ↓
  * M2 Context Resolution
  *    ↓
@@ -55,7 +52,6 @@ class M5ProductionRuntimeOrchestrationTest extends TestCase
     private Conversation $conversation;
     private CustomerSupportService $service;
     private FAQSearch $faqSearchMock;
-    private HybridRouter $routerMock;
     private ConversationMemoryClient $memoryClientMock;
 
     protected function setUp(): void
@@ -83,25 +79,18 @@ class M5ProductionRuntimeOrchestrationTest extends TestCase
         ]);
 
         $this->faqSearchMock = Mockery::mock(FAQSearch::class);
-        $this->routerMock = Mockery::mock(HybridRouter::class);
         $this->memoryClientMock = Mockery::mock(ConversationMemoryClient::class);
-
-        $this->routerMock->shouldReceive('route')
-            ->byDefault()
-            ->andReturn(new RoutingResult(RouteType::KNOWLEDGE, 0.90, 'order_tracking'));
 
         $this->faqSearchMock->shouldReceive('getLastTelemetry')
             ->byDefault()
             ->andReturn([]);
 
         $this->app->instance(FAQSearch::class, $this->faqSearchMock);
-        $this->app->instance(HybridRouter::class, $this->routerMock);
         $this->app->instance(ConversationMemoryClient::class, $this->memoryClientMock);
 
         $this->service = new CustomerSupportService(
             faqSearch: $this->faqSearchMock,
             conversationService: app(ConversationService::class),
-            router: $this->routerMock,
             memoryService: app(ConversationMemoryService::class),
         );
     }
@@ -115,10 +104,6 @@ class M5ProductionRuntimeOrchestrationTest extends TestCase
         $this->recordTurn('আমি #1042 অর্ডার নিয়ে জানতে চাই', 'outbound', 'জি, আপনার অর্ডার #1042 আমাদের সিস্টেমে প্রসেসিং অবস্থায় আছে।');
 
         // ── Turn 2: User asks anaphora query "ওটা কবে পাবো?" ─────────────────
-        $this->routerMock->shouldReceive('route')
-            ->once()
-            ->andReturn(new RoutingResult(RouteType::KNOWLEDGE, 0.94, 'delivery_eta'));
-
         $this->faqSearchMock->shouldReceive('search')
             ->once()
             ->withArgs(function ($query, $perPage, $workspaceId, $conversation, $contextualSignal) {
@@ -135,10 +120,6 @@ class M5ProductionRuntimeOrchestrationTest extends TestCase
         // ── Turn 3: User introduces ambiguity between two competing items ─────
         $this->recordTurn('Black Cotton Panjabi নাকি White Silk Panjabi কোনটি ভালো?', 'outbound', 'দুটোই উন্নত মানের।');
 
-        $this->routerMock->shouldReceive('route')
-            ->once()
-            ->andReturn(new RoutingResult(RouteType::UNCERTAIN, 0.88, 'product_ambiguity'));
-
         // Ambiguity Short-Circuit: Zero FAQ calls, zero LLM calls
         $this->faqSearchMock->shouldNotReceive('search');
 
@@ -153,11 +134,6 @@ class M5ProductionRuntimeOrchestrationTest extends TestCase
         $this->assertNotNull($this->conversation->fresh()->metadata['pending_clarification'] ?? null);
 
         // ── Turn 4: User selects "White Silk Panjabi" ─────────────────────────
-        // Step 0 restores intent from pending clarification
-        $this->routerMock->shouldReceive('route')
-            ->once()
-            ->andReturn(new RoutingResult(RouteType::KNOWLEDGE, 0.95, 'product_pricing'));
-
         $this->faqSearchMock->shouldReceive('search')
             ->once()
             ->withArgs(function ($query, $perPage, $workspaceId, $conversation, $contextualSignal) {
@@ -194,10 +170,6 @@ class M5ProductionRuntimeOrchestrationTest extends TestCase
         $this->conversation->save();
 
         // User asks OOD instead of choosing an order
-        $this->routerMock->shouldReceive('route')
-            ->once()
-            ->andReturn(new RoutingResult(RouteType::OOD, 0.98, 'general_weather'));
-
         $this->faqSearchMock->shouldNotReceive('search');
 
         $result = $this->service->handleQuery('আজকের আবহাওয়া কেমন?', $this->workspace->id, $this->conversation);
@@ -263,10 +235,6 @@ class M5ProductionRuntimeOrchestrationTest extends TestCase
             'uncertain_count' => 2,
         ];
         $this->conversation->save();
-
-        $this->routerMock->shouldReceive('route')
-            ->once()
-            ->andReturn(new RoutingResult(RouteType::UNCERTAIN, 0.88, 'uncertain_query'));
 
         $this->faqSearchMock->shouldNotReceive('search');
 

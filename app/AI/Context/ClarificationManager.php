@@ -229,7 +229,7 @@ class ClarificationManager
     }
 
     /**
-     * Handle analytic/intent ambiguity (from HybridRouter UNCERTAIN route).
+     * Handle analytic/intent ambiguity (from UNCERTAIN decision route).
      */
     public function handleAnalyticAmbiguity(?Conversation $conversation, string $rawQuery, \App\AI\Routing\RoutingResult $routingResult): string
     {

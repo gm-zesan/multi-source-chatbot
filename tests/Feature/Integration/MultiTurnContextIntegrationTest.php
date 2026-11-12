@@ -4,9 +4,6 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Integration;
 
-use App\AI\Routing\HybridRouter;
-use App\AI\Routing\RouteType;
-use App\AI\Routing\RoutingResult;
 use App\Models\Channel;
 use App\Models\ChannelAccount;
 use App\Models\Conversation;
@@ -69,27 +66,8 @@ class MultiTurnContextIntegrationTest extends TestCase
         $this->supportService = app(CustomerSupportService::class);
     }
 
-    private function mockRouterRoute(RouteType $route, string $intent = 'context_query', float $confidence = 0.95): void
-    {
-        $mockRouter = \Mockery::mock(HybridRouter::class);
-        $mockRouter->shouldReceive('route')
-            ->andReturn(new RoutingResult(
-                route: $route,
-                confidence: $confidence,
-                intent: $intent,
-                signals: [],
-                entities: [],
-                routerLatencyMs: 22.0,
-                isFallback: false,
-                securityStatus: 'allowed'
-            ));
-
-        $this->app->instance(HybridRouter::class, $mockRouter);
-    }
-
     public function test_multi_turn_entity_and_date_continuity_across_conversation_turns(): void
     {
-        $this->mockRouterRoute(RouteType::ANALYTICS, 'sales_query');
         $baseUrl = rtrim(config('analytics.base_url', 'http://127.0.0.1:8001'), '/');
 
         // Turn 1: Establish context for Hasan
@@ -152,8 +130,6 @@ class MultiTurnContextIntegrationTest extends TestCase
         ]);
 
         // Turn 2 switches domain to Knowledge FAQ
-        $this->mockRouterRoute(RouteType::KNOWLEDGE, 'office_location');
-
         $faq = FAQ::create([
             'workspace_id' => $this->workspace->id,
             'question'     => 'আপনাদের অফিস কোথায়?',

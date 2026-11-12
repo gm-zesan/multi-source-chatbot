@@ -4,9 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Integration;
 
-use App\AI\Routing\HybridRouter;
 use App\AI\Routing\RouteType;
-use App\AI\Routing\RoutingResult;
 use App\Models\ChannelAccount;
 use App\Models\Conversation;
 use App\Models\FAQ;
@@ -30,7 +28,6 @@ class SelectiveFollowUpIntegrationTest extends TestCase
     private Workspace $workspace;
     private ChannelAccount $channelAccount;
     private Conversation $conversation;
-    private $routerMock;
     private $faqSearchMock;
     private CustomerSupportService $service;
 
@@ -56,17 +53,14 @@ class SelectiveFollowUpIntegrationTest extends TestCase
             'metadata'           => [],
         ]);
 
-        $this->routerMock = Mockery::mock(HybridRouter::class);
         $this->faqSearchMock = Mockery::mock(FAQSearch::class);
         $this->faqSearchMock->shouldReceive('getLastTelemetry')->andReturn([]);
 
-        $this->app->instance(HybridRouter::class, $this->routerMock);
         $this->app->instance(FAQSearch::class, $this->faqSearchMock);
 
         $this->service = new CustomerSupportService(
             faqSearch: $this->faqSearchMock,
             conversationService: app(ConversationService::class),
-            router: $this->routerMock,
             memoryService: app(ConversationMemoryService::class),
         );
     }
@@ -94,10 +88,6 @@ class SelectiveFollowUpIntegrationTest extends TestCase
             'answer'          => 'Royal Silk Panjabi ৩,৫০০ টাকা।',
             'is_published'    => true,
         ]);
-
-        $this->routerMock->shouldReceive('route')
-            ->once()
-            ->andReturn(new RoutingResult(RouteType::KNOWLEDGE, 0.95, 'product_price'));
 
         $this->faqSearchMock->shouldReceive('search')
             ->once()
@@ -223,10 +213,6 @@ class SelectiveFollowUpIntegrationTest extends TestCase
      */
     public function test_ood_query_has_no_cta(): void
     {
-        $this->routerMock->shouldReceive('route')
-            ->once()
-            ->andReturn(new RoutingResult(RouteType::OOD, 0.98, 'general_politics'));
-
         $this->faqSearchMock->shouldNotReceive('search');
 
         $result = $this->service->handleQuery('আজকে কি নির্বাচন?', $this->workspace->id, $this->conversation);
@@ -241,10 +227,6 @@ class SelectiveFollowUpIntegrationTest extends TestCase
      */
     public function test_uncertain_query_generates_clarification_only(): void
     {
-        $this->routerMock->shouldReceive('route')
-            ->once()
-            ->andReturn(new RoutingResult(RouteType::UNCERTAIN, 0.50, 'ambiguous_product'));
-
         $this->faqSearchMock->shouldReceive('search')
             ->andReturn(new \Illuminate\Database\Eloquent\Collection());
 

@@ -65,12 +65,6 @@ class ProductionHardeningValidationTest extends TestCase
             'answer'       => 'Workspace B refunds within 14 business days.',
             'is_active'    => true,
         ]);
-
-        $routerMock = \Mockery::mock(\App\AI\Routing\HybridRouter::class);
-        $routerMock->shouldReceive('route')
-            ->byDefault()
-            ->andReturn(new \App\AI\Routing\RoutingResult(\App\AI\Routing\RouteType::KNOWLEDGE, 0.95, 'refund_policy'));
-        $this->app->instance(\App\AI\Routing\HybridRouter::class, $routerMock);
     }
 
     /**

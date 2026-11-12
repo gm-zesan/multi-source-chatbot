@@ -34,11 +34,6 @@ class E2E01StaticFAQRetrievalTest extends BaseE2ETestCase
     {
         $query = 'ডেলিভারি চার্জ কত?';
 
-        $this->routerMock->shouldReceive('route')
-            ->once()
-            ->with($query, $this->conversation, $this->workspace->id)
-            ->andReturn(new RoutingResult(RouteType::KNOWLEDGE, 0.98, 'delivery_charge'));
-
         $this->faqSearchMock->shouldReceive('search')
             ->once()
             ->withArgs(function ($q, $perPage, $wsId, $conv, $signal) use ($query) {
@@ -86,10 +81,6 @@ class E2E01StaticFAQRetrievalTest extends BaseE2ETestCase
     {
         $query = 'delivery charge koto?';
 
-        $this->routerMock->shouldReceive('route')
-            ->once()
-            ->andReturn(new RoutingResult(RouteType::KNOWLEDGE, 0.95, 'delivery_charge'));
-
         $this->faqSearchMock->shouldReceive('search')
             ->once()
             ->andReturn($this->createHitCollection($this->deliveryFaq, 0.92, 'lexicon'));
@@ -124,10 +115,6 @@ class E2E01StaticFAQRetrievalTest extends BaseE2ETestCase
     {
         $query = 'ঢাকার বাইরে ডেলিভারি চার্জ কত?';
 
-        $this->routerMock->shouldReceive('route')
-            ->once()
-            ->andReturn(new RoutingResult(RouteType::KNOWLEDGE, 0.94, 'delivery_charge'));
-
         $this->faqSearchMock->shouldReceive('search')
             ->once()
             ->andReturn($this->createHitCollection($this->deliveryFaq, 0.90, 'semantic'));
@@ -146,10 +133,6 @@ class E2E01StaticFAQRetrievalTest extends BaseE2ETestCase
     {
         $query = 'How much is the delivery charge?';
 
-        $this->routerMock->shouldReceive('route')
-            ->once()
-            ->andReturn(new RoutingResult(RouteType::KNOWLEDGE, 0.96, 'delivery_charge'));
-
         $this->faqSearchMock->shouldReceive('search')
             ->once()
             ->andReturn($this->createHitCollection($this->deliveryFaq, 0.91, 'semantic'));
@@ -167,10 +150,6 @@ class E2E01StaticFAQRetrievalTest extends BaseE2ETestCase
     public function test_a5_code_mixed_path(): void
     {
         $query = 'delivery charge ta koto?';
-
-        $this->routerMock->shouldReceive('route')
-            ->once()
-            ->andReturn(new RoutingResult(RouteType::KNOWLEDGE, 0.93, 'delivery_charge'));
 
         $this->faqSearchMock->shouldReceive('search')
             ->once()

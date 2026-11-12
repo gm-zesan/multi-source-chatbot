@@ -49,10 +49,6 @@ class E2E06MultilingualMatrixTest extends BaseE2ETestCase
 
         $query = 'ওটার দাম কত?';
 
-        $this->routerMock->shouldReceive('route')
-            ->once()
-            ->andReturn(new RoutingResult(RouteType::KNOWLEDGE, 0.95, 'product_pricing'));
-
         $this->faqSearchMock->shouldReceive('search')
             ->once()
             ->withArgs(function ($q, $perPage, $wsId, $conv, $signal) {
@@ -92,10 +88,6 @@ class E2E06MultilingualMatrixTest extends BaseE2ETestCase
 
         $query = 'otar dam koto?';
 
-        $this->routerMock->shouldReceive('route')
-            ->once()
-            ->andReturn(new RoutingResult(RouteType::KNOWLEDGE, 0.94, 'product_pricing'));
-
         $this->faqSearchMock->shouldReceive('search')
             ->once()
             ->withArgs(function ($q, $perPage, $wsId, $conv, $signal) {
@@ -122,10 +114,6 @@ class E2E06MultilingualMatrixTest extends BaseE2ETestCase
 
         $query = 'How much is that one?';
 
-        $this->routerMock->shouldReceive('route')
-            ->once()
-            ->andReturn(new RoutingResult(RouteType::KNOWLEDGE, 0.96, 'product_pricing'));
-
         $this->faqSearchMock->shouldReceive('search')
             ->once()
             ->withArgs(function ($q, $perPage, $wsId, $conv, $signal) {
@@ -151,10 +139,6 @@ class E2E06MultilingualMatrixTest extends BaseE2ETestCase
         );
 
         $query = 'otar price ta koto?';
-
-        $this->routerMock->shouldReceive('route')
-            ->once()
-            ->andReturn(new RoutingResult(RouteType::KNOWLEDGE, 0.93, 'product_pricing'));
 
         $this->faqSearchMock->shouldReceive('search')
             ->once()

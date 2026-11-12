@@ -14,7 +14,7 @@ use Tests\Feature\Live\Support\BaseLiveTestCase;
  * STEP 5F: FINAL LIVE SMOKE + LATENCY VERIFICATION
  *
  * Verifies the complete end-to-end customer support orchestration path across
- * all live boundaries: Laravel -> HybridRouter v2.2 -> Downstream Path (Typesense / MySQL) -> Final Reply.
+ * all live boundaries: Laravel -> UnifiedDecisionEngine -> Downstream Path (Typesense / MySQL) -> Final Reply.
  */
 class LiveCustomerSupportSmokeTest extends BaseLiveTestCase
 {

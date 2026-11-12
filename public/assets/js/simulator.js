@@ -609,7 +609,7 @@ function appendTypingIndicator() {
     const id = 'typing_' + Date.now();
     div.id = id;
     div.className = 'message-bubble message-bot text-muted small';
-    div.innerHTML = `<i class="ri-loader-4-line ri-spin me-1"></i> Processing query through HybridRouter & AI Agent...`;
+    div.innerHTML = `<i class="ri-loader-4-line ri-spin me-1"></i> Processing query through UnifiedDecisionEngine & AI Agent...`;
     container.appendChild(div);
     container.scrollTop = container.scrollHeight;
     return id;
@@ -687,7 +687,7 @@ function updateDiagnostics(data) {
             pyBadge.textContent = 'BYPASSED / IDLE';
             pyBadge.className = 'status-badge status-none';
         }
-        if (document.getElementById('pyVectorSample')) document.getElementById('pyVectorSample').textContent = (route === 'chat' || route === 'ood') ? '0 Embedding calls (Bypassed by HybridRouter)' : 'Idle';
+        if (document.getElementById('pyVectorSample')) document.getElementById('pyVectorSample').textContent = (route === 'chat' || route === 'ood') ? '0 Embedding calls (Bypassed by UnifiedDecisionEngine)' : 'Idle';
     }
 
     // 3. Typesense

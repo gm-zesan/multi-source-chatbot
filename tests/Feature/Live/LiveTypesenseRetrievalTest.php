@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Live;
 
-use App\AI\Routing\HybridRouter;
 use App\AI\Routing\RouteType;
 use App\AI\Routing\RoutingResult;
 use App\AI\Tools\KnowledgeRetrievalTool;
@@ -89,22 +88,6 @@ class LiveTypesenseRetrievalTest extends BaseLiveTestCase
 
     public function test_live_ret_03_zero_match_out_of_domain_query_handled_by_answerability_gate(): void
     {
-        $mockRouter = \Mockery::mock(HybridRouter::class);
-        $mockRouter->shouldReceive('route')
-            ->once()
-            ->andReturn(new RoutingResult(
-                route: RouteType::KNOWLEDGE,
-                confidence: 0.88,
-                intent: 'unsupported_quantum_query',
-                signals: [],
-                entities: [],
-                routerLatencyMs: 15.0,
-                isFallback: false,
-                securityStatus: 'allowed'
-            ));
-
-        $this->app->instance(HybridRouter::class, $mockRouter);
-
         $service = $this->app->make(CustomerSupportService::class);
         $reply = $service->generateReply(
             conversation: $this->conversation,

@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Live;
 
-use App\AI\Routing\HybridRouter;
 use App\AI\Routing\RouteType;
 use App\AI\Routing\RoutingResult;
 use App\AI\Tools\BusinessAnalyticsTool;
@@ -95,22 +94,6 @@ class LiveFastApiHttpTest extends BaseLiveTestCase
 
     public function test_live_http_03_customer_support_service_live_analytics_dispatch(): void
     {
-        $mockRouter = \Mockery::mock(HybridRouter::class);
-        $mockRouter->shouldReceive('route')
-            ->once()
-            ->andReturn(new RoutingResult(
-                route: RouteType::ANALYTICS,
-                confidence: 0.95,
-                intent: 'sales_total_amount',
-                signals: [],
-                entities: [],
-                routerLatencyMs: 15.0,
-                isFallback: false,
-                securityStatus: 'allowed'
-            ));
-
-        $this->app->instance(HybridRouter::class, $mockRouter);
-
         $service = $this->app->make(CustomerSupportService::class);
         $reply = $service->generateReply(
             conversation: $this->conversation,

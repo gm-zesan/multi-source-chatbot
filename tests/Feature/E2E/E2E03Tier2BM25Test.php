@@ -21,10 +21,6 @@ class E2E03Tier2BM25Test extends BaseE2ETestCase
     {
         $query = 'cash diye product nile payment kivabe hoy?';
 
-        $this->routerMock->shouldReceive('route')
-            ->once()
-            ->andReturn(new RoutingResult(RouteType::KNOWLEDGE, 0.91, 'payment_inquiry'));
-
         $this->faqSearchMock->shouldReceive('search')
             ->once()
             ->andReturn($this->createHitCollection($this->codFaq, 0.86, 'bm25'));

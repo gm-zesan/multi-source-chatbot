@@ -4,9 +4,6 @@ declare(strict_types=1);
 
 namespace Tests\Feature\E2E;
 
-use App\AI\Routing\HybridRouter;
-use App\AI\Routing\RouteType;
-use App\AI\Routing\RoutingResult;
 use App\Models\Channel;
 use App\Models\ChannelAccount;
 use App\Models\Conversation;
@@ -69,26 +66,10 @@ class E2E09DownstreamFailureResilienceTest extends TestCase
     {
         $query = 'আজকে মোট বিক্রি কত?';
 
-        $mockRouter = \Mockery::mock(HybridRouter::class);
-        $mockRouter->shouldReceive('route')
-            ->once()
-            ->andReturn(new RoutingResult(
-                route: RouteType::ANALYTICS,
-                confidence: 0.95,
-                intent: 'sales_total_amount',
-                signals: [],
-                entities: [],
-                routerLatencyMs: 15.0,
-                isFallback: false,
-                securityStatus: 'allowed'
-            ));
-
         $baseUrl = rtrim(config('analytics.base_url', 'http://127.0.0.1:8001'), '/');
         Http::fake([
             "{$baseUrl}/analytics/query" => Http::response(['error' => 'Database connection timeout'], 503),
         ]);
-
-        $this->app->instance(HybridRouter::class, $mockRouter);
 
         $service = $this->app->make(CustomerSupportService::class);
         $reply = $service->generateReply(

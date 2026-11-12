@@ -71,6 +71,48 @@ class SalesAnalyticsTool extends AbstractGovernedTool
 
         $workspaceId = $context->getWorkspaceId();
 
+        // 1.5 Fallback to Python Semantic Analytics when local analytics_orders is empty or direct natural query passed
+        if (!empty($arguments['query'])) {
+            $ordersCount = DB::table('analytics_orders')->where('workspace_id', $workspaceId)->count();
+            if ($ordersCount === 0) {
+                $history = [];
+                if ($context->conversation !== null && $context->conversation->exists) {
+                    $recentMessages = $context->conversation->messages()
+                        ->latest('id')
+                        ->take(4)
+                        ->get()
+                        ->reverse();
+
+                    foreach ($recentMessages as $msg) {
+                        $history[] = [
+                            'role' => $msg->is_from_user ? 'user' : 'assistant',
+                            'content' => trim(strip_tags((string) ($msg->body ?? ''))),
+                        ];
+                    }
+                }
+
+                if (app()->bound(\App\AI\Tools\BusinessAnalyticsTool::class)) {
+                    $tool = app(\App\AI\Tools\BusinessAnalyticsTool::class);
+                    $result = $tool->execute((string) $arguments['query'], $workspaceId, $history);
+                    return ToolResult::success($result, [
+                        'execution_time_ms' => $context->getElapsedMs(),
+                        'tool_name'         => $this->name(),
+                        'engine'            => 'semantic',
+                    ]);
+                }
+
+                if (class_exists(\App\Services\Analytics\AnalyticsClient::class)) {
+                    $analyticsClient = app(\App\Services\Analytics\AnalyticsClient::class);
+                    $result = $analyticsClient->query((string) $arguments['query'], $workspaceId, $history);
+                    return ToolResult::success($result, [
+                        'execution_time_ms' => $context->getElapsedMs(),
+                        'tool_name'         => $this->name(),
+                        'engine'            => 'semantic',
+                    ]);
+                }
+            }
+        }
+
         // 2. Parse Date Filters
         try {
             $startDate = !empty($arguments['start_date'])

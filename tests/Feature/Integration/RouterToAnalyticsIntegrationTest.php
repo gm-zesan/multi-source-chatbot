@@ -4,9 +4,6 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Integration;
 
-use App\AI\Routing\HybridRouter;
-use App\AI\Routing\RouteType;
-use App\AI\Routing\RoutingResult;
 use App\Models\Channel;
 use App\Models\ChannelAccount;
 use App\Models\Conversation;
@@ -77,31 +74,8 @@ class RouterToAnalyticsIntegrationTest extends TestCase
         ]);
     }
 
-    /**
-     * Helper to mock the LLM router output.
-     */
-    private function mockRouterRoute(RouteType $route, string $intent = 'business_analytics', float $confidence = 0.95): void
-    {
-        $mockRouter = \Mockery::mock(HybridRouter::class);
-        $mockRouter->shouldReceive('route')
-            ->andReturn(new RoutingResult(
-                route: $route,
-                confidence: $confidence,
-                intent: $intent,
-                signals: [],
-                entities: [],
-                routerLatencyMs: 25.0,
-                isFallback: false,
-                securityStatus: 'allowed'
-            ));
-
-        $this->app->instance(HybridRouter::class, $mockRouter);
-        $this->supportService = $this->app->make(CustomerSupportService::class);
-    }
-
     public function test_simple_sales_query_routes_to_analytics_and_executes_business_analytics_tool(): void
     {
-        $this->mockRouterRoute(RouteType::ANALYTICS, 'sales_query');
         $this->mockAnalyticsEndpoint([
             'success'               => true,
             'intent'                => 'sales_total',
@@ -125,7 +99,6 @@ class RouterToAnalyticsIntegrationTest extends TestCase
 
     public function test_cash_collection_query_routes_and_returns_collection_report(): void
     {
-        $this->mockRouterRoute(RouteType::ANALYTICS, 'cash_collection');
         $this->mockAnalyticsEndpoint([
             'success'               => true,
             'intent'                => 'cash_collection',
@@ -149,7 +122,6 @@ class RouterToAnalyticsIntegrationTest extends TestCase
 
     public function test_customer_due_query_routes_to_analytics_with_customer_intent(): void
     {
-        $this->mockRouterRoute(RouteType::ANALYTICS, 'customer_due');
         $this->mockAnalyticsEndpoint([
             'success'               => true,
             'intent'                => 'customer_due',
@@ -173,7 +145,6 @@ class RouterToAnalyticsIntegrationTest extends TestCase
 
     public function test_top_salesperson_query_routes_to_analytics_with_ranking_intent(): void
     {
-        $this->mockRouterRoute(RouteType::ANALYTICS, 'top_salesperson');
         $this->mockAnalyticsEndpoint([
             'success'               => true,
             'intent'                => 'top_salesperson',
@@ -197,7 +168,6 @@ class RouterToAnalyticsIntegrationTest extends TestCase
 
     public function test_product_revenue_query_routes_to_analytics_with_product_filter(): void
     {
-        $this->mockRouterRoute(RouteType::ANALYTICS, 'product_revenue');
         $this->mockAnalyticsEndpoint([
             'success'               => true,
             'intent'                => 'product_revenue',
@@ -221,7 +191,6 @@ class RouterToAnalyticsIntegrationTest extends TestCase
 
     public function test_date_interval_query_routes_to_analytics_with_temporal_filter(): void
     {
-        $this->mockRouterRoute(RouteType::ANALYTICS, 'temporal_sales');
         $this->mockAnalyticsEndpoint([
             'success'               => true,
             'intent'                => 'temporal_sales',
@@ -245,7 +214,6 @@ class RouterToAnalyticsIntegrationTest extends TestCase
 
     public function test_grouped_analytics_summary_routes_to_analytics_and_formats_table(): void
     {
-        $this->mockRouterRoute(RouteType::ANALYTICS, 'grouped_sales_summary');
         $this->mockAnalyticsEndpoint([
             'success'               => true,
             'intent'                => 'grouped_sales_summary',
@@ -273,7 +241,6 @@ class RouterToAnalyticsIntegrationTest extends TestCase
 
     public function test_analytics_query_does_not_accidentally_fallback_to_knowledge_or_chat(): void
     {
-        $this->mockRouterRoute(RouteType::ANALYTICS, 'sales_query');
         $this->mockAnalyticsEndpoint([
             'success'               => true,
             'intent'                => 'sales_total',

@@ -76,12 +76,14 @@ class ConversationControllerTenantTest extends TestCase
         $conversation->setRelation('channelAccount', null);
 
         $mockSupportService = $this->createMock(CustomerSupportService::class);
-        $mockSupportService->expects($this->never())->method('handleQuery');
+        $mockOrchestrator = $this->createMock(\App\AI\Decision\UnifiedOrchestrator::class);
+        $mockOrchestrator->expects($this->never())->method('process');
 
         $controller = new \App\Http\Controllers\ConversationController(
             $this->createMock(\App\Services\Chat\ConversationService::class),
             $this->createMock(\App\Services\FAQ\FAQSearch::class),
             $mockSupportService,
+            $mockOrchestrator,
         );
 
         $this->actingAs($this->superAdmin);
@@ -111,9 +113,9 @@ class ConversationControllerTenantTest extends TestCase
             'last_direction'     => 'inbound',
         ]);
 
-        $mockSupportService = $this->createMock(CustomerSupportService::class);
-        $mockSupportService->expects($this->never())->method('handleQuery');
-        $this->app->instance(CustomerSupportService::class, $mockSupportService);
+        $mockOrchestrator = $this->createMock(\App\AI\Decision\UnifiedOrchestrator::class);
+        $mockOrchestrator->expects($this->never())->method('process');
+        $this->app->instance(\App\AI\Decision\UnifiedOrchestrator::class, $mockOrchestrator);
 
         // Tenant 1 Admin attempts to trigger AI reply on Tenant 2 Conversation
         $response = $this->actingAs($this->adminWs1)
@@ -148,13 +150,16 @@ class ConversationControllerTenantTest extends TestCase
             'body'            => 'Where is my order?',
         ]);
 
-        $mockSupportService = $this->createMock(CustomerSupportService::class);
-        $mockSupportService->expects($this->once())
-            ->method('handleQuery')
+        $mockOrchestrator = $this->createMock(\App\AI\Decision\UnifiedOrchestrator::class);
+        $mockOrchestrator->expects($this->once())
+            ->method('process')
             ->with(
                 $this->identicalTo('Where is my order?'),
                 $this->identicalTo((int) $this->workspace1->id),
+                $this->callback(fn ($u) => $u instanceof User && $u->id === $this->adminWs1->id),
                 $this->callback(fn ($conv) => $conv->id === $conversationWs1->id),
+                $this->identicalTo('web'),
+                $this->identicalTo(true),
             )
             ->willReturn([
                 'reply'                  => 'Your order is in transit.',
@@ -165,10 +170,12 @@ class ConversationControllerTenantTest extends TestCase
                 'answerability_decision' => null,
             ]);
 
+        $mockSupportService = $this->createMock(CustomerSupportService::class);
         $mockSupportService->expects($this->once())
             ->method('saveOutboundReply')
             ->willReturn(new Message());
 
+        $this->app->instance(\App\AI\Decision\UnifiedOrchestrator::class, $mockOrchestrator);
         $this->app->instance(CustomerSupportService::class, $mockSupportService);
 
         $response = $this->actingAs($this->adminWs1)
@@ -205,14 +212,17 @@ class ConversationControllerTenantTest extends TestCase
             'body'            => 'Order info for Tenant 2',
         ]);
 
-        $mockSupportService = $this->createMock(CustomerSupportService::class);
+        $mockOrchestrator = $this->createMock(\App\AI\Decision\UnifiedOrchestrator::class);
         // Assert that workspace 2 is explicitly passed, NEVER workspace 1
-        $mockSupportService->expects($this->once())
-            ->method('handleQuery')
+        $mockOrchestrator->expects($this->once())
+            ->method('process')
             ->with(
                 $this->identicalTo('Order info for Tenant 2'),
                 $this->identicalTo((int) $this->workspace2->id),
+                $this->callback(fn ($u) => $u instanceof User && $u->id === $this->superAdmin->id),
                 $this->callback(fn ($conv) => $conv->id === $conversationWs2->id),
+                $this->identicalTo('web'),
+                $this->identicalTo(true),
             )
             ->willReturn([
                 'reply'                  => 'Tenant 2 order details.',
@@ -223,10 +233,12 @@ class ConversationControllerTenantTest extends TestCase
                 'answerability_decision' => null,
             ]);
 
+        $mockSupportService = $this->createMock(CustomerSupportService::class);
         $mockSupportService->expects($this->once())
             ->method('saveOutboundReply')
             ->willReturn(new Message());
 
+        $this->app->instance(\App\AI\Decision\UnifiedOrchestrator::class, $mockOrchestrator);
         $this->app->instance(CustomerSupportService::class, $mockSupportService);
 
         // SuperAdmin (who has workspace_id = 1) triggers AI reply for Tenant 2 conversation

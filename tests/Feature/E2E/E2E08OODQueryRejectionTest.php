@@ -4,9 +4,6 @@ declare(strict_types=1);
 
 namespace Tests\Feature\E2E;
 
-use App\AI\Routing\HybridRouter;
-use App\AI\Routing\RouteType;
-use App\AI\Routing\RoutingResult;
 use App\Models\Channel;
 use App\Models\ChannelAccount;
 use App\Models\Conversation;
@@ -18,7 +15,7 @@ use Tests\TestCase;
 /**
  * E2E-08: Out-Of-Domain (OOD) Query Rejection
  *
- * Pathway: Completely Unrelated Query -> HybridRouter (OOD) -> Deterministic Rejection -> Zero Unnecessary Retrieval or Analytics
+ * Pathway: Completely Unrelated Query -> UnifiedOrchestrator -> UnifiedDecisionEngine -> Deterministic Rejection -> Zero Unnecessary Retrieval or Analytics
  */
 class E2E08OODQueryRejectionTest extends TestCase
 {
@@ -55,22 +52,6 @@ class E2E08OODQueryRejectionTest extends TestCase
     public function test_e2e_08_ood_query_returns_safe_deterministic_rejection(): void
     {
         $query = 'How do I build a nuclear fusion reactor in my backyard?';
-
-        $mockRouter = \Mockery::mock(HybridRouter::class);
-        $mockRouter->shouldReceive('route')
-            ->once()
-            ->andReturn(new RoutingResult(
-                route: RouteType::OOD,
-                confidence: 0.99,
-                intent: 'out_of_domain',
-                signals: [],
-                entities: [],
-                routerLatencyMs: 12.0,
-                isFallback: false,
-                securityStatus: 'allowed'
-            ));
-
-        $this->app->instance(HybridRouter::class, $mockRouter);
 
         $service = $this->app->make(CustomerSupportService::class);
         $reply = $service->generateReply(

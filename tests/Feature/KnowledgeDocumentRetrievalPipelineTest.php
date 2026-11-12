@@ -4,9 +4,6 @@ declare(strict_types=1);
 
 namespace Tests\Feature;
 
-use App\AI\Routing\HybridRouter;
-use App\AI\Routing\RouteType;
-use App\AI\Routing\RoutingResult;
 use App\AI\Tools\KnowledgeRetrievalTool;
 use App\Enums\DocumentLifecycleStatus;
 use App\Enums\IngestionPurpose;
@@ -497,22 +494,6 @@ class KnowledgeDocumentRetrievalPipelineTest extends TestCase
             'status'             => 'open',
             'last_direction'     => 'inbound',
         ]);
-
-        // Mock HybridRouter to classify as KNOWLEDGE
-        $mockRouter = \Mockery::mock(HybridRouter::class);
-        $mockRouter->shouldReceive('route')
-            ->once()
-            ->andReturn(new RoutingResult(
-                route: RouteType::KNOWLEDGE,
-                confidence: 0.98,
-                intent: 'vip_benefits',
-                signals: [],
-                entities: [],
-                routerLatencyMs: 12.0,
-                isFallback: false,
-                securityStatus: 'allowed'
-            ));
-        $this->app->instance(HybridRouter::class, $mockRouter);
 
         // Typesense returns the document chunk
         $this->searchHits = [

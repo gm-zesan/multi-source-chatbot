@@ -4,9 +4,6 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Knowledge;
 
-use App\AI\Routing\HybridRouter;
-use App\AI\Routing\RouteType;
-use App\AI\Routing\RoutingResult;
 use App\AI\Tools\BusinessAnalyticsTool;
 use App\AI\Tools\ExcelAnalyticsTool;
 use App\Enums\DocumentLifecycleStatus;
@@ -74,26 +71,6 @@ class AutomaticSourceResolutionTest extends TestCase
                 ],
             ]);
         $this->app->instance(\App\Services\Spreadsheet\SpreadsheetInspectorService::class, $mockInspector);
-
-        $this->mockRouterRoute();
-    }
-
-    private function mockRouterRoute(RouteType $route = RouteType::ANALYTICS): void
-    {
-        $mockRouter = Mockery::mock(HybridRouter::class);
-        $mockRouter->shouldReceive('route')
-            ->andReturn(new RoutingResult(
-                route: $route,
-                confidence: 0.95,
-                intent: 'business_analytics',
-                signals: [],
-                entities: [],
-                routerLatencyMs: 10.0,
-                isFallback: false,
-                securityStatus: 'allowed'
-            ));
-
-        $this->app->instance(HybridRouter::class, $mockRouter);
     }
 
     private function createDoc(array $attributes = []): KnowledgeDocument

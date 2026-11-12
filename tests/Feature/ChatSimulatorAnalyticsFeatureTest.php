@@ -96,6 +96,7 @@ class ChatSimulatorAnalyticsFeatureTest extends TestCase
         \App\Models\StructuredRecord::create([
             'workspace_id' => $this->workspace->id,
             'document_id' => (string) $doc->id,
+            'import_job_id' => $job->id,
             'sheet_name' => 'Sales',
             'row_index' => 1,
             'payload' => ['Product' => 'Laptop', 'Revenue' => 100000],

@@ -73,12 +73,6 @@ class ObservabilityTelemetryTest extends TestCase
             'answer'       => 'Here is the return policy details.',
             'is_active'    => true,
         ]);
-
-        $routerMock = \Mockery::mock(\App\AI\Routing\HybridRouter::class);
-        $routerMock->shouldReceive('route')
-            ->byDefault()
-            ->andReturn(new \App\AI\Routing\RoutingResult(\App\AI\Routing\RouteType::KNOWLEDGE, 0.95, 'faq_inquiry'));
-        $this->app->instance(\App\AI\Routing\HybridRouter::class, $routerMock);
     }
 
     public function test_ai_telemetry_recorded_event_is_dispatched_on_customer_reply(): void

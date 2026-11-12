@@ -5,9 +5,6 @@ declare(strict_types=1);
 namespace Tests\Feature\Integration;
 
 use App\AI\Agents\KnowledgeSupportAgent;
-use App\AI\Routing\HybridRouter;
-use App\AI\Routing\RouteType;
-use App\AI\Routing\RoutingResult;
 use App\Models\Channel;
 use App\Models\ChannelAccount;
 use App\Models\Conversation;
@@ -62,28 +59,8 @@ class RouterToKnowledgeIntegrationTest extends TestCase
         $this->supportService = app(CustomerSupportService::class);
     }
 
-    private function mockRouterRoute(RouteType $route, string $intent = 'knowledge_faq', float $confidence = 0.95): void
-    {
-        $mockRouter = \Mockery::mock(HybridRouter::class);
-        $mockRouter->shouldReceive('route')
-            ->andReturn(new RoutingResult(
-                route: $route,
-                confidence: $confidence,
-                intent: $intent,
-                signals: [],
-                entities: [],
-                routerLatencyMs: 20.0,
-                isFallback: false,
-                securityStatus: 'allowed'
-            ));
-
-        $this->app->instance(HybridRouter::class, $mockRouter);
-    }
-
     public function test_valid_faq_query_routes_to_knowledge_and_passes_answerability_gate(): void
     {
-        $this->mockRouterRoute(RouteType::KNOWLEDGE, 'return_policy_inquiry');
-
         $faq = FAQ::create([
             'workspace_id' => $this->workspace->id,
             'question'     => 'আপনাদের রিটার্ন পলিসি কি?',
@@ -119,7 +96,6 @@ class RouterToKnowledgeIntegrationTest extends TestCase
 
     public function test_out_of_domain_query_routes_to_ood_with_deterministic_rejection(): void
     {
-        $this->mockRouterRoute(RouteType::OOD, 'out_of_domain');
         $this->supportService = $this->app->make(CustomerSupportService::class);
 
         $reply = $this->supportService->generateReply(
@@ -133,8 +109,6 @@ class RouterToKnowledgeIntegrationTest extends TestCase
 
     public function test_zero_match_knowledge_query_triggers_unanswerable_fallback_without_hallucination(): void
     {
-        $this->mockRouterRoute(RouteType::KNOWLEDGE, 'unknown_policy');
-
         $mockSearch = \Mockery::mock(FAQSearch::class);
         $mockSearch->shouldReceive('search')
             ->once()

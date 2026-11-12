@@ -5,8 +5,6 @@ declare(strict_types=1);
 namespace Tests\Feature\E2E;
 
 use App\AI\Agents\KnowledgeSupportAgent;
-use App\AI\Routing\RouteType;
-use App\AI\Routing\RoutingResult;
 use App\Models\FAQ;
 use Tests\Feature\E2E\Support\BaseE2ETestCase;
 use Tests\Feature\E2E\Support\E2EObservabilityTracer;
@@ -55,10 +53,6 @@ class E2E10FullOrchestrationTraceTest extends BaseE2ETestCase
         // ── Turn 1: User introduces order and product ─────────────────────────
         $t1Query = 'আমি XL সাইজের একটা Black Cotton Panjabi অর্ডার করেছি।';
 
-        $this->routerMock->shouldReceive('route')
-            ->once()
-            ->andReturn(new RoutingResult(RouteType::KNOWLEDGE, 0.95, 'order_confirmation'));
-
         $this->faqSearchMock->shouldReceive('search')
             ->once()
             ->andReturn($this->createHitCollection($this->orderFaq, 0.92, 'lexicon'));
@@ -80,10 +74,6 @@ class E2E10FullOrchestrationTraceTest extends BaseE2ETestCase
 
         // ── Turn 2: Pronoun inquiry ("ওটার ডেলিভারি কবে?") ───────────────────
         $t2Query = 'ওটার ডেলিভারি কবে?';
-
-        $this->routerMock->shouldReceive('route')
-            ->once()
-            ->andReturn(new RoutingResult(RouteType::KNOWLEDGE, 0.94, 'delivery_timeline'));
 
         $this->faqSearchMock->shouldReceive('search')
             ->once()
@@ -109,10 +99,6 @@ class E2E10FullOrchestrationTraceTest extends BaseE2ETestCase
 
         // ── Turn 3: Implicit parcel tracking ("amar parcel ta kothay?") ───────
         $t3Query = 'amar parcel ta kothay?';
-
-        $this->routerMock->shouldReceive('route')
-            ->once()
-            ->andReturn(new RoutingResult(RouteType::KNOWLEDGE, 0.95, 'order_tracking'));
 
         $this->faqSearchMock->shouldReceive('search')
             ->once()
@@ -141,10 +127,6 @@ class E2E10FullOrchestrationTraceTest extends BaseE2ETestCase
 
         $t4Query = 'otar parcel ta kothay?';
 
-        $this->routerMock->shouldReceive('route')
-            ->once()
-            ->andReturn(new RoutingResult(RouteType::UNCERTAIN, 0.70, 'order_tracking'));
-
         // M4-A Short-Circuit: ZERO FAQ calls
         $this->faqSearchMock->shouldNotReceive('search');
 
@@ -165,10 +147,6 @@ class E2E10FullOrchestrationTraceTest extends BaseE2ETestCase
 
         // ── Turn 5: Selection ("#1042") -> Intent restored & resolved ─────────
         $t5Query = '#1042';
-
-        $this->routerMock->shouldReceive('route')
-            ->once()
-            ->andReturn(new RoutingResult(RouteType::KNOWLEDGE, 0.96, 'order_tracking'));
 
         $this->faqSearchMock->shouldReceive('search')
             ->once()
@@ -194,10 +172,6 @@ class E2E10FullOrchestrationTraceTest extends BaseE2ETestCase
 
         // ── Turn 6: Follow-up pricing ("আর ওটার দাম কত?") ─────────────────────
         $t6Query = 'আর ওটার দাম কত?';
-
-        $this->routerMock->shouldReceive('route')
-            ->once()
-            ->andReturn(new RoutingResult(RouteType::KNOWLEDGE, 0.94, 'product_pricing'));
 
         $this->faqSearchMock->shouldReceive('search')
             ->once()

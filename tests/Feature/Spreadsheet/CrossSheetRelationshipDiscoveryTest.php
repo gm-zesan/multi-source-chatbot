@@ -14,8 +14,8 @@ use App\Models\SpreadsheetImportJob;
 use App\Models\StructuredRecord;
 use App\Models\User;
 use App\Models\Workspace;
+use App\AI\Decision\UnifiedOrchestrator;
 use App\AI\Orchestration\CustomerSupportService;
-use App\AI\Orchestration\OwnerBusinessAssistant;
 use App\Services\Spreadsheet\DTOs\SourceColumnDescriptor;
 use App\Services\Spreadsheet\Relationships\CandidateKeyProfiler;
 use App\Services\Spreadsheet\Relationships\CardinalityInferenceEngine;
@@ -71,6 +71,7 @@ class CrossSheetRelationshipDiscoveryTest extends TestCase
             'content_hash'      => hash('sha256', 'mock_enterprise_workbook'),
             'mime_type'         => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
             'file_size'         => 1024,
+            'lifecycle_status'  => \App\Enums\DocumentLifecycleStatus::ACTIVE,
             'purpose'           => \App\Enums\IngestionPurpose::DATA_ANALYTICS,
         ]);
 
@@ -566,14 +567,21 @@ class CrossSheetRelationshipDiscoveryTest extends TestCase
             'metadata'           => ['is_simulator' => true, 'is_customer' => false, 'role' => 'owner'],
         ]);
 
-        $ownerAssistant = app(OwnerBusinessAssistant::class);
+        $orchestrator = app(UnifiedOrchestrator::class);
         $customerService = app(CustomerSupportService::class);
 
         // Query asking for internal business metrics (sales, profit margin)
         $query = 'আমার মোট বিক্রয় এবং পণ্যের লাভ বা মার্জিন কত?';
 
         // 2. Owner Pipeline Execution -> Must NOT receive Customer Denial Message
-        $ownerResult = $ownerAssistant->handleOwnerQuery($query, $this->workspaceA->id, $conversation, $this->ownerA);
+        $ownerResult = $orchestrator->process(
+            query: $query,
+            workspaceId: $this->workspaceA->id,
+            user: $this->ownerA,
+            conversation: $conversation,
+            channelSlug: 'simulator',
+            isCustomer: false
+        );
         $this->assertTrue($ownerResult['is_owner_pipeline']);
         $this->assertEquals('analytics', $ownerResult['route']);
         $this->assertStringNotContainsString(CustomerSupportService::CUSTOMER_ANALYTICS_DENIAL_MESSAGE, $ownerResult['reply']);

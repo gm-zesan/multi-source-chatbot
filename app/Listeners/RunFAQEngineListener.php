@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Listeners;
 
+use App\AI\Decision\UnifiedOrchestrator;
 use App\Events\IncomingMessageReceived;
 use App\AI\Orchestration\CustomerSupportService;
 use App\Support\ChannelManager;
@@ -45,6 +46,7 @@ class RunFAQEngineListener implements ShouldQueue
      */
     public function __construct(
         private readonly CustomerSupportService $customerSupportService,
+        private readonly UnifiedOrchestrator $orchestrator,
     ) {
         $this->connection = 'database';
         $this->queue = 'faq';
@@ -71,11 +73,19 @@ class RunFAQEngineListener implements ShouldQueue
         ]);
 
         try {
-            $replyText = $this->customerSupportService->generateReply(
-                conversation: $event->conversation,
+            $event->account->loadMissing('channel');
+            $channelSlug = $event->account->channel?->slug ?? 'web';
+
+            $result = $this->orchestrator->process(
                 query: $event->message->body,
-                workspaceId: $event->account->workspace_id,
+                workspaceId: (int) $event->account->workspace_id,
+                user: null, // Untrusted customer channel
+                conversation: $event->conversation,
+                channelSlug: $channelSlug,
+                isCustomer: true,
             );
+
+            $replyText = $result['reply'] ?? '';
 
             if (trim($replyText) !== '') {
                 $deliveryResponse = [];

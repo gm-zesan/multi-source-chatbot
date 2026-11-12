@@ -4,9 +4,6 @@ declare(strict_types=1);
 
 namespace Tests\Feature\E2E;
 
-use App\AI\Routing\HybridRouter;
-use App\AI\Routing\RouteType;
-use App\AI\Routing\RoutingResult;
 use App\Models\Channel;
 use App\Models\ChannelAccount;
 use App\Models\Conversation;
@@ -83,20 +80,6 @@ class E2E05DomainSwitchPipelineTest extends TestCase
         ]);
 
         // Turn 2 switches domain to Knowledge FAQ
-        $mockRouter = \Mockery::mock(HybridRouter::class);
-        $mockRouter->shouldReceive('route')
-            ->once()
-            ->andReturn(new RoutingResult(
-                route: RouteType::KNOWLEDGE,
-                confidence: 0.97,
-                intent: 'return_policy_query',
-                signals: [],
-                entities: [],
-                routerLatencyMs: 16.0,
-                isFallback: false,
-                securityStatus: 'allowed'
-            ));
-
         $mockSearch = \Mockery::mock(FAQSearch::class);
         $mockSearch->shouldReceive('search')
             ->once()
@@ -110,7 +93,6 @@ class E2E05DomainSwitchPipelineTest extends TestCase
                 ),
             ]));
 
-        $this->app->instance(HybridRouter::class, $mockRouter);
         $this->app->instance(FAQSearch::class, $mockSearch);
 
         $service = $this->app->make(CustomerSupportService::class);

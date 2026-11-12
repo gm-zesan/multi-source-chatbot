@@ -27,10 +27,6 @@ class E2E08LatestOrderPronounContextTest extends BaseE2ETestCase
     {
         $query = 'amar parcel ta kothay?';
 
-        $this->routerMock->shouldReceive('route')
-            ->once()
-            ->andReturn(new RoutingResult(RouteType::KNOWLEDGE, 0.94, 'order_tracking'));
-
         // Neo4j returns the single latest active order #1042
         $this->memoryClientMock->shouldReceive('search')
             ->once()
@@ -93,10 +89,6 @@ class E2E08LatestOrderPronounContextTest extends BaseE2ETestCase
 
         $query = 'ওটা কবে পাবো?';
 
-        $this->routerMock->shouldReceive('route')
-            ->once()
-            ->andReturn(new RoutingResult(RouteType::KNOWLEDGE, 0.95, 'order_tracking'));
-
         $this->faqSearchMock->shouldReceive('search')
             ->once()
             ->withArgs(function ($q, $perPage, $wsId, $conv, $signal) {
@@ -119,11 +111,6 @@ class E2E08LatestOrderPronounContextTest extends BaseE2ETestCase
         $this->assertSame(0, $this->conversation->messages()->count());
 
         $query = 'ওটার ডেলিভারি কবে?';
-
-        // M2 will see pronoun without local turns, but KGM has the single ordered product
-        $this->routerMock->shouldReceive('route')
-            ->once()
-            ->andReturn(new RoutingResult(RouteType::KNOWLEDGE, 0.92, 'delivery_inquiry'));
 
         $this->memoryClientMock->shouldReceive('search')
             ->atLeast()->once()

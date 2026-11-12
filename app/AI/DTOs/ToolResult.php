@@ -26,6 +26,11 @@ class ToolResult implements Stringable, JsonSerializable
         public readonly array $metadata = [],
     ) {}
 
+    public function isSuccess(): bool
+    {
+        return $this->success;
+    }
+
     /**
      * Factory for successful execution results.
      *

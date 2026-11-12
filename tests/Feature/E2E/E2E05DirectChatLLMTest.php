@@ -36,11 +36,6 @@ class E2E05DirectChatLLMTest extends BaseE2ETestCase
         ]);
 
         foreach ($queries as $query) {
-            $this->routerMock->shouldReceive('route')
-                ->once()
-                ->with($query, $this->conversation, $this->workspace->id)
-                ->andReturn(new RoutingResult(RouteType::CHAT, 0.95, 'chit_chat'));
-
             $this->faqSearchMock->shouldNotReceive('search');
             $this->memoryClientMock->shouldNotReceive('search');
 
@@ -81,10 +76,6 @@ class E2E05DirectChatLLMTest extends BaseE2ETestCase
         ConversationalSupportAgent::fake(['আমি শুধুমাত্র এই শপের পণ্য ও সেবা সম্পর্কিত তথ্য দিতে পারি।']);
 
         foreach ($oodQueries as $query) {
-            $this->routerMock->shouldReceive('route')
-                ->once()
-                ->andReturn(new RoutingResult(RouteType::OOD, 0.99, 'general_world_knowledge'));
-
             $this->faqSearchMock->shouldNotReceive('search');
             $this->memoryClientMock->shouldNotReceive('search');
 

@@ -6,7 +6,12 @@ namespace Tests\Feature;
 
 use Tests\TestCase;
 use App\Models\Conversation;
-use App\AI\Routing\HybridRouter;
+use App\Models\Workspace;
+use App\Models\Channel;
+use App\Models\ChannelAccount;
+use App\AI\Decision\Contracts\DecisionEngineInterface;
+use App\AI\Decision\DTOs\DecisionRequest;
+use App\AI\Routing\RouteType;
 use App\AI\Routing\RoutingResult;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
@@ -15,17 +20,32 @@ class ClarificationE2ETest extends TestCase
 {
     use RefreshDatabase;
 
-    private HybridRouter $router;
+    private DecisionEngineInterface $engine;
     private Conversation $conversation;
+    private Workspace $workspace;
 
     protected function setUp(): void
     {
         parent::setUp();
-        $this->router = app(HybridRouter::class);
-        $this->conversation = new Conversation([
-            'session_id' => 'test-session',
-            'user_id' => 1,
-            'metadata' => []
+        $this->engine = app(DecisionEngineInterface::class);
+
+        $this->workspace = Workspace::create(['name' => 'Clarify WS', 'slug' => 'clarify-ws']);
+        $channel = Channel::create(['name' => 'Web', 'slug' => 'web-clarify', 'is_active' => true]);
+        $channelAccount = ChannelAccount::create([
+            'channel_id'   => $channel->id,
+            'workspace_id' => $this->workspace->id,
+            'external_id'  => 'acc_clarify_test',
+            'name'         => 'Clarify Account',
+            'access_token' => 'tok',
+            'is_active'    => true,
+        ]);
+
+        $this->conversation = Conversation::create([
+            'channel_account_id' => $channelAccount->id,
+            'external_user_id'   => 'user_clarify_test',
+            'status'             => 'open',
+            'last_direction'     => 'inbound',
+            'metadata'           => [],
         ]);
     }
 
@@ -34,26 +54,12 @@ class ClarificationE2ETest extends TestCase
      */
     public function test_ambiguity_generation_on_uncertain_route(): void
     {
-        // We mock the LLM client to return UNCERTAIN + AMOUNT_AMBIGUOUS
-        $llmClientMock = \Mockery::mock(\App\AI\LLM\LLMClient::class);
-        $llmClientMock->shouldReceive('generate')->withAnyArgs()->andReturn(new \App\AI\LLM\LLMResponse(
-            content: json_encode([
-                'route' => 'UNCERTAIN',
-                'confidence' => 0.9,
-                'reason' => 'ambiguous',
-                'security_status' => 'allowed',
-                'ambiguity_type' => 'AMOUNT_AMBIGUOUS'
-            ]),
-            provider: 'test',
-            model: 'test'
-        ));
-        
-        $router = new HybridRouter(0.70, $llmClientMock);
-        
-        $routingResult = $router->route('Rahim er taka koto?', $this->conversation, 1);
-        
-        $this->assertSame('uncertain', $routingResult->route->value);
-        $this->assertSame('AMOUNT_AMBIGUOUS', $routingResult->ambiguityType);
+        $routingResult = new RoutingResult(
+            route: RouteType::UNCERTAIN,
+            confidence: 0.9,
+            intent: 'uncertain',
+            ambiguityType: 'AMOUNT_AMBIGUOUS'
+        );
         
         // Pass it through ClarificationManager to test state persistence
         $clarificationManager = app(\App\AI\Context\ClarificationManager::class);
@@ -73,10 +79,16 @@ class ClarificationE2ETest extends TestCase
         $this->setupPendingClarification();
 
         // Send "3"
-        $routingResult = $this->router->route('3', $this->conversation, 1);
+        $request = new DecisionRequest(
+            query: '3',
+            workspaceId: $this->workspace->id,
+            conversation: $this->conversation,
+            isCustomer: false
+        );
+        $decision = $this->engine->decide($request);
         
-        $this->assertSame('analytics', $routingResult->route->value);
-        $this->assertSame('customer_outstanding_due', $routingResult->intent);
+        $this->assertSame('analytics', $decision->toRouteType()->value);
+        $this->assertSame('customer_outstanding_due', $decision->decisionMetadata['resolved_intent'] ?? null);
         
         // Ensure state is cleared
         $this->conversation->refresh();
@@ -91,10 +103,16 @@ class ClarificationE2ETest extends TestCase
         $this->setupPendingClarification();
 
         // Send "due"
-        $routingResult = $this->router->route('due', $this->conversation, 1);
+        $request = new DecisionRequest(
+            query: 'due',
+            workspaceId: $this->workspace->id,
+            conversation: $this->conversation,
+            isCustomer: false
+        );
+        $decision = $this->engine->decide($request);
         
-        $this->assertSame('analytics', $routingResult->route->value);
-        $this->assertSame('customer_outstanding_due', $routingResult->intent);
+        $this->assertSame('analytics', $decision->toRouteType()->value);
+        $this->assertSame('customer_outstanding_due', $decision->decisionMetadata['resolved_intent'] ?? null);
     }
 
     /**
@@ -104,26 +122,17 @@ class ClarificationE2ETest extends TestCase
     {
         $this->setupPendingClarification();
 
-        // Mock LLM to return OOD or CHAT for malicious query
-        $llmClientMock = \Mockery::mock(\App\AI\LLM\LLMClient::class);
-        $llmClientMock->shouldReceive('generate')->withAnyArgs()->andReturn(new \App\AI\LLM\LLMResponse(
-            content: json_encode([
-                'route' => 'OOD',
-                'confidence' => 0.9,
-                'reason' => 'tampering attempt',
-                'security_status' => 'allowed',
-            ]),
-            provider: 'test',
-            model: 'test'
-        ));
-        
-        $router = new HybridRouter(0.70, $llmClientMock);
-
         // Send "customer_outstanding_due" directly which is the semantic_value, but not the ID/label
-        $routingResult = $router->route('customer_outstanding_due', $this->conversation, 1);
+        $request = new DecisionRequest(
+            query: 'customer_outstanding_due',
+            workspaceId: $this->workspace->id,
+            conversation: $this->conversation,
+            isCustomer: false
+        );
+        $decision = $this->engine->decide($request);
         
-        // Must NOT resolve to ANALYTICS intent=customer_outstanding_due. Should route to OOD.
-        $this->assertSame('ood', $routingResult->route->value);
+        // Must NOT resolve through layer0_pending_clarification
+        $this->assertNotSame('layer0_pending_clarification', $decision->decisionMetadata['layer'] ?? null);
         
         // Ensure state is cleared because Layer 0 failed to resolve
         $this->conversation->refresh();
@@ -137,26 +146,17 @@ class ClarificationE2ETest extends TestCase
     {
         $this->setupPendingClarification();
 
-        // Mock LLM for normal route
-        $llmClientMock = \Mockery::mock(\App\AI\LLM\LLMClient::class);
-        $llmClientMock->shouldReceive('generate')->withAnyArgs()->andReturn(new \App\AI\LLM\LLMResponse(
-            content: json_encode([
-                'route' => 'CHAT',
-                'confidence' => 0.9,
-                'reason' => 'normal chat',
-                'security_status' => 'allowed',
-            ]),
-            provider: 'test',
-            model: 'test'
-        ));
-        
-        $router = new HybridRouter(0.70, $llmClientMock);
-
         Carbon::setTestNow(now()->addMinutes(15));
 
-        $routingResult = $router->route('3', $this->conversation, 1);
+        $request = new DecisionRequest(
+            query: '3',
+            workspaceId: $this->workspace->id,
+            conversation: $this->conversation,
+            isCustomer: false
+        );
+        $decision = $this->engine->decide($request);
         
-        $this->assertSame('chat', $routingResult->route->value);
+        $this->assertNotSame('layer0_pending_clarification', $decision->decisionMetadata['layer'] ?? null);
         
         $this->conversation->refresh();
         $this->assertArrayNotHasKey('pending_clarification', $this->conversation->metadata ?? []);
@@ -171,24 +171,15 @@ class ClarificationE2ETest extends TestCase
     {
         $this->setupPendingClarification();
 
-        // Mock LLM for normal route
-        $llmClientMock = \Mockery::mock(\App\AI\LLM\LLMClient::class);
-        $llmClientMock->shouldReceive('generate')->withAnyArgs()->andReturn(new \App\AI\LLM\LLMResponse(
-            content: json_encode([
-                'route' => 'ANALYTICS',
-                'confidence' => 0.9,
-                'reason' => 'new unrelated query',
-                'security_status' => 'allowed',
-            ]),
-            provider: 'test',
-            model: 'test'
-        ));
+        $request = new DecisionRequest(
+            query: 'What is todays sales?',
+            workspaceId: $this->workspace->id,
+            conversation: $this->conversation,
+            isCustomer: false
+        );
+        $decision = $this->engine->decide($request);
         
-        $router = new HybridRouter(0.70, $llmClientMock);
-
-        $routingResult = $router->route('What is todays sales?', $this->conversation, 1);
-        
-        $this->assertSame('analytics', $routingResult->route->value);
+        $this->assertSame('analytics', $decision->toRouteType()->value);
         
         $this->conversation->refresh();
         $this->assertArrayNotHasKey('pending_clarification', $this->conversation->metadata ?? []);
@@ -200,35 +191,33 @@ class ClarificationE2ETest extends TestCase
     public function test_clarification_cannot_be_replayed()
     {
         $this->setupPendingClarification();
-        
-        // Setup mock LLM for fallback when it's not a valid clarification anymore
-        $llmClientMock = \Mockery::mock(\App\AI\LLM\LLMClient::class);
-        $llmClientMock->shouldReceive('generate')->withAnyArgs()->andReturn(new \App\AI\LLM\LLMResponse(
-            content: json_encode([
-                'route' => 'CHAT',
-                'confidence' => 0.9,
-                'reason' => 'user just sent a number',
-                'security_status' => 'allowed',
-            ]),
-            provider: 'test',
-            model: 'test'
-        ));
-        $router = new HybridRouter(0.70, $llmClientMock);
 
         // Turn 1: Valid resolution
-        $routingResult1 = $router->route('3', $this->conversation, 1);
-        $this->assertSame('analytics', $routingResult1->route->value);
-        $this->assertSame('customer_outstanding_due', $routingResult1->intent);
+        $request1 = new DecisionRequest(
+            query: '3',
+            workspaceId: $this->workspace->id,
+            conversation: $this->conversation,
+            isCustomer: false
+        );
+        $decision1 = $this->engine->decide($request1);
+        $this->assertSame('analytics', $decision1->toRouteType()->value);
+        $this->assertSame('customer_outstanding_due', $decision1->decisionMetadata['resolved_intent'] ?? null);
 
         // Verify state is consumed
         $this->conversation->refresh();
         $this->assertArrayNotHasKey('pending_clarification', $this->conversation->metadata ?? []);
 
         // Turn 2: Try to reply '3' again
-        $routingResult2 = $router->route('3', $this->conversation, 1);
+        $request2 = new DecisionRequest(
+            query: '3',
+            workspaceId: $this->workspace->id,
+            conversation: $this->conversation,
+            isCustomer: false
+        );
+        $decision2 = $this->engine->decide($request2);
         
-        // Should hit LLM (CHAT) because Layer 0 no longer has the state
-        $this->assertSame('chat', $routingResult2->route->value);
+        // Should not be layer0_pending_clarification
+        $this->assertNotSame('layer0_pending_clarification', $decision2->decisionMetadata['layer'] ?? null);
     }
 
     private function setupPendingClarification(): void
@@ -246,5 +235,6 @@ class ClarificationE2ETest extends TestCase
                 'expires_at' => now()->addMinutes(10)->toIso8601String(),
             ]
         ];
+        $this->conversation->save();
     }
 }

@@ -30,6 +30,11 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(OwnerBusinessAgent::class, function ($app) {
             return new OwnerBusinessAgent();
         });
+
+        // Register Unified AI Decision Engine & Orchestration
+        $this->app->singleton(\App\AI\Decision\Contracts\DecisionEngineInterface::class, \App\AI\Decision\UnifiedDecisionEngine::class);
+        $this->app->singleton(\App\AI\Decision\ToolRegistry::class);
+        $this->app->singleton(\App\AI\Decision\UnifiedOrchestrator::class);
     }
 
     /**
@@ -88,7 +93,6 @@ class AppServiceProvider extends ServiceProvider
             'App\AI\Services\ActionSafetyService' => \App\AI\Guards\ActionSafetyService::class,
             'App\AI\Services\FollowUpPolicyManager' => \App\AI\Guards\FollowUpPolicyManager::class,
             'App\AI\Services\CustomerSupportService' => \App\AI\Orchestration\CustomerSupportService::class,
-            'App\AI\Services\OwnerBusinessAssistant' => \App\AI\Orchestration\OwnerBusinessAssistant::class,
             'App\AI\Services\SellerEmailService' => \App\AI\Orchestration\SellerEmailService::class,
         ];
 

@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Tests\Feature\E2E\Support;
 
-use App\AI\Routing\HybridRouter;
 use App\AI\Routing\RouteType;
 use App\AI\Routing\RoutingResult;
 use App\Models\Channel;
@@ -38,7 +37,6 @@ abstract class BaseE2ETestCase extends TestCase
     protected FAQ $codFaq;
 
     protected Mockery\MockInterface $faqSearchMock;
-    protected Mockery\MockInterface $routerMock;
     protected Mockery\MockInterface $memoryClientMock;
 
     protected function setUp(): void
@@ -95,25 +93,18 @@ abstract class BaseE2ETestCase extends TestCase
         ]);
 
         $this->faqSearchMock = Mockery::mock(FAQSearch::class);
-        $this->routerMock = Mockery::mock(HybridRouter::class);
         $this->memoryClientMock = Mockery::mock(ConversationMemoryClient::class);
-
-        $this->routerMock->shouldReceive('route')
-            ->byDefault()
-            ->andReturn(new RoutingResult(RouteType::KNOWLEDGE, 0.92, 'faq_inquiry'));
 
         $this->faqSearchMock->shouldReceive('getLastTelemetry')
             ->byDefault()
             ->andReturn(['tier_executed' => 1]);
 
         $this->app->instance(FAQSearch::class, $this->faqSearchMock);
-        $this->app->instance(HybridRouter::class, $this->routerMock);
         $this->app->instance(ConversationMemoryClient::class, $this->memoryClientMock);
 
         $this->service = new CustomerSupportService(
             faqSearch: $this->faqSearchMock,
             conversationService: app(ConversationService::class),
-            router: $this->routerMock,
             memoryService: app(ConversationMemoryService::class),
         );
     }

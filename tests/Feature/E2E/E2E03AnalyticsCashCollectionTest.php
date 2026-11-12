@@ -4,9 +4,6 @@ declare(strict_types=1);
 
 namespace Tests\Feature\E2E;
 
-use App\AI\Routing\HybridRouter;
-use App\AI\Routing\RouteType;
-use App\AI\Routing\RoutingResult;
 use App\Models\Channel;
 use App\Models\ChannelAccount;
 use App\Models\Conversation;
@@ -19,7 +16,7 @@ use Tests\TestCase;
 /**
  * E2E-03: Analytics Cash Collection Query
  *
- * Pathway: User Query -> HybridRouter (ANALYTICS) -> Collections aggregation -> Workspace isolation verified (৳32,000 for WS1)
+ * Pathway: User Query -> UnifiedOrchestrator -> UnifiedDecisionEngine -> SalesAnalyticsTool -> AnalyticsClient -> Collections aggregation -> Workspace isolation verified (৳32,000 for WS1)
  */
 class E2E03AnalyticsCashCollectionTest extends TestCase
 {
@@ -69,20 +66,6 @@ class E2E03AnalyticsCashCollectionTest extends TestCase
     {
         $query = 'আজকে কত টাকা cash collection হয়েছে?';
 
-        $mockRouter = \Mockery::mock(HybridRouter::class);
-        $mockRouter->shouldReceive('route')
-            ->once()
-            ->andReturn(new RoutingResult(
-                route: RouteType::ANALYTICS,
-                confidence: 0.95,
-                intent: 'cash_collection_total',
-                signals: [],
-                entities: [],
-                routerLatencyMs: 19.0,
-                isFallback: false,
-                securityStatus: 'allowed'
-            ));
-
         $baseUrl = rtrim(config('analytics.base_url', 'http://127.0.0.1:8001'), '/');
         Http::fake([
             "{$baseUrl}/analytics/query" => function ($request) {
@@ -101,8 +84,6 @@ class E2E03AnalyticsCashCollectionTest extends TestCase
                 ], 200);
             },
         ]);
-
-        $this->app->instance(HybridRouter::class, $mockRouter);
 
         $service = $this->app->make(CustomerSupportService::class);
         $reply = $service->generateReply(

@@ -4,9 +4,6 @@ declare(strict_types=1);
 
 namespace Tests\Feature\E2E;
 
-use App\AI\Routing\HybridRouter;
-use App\AI\Routing\RouteType;
-use App\AI\Routing\RoutingResult;
 use App\Models\Channel;
 use App\Models\ChannelAccount;
 use App\Models\Conversation;
@@ -19,7 +16,7 @@ use Tests\TestCase;
 /**
  * E2E-06: Strict Multi-Tenant Isolation
  *
- * Pathway: Workspace 1 (cash ৳32k) vs Workspace 2 (cash ৳20k) vs Combined DB (৳52k). WS1 never sees ৳52k or WS2's salesperson Nasir.
+ * Pathway: Workspace 1 (cash ৳32k) vs Workspace 2 (cash ৳20k) vs Combined DB (৳52k). WS1 never sees ৳52k or WS2's records.
  */
 class E2E06TenantIsolationE2ETest extends TestCase
 {
@@ -92,19 +89,6 @@ class E2E06TenantIsolationE2ETest extends TestCase
 
     public function test_e2e_06_tenant_isolation_prevents_cross_workspace_aggregation_and_records(): void
     {
-        $mockRouter = \Mockery::mock(HybridRouter::class);
-        $mockRouter->shouldReceive('route')
-            ->andReturn(new RoutingResult(
-                route: RouteType::ANALYTICS,
-                confidence: 0.96,
-                intent: 'tenant_analytics',
-                signals: [],
-                entities: [],
-                routerLatencyMs: 14.0,
-                isFallback: false,
-                securityStatus: 'allowed'
-            ));
-
         $baseUrl = rtrim(config('analytics.base_url', 'http://127.0.0.1:8001'), '/');
         Http::fake([
             "{$baseUrl}/analytics/query" => function ($request) {
@@ -141,7 +125,6 @@ class E2E06TenantIsolationE2ETest extends TestCase
             },
         ]);
 
-        $this->app->instance(HybridRouter::class, $mockRouter);
         $service = $this->app->make(CustomerSupportService::class);
 
         // Turn 1: Workspace 1 Query

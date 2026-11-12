@@ -4,19 +4,22 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Services;
 
-use App\AI\Routing\HybridRouter;
-use App\AI\Routing\RouteType;
-use App\AI\Routing\RoutingResult;
 use App\Models\Conversation;
+use App\Models\User;
+use App\Models\Workspace;
 use App\AI\Orchestration\CustomerSupportService;
 use App\Services\Analytics\AnalyticsClient;
 use App\Services\Chat\ConversationService;
 use App\Services\FAQ\FAQSearch;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Mockery;
+use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
 class CustomerSupportServiceAnalyticsTest extends TestCase
 {
+    use RefreshDatabase;
+
     protected function tearDown(): void
     {
         Mockery::close();
@@ -25,24 +28,19 @@ class CustomerSupportServiceAnalyticsTest extends TestCase
 
     public function test_handle_query_dispatches_analytics_with_trusted_workspace(): void
     {
-        $mockFaqSearch = Mockery::mock(FAQSearch::class);
-        $mockFaqSearch->shouldReceive('getLastTelemetry')->andReturn([]);
-        $mockConvService = Mockery::mock(ConversationService::class);
+        $ws = Workspace::create(['name' => 'WS 5', 'slug' => 'ws-5']);
+        Role::firstOrCreate(['name' => 'owner', 'guard_name' => 'web']);
+        $user = User::factory()->create(['workspace_id' => $ws->id]);
+        $user->assignRole('owner');
+        $this->actingAs($user);
 
-        $mockRouter = Mockery::mock(HybridRouter::class);
-        $mockRouter->shouldReceive('route')
-            ->once()
-            ->with('Aj koto cashin hoise?', Mockery::any(), 5)
-            ->andReturn(new RoutingResult(
-                route: RouteType::ANALYTICS,
-                confidence: 0.95,
-                intent: 'cash_collection',
-            ));
+        $mockFaqSearch = Mockery::mock(FAQSearch::class);
+        $mockConvService = Mockery::mock(ConversationService::class);
 
         $mockAnalyticsClient = Mockery::mock(AnalyticsClient::class);
         $mockAnalyticsClient->shouldReceive('query')
             ->once()
-            ->with('Aj koto cashin hoise?', 5, Mockery::any())
+            ->with('Aj koto cashin hoise?', $ws->id, Mockery::any())
             ->andReturn([
                 'success'    => true,
                 'intent'     => 'cash_collection',
@@ -55,12 +53,12 @@ class CustomerSupportServiceAnalyticsTest extends TestCase
         $service = new CustomerSupportService(
             faqSearch: $mockFaqSearch,
             conversationService: $mockConvService,
-            router: $mockRouter,
             analyticsClient: $mockAnalyticsClient,
             businessAnalyticsTool: $businessAnalyticsTool,
         );
 
         $conversation = new Conversation([
+            'workspace_id' => $ws->id,
             'metadata' => [
                 'role' => 'owner',
                 'is_simulator' => true,
@@ -69,7 +67,7 @@ class CustomerSupportServiceAnalyticsTest extends TestCase
 
         $result = $service->handleQuery(
             query: 'Aj koto cashin hoise?',
-            workspaceId: 5,
+            workspaceId: $ws->id,
             conversation: $conversation,
         );
 

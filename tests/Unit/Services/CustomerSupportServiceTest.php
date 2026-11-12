@@ -4,9 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Services;
 
-use App\AI\Routing\HybridRouter;
-use App\AI\Routing\RouteType;
-use App\AI\Routing\RoutingResult;
+use App\AI\Decision\UnifiedOrchestrator;
 use App\Models\Conversation;
 use App\Models\Message;
 use App\Models\Workspace;
@@ -104,8 +102,9 @@ class CustomerSupportServiceTest extends TestCase
             'external_user_id' => 'orphan_user',
         ]);
 
-        $router = $this->createMock(HybridRouter::class);
-        $router->expects($this->never())->method('route');
+        $mockOrchestrator = $this->createMock(UnifiedOrchestrator::class);
+        $mockOrchestrator->expects($this->never())->method('process');
+        $this->app->instance(UnifiedOrchestrator::class, $mockOrchestrator);
 
         $faqSearch = $this->createMock(FAQSearch::class);
         $faqSearch->expects($this->never())->method('search');
@@ -115,7 +114,6 @@ class CustomerSupportServiceTest extends TestCase
         $service = new CustomerSupportService(
             faqSearch: $faqSearch,
             conversationService: $conversationService,
-            router: $router,
         );
 
         $reply = $service->generateReply($conversation, 'What is the return policy?');
@@ -139,8 +137,9 @@ class CustomerSupportServiceTest extends TestCase
             'external_user_id' => 'unassociated_user',
         ]);
 
-        $router = $this->createMock(HybridRouter::class);
-        $router->expects($this->never())->method('route');
+        $mockOrchestrator = $this->createMock(UnifiedOrchestrator::class);
+        $mockOrchestrator->expects($this->never())->method('process');
+        $this->app->instance(UnifiedOrchestrator::class, $mockOrchestrator);
 
         $faqSearch = $this->createMock(FAQSearch::class);
         $faqSearch->expects($this->never())->method('search');
@@ -150,7 +149,6 @@ class CustomerSupportServiceTest extends TestCase
         $service = new CustomerSupportService(
             faqSearch: $faqSearch,
             conversationService: $conversationService,
-            router: $router,
         );
 
         // 1. null
@@ -187,19 +185,15 @@ class CustomerSupportServiceTest extends TestCase
             'last_direction'     => 'inbound',
         ]);
 
-        $router = $this->createMock(HybridRouter::class);
-        $router->expects($this->once())
-            ->method('route')
+        $mockOrchestrator = $this->createMock(UnifiedOrchestrator::class);
+        $mockOrchestrator->expects($this->once())
+            ->method('process')
             ->with(
-                $this->anything(),
                 $this->anything(),
                 $this->identicalTo((int) $ws1->id)
             )
-            ->willReturn(new RoutingResult(
-                route: RouteType::CHAT,
-                confidence: 1.0,
-                intent: 'chat_greeting',
-            ));
+            ->willReturn(['reply' => 'Hello']);
+        $this->app->instance(UnifiedOrchestrator::class, $mockOrchestrator);
 
         $faqSearch = $this->createMock(FAQSearch::class);
         $conversationService = $this->createMock(ConversationService::class);
@@ -207,7 +201,6 @@ class CustomerSupportServiceTest extends TestCase
         $service = new CustomerSupportService(
             faqSearch: $faqSearch,
             conversationService: $conversationService,
-            router: $router,
         );
 
         $service->generateReply($conversation, 'Hello', workspaceId: (int) $ws1->id);
@@ -235,9 +228,9 @@ class CustomerSupportServiceTest extends TestCase
             'last_direction'     => 'inbound',
         ]);
 
-        $router = $this->createMock(HybridRouter::class);
-        // Router MUST NEVER be called when tenant mismatch occurs
-        $router->expects($this->never())->method('route');
+        $mockOrchestrator = $this->createMock(UnifiedOrchestrator::class);
+        $mockOrchestrator->expects($this->never())->method('process');
+        $this->app->instance(UnifiedOrchestrator::class, $mockOrchestrator);
 
         $faqSearch = $this->createMock(FAQSearch::class);
         $faqSearch->expects($this->never())->method('search');
@@ -247,7 +240,6 @@ class CustomerSupportServiceTest extends TestCase
         $service = new CustomerSupportService(
             faqSearch: $faqSearch,
             conversationService: $conversationService,
-            router: $router,
         );
 
         // Conversation belongs to ws1, but caller requests ws2: MUST reject
@@ -266,8 +258,9 @@ class CustomerSupportServiceTest extends TestCase
         // Unassociated conversation without channel account
         $headlessConversation = new Conversation();
 
-        $router = $this->createMock(HybridRouter::class);
-        $router->expects($this->never())->method('route');
+        $mockOrchestrator = $this->createMock(UnifiedOrchestrator::class);
+        $mockOrchestrator->expects($this->never())->method('process');
+        $this->app->instance(UnifiedOrchestrator::class, $mockOrchestrator);
 
         $faqSearch = $this->createMock(FAQSearch::class);
         $faqSearch->expects($this->never())->method('search');
@@ -277,7 +270,6 @@ class CustomerSupportServiceTest extends TestCase
         $service = new CustomerSupportService(
             faqSearch: $faqSearch,
             conversationService: $conversationService,
-            router: $router,
         );
 
         // Attempting to supply explicit workspace ID without channel account MUST fail closed
@@ -310,19 +302,15 @@ class CustomerSupportServiceTest extends TestCase
             'last_direction'     => 'inbound',
         ]);
 
-        $router = $this->createMock(HybridRouter::class);
-        $router->expects($this->once())
-            ->method('route')
+        $mockOrchestrator = $this->createMock(UnifiedOrchestrator::class);
+        $mockOrchestrator->expects($this->once())
+            ->method('process')
             ->with(
-                $this->anything(),
                 $this->anything(),
                 $this->identicalTo((int) $wsTarget->id)
             )
-            ->willReturn(new RoutingResult(
-                route: RouteType::CHAT,
-                confidence: 1.0,
-                intent: 'chat_greeting',
-            ));
+            ->willReturn(['reply' => 'Hello']);
+        $this->app->instance(UnifiedOrchestrator::class, $mockOrchestrator);
 
         $faqSearch = $this->createMock(FAQSearch::class);
         $conversationService = $this->createMock(ConversationService::class);
@@ -330,7 +318,6 @@ class CustomerSupportServiceTest extends TestCase
         $service = new CustomerSupportService(
             faqSearch: $faqSearch,
             conversationService: $conversationService,
-            router: $router,
         );
 
         // When workspaceId is null, resolves strictly from channelAccount->workspace_id
@@ -341,8 +328,9 @@ class CustomerSupportServiceTest extends TestCase
     {
         $conversation = new Conversation(['external_user_id' => 'no_ws_user']);
 
-        $router = $this->createMock(HybridRouter::class);
-        $router->expects($this->never())->method('route');
+        $mockOrchestrator = $this->createMock(UnifiedOrchestrator::class);
+        $mockOrchestrator->expects($this->never())->method('process');
+        $this->app->instance(UnifiedOrchestrator::class, $mockOrchestrator);
 
         $faqSearch = $this->createMock(FAQSearch::class);
         $faqSearch->expects($this->never())->method('search');
@@ -358,7 +346,6 @@ class CustomerSupportServiceTest extends TestCase
         $service = new CustomerSupportService(
             faqSearch: $faqSearch,
             conversationService: $conversationService,
-            router: $router,
             businessService: $businessService,
             sellerEmailService: $sellerEmailService,
         );
@@ -427,13 +414,13 @@ class CustomerSupportServiceTest extends TestCase
         $faqSearch = $this->createMock(FAQSearch::class);
         $faqSearch->expects($this->never())->method('search');
 
-        $router = $this->createMock(HybridRouter::class);
-        $router->expects($this->never())->method('route');
+        $mockOrchestrator = $this->createMock(UnifiedOrchestrator::class);
+        $mockOrchestrator->expects($this->never())->method('process');
+        $this->app->instance(UnifiedOrchestrator::class, $mockOrchestrator);
 
         $service = new CustomerSupportService(
             faqSearch: $faqSearch,
             conversationService: $this->createMock(ConversationService::class),
-            router: $router,
         );
 
         // Pass conversation belonging to ws1, but specify ws2 as workspaceId
@@ -486,14 +473,7 @@ class CustomerSupportServiceTest extends TestCase
         $faqSearch = $this->createMock(FAQSearch::class);
         $faqSearch->method('search')->willReturn(new Collection([$docHit]));
 
-        $router = $this->createMock(HybridRouter::class);
-        $router->method('route')->willReturn(new RoutingResult(
-            route: RouteType::KNOWLEDGE,
-            confidence: 0.99,
-            intent: 'sla_inquiry',
-        ));
 
-        $this->app->instance(HybridRouter::class, $router);
         $this->app->instance(FAQSearch::class, $faqSearch);
         $service = $this->app->make(CustomerSupportService::class);
 
@@ -548,14 +528,7 @@ class CustomerSupportServiceTest extends TestCase
         $faqSearch = $this->createMock(FAQSearch::class);
         $faqSearch->method('search')->willReturn(new Collection([$faqHit]));
 
-        $router = $this->createMock(HybridRouter::class);
-        $router->method('route')->willReturn(new RoutingResult(
-            route: RouteType::KNOWLEDGE,
-            confidence: 0.99,
-            intent: 'delivery_inquiry',
-        ));
 
-        $this->app->instance(HybridRouter::class, $router);
         $this->app->instance(FAQSearch::class, $faqSearch);
         $service = $this->app->make(CustomerSupportService::class);
 
@@ -610,14 +583,7 @@ class CustomerSupportServiceTest extends TestCase
         $faqSearch = $this->createMock(FAQSearch::class);
         $faqSearch->method('search')->willReturn(new Collection([$weakHit]));
 
-        $router = $this->createMock(HybridRouter::class);
-        $router->method('route')->willReturn(new RoutingResult(
-            route: RouteType::KNOWLEDGE,
-            confidence: 0.99,
-            intent: 'weak_inquiry',
-        ));
 
-        $this->app->instance(HybridRouter::class, $router);
         $this->app->instance(FAQSearch::class, $faqSearch);
         $service = $this->app->make(CustomerSupportService::class);
 

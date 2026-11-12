@@ -13,7 +13,7 @@ use Stringable;
 /**
  * Excel Spreadsheet Virtual Database Analytics Tool.
  *
- * Pipeline Flow: HybridRouter -> ExcelAnalyticsTool -> AnalyticsClient -> Python Excel Virtual DB Engine
+ * Pipeline Flow: UnifiedDecisionEngine -> ExcelAnalyticsTool -> AnalyticsClient -> Python Excel Virtual DB Engine
  */
 class ExcelAnalyticsTool implements Tool
 {

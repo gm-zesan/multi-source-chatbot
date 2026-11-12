@@ -26,10 +26,6 @@ class E2E04Tier3LLMExpansionTest extends BaseE2ETestCase
         $query = 'bhai order ashte eto deri hocche keno?';
         $expandedQuery = 'অর্ডার বিলম্ব ডেলিভারি সময় ট্র্যাকিং পার্সেল ডেলিভারি দেরি হওয়ার কারণ';
 
-        $this->routerMock->shouldReceive('route')
-            ->once()
-            ->andReturn(new RoutingResult(RouteType::KNOWLEDGE, 0.90, 'order_delay'));
-
         $this->faqSearchMock->shouldReceive('search')
             ->once()
             ->andReturn($this->createHitCollection($this->orderFaq, 0.88, 'tier3_expanded'));
@@ -81,10 +77,6 @@ class E2E04Tier3LLMExpansionTest extends BaseE2ETestCase
     public function test_tier3_does_not_execute_when_tier1_or_tier2_succeeds(): void
     {
         $query = 'ডেলিভারি চার্জ কত?';
-
-        $this->routerMock->shouldReceive('route')
-            ->once()
-            ->andReturn(new RoutingResult(RouteType::KNOWLEDGE, 0.98, 'delivery_charge'));
 
         $this->faqSearchMock->shouldReceive('search')
             ->once()

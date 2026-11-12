@@ -61,12 +61,6 @@ class ProviderAbstractionTest extends TestCase
             'answer' => 'Delivery inside Dhaka is 60 BDT and takes 24-48 hours.',
             'is_active' => true,
         ]);
-
-        $routerMock = \Mockery::mock(\App\AI\Routing\HybridRouter::class);
-        $routerMock->shouldReceive('route')
-            ->byDefault()
-            ->andReturn(new \App\AI\Routing\RoutingResult(\App\AI\Routing\RouteType::KNOWLEDGE, 0.95, 'shipping_rate'));
-        $this->app->instance(\App\AI\Routing\HybridRouter::class, $routerMock);
     }
 
     public function test_primary_provider_succeeds(): void

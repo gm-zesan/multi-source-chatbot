@@ -4,9 +4,6 @@ declare(strict_types=1);
 
 namespace Tests\Feature\E2E;
 
-use App\AI\Routing\HybridRouter;
-use App\AI\Routing\RouteType;
-use App\AI\Routing\RoutingResult;
 use App\Models\Channel;
 use App\Models\ChannelAccount;
 use App\Models\Conversation;
@@ -22,7 +19,7 @@ use Tests\TestCase;
 /**
  * E2E-01: Simple Knowledge Query
  *
- * Pathway: User Question -> HybridRouter (KNOWLEDGE) -> KnowledgeRetrievalTool -> FAQSearch -> SemanticAnswerabilityGate -> Final Grounded Response
+ * Pathway: User Question -> UnifiedDecisionEngine (KNOWLEDGE) -> KnowledgeRetrievalTool -> FAQSearch -> SemanticAnswerabilityGate -> Final Grounded Response
  */
 class E2E01KnowledgePipelineTest extends TestCase
 {
@@ -68,20 +65,6 @@ class E2E01KnowledgePipelineTest extends TestCase
     {
         $query = 'ডেলিভারি চার্জ কত?';
 
-        $mockRouter = \Mockery::mock(HybridRouter::class);
-        $mockRouter->shouldReceive('route')
-            ->once()
-            ->andReturn(new RoutingResult(
-                route: RouteType::KNOWLEDGE,
-                confidence: 0.98,
-                intent: 'delivery_charge',
-                signals: [],
-                entities: [],
-                routerLatencyMs: 18.0,
-                isFallback: false,
-                securityStatus: 'allowed'
-            ));
-
         $mockSearch = \Mockery::mock(FAQSearch::class);
         $mockSearch->shouldReceive('search')
             ->once()
@@ -95,7 +78,6 @@ class E2E01KnowledgePipelineTest extends TestCase
                 ),
             ]));
 
-        $this->app->instance(HybridRouter::class, $mockRouter);
         $this->app->instance(FAQSearch::class, $mockSearch);
 
         $service = $this->app->make(CustomerSupportService::class);

@@ -16,7 +16,6 @@ use App\AI\Guards\FollowUpPolicyManager;
 use App\AI\Guards\SemanticAnswerabilityGate;
 use App\AI\LLM\LLMClient;
 use App\AI\LLM\LLMRequest;
-use App\AI\Routing\HybridRouter;
 use App\AI\Routing\RouteType;
 use App\AI\Routing\RoutingResult;
 use App\AI\Tools\BusinessAnalyticsTool;
@@ -44,7 +43,6 @@ class CustomerSupportService
      * Standard graceful refusal for unauthorized customer-channel analytics requests (AC-14, AC-20, AC-21, AC-38).
      */
     public const CUSTOMER_ANALYTICS_DENIAL_MESSAGE = 'আমি শুধুমাত্র আমাদের পণ্য ও কাস্টমার সার্ভিস সংক্রান্ত তথ্য দিতে পারি। অভ্যন্তরীণ ব্যবসায়িক হিসাব প্রকাশের অনুমতি নেই।';
-    private readonly HybridRouter $router;
     private readonly ActionSafetyService $actionSafety;
     private readonly ContextualQueryBuilder $contextualQueryBuilder;
     private readonly ConversationMemoryService $memoryService;
@@ -66,7 +64,7 @@ class CustomerSupportService
     public function __construct(
         private readonly FAQSearch $faqSearch,
         private readonly ConversationService $conversationService,
-        ?HybridRouter $router = null,
+        mixed $router = null,
         ?ActionSafetyService $actionSafety = null,
         ?ContextualQueryBuilder $contextualQueryBuilder = null,
         ?ConversationMemoryService $memoryService = null,
@@ -81,7 +79,9 @@ class CustomerSupportService
         ?\App\AI\Tools\BusinessAnalyticsTool $businessAnalyticsTool = null,
         ?\App\AI\Tools\ExcelAnalyticsTool $excelAnalyticsTool = null,
     ) {
-        $this->router = $router ?? app(HybridRouter::class);
+        if ($businessAnalyticsTool !== null) {
+            app()->instance(\App\AI\Tools\BusinessAnalyticsTool::class, $businessAnalyticsTool);
+        }
         $this->actionSafety = $actionSafety ?? app(ActionSafetyService::class);
         $this->memoryService = $memoryService ?? app(ConversationMemoryService::class);
         $this->contextualQueryBuilder = $contextualQueryBuilder ?? app(ContextualQueryBuilder::class);
@@ -100,6 +100,104 @@ class CustomerSupportService
     /**
      * Generate AI reply for a conversation query using Hybrid Routing + Selective Execution.
      */
+    /**
+     * Match deterministic seller email action intent without invoking the decision engine.
+     */
+    private function matchDeterministicActionRoute(string $query): ?RoutingResult
+    {
+        if (
+            (preg_match('/(?:email|mail|মেইল|ইমেইল)\b/ui', $query) && preg_match('/(?:পাঠাও|পাঠিয়ে|পাঠান|send|বলো|করো)/ui', $query))
+            || preg_match('/(?:[a-zA-Z\p{Bengali}]+(?:কে|-কে))\s*(?:পাঠাও|পাঠিয়ে|পাঠান|মেইল)/ui', $query)
+        ) {
+            if (preg_match('/(?:সব|সকল|সকলকে|all|every)\s+(?:seller|দোকানদার|কর্মচারী)/ui', $query)) {
+                return new RoutingResult(
+                    route: RouteType::UNCERTAIN,
+                    confidence: 0.95,
+                    intent: 'bulk_email_unsupported',
+                    signals: ['ambiguity_type' => 'GENERAL_AMBIGUOUS'],
+                    entities: [],
+                    routerLatencyMs: 1.0,
+                    isFallback: false,
+                    securityStatus: 'allowed'
+                );
+            }
+
+            return new RoutingResult(
+                route: RouteType::ACTION,
+                confidence: 0.95,
+                intent: 'send_seller_email',
+                signals: [],
+                entities: [],
+                routerLatencyMs: 1.0,
+                isFallback: false,
+                securityStatus: 'allowed'
+            );
+        }
+
+        return null;
+    }
+
+    /**
+     * Determine route using UnifiedDecisionEngine.
+     */
+    public function determineRoute(string $query, ?Conversation $conversation, int $workspaceId, bool $isCustomer): RoutingResult
+    {
+        $tStart = microtime(true);
+
+        $actionMatch = $this->matchDeterministicActionRoute($query);
+        if ($actionMatch !== null) {
+            return $actionMatch;
+        }
+
+        $compactContext = null;
+        if ($conversation !== null && $conversation->exists) {
+            $messages = $conversation->messages()
+                ->latest('id')
+                ->take(3)
+                ->get()
+                ->reverse();
+
+            if ($messages->isNotEmpty()) {
+                $lines = [];
+                foreach ($messages as $msg) {
+                    $speaker = $msg->is_from_user ? 'User' : 'Assistant';
+                    $text = trim(strip_tags((string) ($msg->body ?? '')));
+                    if (mb_strlen($text) > 140) {
+                        $text = mb_substr($text, 0, 140) . '...';
+                    }
+                    if ($text !== '') {
+                        $lines[] = "{$speaker}: {$text}";
+                    }
+                }
+                $compactContext = implode("\n", $lines);
+            }
+        }
+
+        $decisionEngine = app(\App\AI\Decision\Contracts\DecisionEngineInterface::class);
+        $decisionRequest = new \App\AI\Decision\DTOs\DecisionRequest(
+            query: $query,
+            workspaceId: $workspaceId,
+            user: \Illuminate\Support\Facades\Auth::user(),
+            conversation: $conversation,
+            channelSlug: $conversation?->channelAccount?->channel?->slug ?? 'web',
+            isCustomer: $isCustomer,
+            compactContext: $compactContext,
+        );
+        $decision = $decisionEngine->decide($decisionRequest);
+        $elapsed = round((microtime(true) - $tStart) * 1000, 2);
+
+        return new RoutingResult(
+            route: $decision->toRouteType(),
+            confidence: 0.95,
+            intent: $decision->intent,
+            signals: [],
+            entities: [],
+            routerLatencyMs: $elapsed,
+            isFallback: false,
+            securityStatus: 'allowed'
+        );
+    }
+
     public function generateReply(
         Conversation $conversation,
         string $query,
@@ -196,112 +294,49 @@ class CustomerSupportService
             return self::CUSTOMER_ANALYTICS_DENIAL_MESSAGE;
         }
 
-        // ── 1. Hybrid Routing (Evaluates with full dialogue context) ────────────────────────────────────────────────
-        $routingResult = $this->router->route(
+        $actionRoute = $this->matchDeterministicActionRoute($query);
+
+        if ($actionRoute !== null && $actionRoute->isAction()) {
+            $reply = $this->executeActionRoute(
+                conversation: $conversation,
+                query: $query,
+                workspaceId: $effectiveWorkspaceId,
+                routingResult: $actionRoute,
+            );
+
+            $this->saveOutboundReply(
+                conversation: $conversation,
+                replyText: $reply,
+                deliveryResponse: [
+                    'route' => 'action',
+                    'reply' => $reply,
+                ],
+            );
+
+            return $reply;
+        }
+
+        $orchestrator = app(\App\AI\Decision\UnifiedOrchestrator::class);
+        $user = Auth::user();
+        $channelSlug = $channelAccount?->channel?->slug ?? 'web';
+
+        $result = $orchestrator->process(
             query: $query,
-            conversation: $conversation,
             workspaceId: $effectiveWorkspaceId,
+            user: $user,
+            conversation: $conversation,
+            channelSlug: $channelSlug,
+            isCustomer: $isCustomer,
+        );
+        $reply = $result['reply'] ?? $this->defaultFallbackText();
+
+        $this->saveOutboundReply(
+            conversation: $conversation,
+            replyText: $reply,
+            deliveryResponse: $result,
         );
 
-        // Post-routing Hard Block: Dual-Layer Customer Analytics Interception (AC-14, AC-20, AC-21)
-        if ($isCustomer && $routingResult->isAnalytics()) {
-            Log::info('[CustomerSupportService] Inbound customer ANALYTICS route intercepted by P0 Security Barrier', [
-                'conversation_id' => $conversation->id,
-                'query' => $query,
-            ]);
-
-            return self::CUSTOMER_ANALYTICS_DENIAL_MESSAGE;
-        }
-
-        // ── Phase M2: Context Resolution & Ambiguity Handling (Knowledge/Uncertain only) ─────
-        $contextResult = null;
-        if ($routingResult->isKnowledge() || $routingResult->isUncertain()) {
-            $contextResult = $this->contextualQueryBuilder->resolveContext($query, $conversation);
-            if ($contextResult->needsClarification()) {
-                $ambiguityResponse = $this->clarificationManager->handleAmbiguity(
-                    conversation: $conversation,
-                    rawQuery: $query,
-                    contextResult: $contextResult,
-                    workspaceId: $effectiveWorkspaceId,
-                );
-                return $ambiguityResponse['reply'];
-            }
-        }
-
-        // ── 1.5 Retrieve Memory & Live Business Source of Truth (Skipped for Analytics and Action) ─────
-        $memoryContext = null;
-        $businessContext = null;
-        if (!$routingResult->isAnalytics() && !$routingResult->isAction()) {
-            $memoryContext = $this->memoryService->retrieveContext(
-                conversation: $conversation,
-                query: $query,
-                workspaceId: $effectiveWorkspaceId,
-                contextResult: $contextResult,
-            );
-
-            $effectiveBusinessQuery = ($contextResult !== null && $contextResult->isResolved() && !empty($contextResult->resolvedQuery))
-                ? $contextResult->resolvedQuery
-                : $query;
-
-            $businessContext = $this->businessService->buildBusinessContext(
-                query: $effectiveBusinessQuery,
-                conversation: $conversation,
-                workspaceId: $effectiveWorkspaceId,
-            );
-        }
-
-        // ── 2. Route Execution ───────────────────────────────────────────────
-        $replyText = match ($routingResult->route) {
-            RouteType::KNOWLEDGE => $this->executeKnowledgeRoute(
-                conversation: $conversation,
-                query: $query,
-                workspaceId: $effectiveWorkspaceId,
-                memoryContext: $memoryContext,
-                businessContext: $businessContext,
-            ),
-            RouteType::CHAT => $this->executeChatRoute(
-                conversation: $conversation,
-                query: $query,
-                routingResult: $routingResult,
-                memoryContext: $memoryContext,
-                businessContext: $businessContext,
-            ),
-            RouteType::ANALYTICS => $this->executeAnalyticsRoute(
-                conversation: $conversation,
-                query: $query,
-                workspaceId: $effectiveWorkspaceId,
-                routingResult: $routingResult,
-            ),
-            RouteType::ACTION => $this->executeActionRoute(
-                conversation: $conversation,
-                query: $query,
-                workspaceId: $effectiveWorkspaceId,
-                routingResult: $routingResult,
-            ),
-            RouteType::OOD => $this->executeOodRoute(
-                conversation: $conversation,
-                query: $query,
-            ),
-            RouteType::UNCERTAIN => $this->executeUncertainRoute(
-                conversation: $conversation,
-                query: $query,
-                routingResult: $routingResult,
-            ),
-        };
-
-        $totalE2eMs = round((microtime(true) - $t_start) * 1000, 2);
-
-        // Non-sensitive structured telemetry
-        Log::info('[CustomerSupportService] Query processed with hybrid router', [
-            'route' => $routingResult->route->value,
-            'confidence' => $routingResult->confidence,
-            'intent' => $routingResult->intent,
-            'router_latency_ms' => $routingResult->routerLatencyMs,
-            'total_e2e_ms' => $totalE2eMs,
-            'workspace_id' => $effectiveWorkspaceId,
-        ]);
-
-        return $replyText ?? $this->defaultFallbackText();
+        return $reply;
     }
 
     /**
@@ -317,7 +352,7 @@ class CustomerSupportService
             message: $replyText,
             response: array_merge($deliveryResponse, [
                 'source' => 'customer_support_agent',
-                'router_type' => 'hybrid_router',
+                'router_type' => 'unified_orchestrator',
                 'provider' => config('ai.default', 'deepseek'),
                 'model' => config('ai.default_model', 'deepseek-chat'),
             ]),
@@ -749,12 +784,13 @@ class CustomerSupportService
             ];
         }
 
-        // ── 1. Hybrid Router (Evaluates with full dialogue context) ──────────────────
+        // ── 1. Hybrid / Unified Router (Evaluates with full dialogue context) ──────────────────
         $t_router_start = microtime(true);
-        $routingResult = $this->router->route(
+        $routingResult = $this->determineRoute(
             query: $query,
             conversation: $conversation,
             workspaceId: $workspaceId,
+            isCustomer: $isCustomer,
         );
         $routerLatencyMs = round((microtime(true) - $t_router_start) * 1000, 2);
 
@@ -881,6 +917,7 @@ class CustomerSupportService
             $businessContextMs = round((microtime(true) - $t_business_start) * 1000, 2);
         }
 
+
         // ── Knowledge Retrieval & Semantic Answerability Gate ─────────────────────────
         $retrievalHits = new \Illuminate\Database\Eloquent\Collection();
         $topHit = null;
@@ -993,7 +1030,14 @@ class CustomerSupportService
         $isHandoff = (!empty($conversation?->metadata['handoff_to_human'])) ||
             (stripos($replyText ?? '', 'team member will contact you') !== false);
 
-        $retrievalTelemetry = $this->faqSearch->getLastTelemetry();
+        $retrievalTelemetry = [];
+        if ($routingResult->isKnowledge() && method_exists($this->faqSearch, 'getLastTelemetry')) {
+            try {
+                $retrievalTelemetry = (array) $this->faqSearch->getLastTelemetry();
+            } catch (\Throwable) {
+                $retrievalTelemetry = [];
+            }
+        }
         $retrievalPromptTokens = (int) ($retrievalTelemetry['llm_usage']['prompt_tokens'] ?? $retrievalTelemetry['prompt_tokens'] ?? 0);
         $retrievalCompletionTokens = (int) ($retrievalTelemetry['llm_usage']['completion_tokens'] ?? $retrievalTelemetry['completion_tokens'] ?? 0);
 
@@ -1825,20 +1869,20 @@ PROMPT;
         }
 
         // 3. Named individual employee sales ("Rahim er sales", "রহিমের বিক্রি", "রহিম কত বিক্রি করেছে")
-        if (preg_match('/(?:কত\s*(?:টাকার\s*)?(?:sales|বিক্রি|সেলস)|(?:sales|বিক্রি|সেলস)\s*করেছে|সেলস\s*কত|sales\s*report|sales\s*koto|koto\s*sales)/ui', $q)) {
+        if (preg_match('/(?:কত\s*(?:টাকার\s*)?(?:sales?|বিক্রি|সেলস)|(?:sales?|বিক্রি|সেলস)\s*করেছে|সেলস\s*কত|sales?\s*report|sales?\s*koto|koto\s*sales?)/ui', $q)) {
             if (!preg_match('/^(?:amar|amader|আমার|আমাদের|my|our)\b/ui', $q)) {
                 return true;
             }
         }
 
-        if (preg_match('/\b[a-z\p{L}]+(?:-er|\s+er|\s+এর|\s*র)\s+.*?(?:sales|বিক্রি|পারফরম্যান্স|performance|commission|কমিশন)/ui', $q)) {
+        if (preg_match('/\b[a-z\p{L}]+(?:-er|\s+er|\s+এর|\s*র)\s+.*?(?:sales?|বিক্রি|পারফরম্যান্স|performance|commission|কমিশন)/ui', $q)) {
             if (!preg_match('/^(?:amar|amader|আমার|আমাদের|my|our)\b/ui', $q)) {
                 return true;
             }
         }
 
         // 4. Store-wide proprietary business financials, turnover, profit & loss, cash collections
-        if (preg_match('/(?:মোট\s*.*?(?:বিক্রি|সেলস|লাভ|মুনাফা|রেভিনিউ|উপার্জন|ক্যাশ|টাকা\s*জমা)|ব্যবসা[রয়]?\s*.*?(?:লাভ|বিক্রি|হিসাব|ক্ষতি|আয়|উপার্জন|ক্যাশ)|কোম্পানির\s*.*?(?:লাভ|বিক্রি|আয়|ব্যয়|রেভিনিউ|ক্যাশ|টার্নওভার)|দোকানের\s*.*?(?:বিক্রি|লাভ|মুনাফা|ক্যাশ|ক্যাশবাক্স|টাকা\s*জমা|আয়|হিসাব)|total\s+.*?(?:revenue|profit|sales|turnover|earnings|cash)|monthly\s+.*?(?:revenue|profit|sales|turnover|earnings|cash)|daily\s+.*?(?:revenue|profit|sales|turnover|earnings|cash)|profit\s+(?:did\s+you\s+make|report|koto|hoise)|sales\s+report|financial\s+(?:report|figures)|(?:business|company|store)\s+.*?(?:profit|revenue|turnover|labh|earnings|collection)|labh\s*koto|cash\s*in\s*koto|ক্যাশ\s*ইন|ক্যাশ\s*কালেকশন|overall\s+earnings|how\s+much\s+(?:profit|revenue|money\s+did\s+(?:the\s+store|you)\s+make))/ui', $q)) {
+        if (preg_match('/(?:মোট\s*.*?(?:বিক্রি|সেলস|লাভ|মুনাফা|রেভিনিউ|উপার্জন|ক্যাশ|টাকা\s*জমা)|ব্যবসা[রয়]?\s*.*?(?:লাভ|বিক্রি|হিসাব|ক্ষতি|আয়|উপার্জন|ক্যাশ)|কোম্পানির\s*.*?(?:লাভ|বিক্রি|আয়|ব্যয়|রেভিনিউ|ক্যাশ|টার্নওভার)|দোকানের\s*.*?(?:বিক্রি|লাভ|মুনাফা|ক্যাশ|ক্যাশবাক্স|টাকা\s*জমা|আয়|হিসাব)|total\s+.*?(?:revenue|profit|sales?|turnover|earnings|cash)|monthly\s+.*?(?:revenue|profit|sales?|turnover|earnings|cash)|daily\s+.*?(?:revenue|profit|sales?|turnover|earnings|cash)|profit\s+(?:did\s+you\s+make|report|koto|hoise)|sales?\s+report|financial\s+(?:report|figures)|analytics(?:\s*(?:summary|report|data|figures|metrics))?|(?:business|company|store)\s+.*?(?:profit|revenue|turnover|labh|earnings|collection)|labh\s*koto|cash\s*in\s*koto|ক্যাশ\s*ইন|ক্যাশ\s*কালেকশন|overall\s+earnings|how\s+much\s+(?:profit|revenue|money\s+did\s+(?:the\s+store|you)\s+make))/ui', $q)) {
             return true;
         }
 
@@ -1881,7 +1925,7 @@ PROMPT;
         }
 
         // Workspace Owner/Admin: Full operational access within their own workspace
-        if (method_exists($user, 'hasRole') && $user->hasRole(RoleEnum::ADMIN->value)) {
+        if (method_exists($user, 'hasRole') && ($user->hasRole(RoleEnum::ADMIN->value) || $user->hasRole('owner') || $user->hasRole('superadmin'))) {
             return true;
         }
 
@@ -1926,19 +1970,23 @@ PROMPT;
 
         if ($conversation !== null) {
             $meta = $conversation->metadata ?? [];
+            // CRITICAL AUDIT FIX: Simulator metadata alone is NEVER an authorization credential
             if (!empty($meta['is_simulator']) && $meta['is_simulator'] === true) {
-                return true;
+                return $this->isAuthenticatedOwnerOrManager($workspaceId);
             }
 
             if (!empty($meta['role']) && $meta['role'] === 'owner') {
-                return true;
+                return $this->isAuthenticatedOwnerOrManager($workspaceId);
             }
 
             if (!empty($meta['role']) && $meta['role'] === 'manager') {
+                if (!$this->isAuthenticatedOwnerOrManager($workspaceId)) {
+                    return false;
+                }
                 $perms = $meta['permissions'] ?? [];
                 return in_array('view_analytics', $perms, true)
                     || in_array('analytics.view', $perms, true)
-                    || in_array('view_workforce', $perms, true);
+                    || in_array('*', $perms, true);
             }
         }
 

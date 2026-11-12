@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Security;
 
-use App\AI\Routing\HybridRouter;
 use App\AI\Routing\RouteType;
 use App\AI\Routing\RoutingResult;
 use App\AI\Tools\BusinessAnalyticsTool;
@@ -132,22 +131,12 @@ class CustomerChannelAnalyticsSecurityBarrierTest extends TestCase
             'last_direction' => 'inbound',
         ]);
 
-        $mockRouter = Mockery::mock(HybridRouter::class);
-        $mockRouter->shouldReceive('route')
-            ->twice() // once for handleQuery, once for generateReply
-            ->andReturn(new RoutingResult(
-                route: RouteType::ANALYTICS,
-                confidence: 0.95,
-                intent: 'analytics_summary_requested'
-            ));
-
         $mockAnalyticsTool = Mockery::mock(BusinessAnalyticsTool::class);
         $mockAnalyticsTool->shouldNotReceive('execute'); // Zero DB aggregation authorized
 
         $service = new CustomerSupportService(
             faqSearch: app(\App\Services\FAQ\FAQSearch::class),
             conversationService: app(\App\Services\Chat\ConversationService::class),
-            router: $mockRouter,
             businessAnalyticsTool: $mockAnalyticsTool,
         );
 
@@ -177,13 +166,9 @@ class CustomerChannelAnalyticsSecurityBarrierTest extends TestCase
             'last_direction' => 'inbound',
         ]);
 
-        $mockRouter = Mockery::mock(HybridRouter::class);
-        $mockRouter->shouldNotReceive('route'); // Pre-routing block must fire before router
-
         $service = new CustomerSupportService(
             faqSearch: app(\App\Services\FAQ\FAQSearch::class),
             conversationService: app(\App\Services\Chat\ConversationService::class),
-            router: $mockRouter,
         );
 
         $queries = [
@@ -318,15 +303,9 @@ class CustomerChannelAnalyticsSecurityBarrierTest extends TestCase
                 'report' => 'অক্টোবর ২০২৬ মোট বিক্রয়: ৳৪,৮৫,০০০। শীর্ষ বিক্রয়কারী: রহিম (৳১,২০,০০০)।',
             ]);
 
-        $mockRouter = Mockery::mock(HybridRouter::class);
-        $mockRouter->shouldReceive('route')
-            ->once()
-            ->andReturn(new RoutingResult(route: RouteType::ANALYTICS, confidence: 1.0));
-
         $service = new CustomerSupportService(
             faqSearch: app(\App\Services\FAQ\FAQSearch::class),
             conversationService: app(\App\Services\Chat\ConversationService::class),
-            router: $mockRouter,
             businessAnalyticsTool: $mockAnalyticsTool,
         );
 

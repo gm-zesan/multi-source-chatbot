@@ -21,6 +21,8 @@ class ChatSimulatorControllerTest extends TestCase
         $user = User::factory()->create([
             'workspace_id' => $trustedWorkspace->id
         ]);
+        \Spatie\Permission\Models\Role::firstOrCreate(['name' => 'admin', 'guard_name' => 'web']);
+        $user->assignRole('admin');
 
         // Mock the Python Analytics Service endpoint
         Http::fake([

@@ -15,7 +15,7 @@ use Stringable;
 /**
  * Company FAQ & Policy Knowledge Retrieval Tool.
  *
- * Pipeline Flow: HybridRouter (KNOWLEDGE Route) -> KnowledgeRetrievalTool -> FAQSearch -> Typesense/Vector DB
+ * Pipeline Flow: UnifiedDecisionEngine (KNOWLEDGE Intent) -> KnowledgeRetrievalTool -> FAQSearch -> Typesense/Vector DB
  */
 class KnowledgeRetrievalTool implements Tool
 {

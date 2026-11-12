@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Tests\Feature;
 
-use App\AI\Routing\HybridRouter;
 use App\AI\Routing\RouteType;
 use App\AI\Routing\RoutingResult;
 use App\AI\Tools\BusinessAnalyticsTool;
@@ -30,7 +29,6 @@ class AnalyticsSourceSelectionRegressionTest extends TestCase
     private CustomerSupportService $service;
     private $businessToolMock;
     private $excelToolMock;
-    private $routerMock;
 
     protected function setUp(): void
     {
@@ -60,19 +58,9 @@ class AnalyticsSourceSelectionRegressionTest extends TestCase
 
         $this->businessToolMock = Mockery::mock(BusinessAnalyticsTool::class);
         $this->excelToolMock = Mockery::mock(ExcelAnalyticsTool::class);
-        $this->routerMock = Mockery::mock(HybridRouter::class);
-
-        // Always route as ANALYTICS
-        $this->routerMock->shouldReceive('route')
-            ->andReturn(new RoutingResult(
-                RouteType::ANALYTICS,
-                0.95,
-                'sales_query',
-            ));
 
         $this->app->instance(BusinessAnalyticsTool::class, $this->businessToolMock);
         $this->app->instance(ExcelAnalyticsTool::class, $this->excelToolMock);
-        $this->app->instance(HybridRouter::class, $this->routerMock);
 
         $this->service = $this->app->make(CustomerSupportService::class);
     }
@@ -87,6 +75,25 @@ class AnalyticsSourceSelectionRegressionTest extends TestCase
             'status'             => 'open',
             'metadata'           => array_merge(['is_simulator' => true, 'role' => 'owner'], $metadata),
         ]);
+    }
+
+    private function generateReply(Conversation $conversation, string $query): string
+    {
+        $conversation->messages()->create([
+            'body'         => $query,
+            'direction'    => 'inbound',
+            'type'         => 'text',
+            'is_from_user' => true,
+        ]);
+        $res = $this->service->handleQuery($query, $this->workspace->id, $conversation);
+        $reply = $res['reply'] ?? '';
+        $conversation->messages()->create([
+            'body'         => $reply,
+            'direction'    => 'outbound',
+            'type'         => 'text',
+            'is_from_user' => false,
+        ]);
+        return $reply;
     }
 
     /**
@@ -107,7 +114,7 @@ class AnalyticsSourceSelectionRegressionTest extends TestCase
 
         $this->excelToolMock->shouldNotReceive('execute');
 
-        $reply = $this->service->generateReply($conversation, 'Hasan কত sales করেছে?');
+        $reply = $this->generateReply($conversation, 'Hasan কত sales করেছে?');
         $this->assertStringContainsString('৳8,000', $reply);
         $this->assertStringContainsString('Production DB', $reply);
     }
@@ -130,7 +137,7 @@ class AnalyticsSourceSelectionRegressionTest extends TestCase
 
         $this->excelToolMock->shouldNotReceive('execute');
 
-        $reply = $this->service->generateReply($conversation, 'Karim কত sales করেছে?');
+        $reply = $this->generateReply($conversation, 'Karim কত sales করেছে?');
         $this->assertStringContainsString('৳9,000', $reply);
     }
 
@@ -153,7 +160,7 @@ class AnalyticsSourceSelectionRegressionTest extends TestCase
 
         $this->businessToolMock->shouldNotReceive('execute');
 
-        $reply = $this->service->generateReply($conversation, 'sales.xlsx-এ Hasan কত sales করেছে?');
+        $reply = $this->generateReply($conversation, 'sales.xlsx-এ Hasan কত sales করেছে?');
         $this->assertStringContainsString('৳1,600', $reply);
 
         $conversation->refresh();
@@ -178,7 +185,7 @@ class AnalyticsSourceSelectionRegressionTest extends TestCase
                 'filename' => 'sales.xlsx',
             ]);
 
-        $reply = $this->service->generateReply($conversation, 'sales.xlsx-এর Karim কত sales করেছে?');
+        $reply = $this->generateReply($conversation, 'sales.xlsx-এর Karim কত sales করেছে?');
         $this->assertStringContainsString('৳1,800', $reply);
     }
 
@@ -199,7 +206,7 @@ class AnalyticsSourceSelectionRegressionTest extends TestCase
 
         $this->excelToolMock->shouldNotReceive('execute');
 
-        $reply = $this->service->generateReply($conversation, 'Database-এ Hasan কত sales করেছে?');
+        $reply = $this->generateReply($conversation, 'Database-এ Hasan কত sales করেছে?');
         $this->assertStringContainsString('৳8,000', $reply);
     }
 
@@ -218,7 +225,7 @@ class AnalyticsSourceSelectionRegressionTest extends TestCase
                 'report' => 'Production DB: Karim total sales ৳9,000',
             ]);
 
-        $reply = $this->service->generateReply($conversation, 'Database-এর Karim কত sales করেছে?');
+        $reply = $this->generateReply($conversation, 'Database-এর Karim কত sales করেছে?');
         $this->assertStringContainsString('৳9,000', $reply);
     }
 
@@ -244,7 +251,7 @@ class AnalyticsSourceSelectionRegressionTest extends TestCase
 
         $this->businessToolMock->shouldNotReceive('execute');
 
-        $reply = $this->service->generateReply($conversation, 'আর Karim-এরটা?');
+        $reply = $this->generateReply($conversation, 'আর Karim-এরটা?');
         $this->assertStringContainsString('৳1,800', $reply);
     }
 
@@ -270,7 +277,7 @@ class AnalyticsSourceSelectionRegressionTest extends TestCase
                 'report' => 'Production DB: Hasan total sales ৳8,000',
             ]);
 
-        $replyDb = $this->service->generateReply($conversation, 'Database-এ Hasan কত sales করেছে?');
+        $replyDb = $this->generateReply($conversation, 'Database-এ Hasan কত sales করেছে?');
         $this->assertStringContainsString('৳8,000', $replyDb);
 
         // Verify active_file_id is cleared
@@ -286,7 +293,7 @@ class AnalyticsSourceSelectionRegressionTest extends TestCase
                 'report' => 'Production DB: Karim total sales ৳9,000',
             ]);
 
-        $replyFollowup = $this->service->generateReply($conversation, 'আর Karim-এরটা?');
+        $replyFollowup = $this->generateReply($conversation, 'আর Karim-এরটা?');
         $this->assertStringContainsString('৳9,000', $replyFollowup);
     }
 
@@ -311,7 +318,7 @@ class AnalyticsSourceSelectionRegressionTest extends TestCase
                 'filename' => 'sales.xlsx',
             ]);
 
-        $replyFile = $this->service->generateReply($conversation, 'sales.xlsx-এ Hasan কত sales করেছে?');
+        $replyFile = $this->generateReply($conversation, 'sales.xlsx-এ Hasan কত sales করেছে?');
         $this->assertStringContainsString('৳1,600', $replyFile);
 
         $conversation->refresh();
@@ -327,7 +334,7 @@ class AnalyticsSourceSelectionRegressionTest extends TestCase
                 'source_id' => 'src_sales_xlsx',
             ]);
 
-        $replyFollowup = $this->service->generateReply($conversation, 'আর Karim-এরটা?');
+        $replyFollowup = $this->generateReply($conversation, 'আর Karim-এরটা?');
         $this->assertStringContainsString('৳1,800', $replyFollowup);
     }
 
@@ -348,7 +355,7 @@ class AnalyticsSourceSelectionRegressionTest extends TestCase
                 'report' => 'Production DB: Hasan total sales ৳8,000',
             ]);
 
-        $reply = $this->service->generateReply($conversation, 'সিস্টেমে Hasan-এর সেলস কত?');
+        $reply = $this->generateReply($conversation, 'সিস্টেমে Hasan-এর সেলস কত?');
         $this->assertStringContainsString('৳8,000', $reply);
 
         $conversation->refresh();
@@ -371,7 +378,7 @@ class AnalyticsSourceSelectionRegressionTest extends TestCase
                 'source_id' => 'src_sales_xlsx',
             ]);
 
-        $reply = $this->service->generateReply($conversation, 'এই file-এ Hasan কত sales করেছে?');
+        $reply = $this->generateReply($conversation, 'এই file-এ Hasan কত sales করেছে?');
         $this->assertStringContainsString('৳1,600', $reply);
     }
 
@@ -395,7 +402,7 @@ class AnalyticsSourceSelectionRegressionTest extends TestCase
 
         $this->excelToolMock->shouldNotReceive('execute');
 
-        $reply = $this->service->generateReply($conversation, 'Hasan কত sales করেছে?');
+        $reply = $this->generateReply($conversation, 'Hasan কত sales করেছে?');
         $this->assertStringContainsString('৳8,000', $reply);
     }
 
@@ -415,7 +422,7 @@ class AnalyticsSourceSelectionRegressionTest extends TestCase
                 'report' => '🤔 একাধিক ফাইলে আপনার প্রশ্নের তথ্য রয়েছে। অনুগ্রহ করে sales.xlsx অথবা sales_october.csv উল্লেখ করুন।',
             ]);
 
-        $reply = $this->service->generateReply($conversation, 'এই file-এর Hasan কত sales করেছে?');
+        $reply = $this->generateReply($conversation, 'এই file-এর Hasan কত sales করেছে?');
         $this->assertStringContainsString('একাধিক ফাইলে', $reply);
         $this->assertStringContainsString('sales.xlsx', $reply);
     }
@@ -436,7 +443,7 @@ class AnalyticsSourceSelectionRegressionTest extends TestCase
                 'source_type' => 'production_database',
             ]);
 
-        $reply = $this->service->generateReply($conversation, 'Hasan কত sales করেছে?');
+        $reply = $this->generateReply($conversation, 'Hasan কত sales করেছে?');
         $this->assertStringContainsString('৳8,000', $reply);
         $this->assertStringNotContainsString('৳9,600', $reply);
         $this->assertStringNotContainsString('৳1,600', $reply);

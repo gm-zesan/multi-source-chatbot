@@ -58,12 +58,6 @@ class EventSourcingTest extends TestCase
             'answer'       => 'Click forgot password on the login screen to reset your password.',
             'is_active'    => true,
         ]);
-
-        $routerMock = \Mockery::mock(\App\AI\Routing\HybridRouter::class);
-        $routerMock->shouldReceive('route')
-            ->byDefault()
-            ->andReturn(new \App\AI\Routing\RoutingResult(\App\AI\Routing\RouteType::KNOWLEDGE, 0.95, 'faq_inquiry'));
-        $this->app->instance(\App\AI\Routing\HybridRouter::class, $routerMock);
     }
 
     public function test_incoming_message_received_has_correct_listeners_registered(): void

@@ -8,6 +8,7 @@ use App\Enums\RoleEnum;
 use App\Http\Requests\SendMessageRequest;
 use App\Models\Conversation;
 use App\Models\User;
+use App\AI\Decision\UnifiedOrchestrator;
 use App\AI\Orchestration\CustomerSupportService;
 use App\Services\Chat\ConversationService;
 use App\Services\FAQ\FAQSearch;
@@ -26,6 +27,7 @@ class ConversationController extends Controller
         protected ConversationService $conversationService,
         protected FAQSearch $faqSearch,
         protected CustomerSupportService $customerSupportService,
+        protected UnifiedOrchestrator $orchestrator,
     ) {}
 
     /**
@@ -116,10 +118,16 @@ class ConversationController extends Controller
         $lastInbound = $conversation->messages()->where('direction', 'inbound')->latest('id')->first();
         $prompt = $lastInbound?->body ?? 'Hello, how can I help you today?';
 
-        $supportResult = $this->customerSupportService->handleQuery(
+        $channelSlug = $conversation->channelAccount?->channel?->slug ?? 'web';
+        $isCustomer = in_array(mb_strtolower($channelSlug), ['facebook', 'messenger', 'whatsapp', 'instagram', 'telegram', 'web', 'website', 'web_widget', 'widget', 'public'], true);
+
+        $supportResult = $this->orchestrator->process(
             query: $prompt,
             workspaceId: $workspaceId,
+            user: Auth::user(),
             conversation: $conversation,
+            channelSlug: $channelSlug,
+            isCustomer: $isCustomer,
         );
 
         $replyText = $supportResult['reply'] ?? '';

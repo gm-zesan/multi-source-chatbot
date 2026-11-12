@@ -13,7 +13,7 @@ use Stringable;
 /**
  * Business Database Analytics & BI Tool (Phase 3.x Semantic Engine)
  *
- * Pipeline Flow: HybridRouter (ANALYTICS Route) -> BusinessAnalyticsTool -> AnalyticsClient -> Python AI Engine
+ * Pipeline Flow: UnifiedDecisionEngine (ANALYTICS Intent) -> BusinessAnalyticsTool -> AnalyticsClient -> Python AI Engine
  */
 class BusinessAnalyticsTool implements Tool
 {

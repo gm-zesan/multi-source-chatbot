@@ -4,9 +4,6 @@ declare(strict_types=1);
 
 namespace Tests\Feature;
 
-use App\AI\Routing\HybridRouter;
-use App\AI\Routing\RouteType;
-use App\AI\Routing\RoutingResult;
 use App\Models\Channel;
 use App\Models\ChannelAccount;
 use App\Models\Conversation;
@@ -45,7 +42,6 @@ class M4ClarificationAnswerabilityContractTest extends TestCase
     private Conversation $conversation;
     private CustomerSupportService $service;
     private FAQSearch $faqSearchMock;
-    private HybridRouter $routerMock;
 
     protected function setUp(): void
     {
@@ -72,12 +68,6 @@ class M4ClarificationAnswerabilityContractTest extends TestCase
         ]);
 
         $this->faqSearchMock = Mockery::mock(FAQSearch::class);
-        $this->routerMock = Mockery::mock(HybridRouter::class);
-
-        $this->routerMock->shouldReceive('route')
-            ->byDefault()
-            ->andReturn(new RoutingResult(RouteType::KNOWLEDGE, 0.90, 'faq_intent'));
-
         $this->faqSearchMock->shouldReceive('getLastTelemetry')
             ->byDefault()
             ->andReturn([]);
@@ -85,7 +75,6 @@ class M4ClarificationAnswerabilityContractTest extends TestCase
         $this->service = new CustomerSupportService(
             faqSearch: $this->faqSearchMock,
             conversationService: app(\App\Services\Chat\ConversationService::class),
-            router: $this->routerMock,
         );
     }
 
@@ -98,10 +87,6 @@ class M4ClarificationAnswerabilityContractTest extends TestCase
         $this->createTurn('Black Cotton Panjabi এর ফেব্রিক কেমন?', 'outbound', 'এটি ১০০% সুতি কাপড়ের তৈরি।');
 
         // Router classifies follow-up as knowledge
-        $this->routerMock->shouldReceive('route')
-            ->once()
-            ->andReturn(new RoutingResult(RouteType::KNOWLEDGE, 0.92, 'product_pricing'));
-
         // FAQSearch MUST be invoked because single entity is unambiguous
         $this->faqSearchMock->shouldReceive('search')
             ->once()
@@ -278,10 +263,6 @@ class M4ClarificationAnswerabilityContractTest extends TestCase
      */
     public function test_self_contained_faq_runs_normal_retrieval(): void
     {
-        $this->routerMock->shouldReceive('route')
-            ->once()
-            ->andReturn(new RoutingResult(RouteType::KNOWLEDGE, 0.95, 'delivery_charge'));
-
         $this->faqSearchMock->shouldReceive('search')
             ->once()
             ->andReturn(new \Illuminate\Database\Eloquent\Collection());
@@ -297,10 +278,6 @@ class M4ClarificationAnswerabilityContractTest extends TestCase
      */
     public function test_ood_query_preserves_existing_ood_behavior(): void
     {
-        $this->routerMock->shouldReceive('route')
-            ->once()
-            ->andReturn(new RoutingResult(RouteType::OOD, 0.99, 'ood_intent'));
-
         $result = $this->service->handleQuery('who won the world cup?', $this->workspace->id, $this->conversation);
 
         $this->assertSame('ood', $result['route']);

@@ -4,9 +4,6 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Integration;
 
-use App\AI\Routing\HybridRouter;
-use App\AI\Routing\RouteType;
-use App\AI\Routing\RoutingResult;
 use App\AI\Tools\ExcelAnalyticsTool;
 use App\Models\Channel;
 use App\Models\ChannelAccount;
@@ -67,27 +64,8 @@ class DownstreamFailureSafetyIntegrationTest extends TestCase
         $this->supportService = app(CustomerSupportService::class);
     }
 
-    private function mockRouterRoute(RouteType $route, string $intent = 'failure_test'): void
-    {
-        $mockRouter = \Mockery::mock(HybridRouter::class);
-        $mockRouter->shouldReceive('route')
-            ->andReturn(new RoutingResult(
-                route: $route,
-                confidence: 0.95,
-                intent: $intent,
-                signals: [],
-                entities: [],
-                routerLatencyMs: 15.0,
-                isFallback: false,
-                securityStatus: 'allowed'
-            ));
-
-        $this->app->instance(HybridRouter::class, $mockRouter);
-    }
-
     public function test_downstream_analytics_service_unavailable_handled_gracefully(): void
     {
-        $this->mockRouterRoute(RouteType::ANALYTICS, 'sales_query');
         $baseUrl = rtrim(config('analytics.base_url', 'http://127.0.0.1:8001'), '/');
 
         // Simulate connection refused / 500 server error
@@ -113,8 +91,6 @@ class DownstreamFailureSafetyIntegrationTest extends TestCase
 
     public function test_downstream_faq_retrieval_failure_handled_gracefully(): void
     {
-        $this->mockRouterRoute(RouteType::KNOWLEDGE, 'return_policy');
-
         $mockSearch = \Mockery::mock(FAQSearch::class);
         $mockSearch->shouldReceive('search')
             ->andThrow(new \RuntimeException('Typesense connection timeout on port 8108'));

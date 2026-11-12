@@ -6,7 +6,6 @@ namespace Tests\Feature\Integration;
 
 use App\AI\LLM\LLMClient;
 use App\AI\LLM\LLMResponse;
-use App\AI\Routing\HybridRouter;
 use App\AI\Routing\RouteType;
 use App\Mail\SellerNotificationMail;
 use App\Models\AnalyticsSalesperson;
@@ -70,21 +69,6 @@ class SellerEmailActionIntegrationTest extends TestCase
 
     private function mockRouterForAction(string $route = 'ACTION', string $sellerRef = 'Rahim', string $subject = 'Payment Received', string $message = 'Payment has been processed'): void
     {
-        $mockRouter = Mockery::mock(HybridRouter::class);
-        $routeType = match ($route) {
-            'ACTION' => RouteType::ACTION,
-            'CHAT' => RouteType::CHAT,
-            'UNCERTAIN' => RouteType::UNCERTAIN,
-            default => RouteType::ACTION,
-        };
-        $mockRouter->shouldReceive('route')->andReturn(
-            new \App\AI\Routing\RoutingResult(
-                route: $routeType,
-                confidence: 0.95,
-                intent: 'send_seller_email',
-            )
-        );
-
         $mockLLM = Mockery::mock(LLMClient::class);
         $mockLLM->shouldReceive('generate')->andReturn(
             new LLMResponse(
@@ -101,7 +85,6 @@ class SellerEmailActionIntegrationTest extends TestCase
         $this->supportService = new CustomerSupportService(
             faqSearch: $this->app->make(\App\Services\FAQ\FAQSearch::class),
             conversationService: $this->app->make(\App\Services\Chat\ConversationService::class),
-            router: $mockRouter,
             llmClient: $mockLLM,
         );
     }
@@ -421,14 +404,12 @@ class SellerEmailActionIntegrationTest extends TestCase
             )
         );
 
-        $router = new HybridRouter(
-            confidenceThreshold: 0.70,
-            llmClient: $mockLLM,
-        );
-
-        $result = $router->route(
+        $service = app(CustomerSupportService::class);
+        $result = $service->determineRoute(
             query: 'সব seller-কে email পাঠাও',
+            conversation: $this->conversation,
             workspaceId: $this->workspace1->id,
+            isCustomer: false,
         );
 
         $this->assertTrue($result->isUncertain());
@@ -455,11 +436,9 @@ class SellerEmailActionIntegrationTest extends TestCase
         );
         $safety->setPendingSellerEmailAction($this->conversation, $proposal->withFingerprint($this->workspace1->id));
 
-        $mockRouter = Mockery::mock(HybridRouter::class);
         $service = new CustomerSupportService(
             faqSearch: $this->app->make(\App\Services\FAQ\FAQSearch::class),
             conversationService: $this->app->make(\App\Services\Chat\ConversationService::class),
-            router: $mockRouter,
             sellerEmailService: $mockSellerEmailService,
         );
 

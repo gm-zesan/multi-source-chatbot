@@ -10,8 +10,8 @@ use App\Models\Conversation;
 use App\Models\Message;
 use App\Models\KnowledgeDocument;
 use App\Models\Workspace;
+use App\AI\Decision\UnifiedOrchestrator;
 use App\AI\Orchestration\CustomerSupportService;
-use App\AI\Orchestration\OwnerBusinessAssistant;
 use App\Services\CRM\CRMService;
 use App\Services\Retrieval\RetrievalClient;
 use App\Services\Analytics\AnalyticsClient;
@@ -27,7 +27,7 @@ class ChatSimulatorController extends Controller
         private readonly CustomerSupportService $customerSupportService,
         private readonly RetrievalClient $retrievalClient,
         private readonly AnalyticsClient $analyticsClient,
-        private readonly ?OwnerBusinessAssistant $ownerBusinessAssistant = null,
+        private readonly UnifiedOrchestrator $orchestrator,
     ) {
     }
 
@@ -171,24 +171,16 @@ class ChatSimulatorController extends Controller
             name: null,
         );
 
-        // ── 2. Route Separation: Owner Business Intelligence vs Customer Support
+        // ── 2. Unified AI Orchestration Pipeline ─────────────────────────────
         $currentUser = Auth::user();
-        $assistant = $this->ownerBusinessAssistant ?? app(OwnerBusinessAssistant::class);
 
-        if ($currentUser && $assistant->isAuthorizedOwnerOrManager($currentUser, $workspaceId)) {
-            $supportResult = $assistant->handleOwnerQuery(
-                query: $query,
-                workspaceId: $workspaceId,
-                conversation: $conversation,
-                user: $currentUser
-            );
-        } else {
-            $supportResult = $this->customerSupportService->handleQuery(
-                query: $query,
-                workspaceId: $workspaceId,
-                conversation: $conversation,
-            );
-        }
+        $supportResult = $this->orchestrator->process(
+            query: $query,
+            workspaceId: $workspaceId,
+            user: $currentUser,
+            conversation: $conversation,
+            channelSlug: 'simulator',
+        );
 
         // Save AI outbound response to conversation history for next turn context
         if (!empty($supportResult['reply'])) {
@@ -507,6 +499,9 @@ class ChatSimulatorController extends Controller
         $isOwnerOrAdmin = $currentUser?->hasRole('owner')
             || $currentUser?->hasRole('admin')
             || $currentUser?->hasRole('superadmin');
+        $effectiveRole = $isOwnerOrAdmin
+            ? 'owner'
+            : ($currentUser?->hasRole('manager') ? 'manager' : ($currentUser?->roles->first()?->name ?? 'staff'));
 
         $conversation = Conversation::firstOrCreate(
             [
@@ -520,7 +515,7 @@ class ChatSimulatorController extends Controller
                 'metadata' => [
                     'is_simulator' => true,
                     'is_customer' => false,
-                    'role' => $isOwnerOrAdmin ? 'owner' : 'manager',
+                    'role' => $effectiveRole,
                 ],
             ]
         );
@@ -529,7 +524,7 @@ class ChatSimulatorController extends Controller
         $meta = $conversation->metadata ?? [];
         $meta['is_simulator'] = true;
         $meta['is_customer'] = false;
-        $meta['role'] = $isOwnerOrAdmin ? 'owner' : 'manager';
+        $meta['role'] = $effectiveRole;
         $conversation->metadata = $meta;
         $conversation->save();
 

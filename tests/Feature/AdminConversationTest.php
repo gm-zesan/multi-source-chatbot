@@ -96,12 +96,6 @@ class AdminConversationTest extends TestCase
         $retrievalTool = \Mockery::mock(\App\AI\Tools\KnowledgeRetrievalTool::class);
         $retrievalTool->shouldReceive('execute')->byDefault()->andReturn(new \Illuminate\Database\Eloquent\Collection([$hit]));
         $this->app->instance(\App\AI\Tools\KnowledgeRetrievalTool::class, $retrievalTool);
-
-        $routerMock = \Mockery::mock(\App\AI\Routing\HybridRouter::class);
-        $routerMock->shouldReceive('route')
-            ->byDefault()
-            ->andReturn(new \App\AI\Routing\RoutingResult(\App\AI\Routing\RouteType::KNOWLEDGE, 0.95, 'store_hours'));
-        $this->app->instance(\App\AI\Routing\HybridRouter::class, $routerMock);
     }
 
     public function test_admin_can_view_conversations_index_page(): void

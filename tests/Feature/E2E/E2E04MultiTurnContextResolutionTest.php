@@ -4,9 +4,6 @@ declare(strict_types=1);
 
 namespace Tests\Feature\E2E;
 
-use App\AI\Routing\HybridRouter;
-use App\AI\Routing\RouteType;
-use App\AI\Routing\RoutingResult;
 use App\Models\Channel;
 use App\Models\ChannelAccount;
 use App\Models\Conversation;
@@ -20,7 +17,7 @@ use Tests\TestCase;
 /**
  * E2E-04: Multi-Turn Context Resolution
  *
- * Pathway: Turn 1 (Rahim-এর due কত?) -> Contextual State Saved -> Turn 2 (ওটা কবে থেকে?) -> Pronoun/Entity Resolved -> Analytics
+ * Pathway: Turn 1 (Rahim-এর due কত?) -> Contextual State Saved -> Turn 2 (ওটা কবে থেকে?) -> Pronoun/Entity Resolved via UnifiedDecisionEngine -> Analytics
  */
 class E2E04MultiTurnContextResolutionTest extends TestCase
 {
@@ -84,20 +81,6 @@ class E2E04MultiTurnContextResolutionTest extends TestCase
         ]);
 
         // Turn 2: Follow-up question with pronoun "ওটা কবে থেকে?"
-        $mockRouter = \Mockery::mock(HybridRouter::class);
-        $mockRouter->shouldReceive('route')
-            ->once()
-            ->andReturn(new RoutingResult(
-                route: RouteType::ANALYTICS,
-                confidence: 0.94,
-                intent: 'customer_due_history',
-                signals: [],
-                entities: ['customer' => 'Rahim'],
-                routerLatencyMs: 24.0,
-                isFallback: false,
-                securityStatus: 'allowed'
-            ));
-
         $baseUrl = rtrim(config('analytics.base_url', 'http://127.0.0.1:8001'), '/');
         Http::fake([
             "{$baseUrl}/analytics/query" => function ($request) {
@@ -118,8 +101,6 @@ class E2E04MultiTurnContextResolutionTest extends TestCase
                 ], 200);
             },
         ]);
-
-        $this->app->instance(HybridRouter::class, $mockRouter);
 
         $service = $this->app->make(CustomerSupportService::class);
         $reply = $service->generateReply(

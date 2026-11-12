@@ -21,10 +21,6 @@ class E2E02Tier1LexiconTest extends BaseE2ETestCase
     {
         $query = 'COD payment ki?';
 
-        $this->routerMock->shouldReceive('route')
-            ->once()
-            ->andReturn(new RoutingResult(RouteType::KNOWLEDGE, 0.95, 'cod_inquiry'));
-
         $this->faqSearchMock->shouldReceive('search')
             ->once()
             ->andReturn($this->createHitCollection($this->codFaq, 0.94, 'lexicon'));

@@ -524,8 +524,11 @@ class ToolAuthorizationPolicy
     public function sanitizeMetadata(array $metadata): array
     {
         $safeKeys = [
-            'execution_time_ms', 'latency_ms', 'source', 'record_count',
+            'execution_time_ms', 'latency_ms', 'source', 'sources', 'record_count',
             'total_count', 'page', 'exception_class', 'tool_name', 'status',
+            'contract_version', 'query_fingerprint', 'relationships_active',
+            'source_status', 'is_cached_summary', 'dataset_generation', 'dataset_freshness', 'offline_fallback_reason',
+            'retrieval_hits', 'top_hit',
         ];
 
         $cleaned = [];

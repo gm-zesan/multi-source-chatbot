@@ -30,10 +30,6 @@ class E2E07PythonMemoryKGMTest extends BaseE2ETestCase
         // Session B query
         $query = 'আমার সাইজটা কী ছিল?';
 
-        $this->routerMock->shouldReceive('route')
-            ->once()
-            ->andReturn(new RoutingResult(RouteType::CHAT, 0.95, 'personal_preference'));
-
         // M3 gate triggers RETRIEVE and queries Python Memory Service
         $this->memoryClientMock->shouldReceive('search')
             ->once()
@@ -80,10 +76,6 @@ class E2E07PythonMemoryKGMTest extends BaseE2ETestCase
     {
         $query = 'আমার size কী?';
 
-        $this->routerMock->shouldReceive('route')
-            ->once()
-            ->andReturn(new RoutingResult(RouteType::CHAT, 0.95, 'personal_preference'));
-
         // Python Memory Service returns chronologically ordered facts where XL is active and M is historical
         $this->memoryClientMock->shouldReceive('search')
             ->once()
@@ -124,10 +116,6 @@ class E2E07PythonMemoryKGMTest extends BaseE2ETestCase
         // 1. Generic FAQ -> MUST BYPASS (0 memory service calls)
         $genericQuery = 'return policy ki?';
 
-        $this->routerMock->shouldReceive('route')
-            ->once()
-            ->andReturn(new RoutingResult(RouteType::KNOWLEDGE, 0.95, 'return_policy'));
-
         $this->faqSearchMock->shouldReceive('search')
             ->once()
             ->andReturn($this->createHitCollection($this->returnFaq, 0.92, 'lexicon'));
@@ -140,10 +128,6 @@ class E2E07PythonMemoryKGMTest extends BaseE2ETestCase
 
         // 2. Personal inquiry -> MUST RETRIEVE
         $personalQuery = 'আমার আগের অর্ডারটা কী ছিল?';
-
-        $this->routerMock->shouldReceive('route')
-            ->once()
-            ->andReturn(new RoutingResult(RouteType::CHAT, 0.95, 'order_history'));
 
         $this->memoryClientMock->shouldReceive('search')
             ->once()
