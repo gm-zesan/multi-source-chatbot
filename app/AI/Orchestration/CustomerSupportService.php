@@ -1893,6 +1893,19 @@ PROMPT;
             }
         }
 
+        // 6. Adversarial prompt injection, system jailbreak, and financial reconnaissance
+        if (preg_match('/(?:ignore\s+(?:all\s+)?previous\s+instructions|developer\s+mode|system\s+override|repeat\s+(?:your\s+)?(?:exact\s+)?system\s+instructions|act\s+as\s+(?:a\s+)?business|database\s+schema|secret\s+keys?|drop\s+table|select\s+\*\s+from)/ui', $q)) {
+            return true;
+        }
+
+        if (preg_match('/(?:profit\s+margin|purchase\s+cost|net\s+profit|staff\s+payroll|employee\s+salari|total\s+revenue)/ui', $q)) {
+            return true;
+        }
+
+        if (preg_match('/(?:বেতন\s+কত|প্রফিট\s+কত|লাভ\s*ও\s*খরচ|সম্পূর্ণ\s*হিসাব)/ui', $q)) {
+            return true;
+        }
+
         return false;
     }
 

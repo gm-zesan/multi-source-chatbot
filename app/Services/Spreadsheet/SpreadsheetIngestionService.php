@@ -351,9 +351,10 @@ class SpreadsheetIngestionService
             ]);
 
             $document->update([
-                'lifecycle_status' => DocumentLifecycleStatus::ACTIVE,
-                'is_active'        => true,
-                'chunk_count'      => $job->processed_rows,
+                'lifecycle_status'     => DocumentLifecycleStatus::ACTIVE,
+                'is_active'            => true,
+                'chunk_count'          => $job->processed_rows,
+                'active_generation_id' => $job->generation_id,
             ]);
 
             return [
@@ -512,9 +513,10 @@ class SpreadsheetIngestionService
 
         if ($isFinished) {
             $document->update([
-                'lifecycle_status' => DocumentLifecycleStatus::ACTIVE,
-                'is_active'        => true,
-                'chunk_count'      => $newProcessed,
+                'lifecycle_status'     => DocumentLifecycleStatus::ACTIVE,
+                'is_active'            => true,
+                'chunk_count'          => $newProcessed,
+                'active_generation_id' => $job->generation_id,
             ]);
         }
 

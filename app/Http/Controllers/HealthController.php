@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Services\Analytics\AnalyticsClient;
+use App\Services\Memory\ConversationMemoryClient;
 use App\Services\Retrieval\RetrievalClient;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
@@ -12,6 +14,8 @@ class HealthController extends Controller
 {
     public function __construct(
         private readonly RetrievalClient $retrievalClient,
+        private readonly ?AnalyticsClient $analyticsClient = null,
+        private readonly ?ConversationMemoryClient $memoryClient = null,
     ) {}
 
     /**
@@ -23,6 +27,8 @@ class HealthController extends Controller
             'database'  => $this->checkDatabase(),
             'queue'     => $this->checkQueue(),
             'retrieval' => $this->checkRetrieval(),
+            'analytics' => $this->checkAnalytics(),
+            'memory'    => $this->checkMemory(),
             'cache'     => $this->checkCache(),
         ];
 
@@ -83,6 +89,39 @@ class HealthController extends Controller
             ];
         } catch (\Throwable $e) {
             return ['healthy' => false, 'error' => $e->getMessage()];
+        }
+    }
+
+    private function checkAnalytics(): array
+    {
+        try {
+            $client = $this->analyticsClient ?? app(AnalyticsClient::class);
+            return $client->health();
+        } catch (\Throwable $e) {
+            return ['healthy' => false, 'latency_ms' => 0.0, 'error' => $e->getMessage()];
+        }
+    }
+
+    private function checkMemory(): array
+    {
+        $start = microtime(true);
+        try {
+            $client = $this->memoryClient ?? app(ConversationMemoryClient::class);
+            $healthy = $client->healthCheck();
+            $latency = (microtime(true) - $start) * 1000;
+
+            return [
+                'healthy'    => $healthy,
+                'latency_ms' => round($latency, 2),
+                'error'      => $healthy ? null : 'Memory service returned unhealthy status',
+            ];
+        } catch (\Throwable $e) {
+            $latency = (microtime(true) - $start) * 1000;
+            return [
+                'healthy'    => false,
+                'latency_ms' => round($latency, 2),
+                'error'      => $e->getMessage(),
+            ];
         }
     }
 

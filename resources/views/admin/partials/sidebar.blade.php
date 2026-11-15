@@ -22,6 +22,12 @@
                     <span class="nav-label">Dashboard</span>
                 </a>
             </li>
+            <li class="nav-item">
+                <a href="{{ route('analytics.index') }}" class="nav-link {{ Route::is('analytics.index') ? 'active' : '' }}">
+                    <i class="ri-bar-chart-box-line nav-icon"></i>
+                    <span class="nav-label">Analytics & BI</span>
+                </a>
+            </li>
 
             <!-- Conversations Section -->
             <li class="nav-item">
@@ -76,6 +82,17 @@
                 <a href="{{ route('assign-roles.index') }}" class="nav-link {{ Route::is('assign-roles.index') ? 'active' : '' }}">
                     <i class="ri-user-settings-line nav-icon"></i>
                     <span class="nav-label">Assign Roles</span>
+                </a>
+            </li>
+
+            <!-- Settings Section -->
+            <li class="nav-section">
+                <span class="nav-section-title">Settings</span>
+            </li>
+            <li class="nav-item">
+                <a href="{{ route('workspace.settings.edit') }}" class="nav-link {{ Route::is('workspace.settings.*') ? 'active' : '' }}">
+                    <i class="ri-settings-4-line nav-icon"></i>
+                    <span class="nav-label">Workspace Settings</span>
                 </a>
             </li>
         </ul>

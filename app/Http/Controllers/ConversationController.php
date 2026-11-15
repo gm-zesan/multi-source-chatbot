@@ -33,13 +33,28 @@ class ConversationController extends Controller
     /**
      * Conversation List
      */
-    public function index(): View
+    public function index(\Illuminate\Http\Request $request): View
     {
         $user = Auth::user();
-        $query = Conversation::with(['channelAccount.channel'])->latest('last_message_at');
+        $query = Conversation::with(['channelAccount.channel', 'assignedTo'])->latest('last_message_at');
 
         if ($user && ! $user->hasRole(RoleEnum::SUPERADMIN->value)) {
             $query->whereHas('channelAccount', fn ($q) => $q->where('workspace_id', (int) $user->workspace_id));
+        }
+
+        if ($request->filled('status')) {
+            $query->where('status', (string) $request->input('status'));
+        }
+
+        if ($request->filled('assigned_to')) {
+            $assignedVal = $request->input('assigned_to');
+            if ($assignedVal === 'me' && $user) {
+                $query->where('assigned_to_user_id', $user->id);
+            } elseif ($assignedVal === 'unassigned') {
+                $query->whereNull('assigned_to_user_id');
+            } else {
+                $query->where('assigned_to_user_id', (int) $assignedVal);
+            }
         }
 
         $conversations = $query->paginate(20);
@@ -68,7 +83,7 @@ class ConversationController extends Controller
     /**
      * Send Manual Staff Reply
      */
-    public function reply(SendMessageRequest $request, Conversation $conversation): RedirectResponse
+    public function reply(SendMessageRequest $request, Conversation $conversation): \Symfony\Component\HttpFoundation\Response
     {
         // Load relationships (if not already loaded)
         $conversation->load('channelAccount.channel');
@@ -89,7 +104,11 @@ class ConversationController extends Controller
             response: $response,
         );
 
-        return redirect()->route('admin.conversations.show', $conversation)
+        if ($request->wantsJson()) {
+            return response()->json(['success' => true, 'status' => 'Reply sent successfully!']);
+        }
+
+        return redirect()->route('conversations.show', $conversation)
             ->with('status', 'Reply sent successfully!');
     }
 
@@ -161,5 +180,64 @@ class ConversationController extends Controller
         }
 
         return redirect()->back()->with('success', 'AI response generated successfully.');
+    }
+
+    /**
+     * Assign Conversation to a User / Agent.
+     */
+    public function assign(\Illuminate\Http\Request $request, Conversation $conversation): RedirectResponse
+    {
+        $this->authorizeConversation($conversation);
+
+        $validated = $request->validate([
+            'assigned_to_user_id' => 'nullable|exists:users,id',
+        ]);
+
+        $assignedUserId = !empty($validated['assigned_to_user_id']) ? (int) $validated['assigned_to_user_id'] : null;
+
+        // Verify assigned user belongs to the same workspace if set
+        if ($assignedUserId !== null) {
+            $assignedUser = User::find($assignedUserId);
+            $workspaceId = $conversation->channelAccount?->workspace_id;
+            if ($assignedUser && (int) $assignedUser->workspace_id !== (int) $workspaceId) {
+                abort(403, 'Cannot assign conversation to user from another workspace.');
+            }
+        }
+
+        $conversation->update([
+            'assigned_to_user_id' => $assignedUserId,
+        ]);
+
+        return redirect()->back()->with('status', 'Conversation assignment updated successfully.');
+    }
+
+    /**
+     * Update Conversation Status (open, pending, resolved).
+     */
+    public function updateStatus(\Illuminate\Http\Request $request, Conversation $conversation): RedirectResponse
+    {
+        $this->authorizeConversation($conversation);
+
+        $validated = $request->validate([
+            'status'   => 'nullable|in:open,pending,in_progress,resolved,closed',
+            'priority' => 'nullable|in:low,normal,high,urgent',
+        ]);
+
+        $updateData = [];
+        if (! empty($validated['status'])) {
+            $status = $validated['status'];
+            $updateData['status'] = $status;
+            $updateData['resolved_at'] = in_array($status, ['resolved', 'closed'], true) ? now() : null;
+        }
+
+        if (! empty($validated['priority'])) {
+            $updateData['priority'] = $validated['priority'];
+        }
+
+        if (! empty($updateData)) {
+            $conversation->update($updateData);
+        }
+
+        return redirect()->back()->with('status', 'Conversation updated successfully.');
     }
 }

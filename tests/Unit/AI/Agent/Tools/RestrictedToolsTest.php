@@ -268,5 +268,50 @@ class RestrictedToolsTest extends TestCase
         $this->assertArrayHasKey('employee_cost', $bothResult->data); // Conjunctive: allowed!
         $this->assertSame(35045.00, $bothResult->data['employee_cost']);
     }
+
+    public function test_employee_analytics_disambiguation_search_and_attribution(): void
+    {
+        $salesperson2 = AnalyticsSalesperson::create([
+            'workspace_id'  => $this->workspace->id,
+            'name'          => 'Faruk Associate',
+            'employee_code' => 'EMP-002',
+            'target_amount' => 15000.00,
+            'is_active'     => true,
+        ]);
+
+        $customer = AnalyticsCustomer::first();
+
+        // Order attributed to Faruk
+        AnalyticsOrder::create([
+            'workspace_id'   => $this->workspace->id,
+            'customer_id'    => $customer->id,
+            'salesperson_id' => $salesperson2->id,
+            'order_number'   => 'ORD-FARUK-1',
+            'total_amount'   => 350.00,
+            'discount'       => 50.00,
+            'net_amount'     => 300.00,
+            'status'         => 'completed',
+            'order_date'     => Carbon::today()->toDateString(),
+        ]);
+
+        $tool = new EmployeeAnalyticsTool();
+
+        // 1. Search disambiguation for 'Faruk'
+        $searchResult = AgentContext::withContext($this->ownerContext, function () use ($tool) {
+            return $tool->handle(new Request(['search' => 'Faruk']));
+        });
+
+        $this->assertTrue($searchResult->success);
+        $this->assertCount(1, $searchResult->data['staff_members']);
+        $this->assertSame('Faruk Associate', $searchResult->data['staff_members'][0]['name']);
+        $this->assertSame('EMP-002', $searchResult->data['staff_members'][0]['employee_code']);
+        $this->assertSame(300.00, $searchResult->data['staff_members'][0]['sales_achieved']);
+        $this->assertSame(0.02, $searchResult->data['staff_members'][0]['achievement_ratio']);
+
+        // 2. Attribution calculation verification
+        $this->assertSame(1200.00, $searchResult->data['total_sales']); // 900 (ORD-RES-1) + 300 (ORD-FARUK-1)
+        $this->assertSame(1200.00, $searchResult->data['attributed_sales']);
+        $this->assertSame(0.0, $searchResult->data['unattributed_sales']);
+    }
 }
 

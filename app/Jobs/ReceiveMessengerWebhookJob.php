@@ -186,6 +186,12 @@ class ReceiveMessengerWebhookJob implements ShouldQueue
 
         // Also dispatch ConversationCreated if brand new
         if ($result['was_recently_created']) {
+            if ($account->workspace_id) {
+                try {
+                    app(\App\Services\Subscription\SubscriptionQuotaService::class)->recordConversationUsage((int) $account->workspace_id);
+                } catch (\Throwable) {}
+            }
+
             ConversationCreated::dispatch(
                 conversation: $conversation,
                 rawPayload: $this->payload,

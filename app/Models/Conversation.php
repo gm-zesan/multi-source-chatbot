@@ -18,13 +18,22 @@ class Conversation extends Model
         'last_direction',
         'unread_count',
         'status',
+        'assigned_to_user_id',
+        'priority',
+        'resolved_at',
         'metadata',
     ];
 
     protected $casts = [
-        'metadata' => 'array',
+        'metadata'        => 'array',
         'last_message_at' => 'datetime',
+        'resolved_at'     => 'datetime',
     ];
+
+    public function assignedTo(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'assigned_to_user_id');
+    }
 
     public function account(): BelongsTo
     {

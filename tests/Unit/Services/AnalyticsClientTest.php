@@ -116,4 +116,37 @@ class AnalyticsClientTest extends TestCase
         $this->assertSame('service_unavailable', $result['intent']);
         $this->assertStringContainsString('Analytics Service Error', $result['report']);
     }
+
+    /**
+     * Test health check when service is healthy.
+     */
+    public function test_health_check_returns_healthy_when_service_is_up(): void
+    {
+        Http::fake([
+            'http://127.0.0.1:8001/health' => Http::response(['status' => 'healthy'], 200),
+        ]);
+
+        $client = new AnalyticsClient(baseUrl: 'http://127.0.0.1:8001');
+        $health = $client->health();
+
+        $this->assertTrue($health['healthy']);
+        $this->assertNull($health['error']);
+        $this->assertGreaterThanOrEqual(0.0, $health['latency_ms']);
+    }
+
+    /**
+     * Test health check when service returns non-200 or exception.
+     */
+    public function test_health_check_returns_unhealthy_when_service_fails(): void
+    {
+        Http::fake([
+            'http://127.0.0.1:8001/health' => Http::response(null, 500),
+        ]);
+
+        $client = new AnalyticsClient(baseUrl: 'http://127.0.0.1:8001');
+        $health = $client->health();
+
+        $this->assertFalse($health['healthy']);
+        $this->assertSame('HTTP 500', $health['error']);
+    }
 }

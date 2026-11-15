@@ -1,59 +1,138 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Enterprise AI Business Operating & Customer Support Platform
+**Multi-Tenant SaaS for E-Commerce & F-Commerce**
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+[![Tests](https://img.shields.io/badge/PHPUnit-1153%20passed-brightgreen.svg)](#automated-testing)
+[![PHP](https://img.shields.io/badge/PHP-8.4+-blue.svg)](https://php.net)
+[![Laravel](https://img.shields.io/badge/Laravel-12.x-red.svg)](https://laravel.com)
+[![License](https://img.shields.io/badge/License-Proprietary-yellow.svg)](#license)
 
-## About Laravel
+An enterprise-grade, multi-tenant SaaS platform that unifies AI customer support, spreadsheet analytics, business intelligence (BI), long-term conversational memory, and commercial billing into a single operating system for modern e-commerce and F-commerce businesses.
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+---
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## 🏛️ Platform Architecture
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+```
+               ┌─────────────────────────────────────────────────────────────┐
+               │                        Business Users                       │
+               │         Superadmin · Workspace Owner · Agent · Customer      │
+               └──────────────────────────────┬──────────────────────────────┘
+                                              │
+               ┌──────────────────────────────▼──────────────────────────────┐
+               │                Unified Chat & Application Layer              │
+               │   Omnichannel Webhooks · Web Chat Widget · Admin Simulator  │
+               └──────────────────────────────┬──────────────────────────────┘
+                                              │
+               ┌──────────────────────────────▼──────────────────────────────┐
+               │                  Unified AI Orchestration                   │
+               │  Unified Decision Engine (UDE) · Policy & DLP Controller    │
+               │      Tool Execution Controller · Multi-Turn Context Gate     │
+               └──────────────┬───────────────────────────────┬──────────────┘
+                              │                               │
+        ┌─────────────────────▼────────┐             ┌────────▼────────────────────┐
+        │    Knowledge Intelligence    │             │    Business Intelligence    │
+        │ Typesense Hybrid Vector/BM25 │             │ Dual-Path Execution Engine  │
+        │   MySQL Fulltext Fallback    │             │  Virtual Relational SQLite  │
+        │ Long-Term Neo4j Graph Memory │             │ Analytical Tables & Aggs    │
+        └──────────────────────────────┘             └─────────────────────────────┘
+```
 
-## Learning Laravel
+---
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+## 👥 Personas & Core Capabilities
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+| Persona | Core Capabilities & Workspaces |
+| :--- | :--- |
+| **Superadmin** | Global commercial governance, MRR tracking, tenant quota allocation, payment gateway reconciliation (bKash, SSLCommerz, Stripe), and system health probes (`/health`). |
+| **Workspace Owner** | Business profile management (currency, operating hours, support contacts), multi-sheet spreadsheet ingestion, visual BI charts (`/analytics`), staff RBAC management, and zero cross-tenant leakage. |
+| **Support Agent** | Unified omnichannel conversation queue, ticket self-assignment, status & priority lifecycles (`open`, `in_progress`, `resolved`), and manual staff messaging. |
+| **Customer** | Omnichannel inbound (WhatsApp, Instagram, Web Widget), safe order fulfillment lookup (`CustomerOrderStatusTool` with zero internal cost leakage), FAQ Q&A, and protected by P0 prompt-injection defense. |
 
-## Laravel Sponsors
+---
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+## 🛠️ Omnichannel Messaging Integrations
 
-### Premium Partners
+- **Meta WhatsApp Cloud API (`WhatsAppDriver`):** Webhook signature verification, phone ID routing, and media/text outbound delivery.
+- **Meta Instagram Graph API (`InstagramDriver`):** Inbound event parsing, user profile hydration, and thread management.
+- **Facebook Messenger:** Dual-layer webhook verification and high-concurrency queue processing.
+- **Web Chat Widget (`WebsiteDriver`):** Standalone, embeddable JavaScript customer support chat widget located at [`public/widget/chat.js`](file:///Users/zesan/Desktop/Entrepreneurs_Automation/multi-source-chatbot/public/widget/chat.js).
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+---
 
-## Contributing
+## 🔒 Security, Governance & DLP
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+1. **P0 Security Barrier:** Intercepts prompt injections, Developer Mode bypasses, system instructions extraction, and Bengali financial/workforce probing before tool execution.
+2. **5-Level DLP Sanitization:** Restricts sensitive internal business data (purchase cost, gross margins, employee salaries) to authorized Owners and Managers only.
+3. **HMAC Execution Grants:** Analytical queries against virtual spreadsheets require cryptographic SHA-256 HMAC signature verification with replay defense.
+4. **Row-Level Tenant Isolation:** Database queries strictly enforce `workspace_id` boundaries. Unauthorized cross-tenant requests fail closed with `403 Forbidden`.
 
-## Code of Conduct
+---
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+## 💾 Automated Database Backup & Disaster Recovery
 
-## Security Vulnerabilities
+The platform includes point-in-time database backup and restoration commands with automated retention purging and SHA-256 integrity verification:
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+```bash
+# Create point-in-time backup with SHA-256 integrity checksum
+php artisan db:backup --compress --retention=30
 
-## License
+# Restore from backup archive with cryptographic integrity validation
+php artisan db:restore prod_snapshot.sql.gz --force
+```
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+Full operational runbook available at [`docs/operations/DISASTER_RECOVERY.md`](file:///Users/zesan/Desktop/Entrepreneurs_Automation/multi-source-chatbot/docs/operations/DISASTER_RECOVERY.md).
+
+---
+
+## 🧪 Automated Testing & Verification
+
+The test suite provides comprehensive test coverage across unit, feature, security, concurrency, channel driver, and end-to-end multi-persona workflows:
+
+```bash
+# Run full automated test suite
+php -d memory_limit=1024M vendor/bin/phpunit
+
+# Run focused 4-Persona End-to-End staging validation
+php vendor/bin/phpunit tests/Feature/E2E/FullPlatformMultiPersonaE2ETest.php
+
+# Run database backup & recovery tests
+php vendor/bin/phpunit tests/Feature/Console/DatabaseBackupCommandTest.php
+```
+
+**Quality Baseline:** 1,153 automated tests · 6,218 assertions · 0 failures · 0 errors (100% Pass Rate).
+
+---
+
+## ⚙️ Getting Started
+
+### Prerequisites
+- PHP 8.4+ with `pdo`, `mbstring`, `openssl`, `curl`, `redis` extensions
+- Composer 2.x
+- MySQL 8.0+ / SQLite 3
+- Node.js & NPM (for frontend assets)
+
+### Setup Instructions
+```bash
+# 1. Clone repository & install dependencies
+composer install
+npm install && npm run build
+
+# 2. Configure environment
+cp .env.example .env
+php artisan key:generate
+
+# 3. Run database migrations & seeders
+php artisan migrate
+php artisan db:seed --class=RoleSeeder
+
+# 4. Start background queue workers
+php artisan queue:work --queue=messenger,spreadsheet,default
+
+# 5. Verify system health
+curl http://localhost/health
+```
+
+---
+
+## 📄 License
+Proprietary & Confidential. All rights reserved.

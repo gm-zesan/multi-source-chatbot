@@ -50,6 +50,8 @@ class EmployeeAnalyticsTool extends AbstractGovernedTool
     public function schema(JsonSchema $schema): array
     {
         return [
+            'search' => $schema->string()
+                ->description('Optional employee name or employee code to filter and disambiguate a specific staff member.'),
             'limit' => $schema->integer()
                 ->description('Maximum number of staff members to return (1-50). Defaults to 20.'),
         ];
@@ -69,12 +71,20 @@ class EmployeeAnalyticsTool extends AbstractGovernedTool
 
         $workspaceId = $context->getWorkspaceId();
         $limit = min(max(1, (int) ($arguments['limit'] ?? 20)), 50);
+        $search = isset($arguments['search']) ? trim((string) $arguments['search']) : null;
 
         // 2. Query Headcount & Sales Performance from MySQL
-        $salespersons = AnalyticsSalesperson::where('workspace_id', $workspaceId)
-            ->where('is_active', true)
-            ->limit($limit)
-            ->get();
+        $salespersonQuery = AnalyticsSalesperson::where('workspace_id', $workspaceId)
+            ->where('is_active', true);
+
+        if (! empty($search)) {
+            $salespersonQuery->where(function ($q) use ($search) {
+                $q->where('name', 'LIKE', "%{$search}%")
+                    ->orWhere('employee_code', 'LIKE', "%{$search}%");
+            });
+        }
+
+        $salespersons = $salespersonQuery->limit($limit)->get();
 
         $totalHeadcount = AnalyticsSalesperson::where('workspace_id', $workspaceId)->count();
         $activeHeadcount = $salespersons->count();
@@ -103,6 +113,14 @@ class EmployeeAnalyticsTool extends AbstractGovernedTool
 
         $totalCommissions = round($totalSales * 0.05, 2);
         $totalEmployeeCost = round($totalBaseSalary + $totalCommissions, 2);
+
+        $attributedSales = (float) DB::table('analytics_orders')
+            ->where('workspace_id', $workspaceId)
+            ->where('status', 'completed')
+            ->whereNotNull('salesperson_id')
+            ->sum('net_amount');
+
+        $unattributedSales = round(max(0.0, $totalSales - $attributedSales), 2);
 
         // Pre-aggregate sales achieved by salesperson in a single query (O(1) lookup, eliminates N+1 query pattern)
         $salesByRep = DB::table('analytics_orders')
@@ -140,6 +158,9 @@ class EmployeeAnalyticsTool extends AbstractGovernedTool
         return ToolResult::success([
             'total_headcount'        => $totalHeadcount,
             'active_headcount'       => $activeHeadcount,
+            'total_sales'            => round($totalSales, 2),
+            'attributed_sales'       => round($attributedSales, 2),
+            'unattributed_sales'     => $unattributedSales,
             // Granular Sensitive Metrics
             'base_salary'            => $totalBaseSalary, // HR Category
             'commission_expense'     => $totalCommissions, // Financial Category

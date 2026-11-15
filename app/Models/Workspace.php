@@ -10,11 +10,19 @@ class Workspace extends Model
     protected $fillable = [
         'name',
         'slug',
+        'currency',
+        'support_phone',
+        'support_email',
+        'business_address',
+        'operating_hours',
+        'settings',
         'is_active',
     ];
 
     protected $casts = [
-        'is_active' => 'boolean',
+        'is_active'        => 'boolean',
+        'operating_hours'  => 'array',
+        'settings'         => 'array',
     ];
 
     public function users()

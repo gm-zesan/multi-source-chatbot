@@ -93,6 +93,11 @@ class ToolRegistry
             tool: app(LegacyExcelAnalyticsTool::class),
             operations: ['query_spreadsheet']
         );
+
+        $this->register(
+            tool: app(\App\AI\Tools\CustomerOrderStatusTool::class),
+            operations: ['get_order_status']
+        );
     }
 
     /**
@@ -146,10 +151,11 @@ class ToolRegistry
      */
     public function getPermittedToolNames(bool $isCustomer, ?User $user, int $workspaceId): array
     {
-        // Public customer channels only get read-only knowledge tools
+        // Public customer channels only get read-only customer-safe tools (knowledge and order tracking)
         if ($isCustomer) {
             return [
                 'knowledge_intelligence',
+                'customer_order_status',
             ];
         }
 
@@ -157,6 +163,7 @@ class ToolRegistry
         if ($user === null) {
             return [
                 'knowledge_intelligence',
+                'customer_order_status',
             ];
         }
 
@@ -174,6 +181,7 @@ class ToolRegistry
         if (!$isOwnerOrManager) {
             return [
                 'knowledge_intelligence',
+                'customer_order_status',
             ];
         }
 

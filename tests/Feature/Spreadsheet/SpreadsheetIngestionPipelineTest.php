@@ -711,4 +711,135 @@ class SpreadsheetIngestionPipelineTest extends TestCase
         $this->assertEquals('Vintage Radio', $record->canonical_entity_name);
         $this->assertEquals(450.00, (float) $record->canonical_amount);
     }
+
+    /**
+     * Test 13: Document active_generation_id is atomically updated upon job completion.
+     */
+    public function test_document_active_generation_id_is_set_upon_job_completion(): void
+    {
+        $csvContent = implode("\n", [
+            '"SKU","Title","Amount"',
+            '"ITEM-001","Widget A","100.00"',
+            '"ITEM-002","Widget B","200.00"',
+        ]);
+        $filePath = 'active_gen_test.csv';
+        Storage::disk('local')->put($filePath, $csvContent);
+
+        $document = KnowledgeDocument::create([
+            'id'                   => (string) Str::uuid(),
+            'workspace_id'         => $this->workspaceA->id,
+            'title'                => 'Active Gen Test Doc',
+            'original_filename'    => 'active_gen_test.csv',
+            'file_path'            => $filePath,
+            'content_hash'         => hash('sha256', $csvContent),
+            'mime_type'            => 'text/csv',
+            'file_size'            => strlen($csvContent),
+            'lifecycle_status'     => DocumentLifecycleStatus::INDEXING,
+            'purpose'              => IngestionPurpose::DATA_ANALYTICS,
+            'active_generation_id' => null,
+        ]);
+
+        $this->assertNull($document->active_generation_id);
+
+        $job = $this->ingestion->createImportJob(
+            document: $document,
+            sheetName: 'Sheet1',
+            headerRowIndex: 0,
+            mappingConfig: [
+                'SKU'    => SpreadsheetInspectorService::CATEGORY_IDENTIFIER,
+                'Title'  => SpreadsheetInspectorService::CATEGORY_ENTITY_NAME,
+                'Amount' => SpreadsheetInspectorService::CATEGORY_AMOUNT,
+            ],
+            conflictMode: 'skip'
+        );
+
+        $this->assertNotEmpty($job->generation_id);
+
+        $chunkResult = $this->ingestion->processChunk($job, 50);
+        $this->assertTrue($chunkResult['is_finished']);
+
+        $document->refresh();
+        $this->assertEquals(DocumentLifecycleStatus::ACTIVE, $document->lifecycle_status);
+        $this->assertTrue((bool) $document->is_active);
+        $this->assertEquals($job->generation_id, $document->active_generation_id);
+    }
+
+    /**
+     * Test 14: Multi-chunk streaming ingestion and re-import lifecycle.
+     */
+    public function test_multi_chunk_streaming_ingestion_and_reimport_lifecycle(): void
+    {
+        // 1. Generate 500 rows
+        $rows = ['"SKU","Title","Amount"'];
+        for ($i = 1; $i <= 500; $i++) {
+            $rows[] = "\"SKU-STREAM-{$i}\",\"Streamed Item {$i}\",\"" . (50.0 + $i) . "\"";
+        }
+        $csvContent = implode("\n", $rows);
+        $filePath = 'stream_test.csv';
+        Storage::disk('local')->put($filePath, $csvContent);
+
+        $document = KnowledgeDocument::create([
+            'id'                => (string) Str::uuid(),
+            'workspace_id'      => $this->workspaceA->id,
+            'title'             => 'Streaming Test Doc',
+            'original_filename' => 'stream_test.csv',
+            'file_path'         => $filePath,
+            'content_hash'      => hash('sha256', $csvContent),
+            'mime_type'         => 'text/csv',
+            'file_size'         => strlen($csvContent),
+            'lifecycle_status'  => DocumentLifecycleStatus::INDEXING,
+            'purpose'           => IngestionPurpose::DATA_ANALYTICS,
+        ]);
+
+        $mappingConfig = [
+            'SKU'    => SpreadsheetInspectorService::CATEGORY_IDENTIFIER,
+            'Title'  => SpreadsheetInspectorService::CATEGORY_ENTITY_NAME,
+            'Amount' => SpreadsheetInspectorService::CATEGORY_AMOUNT,
+        ];
+
+        $job1 = $this->ingestion->createImportJob($document, 'Default', 0, $mappingConfig, 'skip');
+        $gen1 = $job1->generation_id;
+
+        // Process 5 chunks of 100 rows each
+        for ($chunk = 1; $chunk <= 5; $chunk++) {
+            $res = $this->ingestion->processChunk($job1, 100);
+            if ($chunk < 5) {
+                $this->assertFalse($res['is_finished']);
+                $this->assertEquals($chunk * 100, $job1->fresh()->checkpoint_row);
+            } else {
+                $this->assertTrue($res['is_finished']);
+                $this->assertEquals(500, $job1->fresh()->processed_rows);
+                $this->assertEquals('completed', $job1->fresh()->status);
+            }
+        }
+
+        $document->refresh();
+        $this->assertEquals($gen1, $document->active_generation_id);
+        $this->assertEquals(500, StructuredRecord::where('import_job_id', $job1->id)->count());
+
+        // 2. Perform Re-import with a second job (simulating updated spreadsheet or re-indexing)
+        $job2 = $this->ingestion->createImportJob($document, 'Default', 0, $mappingConfig, 'overwrite');
+        $gen2 = $job2->generation_id;
+        $this->assertNotEquals($gen1, $gen2);
+
+        // Process all 500 rows for job2
+        for ($chunk = 1; $chunk <= 5; $chunk++) {
+            $this->ingestion->processChunk($job2, 100);
+        }
+
+        $job2->refresh();
+        $document->refresh();
+
+        $this->assertEquals('completed', $job2->status);
+        $this->assertEquals(500, $job2->processed_rows);
+        $this->assertEquals($gen2, $document->active_generation_id);
+
+        // Generation fencing check: document active generation points to gen2, and all records updated to job2
+        $job2Records = StructuredRecord::where('workspace_id', $this->workspaceA->id)
+            ->where('document_id', $document->id)
+            ->where('import_job_id', $job2->id)
+            ->count();
+        $this->assertEquals(500, $job2Records);
+        $this->assertEquals($gen2, $document->active_generation_id);
+    }
 }

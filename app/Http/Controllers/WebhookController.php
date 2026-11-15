@@ -27,9 +27,9 @@ class WebhookController extends Controller
      * All business logic (persistence, CRM, FAQ, etc.) runs asynchronously
      * via jobs, events, and listeners on dedicated queues.
      */
-    public function handle(Request $request)
+    public function handle(Request $request, ?string $channel = null)
     {
-        $channel = 'facebook';
+        $channel = $channel ?? (string) ($request->route('channel') ?: 'facebook');
         $driver = ChannelManager::driver($channel);
 
         // Webhook verification (Meta/Facebook)

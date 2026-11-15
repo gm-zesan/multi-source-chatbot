@@ -47,6 +47,43 @@ class AnalyticsClient
     }
 
     /**
+     * Check health of the Python analytics service.
+     *
+     * @return array{healthy: bool, latency_ms: float, error: ?string}
+     */
+    public function health(): array
+    {
+        $start = microtime(true);
+        $url = "{$this->baseUrl()}/health";
+
+        try {
+            $response = $this->http()->get($url);
+            $latency = (microtime(true) - $start) * 1000;
+
+            if ($response->successful()) {
+                return [
+                    'healthy'    => true,
+                    'latency_ms' => round($latency, 2),
+                    'error'      => null,
+                ];
+            }
+
+            return [
+                'healthy'    => false,
+                'latency_ms' => round($latency, 2),
+                'error'      => "HTTP {$response->status()}",
+            ];
+        } catch (Throwable $e) {
+            $latency = (microtime(true) - $start) * 1000;
+            return [
+                'healthy'    => false,
+                'latency_ms' => round($latency, 2),
+                'error'      => $e->getMessage(),
+            ];
+        }
+    }
+
+    /**
      * Compute the dynamically bounded request timeout in seconds.
      * Respects active AgentContext monotonic SLA budget if available.
      */

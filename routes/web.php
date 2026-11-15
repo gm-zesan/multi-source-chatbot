@@ -29,7 +29,7 @@ Route::get('/', function () {
 // Health check — no auth, used by load balancers / uptime monitors
 Route::get('/health', HealthController::class)->name('health');
 
-Route::match(['GET', 'POST'], '/webhook', [WebhookController::class, 'handle']);
+Route::match(['GET', 'POST'], '/webhook/{channel?}', [WebhookController::class, 'handle'])->name('webhook.handle');
 
 // Canonical Redirects
 Route::get('/simulator', fn () => redirect()->route('simulator.index'))->middleware('auth');
@@ -68,6 +68,12 @@ Route::middleware('auth')->prefix('dashboard')->group(function () {
         ->middleware('permission:' . ConversationPermission::UPDATE->value);
     Route::post('/conversations/{conversation}/ai-reply', [ConversationController::class,'aiReply'])
         ->name('conversations.ai-reply')
+        ->middleware('permission:' . ConversationPermission::UPDATE->value);
+    Route::post('/conversations/{conversation}/assign', [ConversationController::class, 'assign'])
+        ->name('conversations.assign')
+        ->middleware('permission:' . ConversationPermission::UPDATE->value);
+    Route::post('/conversations/{conversation}/status', [ConversationController::class, 'updateStatus'])
+        ->name('conversations.update-status')
         ->middleware('permission:' . ConversationPermission::UPDATE->value);
 
     // Users
@@ -161,6 +167,22 @@ Route::middleware('auth')->prefix('dashboard')->group(function () {
         ->name('documents.preview')
         ->middleware('permission:' . KnowledgeDocumentPermission::VIEW->value);
 
+    // ── Owner Business Intelligence & Analytics (Stage 4) ────────────
+    Route::get('/analytics', [\App\Http\Controllers\AnalyticsDashboardController::class, 'index'])
+        ->name('analytics.index');
+    Route::get('/analytics/data', [\App\Http\Controllers\AnalyticsDashboardController::class, 'data'])
+        ->name('analytics.data');
+
+    // ── Workspace Business Profile & Settings (Stage 4) ───────────────
+    Route::get('/workspace/settings', [\App\Http\Controllers\WorkspaceSettingController::class, 'edit'])
+        ->name('workspace.settings.edit');
+    Route::post('/workspace/settings', [\App\Http\Controllers\WorkspaceSettingController::class, 'update'])
+        ->name('workspace.settings.update');
+
+    // ── SaaS Commercial & Billing Administration (Stage 6) ─────────────
+    Route::get('/admin/commercial', [\App\Http\Controllers\SuperAdminCommercialController::class, 'index'])
+        ->name('admin.commercial.index');
+
     // ── Dynamic Spreadsheet Ingestion & Mapping (Phase 2) ───────────────
     Route::prefix('/documents/{document}/spreadsheet')->name('documents.spreadsheet.')->group(function () {
         Route::get('/inspect', [\App\Http\Controllers\SpreadsheetImportController::class, 'inspect'])
@@ -200,5 +222,8 @@ Route::middleware('auth')->prefix('dashboard')->group(function () {
 
 
 });
+
+Route::post('/webhooks/billing/{gateway}', [\App\Http\Controllers\SuperAdminCommercialController::class, 'handleWebhook'])
+    ->name('webhooks.billing');
 
 require __DIR__.'/auth.php';

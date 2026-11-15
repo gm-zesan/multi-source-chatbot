@@ -1,154 +1,193 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers;
 
 use App\Enums\RoleEnum;
 use App\Models\User;
 use App\Models\Workspace;
 use Illuminate\Http\Request;
-use Yajra\DataTables\DataTables;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Str;
+use Spatie\Permission\Models\Role;
+use Yajra\DataTables\DataTables;
+
 class UserController extends Controller
 {
-    public function index(Request $request){
+    public function index(Request $request)
+    {
         if ($request->ajax()) {
-            /** @var User|null $auth_user */
-            $auth_user = Auth::user();
-            if ($auth_user->hasRole(RoleEnum::SUPERADMIN->value)) {
+            /** @var User|null $authUser */
+            $authUser = Auth::user();
+            if ($authUser && $authUser->hasRole(RoleEnum::SUPERADMIN->value)) {
                 $users = User::all();
             } else {
-                $users = User::whereHas('roles', function ($query) {
-                    return $query->where('name', '!=', RoleEnum::SUPERADMIN->value);
-                })->where('id','!=',$auth_user->id)->get();
+                $workspaceId = $authUser?->workspace_id;
+                $users = User::where('workspace_id', $workspaceId)
+                    ->whereHas('roles', function ($query) {
+                        return $query->where('name', '!=', RoleEnum::SUPERADMIN->value);
+                    })
+                    ->where('id', '!=', $authUser?->id)
+                    ->get();
             }
+
             return DataTables::of($users)
                 ->addIndexColumn()
-                ->addColumn('email', function($row){
+                ->addColumn('email', function ($row) {
                     return $row->email;
                 })
-                ->addColumn('action-btn', function($row) {
+                ->addColumn('action-btn', function ($row) {
                     return $row->id;
                 })
                 ->rawColumns(['action-btn'])
                 ->make(true);
         }
+
         return view('admin.users.index');
     }
 
+    public function create()
+    {
+        /** @var User|null $authUser */
+        $authUser = Auth::user();
+        $isSuperAdmin = $authUser && $authUser->hasRole(RoleEnum::SUPERADMIN->value);
 
-    public function create(){
-        return view('admin.users.create');
+        $rolesQuery = Role::query();
+        if (! $isSuperAdmin) {
+            $rolesQuery->where('name', '!=', RoleEnum::SUPERADMIN->value);
+        }
+        $roles = $rolesQuery->get();
+
+        return view('admin.users.create', [
+            'roles' => $roles,
+            'isSuperAdmin' => $isSuperAdmin,
+        ]);
     }
 
+    public function store(Request $request)
+    {
+        /** @var User|null $authUser */
+        $authUser = Auth::user();
+        $isSuperAdmin = $authUser && $authUser->hasRole(RoleEnum::SUPERADMIN->value);
 
-    public function store(Request $request){
         $this->validate($request, [
-            'email' => 'required|max:100|unique:users',
-        ], [
-            'email.required' => 'your email is required',
-            'email.max' =>  'your email should be less than 100 characters',
-            'email.unique' =>  'your email should be unique',
+            'name'     => 'required|string|max:255',
+            'email'    => 'required|email|max:100|unique:users,email',
+            'password' => 'nullable|string|min:8',
         ]);
-        $data = $request->all();
 
-        if (!empty($request->password) && (isset($request->password))) {
-            $this->validate($request, [
-                'password' => [
-                    'min:8',
-                    'regex:/[a-z]/',
-                    'regex:/[A-Z]/',
-                    'regex:/[0-9]/',
-                    'confirmed',
-                ],
-            ], [
-                'password.min' =>  'min char 8',
-                'password.regex' =>  'password must contain at least one uppercase letter, one lowercase letter, and one number',
+        if ($isSuperAdmin && $request->filled('workspace_name')) {
+            $workspace = Workspace::create([
+                'name'      => $request->workspace_name,
+                'slug'      => Str::slug((string) $request->workspace_name) . '-' . Str::random(4),
+                'is_active' => true,
             ]);
-            $data['password'] = bcrypt($request->password);
+            $workspaceId = $workspace->id;
+        } else {
+            $workspaceId = $authUser?->workspace_id;
         }
 
-        $workspace = Workspace::create([
-            'name' => $request->workspace_name,
-            'description' => $request->workspace_description,
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
+        $password = ! empty($request->password) ? bcrypt($request->password) : bcrypt('password');
 
         $user = User::create([
-            'workspace_id' => $workspace->id,
-            'name' => $request->name,
-            'email' => $request->email,
-            'phone' => NULL,
-            'avatar' => NULL,
+            'workspace_id'      => $workspaceId,
+            'name'              => $request->name,
+            'email'             => $request->email,
+            'phone'             => $request->phone ?? null,
+            'avatar'            => null,
             'email_verified_at' => now(),
-            'password' => $data['password'] ?? bcrypt('password'),
-            'is_active' => 1,
-            'last_login_at' => NULL,
-            'last_login_ip' => NULL,
-            'created_at' => now(),
-            'updated_at' => now(),
+            'password'          => $password,
+            'is_active'         => true,
         ]);
 
-        // $user->assignRole($request->input('roles'));
-        $user->assignRole(RoleEnum::ADMIN->value);
-
-        return redirect()->route('users')->with('success','User created successfully');
-    }
-
-
-
-
-    public function edit($id){
-        $auth_user = Auth::user();
-        $user = User::find($id);
-        $authIsSuperAdmin = $auth_user && $auth_user->hasRole(RoleEnum::SUPERADMIN->value);
-        if ($user && $user->hasRole(RoleEnum::SUPERADMIN->value) && ! $authIsSuperAdmin && (! $auth_user || $auth_user->id != $user->id)) {
-            return redirect()->route('users');
+        $roleInput = $request->input('role', RoleEnum::ADMIN->value);
+        if (! $isSuperAdmin && $roleInput === RoleEnum::SUPERADMIN->value) {
+            $roleInput = RoleEnum::ADMIN->value;
         }
 
-        return view('admin.users.edit',[
-            'user'=>$user,
+        if (! empty($roleInput)) {
+            $user->assignRole($roleInput);
+        }
+
+        return redirect()->route('users.index')->with('success', 'User created successfully');
+    }
+
+    public function edit(string|int $id)
+    {
+        /** @var User|null $authUser */
+        $authUser = Auth::user();
+        $user = User::findOrFail($id);
+        $isSuperAdmin = $authUser && $authUser->hasRole(RoleEnum::SUPERADMIN->value);
+
+        if (! $isSuperAdmin && $user->workspace_id !== $authUser?->workspace_id) {
+            abort(403, 'Unauthorized access to user outside your workspace.');
+        }
+
+        if ($user->hasRole(RoleEnum::SUPERADMIN->value) && ! $isSuperAdmin && $authUser?->id !== $user->id) {
+            return redirect()->route('users.index')->with('error', 'Unauthorized.');
+        }
+
+        return view('admin.users.edit', [
+            'user' => $user,
         ]);
     }
 
+    public function update(Request $request, string|int $id)
+    {
+        /** @var User|null $authUser */
+        $authUser = Auth::user();
+        $user = User::findOrFail($id);
+        $isSuperAdmin = $authUser && $authUser->hasRole(RoleEnum::SUPERADMIN->value);
 
-    public function update(Request $request, $id){
+        if (! $isSuperAdmin && $user->workspace_id !== $authUser?->workspace_id) {
+            abort(403, 'Unauthorized access to user outside your workspace.');
+        }
+
         $this->validate($request, [
-            'email' => 'required|max:100|unique:users,email,'.$id,
-        ], [
-            'email.required' => 'your email is required',
-            'email.max' =>  'your email should be less than 100 characters',
-            'email.unique' =>  'your email should be unique',
+            'name'  => 'required|string|max:255',
+            'email' => 'required|email|max:100|unique:users,email,' . $id,
         ]);
-        $data = $request->all();
-        $old_data = User::find($id);
 
-        if($data['cover_image_data'] != ""){
-            $image = $request->file('image');
-            $destinationPath = 'upload/all-user/';
-            $imageValue = $destinationPath . date('YmdHis') . "." . $image->getClientOriginalExtension();
-            $image->move($destinationPath, $imageValue);
-            $data['image'] = $imageValue;
-            if($old_data->image){
-                if (file_exists(public_path($old_data->image)) && $old_data->image != null) {
-                    unlink(public_path($old_data->image));
-                }
-            }
+        $updateData = [
+            'name'  => $request->name,
+            'email' => $request->email,
+        ];
+
+        if (! empty($request->password)) {
+            $updateData['password'] = bcrypt($request->password);
         }
 
-        $old_data->contactBook->update($data);
+        $user->update($updateData);
 
-        $user = User::find($id);
-        $user->update([
-            'email' => $data['email']
-        ]);
-
-        return redirect()->route('users')->with('success','User updated successfully');
+        return redirect()->route('users.index')->with('success', 'User updated successfully');
     }
 
-    public function delete($id){
-        $old_data = User::find($id);
-        $old_data->delete();
-        return redirect()->route('users')->with('success','User deleted successfully');
+    public function destroy(string|int $id)
+    {
+        /** @var User|null $authUser */
+        $authUser = Auth::user();
+        $user = User::findOrFail($id);
+        $isSuperAdmin = $authUser && $authUser->hasRole(RoleEnum::SUPERADMIN->value);
+
+        if (! $isSuperAdmin && $user->workspace_id !== $authUser?->workspace_id) {
+            abort(403, 'Unauthorized access to user outside your workspace.');
+        }
+
+        if ($user->id === $authUser?->id) {
+            return redirect()->route('users.index')->with('error', 'You cannot delete your own account.');
+        }
+
+        $user->delete();
+
+        return redirect()->route('users.index')->with('success', 'User deleted successfully');
+    }
+
+    /**
+     * Backward-compatible alias for destroy.
+     */
+    public function delete(string|int $id)
+    {
+        return $this->destroy($id);
     }
 }
