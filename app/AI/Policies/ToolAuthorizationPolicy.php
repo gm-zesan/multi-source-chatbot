@@ -527,7 +527,11 @@ class ToolAuthorizationPolicy
             'execution_time_ms', 'latency_ms', 'source', 'sources', 'record_count',
             'total_count', 'page', 'exception_class', 'tool_name', 'status',
             'contract_version', 'query_fingerprint', 'relationships_active',
-            'source_status', 'is_cached_summary', 'dataset_generation', 'dataset_freshness', 'offline_fallback_reason',
+            'source_status', 'is_cached_summary', 'dataset_generation', 'dataset_freshness',
+            'freshness_known', 'provenance_warning', 'import_job_id', 'provenance_fenced',
+            'lifecycle_revalidated', 'offline_fallback_reason',
+            'dataset_status', 'is_partial_dataset', 'imported_rows', 'failed_rows', 'total_rows',
+            'partial_dataset_warning',
             'retrieval_hits', 'top_hit',
         ];
 

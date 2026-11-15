@@ -730,5 +730,5 @@
             window.location.href = url.toString();
         }
     </script>
-    <script src="{{ asset('assets/js/simulator.js') }}"></script>
+    <script src="{{ asset('assets/js/simulator.js') }}?v={{ filemtime(public_path('assets/js/simulator.js')) }}"></script>
 @endpush

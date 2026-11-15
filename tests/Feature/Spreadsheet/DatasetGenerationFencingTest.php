@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Feature\Spreadsheet;
 
 use App\AI\DTOs\AgentContext;
+use App\AI\Decision\UnifiedOrchestrator;
 use App\AI\Tools\LegacyExcelAnalyticsTool;
 use App\Enums\DocumentLifecycleStatus;
 use App\Models\KnowledgeDocument;
@@ -13,6 +14,11 @@ use App\Models\StructuredRecord;
 use App\Models\User;
 use App\Models\Workspace;
 use App\Services\Analytics\AnalyticsClient;
+use App\Services\Analytics\DTOs\Contract3\AnalyticsExecutionResponse;
+use App\Services\Analytics\DTOs\Contract3\PreparedQueryArtifact;
+use App\Services\Analytics\DTOs\Contract3\SemanticQueryPlan;
+use App\Services\Spreadsheet\Security\AnalyticsAstAuthorizer;
+use App\Services\Analytics\DTOs\Contract3\ExecutionAuthorizationGrant;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
@@ -474,5 +480,190 @@ class DatasetGenerationFencingTest extends TestCase
 
         $this->assertTrue($result->isSuccess());
         $this->assertSame('no_spreadsheet_found', $result->data['status']);
+    }
+
+    public function test_partial_dataset_completed_with_errors_discloses_in_offline_fallback(): void
+    {
+        $this->activeJob->update([
+            'status'         => 'completed_with_errors',
+            'failed_rows'    => 12,
+            'total_rows'     => 100,
+            'processed_rows' => 100,
+            'staged_rows'    => 88,
+        ]);
+
+        for ($i = 1; $i <= 3; $i++) {
+            StructuredRecord::create([
+                'workspace_id'  => $this->workspace->id,
+                'document_id'   => (string) $this->document->id,
+                'import_job_id' => $this->activeJob->id,
+                'sheet_name'    => 'Sales',
+                'row_index'     => $i,
+                'payload'       => ['Total' => 1000 * $i],
+                'record_hash'   => hash('sha256', "partial_rec_{$i}"),
+                'generation_id' => $this->activeJob->generation_id,
+            ]);
+        }
+
+        $mockClient = Mockery::mock(AnalyticsClient::class);
+        $mockClient->shouldReceive('planCandidateQuery')->andThrow(new \RuntimeException('Gateway offline'));
+
+        $tool = new LegacyExcelAnalyticsTool(analyticsClient: $mockClient);
+        $context = AgentContext::forUser(user: $this->owner, workspaceId: $this->workspace->id);
+
+        $result = $tool->execute(['question' => 'মোট বিক্রি কত?'], $context);
+
+        $this->assertTrue($result->isSuccess());
+        $this->assertSame('synthesized_fallback', $result->data['status']);
+        $this->assertTrue($result->data['is_partial_dataset']);
+        $this->assertSame(12, $result->data['failed_rows']);
+        $this->assertSame(3, $result->data['imported_rows']);
+        $this->assertSame('completed_with_errors', $result->metadata['dataset_status']);
+        $this->assertTrue($result->metadata['is_partial_dataset']);
+        $this->assertSame(12, $result->metadata['failed_rows']);
+        $this->assertSame(100, $result->metadata['total_rows']);
+        $this->assertSame('dataset_imported_partially_with_row_errors', $result->metadata['partial_dataset_warning']);
+        $this->assertStringContainsString('⚠️ **আংশিক ডেটাসেট সতর্কতা (Partial Dataset)**', $result->data['report']);
+        $this->assertStringContainsString('ব্যর্থ সারি: 12 টি', $result->data['report']);
+        $this->assertStringContainsString('মোট সারি: 100 টি', $result->data['report']);
+        $this->assertStringContainsString('সম্পূর্ণ ডেটাসেটের প্রতিনিধিত্ব নাও করতে পারে', $result->data['report']);
+    }
+
+    public function test_partial_dataset_completed_with_errors_discloses_in_live_execution(): void
+    {
+        $this->activeJob->update([
+            'status'         => 'completed_with_errors',
+            'failed_rows'    => 5,
+            'total_rows'     => 50,
+            'processed_rows' => 50,
+            'staged_rows'    => 45,
+        ]);
+
+        StructuredRecord::create([
+            'workspace_id'  => $this->workspace->id,
+            'document_id'   => (string) $this->document->id,
+            'import_job_id' => $this->activeJob->id,
+            'sheet_name'    => 'Sales',
+            'row_index'     => 1,
+            'payload'       => ['Total' => 5000],
+            'record_hash'   => hash('sha256', 'partial_live_1'),
+            'generation_id' => $this->activeJob->generation_id,
+        ]);
+
+        $mockClient = Mockery::mock(AnalyticsClient::class);
+        $mockClient->shouldReceive('planCandidateQuery')->once()->andReturn(
+            new SemanticQueryPlan(
+                domain: 'sales',
+                measures: [['name' => 'amount', 'aggregation' => 'sum', 'alias' => 'total_sales']]
+            )
+        );
+        $mockClient->shouldReceive('prepareVirtualQuery')->once()->andReturn(
+            new PreparedQueryArtifact(
+                contractVersion: '3.0.0',
+                requestId: 'req_partial_live',
+                workspaceId: $this->workspace->id,
+                datasetId: (string) $this->activeJob->document_id,
+                generationId: $this->activeJob->generation_id,
+                queryFingerprint: 'fp_partial_test',
+                schemaFingerprint: 'schema_fp_test',
+                sqlTemplate: 'SELECT SUM(amount) FROM Sales',
+                params: [],
+                referencedTables: ['Sales'],
+                referencedColumns: ['amount'],
+            )
+        );
+        $mockClient->shouldReceive('executeVirtualQuery')->once()->andReturn(
+            new AnalyticsExecutionResponse(
+                success: true,
+                contractVersion: '3.0.0',
+                requestId: 'req_partial_live',
+                workspaceId: $this->workspace->id,
+                datasetId: (string) $this->activeJob->document_id,
+                generationId: $this->activeJob->generation_id,
+                rows: [['amount' => 5000]],
+                columns: ['amount'],
+                rowCount: 1,
+                report: 'আজকের মোট বিক্রি ৫,০০০ টাকা।',
+                latencyMs: 5.0
+            )
+        );
+
+        $mockAuthorizer = Mockery::mock(AnalyticsAstAuthorizer::class);
+        $mockAuthorizer->shouldReceive('authorizePreparedQuery')->once()->andReturn(
+            new ExecutionAuthorizationGrant(
+                grantId: 'grant_partial_live',
+                workspaceId: $this->workspace->id,
+                queryFingerprint: 'fp_partial_test',
+                generationId: $this->activeJob->generation_id,
+                authorizedAt: (new \DateTimeImmutable())->format(\DateTimeInterface::ATOM),
+                expiresAt: (new \DateTimeImmutable('+60 seconds'))->format(\DateTimeInterface::ATOM),
+                nonce: 'nonce_partial_live',
+                signature: 'sig_partial_live'
+            )
+        );
+
+        $tool = new LegacyExcelAnalyticsTool(
+            analyticsClient: $mockClient,
+            astAuthorizer: $mockAuthorizer,
+        );
+        $context = AgentContext::forUser(user: $this->owner, workspaceId: $this->workspace->id);
+
+        $result = $tool->execute(['question' => 'মোট বিক্রি কত?'], $context);
+
+        $this->assertTrue($result->isSuccess());
+        $this->assertSame('executed', $result->data['status']);
+        $this->assertTrue($result->data['is_partial_dataset']);
+        $this->assertSame(5, $result->data['failed_rows']);
+        $this->assertSame('completed_with_errors', $result->metadata['dataset_status']);
+        $this->assertTrue($result->metadata['is_partial_dataset']);
+        $this->assertSame(5, $result->metadata['failed_rows']);
+        $this->assertSame(50, $result->metadata['total_rows']);
+        $this->assertSame('dataset_imported_partially_with_row_errors', $result->metadata['partial_dataset_warning']);
+        $this->assertStringContainsString('⚠️ **আংশিক ডেটাসেট সতর্কতা (Partial Dataset)**', $result->data['report']);
+        $this->assertStringContainsString('ব্যর্থ সারি: 5 টি', $result->data['report']);
+        $this->assertStringContainsString('মোট সারি: 50 টি', $result->data['report']);
+    }
+
+    public function test_partial_dataset_metadata_propagates_end_to_end_through_unified_orchestrator(): void
+    {
+        $this->activeJob->update([
+            'status'         => 'completed_with_errors',
+            'failed_rows'    => 8,
+            'total_rows'     => 100,
+            'processed_rows' => 100,
+            'staged_rows'    => 92,
+        ]);
+
+        StructuredRecord::create([
+            'workspace_id'  => $this->workspace->id,
+            'document_id'   => (string) $this->document->id,
+            'import_job_id' => $this->activeJob->id,
+            'sheet_name'    => 'Sales',
+            'row_index'     => 1,
+            'payload'       => ['Total' => 1000],
+            'record_hash'   => hash('sha256', 'partial_orch_1'),
+            'generation_id' => $this->activeJob->generation_id,
+        ]);
+
+        $orchestrator = app(UnifiedOrchestrator::class);
+        $result = $orchestrator->process(
+            query: 'স্প্রেডশিট থেকে মোট বিক্রি কত হয়েছে?',
+            workspaceId: $this->workspace->id,
+            user: $this->owner,
+            conversation: null,
+            channelSlug: 'simulator',
+            isCustomer: false
+        );
+
+        $this->assertSame('analytics', $result['route']);
+        $this->assertTrue($result['answered']);
+        $this->assertTrue($result['is_partial_dataset'] ?? false);
+        $this->assertSame('completed_with_errors', $result['dataset_status'] ?? null);
+        $this->assertSame(8, $result['failed_rows'] ?? null);
+        $this->assertSame(100, $result['total_rows'] ?? null);
+        $this->assertSame('dataset_imported_partially_with_row_errors', $result['partial_dataset_warning'] ?? null);
+        $this->assertStringContainsString('⚠️ **আংশিক ডেটাসেট সতর্কতা (Partial Dataset)**', $result['reply']);
+        $this->assertStringContainsString('ব্যর্থ সারি: 8 টি', $result['reply']);
+        $this->assertStringContainsString('মোট সারি: 100 টি', $result['reply']);
     }
 }

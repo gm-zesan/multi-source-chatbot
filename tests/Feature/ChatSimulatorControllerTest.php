@@ -183,4 +183,16 @@ class ChatSimulatorControllerTest extends TestCase
         $response->assertJson(['success' => true, 'workspace_id' => $ws2->id]);
         $this->assertEquals($ws2->id, session('active_simulator_workspace_id'));
     }
+
+    public function test_simulator_page_includes_cache_busted_simulator_js_asset(): void
+    {
+        $ws = Workspace::create(['id' => 99, 'name' => 'Asset Test WS', 'slug' => 'asset-ws']);
+        $user = User::factory()->create(['workspace_id' => $ws->id]);
+        \Spatie\Permission\Models\Role::firstOrCreate(['name' => 'admin', 'guard_name' => 'web']);
+        $user->assignRole('admin');
+
+        $response = $this->actingAs($user)->get('/dashboard/simulator');
+        $response->assertStatus(200);
+        $response->assertSee('assets/js/simulator.js?v=', false);
+    }
 }

@@ -141,4 +141,64 @@ class LegacyExcelAnalyticsReportFormatterTest extends TestCase
         );
         $this->assertStringContainsString('• ব্যবসায়িক ডেটা সারাংশ', $generalResult);
     }
+
+    public function test_format_execution_with_partial_dataset_warning_and_row_counts(): void
+    {
+        $result = $this->formatter->formatExecution(
+            query: 'মোট বিক্রি কত?',
+            filename: 'partial_sales.xlsx',
+            recordCount: 850,
+            activeEdges: [],
+            executionResponse: null,
+            isOfflineFallback: true,
+            isPartialDataset: true,
+            importedRows: 850,
+            failedRows: 15,
+            totalRows: 865,
+        );
+
+        $this->assertStringContainsString('⚠️ **আংশিক ডেটাসেট সতর্কতা (Partial Dataset)**', $result);
+        $this->assertStringContainsString('সফলভাবে ইমপোর্টকৃত সারি: 850 টি', $result);
+        $this->assertStringContainsString('ব্যর্থ সারি: 15 টি', $result);
+        $this->assertStringContainsString('মোট সারি: 865 টি', $result);
+        $this->assertStringContainsString('স্প্রেডশিট ইমপোর্ট আংশিকভাবে সম্পন্ন হওয়ায় এই অ্যানালিটিক্স ফলাফল সম্পূর্ণ ডেটাসেটের প্রতিনিধিত্ব নাও করতে পারে।', $result);
+    }
+
+    public function test_format_execution_with_partial_dataset_when_failed_rows_is_null_omits_unverified_failed_count(): void
+    {
+        $result = $this->formatter->formatExecution(
+            query: 'মোট মুনাফা কত?',
+            filename: 'errors_unverified.xlsx',
+            recordCount: 50,
+            activeEdges: [],
+            executionResponse: null,
+            isOfflineFallback: false,
+            isPartialDataset: true,
+            importedRows: 50,
+            failedRows: null,
+            totalRows: null,
+        );
+
+        $this->assertStringContainsString('⚠️ **আংশিক ডেটাসেট সতর্কতা (Partial Dataset)**', $result);
+        $this->assertStringContainsString('সফলভাবে ইমপোর্টকৃত সারি: 50 টি', $result);
+        $this->assertStringNotContainsString('ব্যর্থ সারি', $result);
+        $this->assertStringNotContainsString('মোট সারি', $result);
+        $this->assertStringContainsString('সম্পূর্ণ ডেটাসেটের প্রতিনিধিত্ব নাও করতে পারে', $result);
+    }
+
+    public function test_format_execution_without_partial_flag_does_not_contain_partial_warning(): void
+    {
+        $result = $this->formatter->formatExecution(
+            query: 'মোট বিক্রি কত?',
+            filename: 'clean_sales.xlsx',
+            recordCount: 100,
+            activeEdges: [],
+            executionResponse: null,
+            isOfflineFallback: false,
+            isPartialDataset: false,
+        );
+
+        $this->assertStringNotContainsString('⚠️ **আংশিক ডেটাসেট সতর্কতা', $result);
+        $this->assertStringNotContainsString('Partial Dataset', $result);
+    }
 }

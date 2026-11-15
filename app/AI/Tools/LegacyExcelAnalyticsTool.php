@@ -516,4 +516,44 @@ class LegacyExcelAnalyticsTool extends AbstractGovernedTool
 
         return ['valid' => true, 'job' => $freshJob, 'reason' => null];
     }
+
+    /**
+     * Resolve provenance details for partial or error-impacted dataset imports.
+     *
+     * @return array{
+     *     dataset_status: string,
+     *     is_partial_dataset: bool,
+     *     imported_rows: ?int,
+     *     failed_rows: ?int,
+     *     total_rows: ?int,
+     *     partial_dataset_warning: ?string
+     * }
+     */
+    private function resolvePartialImportProvenance(SpreadsheetImportJob $job, int $verifiedRecordCount): array
+    {
+        $status = (string) $job->status;
+        $failedRows = ($job->failed_rows !== null && (int) $job->failed_rows > 0) ? (int) $job->failed_rows : null;
+        $isPartial = ($status === 'completed_with_errors') || ($failedRows !== null && $failedRows > 0);
+        $totalRows = ($job->total_rows !== null && (int) $job->total_rows > 0) ? (int) $job->total_rows : null;
+
+        $importedRows = null;
+        if ($verifiedRecordCount > 0) {
+            $importedRows = $verifiedRecordCount;
+        } elseif ($job->staged_rows !== null && (int) $job->staged_rows > 0) {
+            $importedRows = (int) $job->staged_rows;
+        } elseif ($job->processed_rows !== null && (int) $job->processed_rows > 0) {
+            $importedRows = max(0, (int) $job->processed_rows - ($failedRows ?? 0));
+        }
+
+        $warning = $isPartial ? 'dataset_imported_partially_with_row_errors' : null;
+
+        return [
+            'dataset_status'          => $status,
+            'is_partial_dataset'      => $isPartial,
+            'imported_rows'           => $importedRows,
+            'failed_rows'             => $failedRows,
+            'total_rows'              => $totalRows,
+            'partial_dataset_warning' => $warning,
+        ];
+    }
 }

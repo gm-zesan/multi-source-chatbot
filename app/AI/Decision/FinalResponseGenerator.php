@@ -213,17 +213,34 @@ class FinalResponseGenerator
             ];
 
             $extraMeta = [];
+            $forwardableKeys = [
+                'relationships_active',
+                'contract_version',
+                'query_fingerprint',
+                'dataset_status',
+                'is_partial_dataset',
+                'imported_rows',
+                'failed_rows',
+                'total_rows',
+                'partial_dataset_warning',
+                'dataset_generation',
+                'dataset_freshness',
+                'freshness_known',
+                'provenance_warning',
+                'import_job_id',
+                'provenance_fenced',
+                'source_status',
+                'is_cached_summary',
+                'offline_fallback_reason',
+            ];
+
             foreach ($execution->toolResults as $item) {
                 $res = $item['result'] ?? null;
                 if ($res instanceof ToolResult) {
-                    if (isset($res->metadata['relationships_active'])) {
-                        $extraMeta['relationships_active'] = $res->metadata['relationships_active'];
-                    }
-                    if (isset($res->metadata['contract_version'])) {
-                        $extraMeta['contract_version'] = $res->metadata['contract_version'];
-                    }
-                    if (isset($res->metadata['query_fingerprint'])) {
-                        $extraMeta['query_fingerprint'] = $res->metadata['query_fingerprint'];
+                    foreach ($forwardableKeys as $key) {
+                        if (array_key_exists($key, $res->metadata)) {
+                            $extraMeta[$key] = $res->metadata[$key];
+                        }
                     }
                 }
             }
