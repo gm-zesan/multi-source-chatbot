@@ -28,13 +28,13 @@ class SubscriptionPlan extends Model
     ];
 
     protected $casts = [
-        'price_monthly'             => 'decimal:2',
-        'price_yearly'              => 'decimal:2',
+        'price_monthly' => 'decimal:2',
+        'price_yearly' => 'decimal:2',
         'max_conversations_monthly' => 'integer',
-        'max_knowledge_docs'        => 'integer',
-        'max_staff_seats'           => 'integer',
-        'features'                  => 'array',
-        'is_active'                 => 'boolean',
+        'max_knowledge_docs' => 'integer',
+        'max_staff_seats' => 'integer',
+        'features' => 'array',
+        'is_active' => 'boolean',
     ];
 
     public function subscriptions(): HasMany

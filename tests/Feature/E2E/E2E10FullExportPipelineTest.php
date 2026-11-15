@@ -20,6 +20,7 @@ class E2E10FullExportPipelineTest extends TestCase
     use RefreshDatabase;
 
     private User $admin;
+
     private Workspace $workspace;
 
     protected function setUp(): void
@@ -30,8 +31,8 @@ class E2E10FullExportPipelineTest extends TestCase
         Role::firstOrCreate(['name' => 'admin', 'guard_name' => 'web']);
 
         $this->admin = User::factory()->create([
-            'name'         => 'Export Admin',
-            'email'        => 'admin@exportenterprise.com',
+            'name' => 'Export Admin',
+            'email' => 'admin@exportenterprise.com',
             'workspace_id' => $this->workspace->id,
         ]);
         $this->admin->assignRole('admin');
@@ -40,10 +41,10 @@ class E2E10FullExportPipelineTest extends TestCase
     public function test_e2e_10_csv_export_generates_valid_stream_with_utf8_bom_and_bengali(): void
     {
         $payload = [
-            'format'  => 'csv',
-            'title'   => 'মাসিক বিক্রয় বিবরণী',
+            'format' => 'csv',
+            'title' => 'মাসিক বিক্রয় বিবরণী',
             'headers' => ['তারিখ', 'বিক্রয়কর্মী', 'পণ্য', 'মোট টাকা (৳)'],
-            'rows'    => [
+            'rows' => [
                 ['২০২৬-০৯-২৪', 'হাসান', 'ল্যাপটপ প্রো ১৫', '৳৪,৫০,০০০.০০'],
                 ['২০২৬-০৯-২৪', 'রাকিব', 'মেকানিক্যাল কিবোর্ড', '৳২৫,০০০.০০'],
             ],
@@ -65,10 +66,10 @@ class E2E10FullExportPipelineTest extends TestCase
     public function test_e2e_10_xlsx_export_generates_valid_openxml_stream(): void
     {
         $payload = [
-            'format'  => 'xlsx',
-            'title'   => 'Monthly Sales Report',
+            'format' => 'xlsx',
+            'title' => 'Monthly Sales Report',
             'headers' => ['Date', 'Salesperson', 'Revenue'],
-            'rows'    => [
+            'rows' => [
                 ['2026-09-24', 'Hasan', '৳450,000.00'],
             ],
         ];
@@ -82,10 +83,10 @@ class E2E10FullExportPipelineTest extends TestCase
     public function test_e2e_10_pdf_export_generates_valid_pdf_document(): void
     {
         $payload = [
-            'format'  => 'pdf',
-            'title'   => 'Monthly PDF Report',
+            'format' => 'pdf',
+            'title' => 'Monthly PDF Report',
             'headers' => ['Metric', 'Value'],
-            'rows'    => [
+            'rows' => [
                 ['Total Orders', '124'],
                 ['Total Revenue', '580,000'],
             ],

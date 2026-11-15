@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace Tests\Feature\E2E;
 
+use App\AI\Orchestration\CustomerSupportService;
 use App\Models\Channel;
 use App\Models\ChannelAccount;
 use App\Models\Conversation;
 use App\Models\FAQ;
 use App\Models\Message;
 use App\Models\Workspace;
-use App\AI\Orchestration\CustomerSupportService;
 use App\Services\FAQ\FAQSearch;
 use App\Services\FAQ\FAQSearchResult;
 use Illuminate\Database\Eloquent\Collection;
@@ -27,8 +27,11 @@ class E2E05DomainSwitchPipelineTest extends TestCase
     use RefreshDatabase;
 
     private Workspace $workspace;
+
     private ChannelAccount $account;
+
     private Conversation $conversation;
+
     private FAQ $faq;
 
     protected function setUp(): void
@@ -40,25 +43,25 @@ class E2E05DomainSwitchPipelineTest extends TestCase
 
         $this->account = ChannelAccount::create([
             'workspace_id' => $this->workspace->id,
-            'channel_id'   => $channel->id,
-            'name'         => 'Storefront Domain Switch Widget',
-            'external_id'  => 'e2e_domain_switch_01',
+            'channel_id' => $channel->id,
+            'name' => 'Storefront Domain Switch Widget',
+            'external_id' => 'e2e_domain_switch_01',
             'access_token' => 'token_domain_switch_01',
-            'is_active'    => true,
+            'is_active' => true,
         ]);
 
         $this->conversation = Conversation::create([
             'channel_account_id' => $this->account->id,
-            'external_user_id'   => 'e2e_domain_user',
-            'status'             => 'open',
-            'last_direction'     => 'inbound',
+            'external_user_id' => 'e2e_domain_user',
+            'status' => 'open',
+            'last_direction' => 'inbound',
         ]);
 
         $this->faq = FAQ::create([
             'workspace_id' => $this->workspace->id,
-            'question'     => 'Return policy কী?',
-            'answer'       => 'পণ্য হাতে পাওয়ার ৭ দিনের মধ্যে অক্ষত অবস্থায় রিটার্ন করতে পারবেন।',
-            'is_active'    => true,
+            'question' => 'Return policy কী?',
+            'answer' => 'পণ্য হাতে পাওয়ার ৭ দিনের মধ্যে অক্ষত অবস্থায় রিটার্ন করতে পারবেন।',
+            'is_active' => true,
         ]);
     }
 
@@ -67,16 +70,16 @@ class E2E05DomainSwitchPipelineTest extends TestCase
         // Turn 1 was analytics query about Hasan
         Message::create([
             'conversation_id' => $this->conversation->id,
-            'direction'       => 'inbound',
-            'type'            => 'text',
-            'body'            => 'আজকে Hasan কত বিক্রি করেছে?',
+            'direction' => 'inbound',
+            'type' => 'text',
+            'body' => 'আজকে Hasan কত বিক্রি করেছে?',
         ]);
 
         Message::create([
             'conversation_id' => $this->conversation->id,
-            'direction'       => 'outbound',
-            'type'            => 'text',
-            'body'            => 'Hasan এর আজকের মোট সেলস ৳৪৫,০০০.০০।',
+            'direction' => 'outbound',
+            'type' => 'text',
+            'body' => 'Hasan এর আজকের মোট সেলস ৳৪৫,০০০.০০।',
         ]);
 
         // Turn 2 switches domain to Knowledge FAQ

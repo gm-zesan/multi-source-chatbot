@@ -45,9 +45,13 @@ else
     echo "ℹ️ npm not installed on server, using pre-built assets from public/build."
 fi
 
-# 4. Database Migrations
-echo "🗄️ 4/6 Running database migrations..."
+# 4. Database Pre-Backup & Migrations
+echo "💾 4/7 Creating pre-deployment database backup..."
+php artisan db:backup --compress --retention=30 || echo "⚠️ Pre-deployment backup skipped or non-fatal warning."
+
+echo "🗄️ 4/7 Running database migrations..."
 php artisan migrate --force --no-interaction
+php artisan db:seed --class=RoleSeeder --force || true
 
 # 5. Clear and Cache Laravel Configurations
 echo "⚡ 5/6 Caching configuration & views..."
@@ -76,6 +80,10 @@ if command -v supervisorctl &> /dev/null; then
         supervisorctl restart chatbot-faq:* 2>/dev/null || true
     fi
 fi
+
+# 7. Post-deployment Health Check Validation
+echo "🩺 7/7 Verifying application health..."
+php artisan chatbot:health || echo "ℹ️ Health command executed."
 
 echo "========================================="
 echo "✅ Deployment Finished Successfully: $(date)"

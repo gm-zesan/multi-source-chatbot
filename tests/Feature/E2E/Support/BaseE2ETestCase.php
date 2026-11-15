@@ -4,20 +4,19 @@ declare(strict_types=1);
 
 namespace Tests\Feature\E2E\Support;
 
-use App\AI\Routing\RouteType;
-use App\AI\Routing\RoutingResult;
+use App\AI\Orchestration\CustomerSupportService;
 use App\Models\Channel;
 use App\Models\ChannelAccount;
 use App\Models\Conversation;
 use App\Models\FAQ;
 use App\Models\Message;
 use App\Models\Workspace;
-use App\AI\Orchestration\CustomerSupportService;
 use App\Services\Chat\ConversationService;
 use App\Services\FAQ\FAQSearch;
 use App\Services\FAQ\FAQSearchResult;
 use App\Services\Memory\ConversationMemoryClient;
 use App\Services\Memory\ConversationMemoryService;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Mockery;
 use Tests\TestCase;
@@ -27,16 +26,23 @@ abstract class BaseE2ETestCase extends TestCase
     use RefreshDatabase;
 
     protected Workspace $workspace;
+
     protected ChannelAccount $account;
+
     protected Conversation $conversation;
+
     protected CustomerSupportService $service;
 
     protected FAQ $deliveryFaq;
+
     protected FAQ $returnFaq;
+
     protected FAQ $orderFaq;
+
     protected FAQ $codFaq;
 
     protected Mockery\MockInterface $faqSearchMock;
+
     protected Mockery\MockInterface $memoryClientMock;
 
     protected function setUp(): void
@@ -47,49 +53,49 @@ abstract class BaseE2ETestCase extends TestCase
         $channel = Channel::create(['name' => 'Web', 'slug' => 'web', 'driver' => 'web']);
         $this->account = ChannelAccount::create([
             'workspace_id' => $this->workspace->id,
-            'channel_id'   => $channel->id,
-            'name'         => 'Storefront Web E2E',
-            'external_id'  => 'acc_storefront_e2e',
+            'channel_id' => $channel->id,
+            'name' => 'Storefront Web E2E',
+            'external_id' => 'acc_storefront_e2e',
             'access_token' => 'tok_storefront_e2e',
-            'is_active'    => true,
+            'is_active' => true,
         ]);
 
         $this->conversation = Conversation::create([
             'channel_account_id' => $this->account->id,
-            'external_user_id'   => 'e2e_customer_tanvir',
-            'status'             => 'active',
-            'customer_name'      => 'Tanvir Ahmed',
-            'last_direction'     => 'inbound',
-            'metadata'           => [],
+            'external_user_id' => 'e2e_customer_tanvir',
+            'status' => 'active',
+            'customer_name' => 'Tanvir Ahmed',
+            'last_direction' => 'inbound',
+            'metadata' => [],
         ]);
 
         // Seed Core FAQ Fixtures
         $this->deliveryFaq = FAQ::create([
             'workspace_id' => $this->workspace->id,
-            'question'     => 'ডেলিভারি চার্জ কত?',
-            'answer'       => 'ঢাকার ভেতরে ডেলিভারি চার্জ ৬০ টাকা, ঢাকার বাইরে ১২০ টাকা।',
-            'is_active'    => true,
+            'question' => 'ডেলিভারি চার্জ কত?',
+            'answer' => 'ঢাকার ভেতরে ডেলিভারি চার্জ ৬০ টাকা, ঢাকার বাইরে ১২০ টাকা।',
+            'is_active' => true,
         ]);
 
         $this->returnFaq = FAQ::create([
             'workspace_id' => $this->workspace->id,
-            'question'     => 'পণ্য রিটার্ন বা এক্সচেঞ্জ করার নিয়ম কী?',
-            'answer'       => 'পণ্য হাতে পাওয়ার ৭ দিনের মধ্যে অক্ষত অবস্থায় রিটার্ন বা এক্সচেঞ্জ করা যায়।',
-            'is_active'    => true,
+            'question' => 'পণ্য রিটার্ন বা এক্সচেঞ্জ করার নিয়ম কী?',
+            'answer' => 'পণ্য হাতে পাওয়ার ৭ দিনের মধ্যে অক্ষত অবস্থায় রিটার্ন বা এক্সচেঞ্জ করা যায়।',
+            'is_active' => true,
         ]);
 
         $this->orderFaq = FAQ::create([
             'workspace_id' => $this->workspace->id,
-            'question'     => 'আমার অর্ডার স্ট্যাটাস কীভাবে জানবো?',
-            'answer'       => 'অর্ডার আইডি দিয়ে আমাদের মেসেজ দিলে আমরা বর্তমান ট্র্যাকিং স্ট্যাটাস জানিয়ে দেব।',
-            'is_active'    => true,
+            'question' => 'আমার অর্ডার স্ট্যাটাস কীভাবে জানবো?',
+            'answer' => 'অর্ডার আইডি দিয়ে আমাদের মেসেজ দিলে আমরা বর্তমান ট্র্যাকিং স্ট্যাটাস জানিয়ে দেব।',
+            'is_active' => true,
         ]);
 
         $this->codFaq = FAQ::create([
             'workspace_id' => $this->workspace->id,
-            'question'     => 'ক্যাশ অন ডেলিভারি (COD) পেমেন্ট সুবিধা আছে কি?',
-            'answer'       => 'হ্যাঁ, সারাদেশে ক্যাশ অন ডেলিভারি সুবিধা রয়েছে। পণ্য হাতে পেয়ে মূল্য পরিশোধ করতে পারবেন।',
-            'is_active'    => true,
+            'question' => 'ক্যাশ অন ডেলিভারি (COD) পেমেন্ট সুবিধা আছে কি?',
+            'answer' => 'হ্যাঁ, সারাদেশে ক্যাশ অন ডেলিভারি সুবিধা রয়েছে। পণ্য হাতে পেয়ে মূল্য পরিশোধ করতে পারবেন।',
+            'is_active' => true,
         ]);
 
         $this->faqSearchMock = Mockery::mock(FAQSearch::class);
@@ -112,7 +118,7 @@ abstract class BaseE2ETestCase extends TestCase
     /**
      * Helper to create mock FAQ search hit collection.
      */
-    protected function createHitCollection(FAQ $faq, float $score = 0.88, string $matchType = 'lexicon'): \Illuminate\Database\Eloquent\Collection
+    protected function createHitCollection(FAQ $faq, float $score = 0.88, string $matchType = 'lexicon'): Collection
     {
         $hit = new FAQSearchResult(
             faq: $faq,
@@ -122,7 +128,7 @@ abstract class BaseE2ETestCase extends TestCase
             matchType: $matchType,
         );
 
-        return new \Illuminate\Database\Eloquent\Collection([$hit]);
+        return new Collection([$hit]);
     }
 
     /**
@@ -132,15 +138,15 @@ abstract class BaseE2ETestCase extends TestCase
     {
         Message::create([
             'conversation_id' => $this->conversation->id,
-            'direction'       => 'inbound',
-            'type'            => 'text',
-            'body'            => $userText,
+            'direction' => 'inbound',
+            'type' => 'text',
+            'body' => $userText,
         ]);
         Message::create([
             'conversation_id' => $this->conversation->id,
-            'direction'       => $botDir,
-            'type'            => 'text',
-            'body'            => $botText,
+            'direction' => $botDir,
+            'type' => 'text',
+            'body' => $botText,
         ]);
     }
 

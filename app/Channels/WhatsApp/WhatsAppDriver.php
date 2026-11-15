@@ -25,7 +25,7 @@ class WhatsAppDriver implements ChannelDriver
         $token = $all['hub_verify_token'] ?? $all['hub.verify_token'] ?? $request->query('hub_verify_token') ?? $request->query('hub.verify_token');
         $challenge = $all['hub_challenge'] ?? $all['hub.challenge'] ?? $request->query('hub_challenge') ?? $request->query('hub.challenge');
 
-        if ($mode === 'subscribe' && !empty($verifyToken) && $token === $verifyToken) {
+        if ($mode === 'subscribe' && ! empty($verifyToken) && $token === $verifyToken) {
             return response((string) $challenge, 200);
         }
 
@@ -42,12 +42,12 @@ class WhatsAppDriver implements ChannelDriver
         $response = Http::withToken($account->access_token)
             ->post("https://graph.facebook.com/v20.0/{$phoneNumberId}/messages", [
                 'messaging_product' => 'whatsapp',
-                'recipient_type'    => 'individual',
-                'to'                => $conversation->external_user_id,
-                'type'              => 'text',
-                'text'              => [
+                'recipient_type' => 'individual',
+                'to' => $conversation->external_user_id,
+                'type' => 'text',
+                'text' => [
                     'preview_url' => false,
-                    'body'        => $message,
+                    'body' => $message,
                 ],
             ]);
 
@@ -73,11 +73,11 @@ class WhatsAppDriver implements ChannelDriver
         $customerName = $value['contacts'][0]['profile']['name'] ?? null;
 
         return [
-            'external_user_id'    => $senderPhone,
+            'external_user_id' => $senderPhone,
             'external_message_id' => $message['id'] ?? null,
-            'text'                => $message['text']['body'],
-            'customer_name'       => $customerName,
-            'attachments'         => [],
+            'text' => $message['text']['body'],
+            'customer_name' => $customerName,
+            'attachments' => [],
         ];
     }
 
@@ -92,7 +92,7 @@ class WhatsAppDriver implements ChannelDriver
     public function getUserProfile(ChannelAccount $account, string $externalUserId): array
     {
         return [
-            'name'  => $externalUserId,
+            'name' => $externalUserId,
             'phone' => $externalUserId,
         ];
     }
@@ -109,8 +109,8 @@ class WhatsAppDriver implements ChannelDriver
         $res = Http::withToken($account->access_token)
             ->post("https://graph.facebook.com/v20.0/{$phoneNumberId}/messages", [
                 'messaging_product' => 'whatsapp',
-                'status'            => 'read',
-                'message_id'        => $lastMessageId,
+                'status' => 'read',
+                'message_id' => $lastMessageId,
             ]);
 
         return $res->successful();

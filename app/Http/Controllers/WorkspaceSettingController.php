@@ -44,16 +44,16 @@ class WorkspaceSettingController extends Controller
         }
 
         $validated = $request->validate([
-            'name'             => 'required|string|max:128',
-            'currency'         => 'required|string|max:8',
-            'support_phone'    => 'nullable|string|max:32',
-            'support_email'    => 'nullable|email|max:128',
+            'name' => 'required|string|max:128',
+            'currency' => 'required|string|max:8',
+            'support_phone' => 'nullable|string|max:32',
+            'support_email' => 'nullable|email|max:128',
             'business_address' => 'nullable|string|max:500',
-            'operating_hours'  => 'nullable|array',
+            'operating_hours' => 'nullable|array',
             'operating_hours.weekdays' => 'nullable|string|max:64',
-            'operating_hours.weekend'  => 'nullable|string|max:64',
-            'settings'         => 'nullable|array',
-            'settings.*'       => 'nullable',
+            'operating_hours.weekend' => 'nullable|string|max:64',
+            'settings' => 'nullable|array',
+            'settings.*' => 'nullable',
         ]);
 
         $workspace = Workspace::findOrFail($user->workspace_id);

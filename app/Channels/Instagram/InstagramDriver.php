@@ -25,7 +25,7 @@ class InstagramDriver implements ChannelDriver
         $token = $all['hub_verify_token'] ?? $all['hub.verify_token'] ?? $request->query('hub_verify_token') ?? $request->query('hub.verify_token');
         $challenge = $all['hub_challenge'] ?? $all['hub.challenge'] ?? $request->query('hub_challenge') ?? $request->query('hub.challenge');
 
-        if ($mode === 'subscribe' && !empty($verifyToken) && $token === $verifyToken) {
+        if ($mode === 'subscribe' && ! empty($verifyToken) && $token === $verifyToken) {
             return response((string) $challenge, 200);
         }
 
@@ -66,10 +66,10 @@ class InstagramDriver implements ChannelDriver
         }
 
         return [
-            'external_user_id'    => $messaging['sender']['id'],
+            'external_user_id' => $messaging['sender']['id'],
             'external_message_id' => $message['mid'] ?? null,
-            'text'                => $message['text'],
-            'attachments'         => $message['attachments'] ?? [],
+            'text' => $message['text'],
+            'attachments' => $message['attachments'] ?? [],
         ];
     }
 

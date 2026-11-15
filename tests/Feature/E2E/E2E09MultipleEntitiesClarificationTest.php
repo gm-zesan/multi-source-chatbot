@@ -9,7 +9,7 @@ use Tests\Feature\E2E\Support\E2EObservabilityTracer;
 
 /**
  * E2E-09: Multiple Entities & Mandatory Clarification Test
- * 
+ *
  * Verifies that when multiple entities compete without a dominant margin (>= 0.20):
  * - System halts immediately (M4-A Short-Circuit: 0 FAQ Search, 0 KGM calls, 0 LLM calls)
  * - Generates clear, non-guessing disambiguation choices
@@ -49,19 +49,19 @@ class E2E09MultipleEntitiesClarificationTest extends BaseE2ETestCase
         $this->assertSame('ওটা কবে পাবো?', $convState->metadata['pending_clarification']['original_query']);
 
         $traceTurn2 = E2EObservabilityTracer::trace($query, $turn2Result, [
-            'tier_used'             => 0,
-            'memory_decision'       => 'BYPASS',
+            'tier_used' => 0,
+            'memory_decision' => 'BYPASS',
             'memory_service_called' => false,
-            'llm_calls'             => 0,
+            'llm_calls' => 0,
         ]);
 
         $this->assertTraceDimensions($traceTurn2, [
-            'route'         => 'uncertain',
-            'context'       => ['status' => 'ambiguous'],
-            'retrieval'     => ['tier_used' => 0, 'hits_count' => 0],
-            'llm'           => ['calls' => 0],
+            'route' => 'uncertain',
+            'context' => ['status' => 'ambiguous'],
+            'retrieval' => ['tier_used' => 0, 'hits_count' => 0],
+            'llm' => ['calls' => 0],
             'clarification' => ['requested' => true, 'short_circuited' => true],
-            'result'        => 'PASS',
+            'result' => 'PASS',
         ]);
 
         // ── Turn 3: User answers with selection "#1042" ──

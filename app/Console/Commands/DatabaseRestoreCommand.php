@@ -42,11 +42,12 @@ class DatabaseRestoreCommand extends Command
 
         if (! File::exists($filePath)) {
             $this->error("Backup file not found at: {$filePath}");
+
             return self::FAILURE;
         }
 
         // Verify SHA-256 Checksum if .meta.json exists
-        $metaPath = $filePath . '.meta.json';
+        $metaPath = $filePath.'.meta.json';
         if (! $this->option('skip-checksum') && File::exists($metaPath)) {
             $metaData = json_decode(File::get($metaPath), true);
             $expectedChecksum = $metaData['sha256_checksum'] ?? null;
@@ -54,6 +55,7 @@ class DatabaseRestoreCommand extends Command
                 $actualChecksum = hash_file('sha256', $filePath);
                 if ($actualChecksum !== $expectedChecksum) {
                     $this->error("CRITICAL INTEGRITY FAILURE: Checksum mismatch! Expected {$expectedChecksum}, got {$actualChecksum}. Backup archive may be corrupted.");
+
                     return self::FAILURE;
                 }
                 $this->info("SHA-256 checksum verified: {$actualChecksum}");
@@ -66,6 +68,7 @@ class DatabaseRestoreCommand extends Command
         if (! $this->option('force')) {
             if (! $this->confirm("Are you SURE you want to restore [{$filePath}] into connection [{$connection}]? THIS WILL OVERWRITE EXISTING DATA!")) {
                 $this->warn('Database restore cancelled by operator.');
+
                 return self::SUCCESS;
             }
         }
@@ -80,6 +83,7 @@ class DatabaseRestoreCommand extends Command
                 $this->restoreMysql($connection, $filePath);
             } else {
                 $this->error("Unsupported database driver: [{$driver}].");
+
                 return self::FAILURE;
             }
 
@@ -87,17 +91,17 @@ class DatabaseRestoreCommand extends Command
             $this->info("Database restored successfully in {$elapsedMs} ms!");
 
             Log::warning('[DatabaseRestore] Database restored from archive', [
-                'file'       => $filePath,
+                'file' => $filePath,
                 'connection' => $connection,
-                'driver'     => $driver,
-                'duration_ms'=> $elapsedMs,
+                'driver' => $driver,
+                'duration_ms' => $elapsedMs,
             ]);
 
             return self::SUCCESS;
         } catch (\Throwable $e) {
-            $this->error("Restore failed with exception: " . $e->getMessage());
+            $this->error('Restore failed with exception: '.$e->getMessage());
             Log::error('[DatabaseRestore] Restore failed', [
-                'file'  => $filePath,
+                'file' => $filePath,
                 'error' => $e->getMessage(),
             ]);
 
@@ -113,6 +117,7 @@ class DatabaseRestoreCommand extends Command
             $pdo = DB::connection($connection)->getPdo();
             $sql = File::get($filePath);
             $pdo->exec($sql);
+
             return;
         }
 
@@ -148,11 +153,11 @@ class DatabaseRestoreCommand extends Command
         }
 
         if ($isCompressed) {
-            $cmd = 'gzip -dc ' . escapeshellarg($filePath) . ' | ' . implode(' ', array_map('escapeshellarg', $mysqlCmd));
+            $cmd = 'gzip -dc '.escapeshellarg($filePath).' | '.implode(' ', array_map('escapeshellarg', $mysqlCmd));
             $process = Process::fromShellCommandLine($cmd);
         } else {
             $process = Process::fromShellCommandLine(
-                implode(' ', array_map('escapeshellarg', $mysqlCmd)) . ' < ' . escapeshellarg($filePath)
+                implode(' ', array_map('escapeshellarg', $mysqlCmd)).' < '.escapeshellarg($filePath)
             );
         }
 
@@ -160,7 +165,7 @@ class DatabaseRestoreCommand extends Command
         $process->run();
 
         if (! $process->isSuccessful()) {
-            throw new \RuntimeException("mysql restore failed: " . $process->getErrorOutput());
+            throw new \RuntimeException('mysql restore failed: '.$process->getErrorOutput());
         }
     }
 }

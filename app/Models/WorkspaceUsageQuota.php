@@ -24,8 +24,8 @@ class WorkspaceUsageQuota extends Model
     ];
 
     protected $casts = [
-        'conversation_count'        => 'integer',
-        'ai_messages_count'         => 'integer',
+        'conversation_count' => 'integer',
+        'ai_messages_count' => 'integer',
         'spreadsheet_queries_count' => 'integer',
     ];
 

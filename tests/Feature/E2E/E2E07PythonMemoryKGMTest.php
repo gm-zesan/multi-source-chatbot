@@ -5,15 +5,12 @@ declare(strict_types=1);
 namespace Tests\Feature\E2E;
 
 use App\AI\Agents\ConversationalSupportAgent;
-use App\AI\Routing\RouteType;
-use App\AI\Routing\RoutingResult;
-use App\Models\Conversation;
 use Tests\Feature\E2E\Support\BaseE2ETestCase;
 use Tests\Feature\E2E\Support\E2EObservabilityTracer;
 
 /**
  * E2E-07: Python Memory Service / Knowledge Graph Memory (KGM) Contract Test
- * 
+ *
  * Verifies:
  * - Memory creation & persistence
  * - Cross-session recall (Session A preference retrieved in Session B)
@@ -33,16 +30,16 @@ class E2E07PythonMemoryKGMTest extends BaseE2ETestCase
         // M3 gate triggers RETRIEVE and queries Python Memory Service
         $this->memoryClientMock->shouldReceive('search')
             ->once()
-            ->withArgs(function ($wsId, $custId, $q) use ($query) {
+            ->withArgs(function ($wsId, $custId, $q) {
                 return $custId === $this->conversation->external_user_id && str_contains($q, 'সাইজ');
             })
             ->andReturn([
-                'has_memories'            => true,
-                'memories'                => [
+                'has_memories' => true,
+                'memories' => [
                     [
-                        'subject'    => 'customer',
-                        'predicate'  => 'prefers_size',
-                        'object'     => 'XL',
+                        'subject' => 'customer',
+                        'predicate' => 'prefers_size',
+                        'object' => 'XL',
                         'confidence' => 0.95,
                     ],
                 ],
@@ -58,9 +55,9 @@ class E2E07PythonMemoryKGMTest extends BaseE2ETestCase
         $this->assertStringContainsString('XL', $result['reply']);
 
         $trace = E2EObservabilityTracer::trace($query, $result, [
-            'memory_decision'       => 'RETRIEVE',
+            'memory_decision' => 'RETRIEVE',
             'memory_service_called' => true,
-            'memory_found'          => true,
+            'memory_found' => true,
         ]);
 
         $this->assertTraceDimensions($trace, [
@@ -80,19 +77,19 @@ class E2E07PythonMemoryKGMTest extends BaseE2ETestCase
         $this->memoryClientMock->shouldReceive('search')
             ->once()
             ->andReturn([
-                'has_memories'            => true,
-                'memories'                => [
+                'has_memories' => true,
+                'memories' => [
                     [
-                        'subject'    => 'customer',
-                        'predicate'  => 'prefers_size',
-                        'object'     => 'XL',
+                        'subject' => 'customer',
+                        'predicate' => 'prefers_size',
+                        'object' => 'XL',
                         'is_current' => true,
                         'confidence' => 0.98,
                     ],
                     [
-                        'subject'    => 'customer',
-                        'predicate'  => 'prefers_size',
-                        'object'     => 'M',
+                        'subject' => 'customer',
+                        'predicate' => 'prefers_size',
+                        'object' => 'M',
                         'is_current' => false,
                         'confidence' => 0.60,
                     ],
@@ -132,8 +129,8 @@ class E2E07PythonMemoryKGMTest extends BaseE2ETestCase
         $this->memoryClientMock->shouldReceive('search')
             ->once()
             ->andReturn([
-                'has_memories'            => true,
-                'memories'                => [['subject' => 'customer', 'predicate' => 'placed_order', 'object' => '#1042']],
+                'has_memories' => true,
+                'memories' => [['subject' => 'customer', 'predicate' => 'placed_order', 'object' => '#1042']],
                 'formatted_memory_context' => "Past Orders:\n- Order #1042 (Delivered)",
             ]);
 

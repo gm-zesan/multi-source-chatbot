@@ -39,14 +39,14 @@ class DatabaseBackupCommandTest extends TestCase
 
     public function test_database_backup_creates_valid_archive_and_metadata(): void
     {
-        $customName = 'test_e2e_backup_' . time();
+        $customName = 'test_e2e_backup_'.time();
 
         $this->artisan('db:backup', [
-            '--filename'  => $customName,
+            '--filename' => $customName,
             '--retention' => 30,
         ])
-        ->expectsOutputToContain('Backup created successfully!')
-        ->assertExitCode(0);
+            ->expectsOutputToContain('Backup created successfully!')
+            ->assertExitCode(0);
 
         $backupFiles = File::files($this->backupDir);
         $foundSql = false;
@@ -85,24 +85,24 @@ class DatabaseBackupCommandTest extends TestCase
         touch($oldFile, time() - (40 * 86400));
 
         $this->artisan('db:backup', [
-            '--filename'  => 'test_e2e_backup_purge_test',
+            '--filename' => 'test_e2e_backup_purge_test',
             '--retention' => 30,
         ])
-        ->expectsOutputToContain('Purged 1 backup file(s) older than 30 days.')
-        ->assertExitCode(0);
+            ->expectsOutputToContain('Purged 1 backup file(s) older than 30 days.')
+            ->assertExitCode(0);
 
         $this->assertFileDoesNotExist($oldFile);
     }
 
     public function test_database_restore_recovers_data_with_integrity(): void
     {
-        $backupName = 'test_e2e_backup_restore_' . time();
+        $backupName = 'test_e2e_backup_restore_'.time();
 
         $this->artisan('db:backup', [
-            '--filename'  => $backupName,
+            '--filename' => $backupName,
             '--retention' => 30,
         ])
-        ->assertExitCode(0);
+            ->assertExitCode(0);
 
         $backupFileName = "{$backupName}.sql";
         if (! File::exists("{$this->backupDir}/{$backupFileName}")) {
@@ -110,10 +110,10 @@ class DatabaseBackupCommandTest extends TestCase
         }
 
         $this->artisan('db:restore', [
-            'file'    => $backupFileName,
+            'file' => $backupFileName,
             '--force' => true,
         ])
-        ->expectsOutputToContain('Database restored successfully')
-        ->assertExitCode(0);
+            ->expectsOutputToContain('Database restored successfully')
+            ->assertExitCode(0);
     }
 }

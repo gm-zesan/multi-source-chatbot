@@ -4,14 +4,12 @@ declare(strict_types=1);
 
 namespace Tests\Feature\E2E;
 
-use App\AI\Routing\RouteType;
-use App\AI\Routing\RoutingResult;
 use Tests\Feature\E2E\Support\BaseE2ETestCase;
 use Tests\Feature\E2E\Support\E2EObservabilityTracer;
 
 /**
  * E2E-02: Tier 1 Lexicon Forced Path Test
- * 
+ *
  * Verifies that queries containing known domain vocabulary match via Tier 1 Lexicon
  * and strictly do NOT trigger Tier 2 (BM25) or Tier 3 (LLM Expansion).
  */
@@ -27,11 +25,11 @@ class E2E02Tier1LexiconTest extends BaseE2ETestCase
 
         $this->faqSearchMock->shouldReceive('getLastTelemetry')
             ->andReturn([
-                'tier_executed'    => 1,
-                'tier1_attempted'  => true,
-                'tier2_attempted'  => false,
-                'tier3_invoked'    => false,
-                'lexicon_hit'      => true,
+                'tier_executed' => 1,
+                'tier1_attempted' => true,
+                'tier2_attempted' => false,
+                'tier3_invoked' => false,
+                'lexicon_hit' => true,
             ]);
 
         $result = $this->service->handleQuery($query, $this->workspace->id, $this->conversation);
@@ -41,24 +39,24 @@ class E2E02Tier1LexiconTest extends BaseE2ETestCase
         $this->assertSame($this->codFaq->id, $result['top_hit']->faq->id);
 
         $trace = E2EObservabilityTracer::trace($query, $result, [
-            'tier_used'       => 1,
+            'tier_used' => 1,
             'tier1_attempted' => true,
             'tier2_attempted' => false,
-            'tier3_invoked'   => false,
-            'faq_id'          => $this->codFaq->id,
+            'tier3_invoked' => false,
+            'faq_id' => $this->codFaq->id,
         ]);
 
         $this->assertTraceDimensions($trace, [
-            'route'     => 'knowledge',
+            'route' => 'knowledge',
             'retrieval' => [
-                'tier_used'       => 1,
-                'faq_id'          => $this->codFaq->id,
+                'tier_used' => 1,
+                'faq_id' => $this->codFaq->id,
                 'tier1_attempted' => true,
                 'tier2_attempted' => false,
-                'tier3_invoked'   => false,
+                'tier3_invoked' => false,
             ],
             'answerability' => ['answerable' => true],
-            'result'        => 'PASS',
+            'result' => 'PASS',
         ]);
     }
 }

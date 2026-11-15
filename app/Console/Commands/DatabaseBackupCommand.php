@@ -62,11 +62,13 @@ class DatabaseBackupCommand extends Command
                 $backupFilePath = $this->backupMysql($connection, $backupDir, $baseName, $isCompress);
             } else {
                 $this->error("Unsupported database driver for automated dump: [{$driver}].");
+
                 return self::FAILURE;
             }
 
             if (! File::exists($backupFilePath) || File::size($backupFilePath) === 0) {
                 $this->error("Backup failed: output file is empty or missing: {$backupFilePath}");
+
                 return self::FAILURE;
             }
 
@@ -77,20 +79,20 @@ class DatabaseBackupCommand extends Command
             $elapsedMs = round((microtime(true) - $startTime) * 1000, 2);
 
             // Write metadata sidecar file (.meta.json)
-            $metaPath = $backupFilePath . '.meta.json';
+            $metaPath = $backupFilePath.'.meta.json';
             $metaData = [
-                'timestamp'        => now()->toIso8601String(),
-                'connection'       => $connection,
-                'driver'           => $driver,
-                'file_name'        => basename($backupFilePath),
-                'file_size_bytes'  => $sizeBytes,
-                'sha256_checksum'  => $checksum,
-                'duration_ms'      => $elapsedMs,
-                'is_compressed'    => $isCompress,
+                'timestamp' => now()->toIso8601String(),
+                'connection' => $connection,
+                'driver' => $driver,
+                'file_name' => basename($backupFilePath),
+                'file_size_bytes' => $sizeBytes,
+                'sha256_checksum' => $checksum,
+                'duration_ms' => $elapsedMs,
+                'is_compressed' => $isCompress,
             ];
             File::put($metaPath, json_encode($metaData, JSON_PRETTY_PRINT));
 
-            $this->info("Backup created successfully!");
+            $this->info('Backup created successfully!');
             $this->table(
                 ['Attribute', 'Value'],
                 [
@@ -109,7 +111,7 @@ class DatabaseBackupCommand extends Command
 
             return self::SUCCESS;
         } catch (\Throwable $e) {
-            $this->error("Backup encountered fatal exception: " . $e->getMessage());
+            $this->error('Backup encountered fatal exception: '.$e->getMessage());
             Log::error('[DatabaseBackup] Backup failed with exception', [
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
@@ -130,25 +132,26 @@ class DatabaseBackupCommand extends Command
             // For in-memory sqlite, dump schema & records to SQL script
             $targetFile = "{$backupDir}/{$baseName}.sql";
             $tables = DB::connection($connection)->select("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'");
-            
-            $sqlDump = "-- In-Memory SQLite Dump: " . now()->toIso8601String() . "\n";
+
+            $sqlDump = '-- In-Memory SQLite Dump: '.now()->toIso8601String()."\n";
             foreach ($tables as $t) {
                 $tableName = $t->name;
                 $createRow = DB::connection($connection)->selectOne("SELECT sql FROM sqlite_master WHERE type='table' AND name = ?", [$tableName]);
                 if ($createRow && $createRow->sql) {
                     $createSql = preg_replace('/^CREATE TABLE\s+/i', 'CREATE TABLE IF NOT EXISTS ', (string) $createRow->sql);
-                    $sqlDump .= "\n" . $createSql . ";\n";
+                    $sqlDump .= "\n".$createSql.";\n";
                     $sqlDump .= "DELETE FROM \"{$tableName}\";\n";
                     $rows = DB::connection($connection)->table($tableName)->get();
                     foreach ($rows as $row) {
                         $values = array_map(function ($val) {
-                            return $val === null ? 'NULL' : "'" . addslashes((string) $val) . "'";
+                            return $val === null ? 'NULL' : "'".addslashes((string) $val)."'";
                         }, (array) $row);
-                        $sqlDump .= "INSERT INTO \"{$tableName}\" VALUES (" . implode(', ', $values) . ");\n";
+                        $sqlDump .= "INSERT INTO \"{$tableName}\" VALUES (".implode(', ', $values).");\n";
                     }
                 }
             }
             File::put($targetFile, $sqlDump);
+
             return $targetFile;
         }
 
@@ -178,11 +181,11 @@ class DatabaseBackupCommand extends Command
             "--host={$host}",
             "--port={$port}",
             "--user={$username}",
-            "--single-transaction",
-            "--quick",
-            "--skip-lock-tables",
-            "--routines",
-            "--triggers",
+            '--single-transaction',
+            '--quick',
+            '--skip-lock-tables',
+            '--routines',
+            '--triggers',
             $database,
         ];
 
@@ -192,7 +195,7 @@ class DatabaseBackupCommand extends Command
 
         if ($isCompress) {
             $process = Process::fromShellCommandLine(
-                implode(' ', array_map('escapeshellarg', $dumpCmd)) . ' | gzip > ' . escapeshellarg($targetFile)
+                implode(' ', array_map('escapeshellarg', $dumpCmd)).' | gzip > '.escapeshellarg($targetFile)
             );
         } else {
             $process = new Process($dumpCmd);
@@ -209,7 +212,7 @@ class DatabaseBackupCommand extends Command
         }
 
         if (! $process->isSuccessful()) {
-            throw new \RuntimeException("mysqldump failed: " . $process->getErrorOutput());
+            throw new \RuntimeException('mysqldump failed: '.$process->getErrorOutput());
         }
 
         return $targetFile;
@@ -237,7 +240,7 @@ class DatabaseBackupCommand extends Command
 
         if ($purgedCount > 0) {
             $this->info("Purged {$purgedCount} backup file(s) older than {$retentionDays} days.");
-            Log::info("[DatabaseBackup] Purged old backups", ['count' => $purgedCount, 'retention_days' => $retentionDays]);
+            Log::info('[DatabaseBackup] Purged old backups', ['count' => $purgedCount, 'retention_days' => $retentionDays]);
         }
     }
 }

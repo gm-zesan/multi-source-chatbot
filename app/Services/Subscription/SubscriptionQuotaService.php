@@ -92,7 +92,7 @@ class SubscriptionQuotaService
             WorkspaceSubscription::where('workspace_id', $workspace->id)
                 ->where('status', 'active')
                 ->update([
-                    'status'      => 'canceled',
+                    'status' => 'canceled',
                     'canceled_at' => now(),
                 ]);
 
@@ -100,13 +100,13 @@ class SubscriptionQuotaService
             $endsAt = Carbon::now()->addMonths($durationMonths);
 
             return WorkspaceSubscription::create([
-                'workspace_id'            => $workspace->id,
-                'plan_id'                 => $plan->id,
-                'status'                  => 'active',
-                'billing_cycle'           => $billingCycle,
-                'starts_at'               => now(),
-                'ends_at'                 => $endsAt,
-                'payment_gateway'         => $gateway,
+                'workspace_id' => $workspace->id,
+                'plan_id' => $plan->id,
+                'status' => 'active',
+                'billing_cycle' => $billingCycle,
+                'starts_at' => now(),
+                'ends_at' => $endsAt,
+                'payment_gateway' => $gateway,
                 'gateway_subscription_id' => $gatewaySubId,
             ]);
         });
@@ -147,11 +147,11 @@ class SubscriptionQuotaService
         );
 
         return [
-            'success'         => true,
+            'success' => true,
             'subscription_id' => $sub->id,
-            'status'          => $sub->status,
-            'workspace_id'    => $workspace->id,
-            'plan'            => $plan->name,
+            'status' => $sub->status,
+            'workspace_id' => $workspace->id,
+            'plan' => $plan->name,
         ];
     }
 }

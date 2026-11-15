@@ -59,13 +59,13 @@ class SuperAdminCommercialController extends Controller
             ->get();
 
         return view('admin.commercial.index', [
-            'mrr'           => round($mrr, 2),
-            'totalTenants'  => $totalTenants,
+            'mrr' => round($mrr, 2),
+            'totalTenants' => $totalTenants,
             'activeTenants' => $activeTenants,
-            'plans'         => $plans,
+            'plans' => $plans,
             'subscriptions' => $activeSubscriptions,
-            'quotas'        => $quotas,
-            'period'        => $currentPeriod,
+            'quotas' => $quotas,
+            'period' => $currentPeriod,
         ]);
     }
 

@@ -105,13 +105,21 @@ php vendor/bin/phpunit tests/Feature/Console/DatabaseBackupCommandTest.php
 
 ## ⚙️ Getting Started
 
-### Prerequisites
-- PHP 8.4+ with `pdo`, `mbstring`, `openssl`, `curl`, `redis` extensions
-- Composer 2.x
-- MySQL 8.0+ / SQLite 3
-- Node.js & NPM (for frontend assets)
+### Option 1: Docker Multi-Service Setup (Recommended)
+```bash
+# 1. Spin up application and services (Nginx, PHP 8.4, MySQL 8.0, Redis 7, Typesense, Neo4j)
+docker compose up -d
 
-### Setup Instructions
+# 2. Initialize application inside container
+docker compose exec app php artisan key:generate
+docker compose exec app php artisan migrate --force
+docker compose exec app php artisan db:seed --class=RoleSeeder --force
+
+# 3. Verify health
+curl http://localhost/health
+```
+
+### Option 2: Native Host Setup
 ```bash
 # 1. Clone repository & install dependencies
 composer install

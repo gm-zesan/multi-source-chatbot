@@ -5,14 +5,12 @@ declare(strict_types=1);
 namespace Tests\Feature\E2E;
 
 use App\AI\Agents\ConversationalSupportAgent;
-use App\AI\Routing\RouteType;
-use App\AI\Routing\RoutingResult;
 use Tests\Feature\E2E\Support\BaseE2ETestCase;
 use Tests\Feature\E2E\Support\E2EObservabilityTracer;
 
 /**
  * E2E-05: Direct CHAT & Negative/OOD Protection Test
- * 
+ *
  * Verifies that conversational queries route to CHAT and execute Direct LLM with:
  * - 0 Typesense retrieval calls
  * - 0 KGM retrieval calls
@@ -47,20 +45,20 @@ class E2E05DirectChatLLMTest extends BaseE2ETestCase
             $this->assertNotEmpty($result['reply']);
 
             $trace = E2EObservabilityTracer::trace($query, $result, [
-                'language'              => 'english',
-                'tier_used'             => 0,
-                'memory_decision'       => 'BYPASS',
+                'language' => 'english',
+                'tier_used' => 0,
+                'memory_decision' => 'BYPASS',
                 'memory_service_called' => false,
-                'llm_calls'             => 1,
-                'llm_grounded'          => false,
+                'llm_calls' => 1,
+                'llm_grounded' => false,
             ]);
 
             $this->assertTraceDimensions($trace, [
-                'route'     => 'chat',
-                'memory'    => ['service_called' => false],
+                'route' => 'chat',
+                'memory' => ['service_called' => false],
                 'retrieval' => ['tier_used' => 0, 'hits_count' => 0],
-                'llm'       => ['calls' => 1, 'grounded' => false],
-                'result'    => 'PASS',
+                'llm' => ['calls' => 1, 'grounded' => false],
+                'result' => 'PASS',
             ]);
         }
     }
@@ -87,16 +85,16 @@ class E2E05DirectChatLLMTest extends BaseE2ETestCase
             $this->assertFalse($result['is_handoff']);
 
             $trace = E2EObservabilityTracer::trace($query, $result, [
-                'tier_used'             => 0,
-                'memory_decision'       => 'BYPASS',
+                'tier_used' => 0,
+                'memory_decision' => 'BYPASS',
                 'memory_service_called' => false,
             ]);
 
             $this->assertTraceDimensions($trace, [
-                'route'     => 'ood',
-                'memory'    => ['service_called' => false],
+                'route' => 'ood',
+                'memory' => ['service_called' => false],
                 'retrieval' => ['tier_used' => 0, 'hits_count' => 0],
-                'result'    => 'PASS',
+                'result' => 'PASS',
             ]);
         }
     }

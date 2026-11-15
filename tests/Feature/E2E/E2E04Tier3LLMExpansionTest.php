@@ -4,14 +4,12 @@ declare(strict_types=1);
 
 namespace Tests\Feature\E2E;
 
-use App\AI\Routing\RouteType;
-use App\AI\Routing\RoutingResult;
 use Tests\Feature\E2E\Support\BaseE2ETestCase;
 use Tests\Feature\E2E\Support\E2EObservabilityTracer;
 
 /**
  * E2E-04: Tier 3 LLM Expansion Forced Path Test
- * 
+ *
  * Verifies that intentionally difficult/colloquial queries invoke Tier 3 LLM expansion
  * only after Tier 1 and Tier 2 prove insufficient, and verifies that Tier 3 does NOT
  * execute when Tier 1 or Tier 2 succeeds.
@@ -32,15 +30,15 @@ class E2E04Tier3LLMExpansionTest extends BaseE2ETestCase
 
         $this->faqSearchMock->shouldReceive('getLastTelemetry')
             ->andReturn([
-                'tier_executed'       => 3,
-                'tier1_attempted'     => true,
-                'tier1_insufficient'  => true,
-                'tier2_attempted'     => true,
-                'tier2_insufficient'  => true,
-                'tier3_invoked'       => true,
+                'tier_executed' => 3,
+                'tier1_attempted' => true,
+                'tier1_insufficient' => true,
+                'tier2_attempted' => true,
+                'tier2_insufficient' => true,
+                'tier3_invoked' => true,
                 'expansion_generated' => true,
-                'original_query'      => $query,
-                'expanded_query'      => $expandedQuery,
+                'original_query' => $query,
+                'expanded_query' => $expandedQuery,
             ]);
 
         $result = $this->service->handleQuery($query, $this->workspace->id, $this->conversation);
@@ -50,24 +48,24 @@ class E2E04Tier3LLMExpansionTest extends BaseE2ETestCase
         $this->assertSame($this->orderFaq->id, $result['top_hit']->faq->id);
 
         $trace = E2EObservabilityTracer::trace($query, $result, [
-            'tier_used'       => 3,
+            'tier_used' => 3,
             'tier1_attempted' => true,
             'tier2_attempted' => true,
-            'tier3_invoked'   => true,
-            'faq_id'          => $this->orderFaq->id,
+            'tier3_invoked' => true,
+            'faq_id' => $this->orderFaq->id,
         ]);
 
         $this->assertTraceDimensions($trace, [
-            'route'     => 'knowledge',
+            'route' => 'knowledge',
             'retrieval' => [
-                'tier_used'       => 3,
-                'faq_id'          => $this->orderFaq->id,
+                'tier_used' => 3,
+                'faq_id' => $this->orderFaq->id,
                 'tier1_attempted' => true,
                 'tier2_attempted' => true,
-                'tier3_invoked'   => true,
+                'tier3_invoked' => true,
             ],
             'answerability' => ['answerable' => true],
-            'result'        => 'PASS',
+            'result' => 'PASS',
         ]);
     }
 
@@ -84,16 +82,16 @@ class E2E04Tier3LLMExpansionTest extends BaseE2ETestCase
 
         $this->faqSearchMock->shouldReceive('getLastTelemetry')
             ->andReturn([
-                'tier_executed'    => 1,
-                'tier1_attempted'  => true,
-                'tier2_attempted'  => false,
-                'tier3_invoked'    => false,
+                'tier_executed' => 1,
+                'tier1_attempted' => true,
+                'tier2_attempted' => false,
+                'tier3_invoked' => false,
             ]);
 
         $result = $this->service->handleQuery($query, $this->workspace->id, $this->conversation);
 
         $trace = E2EObservabilityTracer::trace($query, $result, [
-            'tier_used'     => 1,
+            'tier_used' => 1,
             'tier3_invoked' => false,
         ]);
 

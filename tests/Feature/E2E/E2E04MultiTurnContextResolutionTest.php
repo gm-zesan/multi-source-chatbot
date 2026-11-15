@@ -4,14 +4,17 @@ declare(strict_types=1);
 
 namespace Tests\Feature\E2E;
 
+use App\AI\Orchestration\CustomerSupportService;
+use App\Enums\RoleEnum;
 use App\Models\Channel;
 use App\Models\ChannelAccount;
 use App\Models\Conversation;
 use App\Models\Message;
+use App\Models\User;
 use App\Models\Workspace;
-use App\AI\Orchestration\CustomerSupportService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
+use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
 /**
@@ -24,7 +27,9 @@ class E2E04MultiTurnContextResolutionTest extends TestCase
     use RefreshDatabase;
 
     private Workspace $workspace;
+
     private ChannelAccount $account;
+
     private Conversation $conversation;
 
     protected function setUp(): void
@@ -34,32 +39,32 @@ class E2E04MultiTurnContextResolutionTest extends TestCase
         $this->workspace = Workspace::create(['name' => 'E2E MultiTurn Store', 'slug' => 'e2e-multiturn-store']);
         $channel = Channel::firstOrCreate(['slug' => 'simulator'], ['name' => 'Admin Simulator', 'driver' => 'web', 'is_active' => true]);
 
-        \Spatie\Permission\Models\Role::firstOrCreate(['name' => \App\Enums\RoleEnum::ADMIN->value, 'guard_name' => 'web']);
+        Role::firstOrCreate(['name' => RoleEnum::ADMIN->value, 'guard_name' => 'web']);
 
-        $owner = \App\Models\User::create([
+        $owner = User::create([
             'workspace_id' => $this->workspace->id,
-            'name'         => 'Store Owner',
-            'email'        => 'owner@e2emultiturn.test',
-            'password'     => bcrypt('secret'),
-            'role'         => 'admin',
+            'name' => 'Store Owner',
+            'email' => 'owner@e2emultiturn.test',
+            'password' => bcrypt('secret'),
+            'role' => 'admin',
         ]);
-        $owner->assignRole(\App\Enums\RoleEnum::ADMIN->value);
+        $owner->assignRole(RoleEnum::ADMIN->value);
         $this->actingAs($owner);
 
         $this->account = ChannelAccount::create([
             'workspace_id' => $this->workspace->id,
-            'channel_id'   => $channel->id,
-            'name'         => 'Storefront MultiTurn Widget',
-            'external_id'  => 'e2e_multiturn_01',
+            'channel_id' => $channel->id,
+            'name' => 'Storefront MultiTurn Widget',
+            'external_id' => 'e2e_multiturn_01',
             'access_token' => 'token_multiturn_01',
-            'is_active'    => true,
+            'is_active' => true,
         ]);
 
         $this->conversation = Conversation::create([
             'channel_account_id' => $this->account->id,
-            'external_user_id'   => 'e2e_multiturn_user',
-            'status'             => 'open',
-            'last_direction'     => 'inbound',
+            'external_user_id' => 'e2e_multiturn_user',
+            'status' => 'open',
+            'last_direction' => 'inbound',
         ]);
     }
 
@@ -68,16 +73,16 @@ class E2E04MultiTurnContextResolutionTest extends TestCase
         // Turn 1: User asks for Rahim's due
         Message::create([
             'conversation_id' => $this->conversation->id,
-            'direction'       => 'inbound',
-            'type'            => 'text',
-            'body'            => 'Rahim-এর due কত?',
+            'direction' => 'inbound',
+            'type' => 'text',
+            'body' => 'Rahim-এর due কত?',
         ]);
 
         Message::create([
             'conversation_id' => $this->conversation->id,
-            'direction'       => 'outbound',
-            'type'            => 'text',
-            'body'            => 'Customer Rahim-এর বকেয়া পরিমাণ ৳১৫,৪০০.০০।',
+            'direction' => 'outbound',
+            'type' => 'text',
+            'body' => 'Customer Rahim-এর বকেয়া পরিমাণ ৳১৫,৪০০.০০।',
         ]);
 
         // Turn 2: Follow-up question with pronoun "ওটা কবে থেকে?"
@@ -90,14 +95,14 @@ class E2E04MultiTurnContextResolutionTest extends TestCase
                 $this->assertEquals('Rahim-এর due কত?', $payload['history'][0]['content']);
 
                 return Http::response([
-                    'success'               => true,
-                    'intent'                => 'customer_due_history',
-                    'report'                => "📅 **Customer Rahim:** বকেয়া ৳১৫,৪০০.০০ (সর্বশেষ লেনদেন: ১২ আগস্ট, ২০২৬)",
-                    'sql'                   => "SELECT due_amount, last_order_date FROM customers WHERE name = 'Rahim' AND workspace_id = 1",
-                    'rows'                  => [['due_amount' => 15400.0, 'last_order_date' => '2026-08-12']],
+                    'success' => true,
+                    'intent' => 'customer_due_history',
+                    'report' => '📅 **Customer Rahim:** বকেয়া ৳১৫,৪০০.০০ (সর্বশেষ লেনদেন: ১২ আগস্ট, ২০২৬)',
+                    'sql' => "SELECT due_amount, last_order_date FROM customers WHERE name = 'Rahim' AND workspace_id = 1",
+                    'rows' => [['due_amount' => 15400.0, 'last_order_date' => '2026-08-12']],
                     'is_security_rejection' => false,
-                    'is_ambiguous'          => false,
-                    'latency_ms'            => 105.0,
+                    'is_ambiguous' => false,
+                    'latency_ms' => 105.0,
                 ], 200);
             },
         ]);

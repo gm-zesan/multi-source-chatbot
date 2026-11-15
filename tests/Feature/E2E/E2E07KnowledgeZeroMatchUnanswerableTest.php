@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Tests\Feature\E2E;
 
+use App\AI\Orchestration\CustomerSupportService;
 use App\Models\Channel;
 use App\Models\ChannelAccount;
 use App\Models\Conversation;
 use App\Models\Workspace;
-use App\AI\Orchestration\CustomerSupportService;
 use App\Services\FAQ\FAQSearch;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -24,7 +24,9 @@ class E2E07KnowledgeZeroMatchUnanswerableTest extends TestCase
     use RefreshDatabase;
 
     private Workspace $workspace;
+
     private ChannelAccount $account;
+
     private Conversation $conversation;
 
     protected function setUp(): void
@@ -36,18 +38,18 @@ class E2E07KnowledgeZeroMatchUnanswerableTest extends TestCase
 
         $this->account = ChannelAccount::create([
             'workspace_id' => $this->workspace->id,
-            'channel_id'   => $channel->id,
-            'name'         => 'Storefront Zero Match Widget',
-            'external_id'  => 'e2e_zero_01',
+            'channel_id' => $channel->id,
+            'name' => 'Storefront Zero Match Widget',
+            'external_id' => 'e2e_zero_01',
             'access_token' => 'token_zero_01',
-            'is_active'    => true,
+            'is_active' => true,
         ]);
 
         $this->conversation = Conversation::create([
             'channel_account_id' => $this->account->id,
-            'external_user_id'   => 'e2e_zero_user',
-            'status'             => 'open',
-            'last_direction'     => 'inbound',
+            'external_user_id' => 'e2e_zero_user',
+            'status' => 'open',
+            'last_direction' => 'inbound',
         ]);
     }
 

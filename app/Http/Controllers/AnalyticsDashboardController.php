@@ -4,11 +4,9 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
-use App\Enums\RoleEnum;
 use App\Models\AnalyticsCustomer;
 use App\Models\AnalyticsOrder;
 use App\Models\AnalyticsProduct;
-use App\Models\AnalyticsSalesperson;
 use App\Models\User;
 use App\Models\Workspace;
 use Carbon\Carbon;
@@ -58,7 +56,7 @@ class AnalyticsDashboardController extends Controller
 
         return response()->json([
             'status' => 'success',
-            'data'   => $data,
+            'data' => $data,
         ]);
     }
 
@@ -155,9 +153,9 @@ class AnalyticsDashboardController extends Controller
         $topProducts = [];
         foreach ($topProductsRaw as $tp) {
             $topProducts[] = [
-                'name'          => $tp->name,
-                'sku'           => $tp->sku,
-                'units_sold'    => (float) $tp->units_sold,
+                'name' => $tp->name,
+                'sku' => $tp->sku,
+                'units_sold' => (float) $tp->units_sold,
                 'total_revenue' => round((float) $tp->total_revenue, 2),
             ];
         }
@@ -195,44 +193,44 @@ class AnalyticsDashboardController extends Controller
         $salesReps = [];
         foreach ($salesRepsRaw as $rep) {
             $salesReps[] = [
-                'name'          => $rep->name,
+                'name' => $rep->name,
                 'employee_code' => $rep->employee_code,
-                'target'        => (float) $rep->target_amount,
-                'sales'         => round((float) $rep->total_sales, 2),
-                'order_count'   => (int) $rep->order_count,
+                'target' => (float) $rep->target_amount,
+                'sales' => round((float) $rep->total_sales, 2),
+                'order_count' => (int) $rep->order_count,
             ];
         }
 
         return [
             'date_range' => [
                 'start' => $startDate->toDateString(),
-                'end'   => $endDate->toDateString(),
+                'end' => $endDate->toDateString(),
                 'range' => $range,
             ],
             'currency' => $currency,
             'summary' => [
-                'gross_sales'     => $grossSales,
-                'total_discount'  => $totalDiscount,
-                'net_sales'       => $netSales,
-                'total_orders'    => $totalOrders,
+                'gross_sales' => $grossSales,
+                'total_discount' => $totalDiscount,
+                'net_sales' => $netSales,
+                'total_orders' => $totalOrders,
                 'avg_order_value' => $avgOrderValue,
             ],
             'sales_trend' => [
-                'dates'    => $trendDates,
+                'dates' => $trendDates,
                 'revenues' => $trendRevenues,
-                'orders'   => $trendOrders,
+                'orders' => $trendOrders,
             ],
             'top_products' => $topProducts,
             'inventory' => [
-                'total_skus'   => $totalProducts,
-                'in_stock'     => $inStockCount,
-                'low_stock'    => $lowStockCount,
+                'total_skus' => $totalProducts,
+                'in_stock' => $inStockCount,
+                'low_stock' => $lowStockCount,
                 'out_of_stock' => $outOfStockCount,
             ],
             'customers' => [
-                'total'        => $totalCustomers,
+                'total' => $totalCustomers,
                 'repeat_count' => $repeatCustomers,
-                'repeat_rate'  => $repeatRate,
+                'repeat_rate' => $repeatRate,
             ],
             'sales_reps' => $salesReps,
         ];

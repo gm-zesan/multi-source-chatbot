@@ -4,15 +4,13 @@ declare(strict_types=1);
 
 namespace Tests\Feature\E2E;
 
-use App\AI\Routing\RouteType;
-use App\AI\Routing\RoutingResult;
 use App\Models\FAQ;
 use Tests\Feature\E2E\Support\BaseE2ETestCase;
 use Tests\Feature\E2E\Support\E2EObservabilityTracer;
 
 /**
  * E2E-06: Multilingual Matrix Test
- * 
+ *
  * Verifies that contextual pronoun resolution and retrieval behave consistently across
  * all four supported language profiles:
  * - Bengali (বাংলা)
@@ -30,9 +28,9 @@ class E2E06MultilingualMatrixTest extends BaseE2ETestCase
 
         $this->panjabiFaq = FAQ::create([
             'workspace_id' => $this->workspace->id,
-            'question'     => 'Black Cotton Panjabi এর দাম কত?',
-            'answer'       => 'আমাদের Black Cotton Panjabi এর দাম ১,৮৫০ টাকা। সাইজ M, L, XL পাওয়া যাবে।',
-            'is_active'    => true,
+            'question' => 'Black Cotton Panjabi এর দাম কত?',
+            'answer' => 'আমাদের Black Cotton Panjabi এর দাম ১,৮৫০ টাকা। সাইজ M, L, XL পাওয়া যাবে।',
+            'is_active' => true,
         ]);
     }
 
@@ -63,15 +61,15 @@ class E2E06MultilingualMatrixTest extends BaseE2ETestCase
         $this->assertTrue($result['answered']);
 
         $trace = E2EObservabilityTracer::trace($query, $result, [
-            'language'       => 'bengali',
+            'language' => 'bengali',
             'context_status' => 'resolved',
-            'entity'         => ['type' => 'Product', 'name' => 'Black Cotton Panjabi'],
-            'tier_used'      => 1,
+            'entity' => ['type' => 'Product', 'name' => 'Black Cotton Panjabi'],
+            'tier_used' => 1,
         ]);
 
         $this->assertTraceDimensions($trace, [
             'context' => ['status' => 'resolved'],
-            'result'  => 'PASS',
+            'result' => 'PASS',
         ]);
     }
 

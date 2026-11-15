@@ -4,13 +4,16 @@ declare(strict_types=1);
 
 namespace Tests\Feature\E2E;
 
+use App\AI\Orchestration\CustomerSupportService;
+use App\Enums\RoleEnum;
 use App\Models\Channel;
 use App\Models\ChannelAccount;
 use App\Models\Conversation;
+use App\Models\User;
 use App\Models\Workspace;
-use App\AI\Orchestration\CustomerSupportService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
+use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
 /**
@@ -23,7 +26,9 @@ class E2E09DownstreamFailureResilienceTest extends TestCase
     use RefreshDatabase;
 
     private Workspace $workspace;
+
     private ChannelAccount $account;
+
     private Conversation $conversation;
 
     protected function setUp(): void
@@ -33,32 +38,32 @@ class E2E09DownstreamFailureResilienceTest extends TestCase
         $this->workspace = Workspace::create(['name' => 'E2E Resilience Store', 'slug' => 'e2e-resilience-store']);
         $channel = Channel::firstOrCreate(['slug' => 'simulator'], ['name' => 'Admin Simulator', 'driver' => 'web', 'is_active' => true]);
 
-        \Spatie\Permission\Models\Role::firstOrCreate(['name' => \App\Enums\RoleEnum::ADMIN->value, 'guard_name' => 'web']);
+        Role::firstOrCreate(['name' => RoleEnum::ADMIN->value, 'guard_name' => 'web']);
 
-        $owner = \App\Models\User::create([
+        $owner = User::create([
             'workspace_id' => $this->workspace->id,
-            'name'         => 'Store Owner',
-            'email'        => 'owner@e2eresilience.test',
-            'password'     => bcrypt('secret'),
-            'role'         => 'admin',
+            'name' => 'Store Owner',
+            'email' => 'owner@e2eresilience.test',
+            'password' => bcrypt('secret'),
+            'role' => 'admin',
         ]);
-        $owner->assignRole(\App\Enums\RoleEnum::ADMIN->value);
+        $owner->assignRole(RoleEnum::ADMIN->value);
         $this->actingAs($owner);
 
         $this->account = ChannelAccount::create([
             'workspace_id' => $this->workspace->id,
-            'channel_id'   => $channel->id,
-            'name'         => 'Storefront Resilience Widget',
-            'external_id'  => 'e2e_resilience_01',
+            'channel_id' => $channel->id,
+            'name' => 'Storefront Resilience Widget',
+            'external_id' => 'e2e_resilience_01',
             'access_token' => 'token_resilience_01',
-            'is_active'    => true,
+            'is_active' => true,
         ]);
 
         $this->conversation = Conversation::create([
             'channel_account_id' => $this->account->id,
-            'external_user_id'   => 'e2e_resilience_user',
-            'status'             => 'open',
-            'last_direction'     => 'inbound',
+            'external_user_id' => 'e2e_resilience_user',
+            'status' => 'open',
+            'last_direction' => 'inbound',
         ]);
     }
 

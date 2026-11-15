@@ -11,7 +11,7 @@ use Tests\Feature\E2E\Support\E2EObservabilityTracer;
 
 /**
  * E2E-10: Full Cross-Feature Multi-Turn Orchestration & Observability Trace Test
- * 
+ *
  * Executes a realistic 6-turn continuous multi-turn dialogue exercising all pipeline branches:
  * - Turn 1: User introduces product & size preference
  * - Turn 2: Pronoun inquiry ("ওটার ডেলিভারি কবে?")
@@ -19,7 +19,7 @@ use Tests\Feature\E2E\Support\E2EObservabilityTracer;
  * - Turn 4: Multiple competing entities ("parcel ta kothay?") -> M4-A Short-Circuit
  * - Turn 5: User selection ("#1042") -> Intent restored & resolved
  * - Turn 6: Follow-up pricing inquiry ("আর ওটার দাম কত?")
- * 
+ *
  * Every turn captures and asserts a full E2E Observability Contract structured trace.
  */
 class E2E10FullOrchestrationTraceTest extends BaseE2ETestCase
@@ -32,9 +32,9 @@ class E2E10FullOrchestrationTraceTest extends BaseE2ETestCase
 
         $this->panjabiPricingFaq = FAQ::create([
             'workspace_id' => $this->workspace->id,
-            'question'     => 'Black Cotton Panjabi এর মূল্য কত?',
-            'answer'       => 'Black Cotton Panjabi এর দাম ১,৮৫০ টাকা।',
-            'is_active'    => true,
+            'question' => 'Black Cotton Panjabi এর মূল্য কত?',
+            'answer' => 'Black Cotton Panjabi এর দাম ১,৮৫০ টাকা।',
+            'is_active' => true,
         ]);
     }
 
@@ -61,15 +61,15 @@ class E2E10FullOrchestrationTraceTest extends BaseE2ETestCase
         $this->recordTurn($t1Query, 'outbound', $t1Result['reply']);
 
         $traces['turn_1'] = E2EObservabilityTracer::trace($t1Query, $t1Result, [
-            'language'  => 'bengali',
+            'language' => 'bengali',
             'tier_used' => 1,
-            'entity'    => ['type' => 'Product', 'name' => 'Black Cotton Panjabi'],
+            'entity' => ['type' => 'Product', 'name' => 'Black Cotton Panjabi'],
         ]);
         $this->assertTraceDimensions($traces['turn_1'], [
-            'route'         => 'knowledge',
-            'retrieval'     => ['tier_used' => 1],
+            'route' => 'knowledge',
+            'retrieval' => ['tier_used' => 1],
             'answerability' => ['answerable' => true],
-            'result'        => 'PASS',
+            'result' => 'PASS',
         ]);
 
         // ── Turn 2: Pronoun inquiry ("ওটার ডেলিভারি কবে?") ───────────────────
@@ -86,15 +86,15 @@ class E2E10FullOrchestrationTraceTest extends BaseE2ETestCase
         $this->recordTurn($t2Query, 'outbound', $t2Result['reply']);
 
         $traces['turn_2'] = E2EObservabilityTracer::trace($t2Query, $t2Result, [
-            'language'       => 'bengali',
+            'language' => 'bengali',
             'context_status' => 'resolved',
-            'tier_used'      => 1,
-            'entity'         => ['type' => 'Product', 'name' => 'Black Cotton Panjabi'],
+            'tier_used' => 1,
+            'entity' => ['type' => 'Product', 'name' => 'Black Cotton Panjabi'],
         ]);
         $this->assertTraceDimensions($traces['turn_2'], [
-            'route'   => 'knowledge',
+            'route' => 'knowledge',
             'context' => ['status' => 'resolved'],
-            'result'  => 'PASS',
+            'result' => 'PASS',
         ]);
 
         // ── Turn 3: Implicit parcel tracking ("amar parcel ta kothay?") ───────
@@ -108,13 +108,13 @@ class E2E10FullOrchestrationTraceTest extends BaseE2ETestCase
         $this->recordTurn($t3Query, 'outbound', $t3Result['reply']);
 
         $traces['turn_3'] = E2EObservabilityTracer::trace($t3Query, $t3Result, [
-            'language'  => 'banglish',
+            'language' => 'banglish',
             'tier_used' => 1,
         ]);
         $this->assertTraceDimensions($traces['turn_3'], [
-            'route'         => 'knowledge',
+            'route' => 'knowledge',
             'answerability' => ['answerable' => true],
-            'result'        => 'PASS',
+            'result' => 'PASS',
         ]);
 
         // ── Turn 4: Competing orders introduced -> Ambiguity Short-Circuit ────
@@ -137,12 +137,12 @@ class E2E10FullOrchestrationTraceTest extends BaseE2ETestCase
             'llm_calls' => 0,
         ]);
         $this->assertTraceDimensions($traces['turn_4'], [
-            'route'         => 'uncertain',
-            'context'       => ['status' => 'ambiguous'],
-            'retrieval'     => ['tier_used' => 0],
-            'llm'           => ['calls' => 0],
+            'route' => 'uncertain',
+            'context' => ['status' => 'ambiguous'],
+            'retrieval' => ['tier_used' => 0],
+            'llm' => ['calls' => 0],
             'clarification' => ['requested' => true, 'short_circuited' => true],
-            'result'        => 'PASS',
+            'result' => 'PASS',
         ]);
 
         // ── Turn 5: Selection ("#1042") -> Intent restored & resolved ─────────
@@ -160,14 +160,14 @@ class E2E10FullOrchestrationTraceTest extends BaseE2ETestCase
 
         $traces['turn_5'] = E2EObservabilityTracer::trace($t5Query, $t5Result, [
             'context_status' => 'resolved',
-            'tier_used'      => 1,
-            'entity'         => ['type' => 'Order', 'id' => '1042'],
+            'tier_used' => 1,
+            'entity' => ['type' => 'Order', 'id' => '1042'],
         ]);
         $this->assertTraceDimensions($traces['turn_5'], [
-            'route'         => 'knowledge',
-            'context'       => ['status' => 'resolved'],
+            'route' => 'knowledge',
+            'context' => ['status' => 'resolved'],
             'clarification' => ['requested' => false],
-            'result'        => 'PASS',
+            'result' => 'PASS',
         ]);
 
         // ── Turn 6: Follow-up pricing ("আর ওটার দাম কত?") ─────────────────────
@@ -183,13 +183,13 @@ class E2E10FullOrchestrationTraceTest extends BaseE2ETestCase
         $t6Result = $this->service->handleQuery($t6Query, $this->workspace->id, $this->conversation);
 
         $traces['turn_6'] = E2EObservabilityTracer::trace($t6Query, $t6Result, [
-            'tier_used'      => 1,
+            'tier_used' => 1,
             'context_status' => 'resolved',
         ]);
         $this->assertTraceDimensions($traces['turn_6'], [
-            'route'         => 'knowledge',
+            'route' => 'knowledge',
             'answerability' => ['answerable' => true],
-            'result'        => 'PASS',
+            'result' => 'PASS',
         ]);
 
         // Verify all 6 traces were successfully captured

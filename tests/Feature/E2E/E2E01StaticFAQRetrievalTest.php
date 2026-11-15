@@ -4,21 +4,19 @@ declare(strict_types=1);
 
 namespace Tests\Feature\E2E;
 
-use App\AI\Routing\RouteType;
-use App\AI\Routing\RoutingResult;
 use Tests\Feature\E2E\Support\BaseE2ETestCase;
 use Tests\Feature\E2E\Support\E2EObservabilityTracer;
 
 /**
  * E2E-01: Static FAQ Retrieval Suite
- * 
+ *
  * Verifies the complete static-data path across linguistic variations:
  * - A1: Direct exact FAQ (ডেলিভারি চার্জ কত?)
  * - A2: Banglish (delivery charge koto?)
  * - A3: Bengali (ঢাকার বাইরে ডেলিভারি চার্জ কত?)
  * - A4: English (How much is the delivery charge?)
  * - A5: Code-mixed (delivery charge ta koto?)
- * 
+ *
  * Strict invariants verified:
  * - Correct route (knowledge)
  * - Correct FAQ matched (ID & content)
@@ -54,23 +52,23 @@ class E2E01StaticFAQRetrievalTest extends BaseE2ETestCase
         $this->assertNull($result['memory_context']);
 
         $trace = E2EObservabilityTracer::trace($query, $result, [
-            'language'              => 'bengali',
-            'tier_used'             => 1,
-            'tier1_attempted'       => true,
-            'tier2_attempted'       => false,
-            'tier3_invoked'         => false,
-            'memory_decision'       => 'BYPASS',
+            'language' => 'bengali',
+            'tier_used' => 1,
+            'tier1_attempted' => true,
+            'tier2_attempted' => false,
+            'tier3_invoked' => false,
+            'memory_decision' => 'BYPASS',
             'memory_service_called' => false,
-            'llm_calls'             => 1,
-            'llm_grounded'          => true,
+            'llm_calls' => 1,
+            'llm_grounded' => true,
         ]);
 
         $this->assertTraceDimensions($trace, [
-            'route'         => 'knowledge',
-            'memory'        => ['decision' => 'BYPASS', 'service_called' => false],
-            'retrieval'     => ['tier_used' => 1, 'tier2_attempted' => false, 'tier3_invoked' => false],
+            'route' => 'knowledge',
+            'memory' => ['decision' => 'BYPASS', 'service_called' => false],
+            'retrieval' => ['tier_used' => 1, 'tier2_attempted' => false, 'tier3_invoked' => false],
             'answerability' => ['answerable' => true],
-            'result'        => 'PASS',
+            'result' => 'PASS',
         ]);
     }
 
@@ -94,17 +92,17 @@ class E2E01StaticFAQRetrievalTest extends BaseE2ETestCase
         $this->assertSame($this->deliveryFaq->id, $result['top_hit']->faq->id);
 
         $trace = E2EObservabilityTracer::trace($query, $result, [
-            'language'              => 'banglish',
-            'tier_used'             => 1,
-            'memory_decision'       => 'BYPASS',
+            'language' => 'banglish',
+            'tier_used' => 1,
+            'memory_decision' => 'BYPASS',
             'memory_service_called' => false,
         ]);
 
         $this->assertTraceDimensions($trace, [
-            'route'     => 'knowledge',
+            'route' => 'knowledge',
             'retrieval' => ['tier_used' => 1, 'tier3_invoked' => false],
-            'memory'    => ['service_called' => false],
-            'result'    => 'PASS',
+            'memory' => ['service_called' => false],
+            'result' => 'PASS',
         ]);
     }
 

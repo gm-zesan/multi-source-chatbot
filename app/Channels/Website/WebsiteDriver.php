@@ -26,14 +26,14 @@ class WebsiteDriver implements ChannelDriver
      */
     public function send(ChannelAccount $account, Conversation $conversation, string $message): array
     {
-        $messageId = 'web_msg_' . Str::uuid();
+        $messageId = 'web_msg_'.Str::uuid();
 
         return [
-            'success'             => true,
-            'message_id'          => $messageId,
-            'recipient_id'        => $conversation->external_user_id,
-            'delivered'           => true,
-            'timestamp'           => now()->toIso8601String(),
+            'success' => true,
+            'message_id' => $messageId,
+            'recipient_id' => $conversation->external_user_id,
+            'delivered' => true,
+            'timestamp' => now()->toIso8601String(),
         ];
     }
 
@@ -50,11 +50,11 @@ class WebsiteDriver implements ChannelDriver
         }
 
         return [
-            'external_user_id'    => (string) $externalUserId,
-            'external_message_id' => (string) ($payload['message_id'] ?? ('msg_' . Str::uuid())),
-            'text'                => (string) $text,
-            'customer_name'       => $payload['visitor_name'] ?? 'Web Visitor',
-            'attachments'         => $payload['attachments'] ?? [],
+            'external_user_id' => (string) $externalUserId,
+            'external_message_id' => (string) ($payload['message_id'] ?? ('msg_'.Str::uuid())),
+            'text' => (string) $text,
+            'customer_name' => $payload['visitor_name'] ?? 'Web Visitor',
+            'attachments' => $payload['attachments'] ?? [],
         ];
     }
 
@@ -69,7 +69,7 @@ class WebsiteDriver implements ChannelDriver
     public function getUserProfile(ChannelAccount $account, string $externalUserId): array
     {
         return [
-            'name' => 'Web Visitor (' . substr($externalUserId, 0, 8) . ')',
+            'name' => 'Web Visitor ('.substr($externalUserId, 0, 8).')',
         ];
     }
 

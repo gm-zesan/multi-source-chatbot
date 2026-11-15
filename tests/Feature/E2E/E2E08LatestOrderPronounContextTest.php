@@ -5,14 +5,12 @@ declare(strict_types=1);
 namespace Tests\Feature\E2E;
 
 use App\AI\Agents\KnowledgeSupportAgent;
-use App\AI\Routing\RouteType;
-use App\AI\Routing\RoutingResult;
 use Tests\Feature\E2E\Support\BaseE2ETestCase;
 use Tests\Feature\E2E\Support\E2EObservabilityTracer;
 
 /**
  * E2E-08: Latest Order, Pronoun, and Cross-Session Context Resolution Test
- * 
+ *
  * Verifies:
  * - Implicit latest order retrieval when user asks "amar parcel ta kothay?" without mentioning #1042
  * - Local turn anaphora pronoun resolution ("ওটা কবে পাবো?")
@@ -31,13 +29,13 @@ class E2E08LatestOrderPronounContextTest extends BaseE2ETestCase
         $this->memoryClientMock->shouldReceive('search')
             ->once()
             ->andReturn([
-                'has_memories'            => true,
-                'memories'                => [
+                'has_memories' => true,
+                'memories' => [
                     [
-                        'subject'    => 'customer',
-                        'predicate'  => 'has_latest_order',
-                        'object'     => '#1042',
-                        'status'     => 'In Transit',
+                        'subject' => 'customer',
+                        'predicate' => 'has_latest_order',
+                        'object' => '#1042',
+                        'status' => 'In Transit',
                     ],
                 ],
                 'formatted_memory_context' => "Customer Orders:\n- Latest Order #1042 (In Transit, Est. Delivery Tomorrow)",
@@ -59,20 +57,20 @@ class E2E08LatestOrderPronounContextTest extends BaseE2ETestCase
         $this->assertStringContainsString('আগামীকাল', $result['reply']);
 
         $trace = E2EObservabilityTracer::trace($query, $result, [
-            'language'              => 'banglish',
-            'active_topic'          => 'Order_Tracking',
-            'entity'                => ['type' => 'Order', 'id' => '1042'],
-            'memory_decision'       => 'RETRIEVE',
+            'language' => 'banglish',
+            'active_topic' => 'Order_Tracking',
+            'entity' => ['type' => 'Order', 'id' => '1042'],
+            'memory_decision' => 'RETRIEVE',
             'memory_service_called' => true,
-            'memory_found'          => true,
-            'tier_used'             => 1,
+            'memory_found' => true,
+            'tier_used' => 1,
         ]);
 
         $this->assertTraceDimensions($trace, [
-            'route'         => 'knowledge',
-            'context'       => ['status' => 'resolved'],
+            'route' => 'knowledge',
+            'context' => ['status' => 'resolved'],
             'clarification' => ['requested' => false],
-            'result'        => 'PASS',
+            'result' => 'PASS',
         ]);
     }
 
@@ -115,12 +113,12 @@ class E2E08LatestOrderPronounContextTest extends BaseE2ETestCase
         $this->memoryClientMock->shouldReceive('search')
             ->atLeast()->once()
             ->andReturn([
-                'has_memories'            => true,
-                'memories'                => [
+                'has_memories' => true,
+                'memories' => [
                     [
-                        'subject'   => 'customer',
+                        'subject' => 'customer',
                         'predicate' => 'ordered_product',
-                        'object'    => 'Black Cotton Panjabi',
+                        'object' => 'Black Cotton Panjabi',
                     ],
                 ],
                 'formatted_memory_context' => "Recent Purchases:\n- Black Cotton Panjabi (Order #1042)",
