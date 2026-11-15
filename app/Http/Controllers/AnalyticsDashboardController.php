@@ -27,7 +27,10 @@ class AnalyticsDashboardController extends Controller
         $user = Auth::user();
         $this->authorizeOwnerOrStaff($user);
 
-        $workspaceId = (int) $user->workspace_id;
+        $workspaceId = ($user->hasRole(\App\Enums\RoleEnum::SUPERADMIN->value) && $request->filled('workspace_id'))
+            ? (int) $request->input('workspace_id')
+            : (int) ($user->workspace_id ?: Workspace::first()?->id ?: 1);
+
         $workspace = Workspace::findOrFail($workspaceId);
 
         $data = $this->aggregateAnalytics($workspaceId, '30d');
@@ -47,7 +50,10 @@ class AnalyticsDashboardController extends Controller
         $user = Auth::user();
         $this->authorizeOwnerOrStaff($user);
 
-        $workspaceId = (int) $user->workspace_id;
+        $workspaceId = ($user->hasRole(\App\Enums\RoleEnum::SUPERADMIN->value) && $request->filled('workspace_id'))
+            ? (int) $request->input('workspace_id')
+            : (int) ($user->workspace_id ?: Workspace::first()?->id ?: 1);
+
         $range = (string) $request->input('range', '30d');
         $startDate = $request->input('start_date');
         $endDate = $request->input('end_date');
@@ -240,6 +246,10 @@ class AnalyticsDashboardController extends Controller
     {
         if (! $user) {
             abort(401, 'Unauthenticated.');
+        }
+
+        if ($user->hasRole(\App\Enums\RoleEnum::SUPERADMIN->value)) {
+            return;
         }
 
         if (! $user->workspace_id) {

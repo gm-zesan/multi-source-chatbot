@@ -199,7 +199,8 @@ class ConversationController extends Controller
         if ($assignedUserId !== null) {
             $assignedUser = User::find($assignedUserId);
             $workspaceId = $conversation->channelAccount?->workspace_id;
-            if ($assignedUser && (int) $assignedUser->workspace_id !== (int) $workspaceId) {
+            $isSuperAdmin = Auth::user()?->hasRole(\App\Enums\RoleEnum::SUPERADMIN->value);
+            if (! $isSuperAdmin && $assignedUser && ! $assignedUser->hasRole(\App\Enums\RoleEnum::SUPERADMIN->value) && (int) $assignedUser->workspace_id !== (int) $workspaceId) {
                 abort(403, 'Cannot assign conversation to user from another workspace.');
             }
         }

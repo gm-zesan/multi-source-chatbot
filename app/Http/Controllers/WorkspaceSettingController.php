@@ -15,7 +15,7 @@ class WorkspaceSettingController extends Controller
     /**
      * Show workspace settings page.
      */
-    public function edit()
+    public function edit(Request $request)
     {
         /** @var User $user */
         $user = Auth::user();
@@ -24,7 +24,11 @@ class WorkspaceSettingController extends Controller
             abort(403, 'Unauthorized. Only workspace owners and administrators can manage workspace settings.');
         }
 
-        $workspace = Workspace::findOrFail($user->workspace_id);
+        $workspaceId = ($user->hasRole(RoleEnum::SUPERADMIN->value) && $request->filled('workspace_id'))
+            ? (int) $request->input('workspace_id')
+            : (int) ($user->workspace_id ?: Workspace::first()?->id ?: 1);
+
+        $workspace = Workspace::findOrFail($workspaceId);
 
         return view('admin.workspace.settings', [
             'workspace' => $workspace,
@@ -56,10 +60,15 @@ class WorkspaceSettingController extends Controller
             'settings.*' => 'nullable',
         ]);
 
-        $workspace = Workspace::findOrFail($user->workspace_id);
+        $workspaceId = ($user->hasRole(RoleEnum::SUPERADMIN->value) && $request->filled('workspace_id'))
+            ? (int) $request->input('workspace_id')
+            : (int) ($user->workspace_id ?: Workspace::first()?->id ?: 1);
+
+        $workspace = Workspace::findOrFail($workspaceId);
         $workspace->update($validated);
 
-        return redirect()->route('workspace.settings.edit')->with('success', 'Workspace settings updated successfully.');
+        return redirect()->route('workspace.settings.edit', $user->hasRole(RoleEnum::SUPERADMIN->value) && $request->filled('workspace_id') ? ['workspace_id' => $workspaceId] : [])
+            ->with('success', 'Workspace settings updated successfully.');
     }
 
     private function canManageWorkspace(?User $user): bool

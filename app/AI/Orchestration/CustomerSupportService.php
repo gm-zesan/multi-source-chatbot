@@ -1932,13 +1932,18 @@ PROMPT;
             return true;
         }
 
+        // Superadmin: Unrestricted universal access across all workspaces and features
+        if (method_exists($user, 'hasRole') && ($user->hasRole(RoleEnum::SUPERADMIN->value) || $user->hasRole('superadmin'))) {
+            return true;
+        }
+
         // Intra-tenant RBAC: User must strictly belong to the specified workspace (prevents cross-tenant access)
         if ($workspaceId !== null && (int) $user->workspace_id !== (int) $workspaceId) {
             return false; // Cross-tenant access strictly denied
         }
 
         // Workspace Owner/Admin: Full operational access within their own workspace
-        if (method_exists($user, 'hasRole') && ($user->hasRole(RoleEnum::ADMIN->value) || $user->hasRole('owner') || $user->hasRole('superadmin'))) {
+        if (method_exists($user, 'hasRole') && ($user->hasRole(RoleEnum::ADMIN->value) || $user->hasRole('owner'))) {
             return true;
         }
 

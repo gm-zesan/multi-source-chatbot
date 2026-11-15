@@ -200,4 +200,30 @@ class OwnerWorkspaceAndAnalyticsTest extends TestCase
         $this->assertSame('Rahim Sales', $data['sales_reps'][0]['name']);
         $this->assertEquals(2800.00, (float) $data['sales_reps'][0]['sales']);
     }
+
+    public function test_superadmin_has_unrestricted_access_to_any_workspace_analytics_and_settings(): void
+    {
+        $superadminRole = Role::firstOrCreate(['name' => RoleEnum::SUPERADMIN->value, 'guard_name' => 'web']);
+        $superadmin = User::factory()->create([
+            'workspace_id' => null, // Superadmin with no specific workspace assignment
+            'email'        => 'superadmin@global.test',
+        ]);
+        $superadmin->assignRole($superadminRole);
+
+        $this->actingAs($superadmin);
+
+        // 1. Superadmin can access analytics without explicit workspace (defaults safely to first workspace)
+        $respDefault = $this->get(route('analytics.index'));
+        $respDefault->assertOk();
+
+        // 2. Superadmin can explicitly inspect Workspace B analytics
+        $respWsB = $this->get(route('analytics.index', ['workspace_id' => $this->workspaceB->id]));
+        $respWsB->assertOk();
+        $respWsB->assertSee('Tech Matrix Ltd');
+
+        // 3. Superadmin can access and edit settings for any workspace
+        $respSettings = $this->get(route('workspace.settings.edit', ['workspace_id' => $this->workspaceB->id]));
+        $respSettings->assertOk();
+        $respSettings->assertSee('Tech Matrix Ltd');
+    }
 }

@@ -67,6 +67,14 @@ class User extends Authenticatable
     }
 
     /**
+     * Check if user is a SuperAdmin.
+     */
+    public function isSuperAdmin(): bool
+    {
+        return $this->hasRole(\App\Enums\RoleEnum::SUPERADMIN->value);
+    }
+
+    /**
      * Get the formatted avatar URL.
      */
     public function getAvatarUrlAttribute(): ?string
