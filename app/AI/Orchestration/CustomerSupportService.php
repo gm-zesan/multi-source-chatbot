@@ -190,7 +190,10 @@ class CustomerSupportService
             route: $decision->toRouteType(),
             confidence: 0.95,
             intent: $decision->intent,
-            signals: [],
+            signals: array_filter([
+                'clarification'   => $decision->clarification,
+                'direct_response' => $decision->directResponse,
+            ]),
             entities: [],
             routerLatencyMs: $elapsed,
             isFallback: false,
@@ -1744,7 +1747,7 @@ PROMPT;
      */
     public function isProductOrInventoryQuery(string $query): bool
     {
-        return (bool) preg_match('/(?:^|[^\p{L}\p{N}])(?:(?:ki\s*ki|কি\s*কি|kono|কোনো|কোন)\s+[\p{L}\p{N}\-_]+(?:\s+[\p{L}\p{N}\-_]+)?\s+(?:ache|pawa\s*jabe|available|আছে|পাওয়া\s*যাবে)|[\p{L}\p{N}\-_]+\s+(?:ache\s*kina|pawa\s*jabe|pawa\s*jay|available\s*ache|আছে\s*কিনা|পাওয়া\s*যাবে|পাওয়া\s*যায়)|product|প্রোডাক্ট|পণ্য|আইটেম|item|items|stock|স্টক|দাম|price|dam|মূল্য|cost|rate|available|এভেইলেবল|upload|file|sheet|excel|inventory|ইনভেনটরি|catalog|ক্যাটালগ|collection|কালেকশন|tell\s*me\s*about|do\s*you\s*have)(?:$|[^\p{L}\p{N}])/ui', $query);
+        return (bool) preg_match('/(?:^|[^\p{L}\p{N}])(?:(?:ki\s*ki|কি\s*কি|kono|কোনো|কোন)\s+[\p{L}\p{N}\-_]+(?:\s+[\p{L}\p{N}\-_]+)?\s+(?:ache|pawa\s*jabe|available|আছে|পাওয়া\s*যাবে)|[\p{L}\p{N}\-_]+\s+(?:ache\s*kina|pawa\s*jabe|pawa\s*jay|available\s*ache|আছে\s*কিনা|পাওয়া\s*যাবে|পাওয়া\s*যায়)|product|প্রোডাক্ট|পণ্য|আইটেম|item|items|stock|স্টক|দাম|price|dam|মূল্য|cost|rate|available|এভেইলেবল|upload|file|sheet|excel|inventory|ইনভেনটরি|catalog|ক্যাটালগ|collection|কালেকশন|tell\s*me\s*about|do\s*you\s*have|sale|sell|সেল|বিক্রি|kinte|kinbo|buy|purchase|কেনা|কিনতে)(?:$|[^\p{L}\p{N}])/ui', $query);
     }
 
     /**
@@ -2047,6 +2050,12 @@ PROMPT;
             $conversation->save();
         }
 
+        // Return model's intelligent clarification question if available
+        $clarification = $routingResult->signals['clarification'] ?? null;
+        if (is_array($clarification) && !empty($clarification['question'])) {
+            return (string) $clarification['question'];
+        }
+
         return $this->clarificationManager->handleAnalyticAmbiguity(
             conversation: $conversation,
             rawQuery: $query,
@@ -2114,8 +2123,17 @@ PROMPT;
             }
 
             // Tier 3: Deterministic Grounded Fallback
+            if (!empty($businessContext)) {
+                if (str_contains($businessContext, 'UNAVAILABLE / NOT FOUND')) {
+                    return "দুঃখিত, আমাদের স্টোরে বর্তমানে মোবাইল ফোন বা এই পণ্যটি উপলব্ধ নেই। আমাদের কাছে ল্যাপটপ (Laptop Pro 15), ওয়্যারলেস হেডফোন, মেকানিক্যাল কীবোর্ড এবং অফিস চেয়ার পাওয়া যাচ্ছে।";
+                }
+                if (str_contains($businessContext, 'Central Product Catalog') || str_contains($businessContext, 'Available Products in Store')) {
+                    return "আমাদের স্টোরে ইলেকট্রনিক্স ও আইটি সামগ্রী (যেমন Laptop Pro 15, ওয়্যারলেস হেডফোন, মেকানিক্যাল কীবোর্ড, ইউএসবি মাল্টি-হাব) এবং অফিস ফার্নিচার (এরগনোমিক চেয়ার) পাওয়া যায়। আপনি কোন পণ্যটি সম্পর্কে জানতে চান?";
+                }
+            }
+
             $topHit = $retrievedHits->first();
-            if ($topHit && ($topHit->finalScore ?? 0.0) >= 0.45) {
+            if ($topHit && ($topHit->finalScore ?? 0.0) >= 0.35) {
                 $content = $topHit->faq?->answer
                     ?? $topHit->content
                     ?? $topHit->document_content

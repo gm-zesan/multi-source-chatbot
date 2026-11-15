@@ -45,6 +45,16 @@ class Workspace extends Model
         return $this->hasMany(KnowledgeDocument::class);
     }
 
+    public function faqs(): HasMany
+    {
+        return $this->hasMany(FAQ::class);
+    }
+
+    public function subscriptions(): HasMany
+    {
+        return $this->hasMany(WorkspaceSubscription::class);
+    }
+
     public function spreadsheetImportJobs(): HasMany
     {
         return $this->hasMany(SpreadsheetImportJob::class);

@@ -256,6 +256,21 @@ class UnifiedDecisionEngine implements DecisionEngineInterface
                 );
             }
 
+            // Customer Purchase / Catalog Inquiry Normalization:
+            // Prevent LLM from returning UNCERTAIN for genuine product purchase queries
+            $hasPurchaseIntent = preg_match('/(?:phone|mobile|মোবাইল|kinte|buy|purchase|কেনা|কিনতে|kinbo|কিনবো|sale|sell|সেল|বিক্রি|প্রোডাক্ট|পণ্য|আইটেম)/ui', $cleanQuery) === 1;
+            if ($request->isCustomer && $normalizedIntent === DecisionResult::INTENT_UNCERTAIN && $hasPurchaseIntent) {
+                $normalizedIntent = DecisionResult::INTENT_KNOWLEDGE;
+                $normalizedMode = DecisionResult::MODE_TOOL_REQUIRED;
+                if (empty($toolCalls) && in_array('knowledge_intelligence', $permittedToolNames, true)) {
+                    $toolCalls[] = new ToolCall(
+                        tool: 'knowledge_intelligence',
+                        operation: 'search_knowledge',
+                        arguments: ['query' => $cleanQuery]
+                    );
+                }
+            }
+
             return new DecisionResult(
                 schemaVersion: DecisionResult::SCHEMA_VERSION,
                 intent: $normalizedIntent,
@@ -439,7 +454,7 @@ class UnifiedDecisionEngine implements DecisionEngineInterface
         }
 
         // Fallback Rule 3.5: Product-specific availability or general FAQ inquiry -> KNOWLEDGE (Never analytics!)
-        if (preg_match('/(?:stock|স্টক|available|দাম|দর|মূল্য|price|dam\s*koto|dam\s*কত|how\s*much|cost|কি\s*কি\s*প্রোডাক্ট|delivery|shipping|courier|parcel|পার্সেল|tracking|ট্র্যাকিং|kothay|কোথায়|ডেলিভারি|ডেলিভারী|কুরিয়ার|শিপিং|কত\s*দিন|কবে\s*পাব|পাবো|পৌঁছাবে|পৌছাবে|ফেরত|রিটার্ন|return|refund|policy|পলিসি|নিয়ম|সময়|how\s*long|when|charge|চার্জ|hours|store\s*hours|sla|guarantee|warranty|ওয়ারেন্টি|গ্যারান্টি|office|অফিস|ঠিকানা|address|location|where|branch|শাখা|password|reset|login|signup|signin|sign-in|account|forgot|auth|discount|ডিসকাউন্ট|কুপন|কোড|অফার|code|coupon|offer|promo|voucher|payment|pay\b|cod|পেমেন্ট|টাকা\s*পরিশোধ|deri|দেরি|delay|order|অর্ডার)/ui', $lower)) {
+        if (preg_match('/(?:product|প্রোডাক্ট|পণ্য|আইটেম|item|items|sale|sell|সেল|বিক্রি|kinte|kinbo|buy|purchase|কেনা|কিনতে|কিনবো|phone|mobile|মোবাইল|কি\s*কি|কী\s*কী|collection|কালেকশন|stock|স্টক|available|দাম|দর|মূল্য|price|dam\s*koto|dam\s*কত|how\s*much|cost|delivery|shipping|courier|parcel|পার্সেল|tracking|ট্র্যাকিং|kothay|কোথায়|ডেলিভারি|ডেলিভারী|কুরিয়ার|শিপিং|কত\s*দিন|কবে\s*পাব|পাবো|পৌঁছাবে|পৌছাবে|ফেরত|রিটার্ন|return|refund|policy|পলিসি|নিয়ম|সময়|how\s*long|when|charge|চার্জ|hours|store\s*hours|sla|guarantee|warranty|ওয়ারেন্টি|গ্যারান্টি|office|অফিস|ঠিকানা|address|location|where|branch|শাখা|password|reset|login|signup|signin|sign-in|account|forgot|auth|discount|ডিসকাউন্ট|কুপন|কোড|অফার|code|coupon|offer|promo|voucher|payment|pay\b|cod|পেমেন্ট|টাকা\s*পরিশোধ|deri|দেরি|delay|order|অর্ডার)/ui', $lower)) {
             return new DecisionResult(
                 schemaVersion: DecisionResult::SCHEMA_VERSION,
                 intent: DecisionResult::INTENT_KNOWLEDGE,
@@ -550,6 +565,7 @@ Analyze the user's message in context and return ONE validated Schema v1.0 JSON 
 3. Do NOT invent raw SQL, database tables, or executable commands.
 4. Server will inject trusted workspace_id and permissions; do NOT include workspace_id or auth credentials in arguments.
 5. Strict Schema v1.0 output only.
+6. CUSTOMER PURCHASE INTENT & PRODUCT CATALOG RULE: Any customer query asking to buy a product, inquiring about availability, or asking what items/categories are sold (e.g. "ami ekta phone kinte cai", "apnara ki ki sale koren", "I want to buy X", "do you sell Y") MUST be classified as KNOWLEDGE (tool: knowledge_intelligence, operation: search_knowledge). NEVER classify customer purchase or product inquiries as UNCERTAIN.
 </CRITICAL_RULES>
 
 <OUTPUT_SCHEMA>

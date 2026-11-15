@@ -14,6 +14,10 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->validateCsrfTokens(except: [
             'webhook',
+            'webhook/*',
+            'widget/*',
+            'api/v1/widget/*',
+            'webhooks/billing/*',
         ]);
 
         // Register Spatie Permission middleware aliases

@@ -31,6 +31,8 @@ class AnalyticsProduct extends Model
         'item_type',
         'unit_price',
         'cost_price',
+        'stock_quantity',
+        'track_inventory',
         'description',
         'source_metadata',
         'is_active',
@@ -39,6 +41,8 @@ class AnalyticsProduct extends Model
     protected $casts = [
         'unit_price'      => 'decimal:2',
         'cost_price'      => 'decimal:2',
+        'stock_quantity'  => 'integer',
+        'track_inventory' => 'boolean',
         'is_active'       => 'boolean',
         'source_metadata' => 'array',
     ];

@@ -30,10 +30,19 @@
             </li>
 
             <!-- Conversations Section -->
+            <li class="nav-section">
+                <span class="nav-section-title">Omni-Channel Inbox</span>
+            </li>
             <li class="nav-item">
                 <a href="{{ route('conversations.index') }}" class="nav-link {{ Route::is('conversations.index') ? 'active' : '' }}">
                     <i class="ri-message-3-line nav-icon"></i>
                     <span class="nav-label">Conversations</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="{{ route('widget.manage') }}" class="nav-link {{ Route::is('widget.manage') ? 'active' : '' }}">
+                    <i class="ri-chat-smile-2-line nav-icon"></i>
+                    <span class="nav-label">Web Chat Widget</span>
                 </a>
             </li>
             <li class="nav-item">
@@ -48,6 +57,25 @@
                     <span class="nav-label">Observability & Telemetry</span>
                 </a>
             </li>
+
+            <!-- Superadmin Multi-Tenant Governance -->
+            @if(Auth::user() && (Auth::user()->hasRole('superadmin') || Auth::user()->hasRole('admin') || Auth::user()->email === 'superadmin@example.com' || (int) Auth::user()->id === 1))
+            <li class="nav-section">
+                <span class="nav-section-title">Platform Governance</span>
+            </li>
+            <li class="nav-item">
+                <a href="{{ route('workspaces.index') }}" class="nav-link {{ Route::is('workspaces.*') ? 'active' : '' }}">
+                    <i class="ri-building-line nav-icon"></i>
+                    <span class="nav-label">Workspaces Directory</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="{{ route('commercial.index') }}" class="nav-link {{ Route::is('commercial.*') ? 'active' : '' }}">
+                    <i class="ri-money-dollar-circle-line nav-icon"></i>
+                    <span class="nav-label">Commercial & Billing</span>
+                </a>
+            </li>
+            @endif
 
             <!-- Knowledge Base Section -->
             @canany([\App\Enums\Permissions\FAQPermission::VIEW->value, \App\Enums\Permissions\KnowledgeDocumentPermission::VIEW->value])

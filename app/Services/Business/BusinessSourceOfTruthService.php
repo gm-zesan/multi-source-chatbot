@@ -487,7 +487,7 @@ class BusinessSourceOfTruthService
             }
 
             // General product list or uploaded file inventory inquiry
-            $isGeneralProductInquiry = (bool) preg_match('/(product|প্রোডাক্ট|পণ্য|আইটেম|item|list|তালিকা|কালেকশন|collection|kache\s*ki\s*ki\s*ache|ki\s*ki\s*ache|ki\s*ache|what\s*(do\s*you\s*have|items|products)|upload|file|sheet|excel|kono\s*file|কোন\s*ফাইল|ফাইলে|ফাইল\s*এ)/ui', $query);
+            $isGeneralProductInquiry = (bool) preg_match('/(product|প্রোডাক্ট|পণ্য|আইটেম|item|list|তালিকা|কালেকশন|collection|kache\s*ki\s*ki\s*ache|ki\s*ki\s*ache|ki\s*ache|what\s*(do\s*you\s*have|items|products)|sale|sell|সেল|বিক্রি|sale\s*koren|বিক্রি\s*করেন|ki\s*ki\s*pawa\s*jay|কি\s*কি\s*পাওয়া\s*যায়|upload|file|sheet|excel|kono\s*file|কোন\s*ফাইল|ফাইলে|ফাইল\s*এ)/ui', $query);
 
             if (!$matchedAny && !$isOrderPlacement && $isGeneralProductInquiry) {
                 $lines = [];
@@ -820,6 +820,14 @@ class BusinessSourceOfTruthService
 
         // Pattern 3: English availability inquiries: "do you have (any)? <item>?", "is <item> available?", "tell me about <item>"
         if (preg_match('/(?:do\s+you\s+have|is\s+there\s+any|are\s+there\s+any|tell\s+me\s+about)\s+(?:a|an|any)?\s*([\p{L}\p{N}\-_]+(?:\s+[\p{L}\p{N}\-_]+){0,2})/ui', $q, $m)) {
+            $term = trim($m[1]);
+            if (!$this->isGenericFillerTerm($term)) {
+                return $term;
+            }
+        }
+
+        // Pattern 4: Purchase desire: "ami ekta <item> kinte cai/chai", "want to buy <item>", "looking for <item>", "একটি <আইটেম> কিনতে চাই"
+        if (preg_match('/(?:ami\s+(?:ekta\s+|akta\s+)?|i\s+(?:want\s+to\s+buy|am\s+looking\s+for|need)\s+(?:a|an)?\s*|আমি\s+(?:একটি\s+|একটা\s+)?)([\p{L}\p{N}\-_]+(?:\s+[\p{L}\p{N}\-_]+){0,2})\s*(?:kinte\s*cai|kinte\s*chai|kinbo|kinte\s*cassi|kinte\s*chassi|কিনতে\s*চাই|কিনবো|কিনব)?(?:$|[^\p{L}\p{N}])/ui', $q, $m)) {
             $term = trim($m[1]);
             if (!$this->isGenericFillerTerm($term)) {
                 return $term;

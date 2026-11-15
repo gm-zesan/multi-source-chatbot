@@ -46,6 +46,11 @@ class SubscriptionQuotaService
         return $quota->conversation_count < $limit;
     }
 
+    public function hasQuotaForConversation(int $workspaceId): bool
+    {
+        return $this->canCreateConversation($workspaceId);
+    }
+
     /**
      * Record a new conversation for quota tracking.
      */

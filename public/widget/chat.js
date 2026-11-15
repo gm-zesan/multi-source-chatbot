@@ -3,7 +3,7 @@
 
     var scriptTag = document.currentScript || document.querySelector('script[data-account-id]');
     var accountId = scriptTag ? scriptTag.getAttribute('data-account-id') : null;
-    var apiEndpoint = scriptTag && scriptTag.getAttribute('data-endpoint') ? scriptTag.getAttribute('data-endpoint') : '/webhook';
+    var apiEndpoint = scriptTag && scriptTag.getAttribute('data-endpoint') ? scriptTag.getAttribute('data-endpoint') : '/widget/chat';
 
     var visitorId = localStorage.getItem('agy_widget_visitor_id');
     if (!visitorId) {
@@ -167,6 +167,14 @@
         inputEl.value = '';
         appendMessage(text, true);
 
+        // Show typing indicator
+        var typingIndicator = document.createElement('div');
+        typingIndicator.className = 'agy-msg agy-msg-outbound';
+        typingIndicator.id = 'agy-typing-indicator';
+        typingIndicator.textContent = '...';
+        messagesEl.appendChild(typingIndicator);
+        messagesEl.scrollTop = messagesEl.scrollHeight;
+
         fetch(apiEndpoint, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
@@ -179,12 +187,19 @@
         })
         .then(function (res) { return res.json(); })
         .then(function (data) {
+            var typing = document.getElementById('agy-typing-indicator');
+            if (typing) typing.remove();
             if (data && data.reply) {
                 appendMessage(data.reply, false);
+            } else {
+                appendMessage('ধন্যবাদ! আপনার বার্তাটি আমরা পেয়েছি।', false);
             }
         })
         .catch(function (err) {
             console.error('Widget send error:', err);
+            var typing = document.getElementById('agy-typing-indicator');
+            if (typing) typing.remove();
+            appendMessage('সংযোগ স্থাপন করতে সমস্যা হচ্ছে। কিছুক্ষণ পর আবার চেষ্টা করুন।', false);
         });
     }
 

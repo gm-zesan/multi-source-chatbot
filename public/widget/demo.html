@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Web Chat Widget Preview | Entrepreneurs Automation</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc;
+            color: #1e293b;
+            margin: 0;
+            padding: 40px 20px;
+            display: flex;
+            justify-content: center;
+        }
+        .container {
+            max-width: 800px;
+            background: #ffffff;
+            border-radius: 16px;
+            padding: 36px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+            border: 1px solid #e2e8f0;
+        }
+        h1 {
+            color: #0f172a;
+            font-size: 26px;
+            margin-top: 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .badge {
+            background: #2563eb;
+            color: white;
+            padding: 4px 10px;
+            font-size: 13px;
+            border-radius: 999px;
+            font-weight: 500;
+        }
+        p {
+            color: #475569;
+            line-height: 1.6;
+        }
+        .code-box {
+            background: #0f172a;
+            color: #38bdf8;
+            padding: 18px;
+            border-radius: 10px;
+            font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+            font-size: 14px;
+            overflow-x: auto;
+            margin: 20px 0;
+            position: relative;
+        }
+        .instruction-box {
+            background: #eff6ff;
+            border-left: 4px solid #2563eb;
+            padding: 16px 20px;
+            border-radius: 0 8px 8px 0;
+            margin-top: 24px;
+        }
+        .feature-list {
+            margin: 20px 0;
+            padding-left: 20px;
+            color: #334155;
+            line-height: 1.8;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>
+            <span>💬 Live Web Chat Widget Preview</span>
+            <span class="badge">Active & Ready</span>
+        </h1>
+        <p>
+            এটি আপনার প্ল্যাটফর্মের লাইভ কাস্টমার সাপোর্ট চ্যাট উইজেটের প্রিভিউ পেজ। স্ক্রিনের <strong>নিচের ডান কোনায় (Bottom Right)</strong> নীল রঙের ভাসমান চ্যাট বাটনটি লক্ষ্য করুন। সেখানে ক্লিক করে আপনি সরাসরি চ্যাটবটের সাথে লাইভ টেস্ট করতে পারবেন।
+        </p>
+
+        <div class="instruction-box">
+            <h3 style="margin-top:0; color:#1d4ed8;">📌 কীভাবে যে-কোনো ওয়েবসাইটে এই উইজেট যুক্ত করবেন:</h3>
+            <p style="margin-bottom:0;">যেকোনো ওয়েবসাইট বা ল্যান্ডিং পেজের <code>&lt;/body&gt;</code> ট্যাগের ঠিক আগে নিচের স্ক্রিপ্টটি বসিয়ে দিলেই উইজেটটি স্বয়ংক্রিয়ভাবে চালু হয়ে যাবে:</p>
+        </div>
+
+        <div class="code-box">
+&lt;!-- Entrepreneurs Automation Live Chat Widget --&gt;
+&lt;script src="http://127.0.0.1:8000/widget/chat.js" data-account-id="1"&gt;&lt;/script&gt;
+        </div>
+
+        <h3>✨ উইজেটের প্রধান সুবিধাসমূহ:</h3>
+        <ul class="feature-list">
+            <li><strong>Synchronous AI Response:</strong> মেসেজ পাঠানো মাত্র কোনো বিলম্ব ছাড়া সরাসরি উত্তর প্রদর্শিত হয়।</li>
+            <li><strong>Auto Visitor Session:</strong> প্রতিটি ভিজিটরের জন্য স্বয়ংক্রিয় ব্রাউজার সেশন আইডি এবং হিস্টোরি তৈরি হয়।</li>
+            <li><strong>Multi-turn Context:</strong> ভিজিটর পূর্ববর্তী প্রশ্নের রেশ ধরে ফলো-আপ প্রশ্ন করতে পারেন।</li>
+            <li><strong>Admin Inbox Sync:</strong> ভিজিটরের প্রতিটি চ্যাট অ্যাডমিন ড্যাশবোর্ডের <a href="/dashboard/conversations" style="color:#2563eb; font-weight:600;">Conversations Inbox</a>-এ জমা হয়।</li>
+        </ul>
+    </div>
+
+    <!-- Live Widget Script -->
+    <script src="/widget/chat.js" data-account-id="1"></script>
+</body>
+</html>

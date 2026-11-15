@@ -13,4 +13,6 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
-// API routes are loaded by RouteServiceProvider.
+// Web Chat Widget Synchronous Interaction Route
+Route::post('/v1/widget/chat', [\App\Http\Controllers\WidgetChatController::class, 'chat'])->name('api.v1.widget.chat');
+Route::post('/widget/chat', [\App\Http\Controllers\WidgetChatController::class, 'chat'])->name('api.widget.chat.v1');

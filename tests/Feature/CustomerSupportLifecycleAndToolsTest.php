@@ -291,4 +291,25 @@ class CustomerSupportLifecycleAndToolsTest extends TestCase
         $responseMe->assertSee('Open Customer');
         $responseMe->assertDontSee('Resolved Customer');
     }
+
+    public function test_agent_can_view_conversation_details_with_assignment_and_status_ui_controls(): void
+    {
+        $conversation = Conversation::create([
+            'channel_account_id'  => $this->channelAccountA->id,
+            'external_user_id'    => 'cust-ui-test',
+            'customer_name'       => 'UI Customer',
+            'status'              => 'open',
+            'priority'            => 'high',
+            'last_direction'      => 'inbound',
+            'assigned_to_user_id' => $this->agentA->id,
+        ]);
+
+        $response = $this->actingAs($this->agentA)->get(route('conversations.show', $conversation));
+        $response->assertOk();
+        $response->assertSee('UI Customer');
+        $response->assertSee('assigned_to_user_id');
+        $response->assertSee('Open');
+        $response->assertSee('High');
+        $response->assertSee($this->agentA->name);
+    }
 }

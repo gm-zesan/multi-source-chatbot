@@ -29,7 +29,7 @@ class DatabaseBackupCommandTest extends TestCase
         if (File::isDirectory($this->backupDir)) {
             $files = File::files($this->backupDir);
             foreach ($files as $file) {
-                if (str_starts_with($file->getFilename(), 'test_e2e_backup')) {
+                if (str_starts_with($file->getFilename(), 'test_e2e_backup') || str_starts_with($file->getFilename(), 'pre_restore_safety_')) {
                     File::delete($file->getRealPath());
                 }
             }
@@ -113,6 +113,32 @@ class DatabaseBackupCommandTest extends TestCase
             'file' => $backupFileName,
             '--force' => true,
         ])
+            ->expectsOutputToContain('Pre-restore safety snapshot created successfully')
+            ->expectsOutputToContain('Database restored successfully')
+            ->assertExitCode(0);
+    }
+
+    public function test_database_restore_respects_skip_safety_backup_flag(): void
+    {
+        $backupName = 'test_e2e_backup_restore_nosafety_'.time();
+
+        $this->artisan('db:backup', [
+            '--filename' => $backupName,
+            '--retention' => 30,
+        ])
+            ->assertExitCode(0);
+
+        $backupFileName = "{$backupName}.sql";
+        if (! File::exists("{$this->backupDir}/{$backupFileName}")) {
+            $backupFileName = "{$backupName}.sqlite";
+        }
+
+        $this->artisan('db:restore', [
+            'file' => $backupFileName,
+            '--force' => true,
+            '--skip-safety-backup' => true,
+        ])
+            ->doesntExpectOutputToContain('Creating pre-restore safety snapshot')
             ->expectsOutputToContain('Database restored successfully')
             ->assertExitCode(0);
     }

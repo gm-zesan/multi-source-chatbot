@@ -21,6 +21,14 @@ class StaticBusinessKnowledgeSeeder extends Seeder
         $workspaceId = $workspace->id;
 
         $documents = [
+            // ── 0. Products & Catalog / আমাদের পণ্য ও কালেকশন ─────────────────
+            [
+                'document_type' => 'catalog',
+                'question'      => 'What products do you sell? / আপনারা কি কি পণ্য বিক্রি করেন ও আপনাদের কাছে কি কি পাওয়া যায়? (মোবাইল ফোন কি আছে?)',
+                'answer'        => 'আমাদের শপে প্রযুক্তি ও ইলেকট্রনিক্স সামগ্রী (যেমন Laptop Pro 15, ওয়্যারলেস হেডফোন, মেকানিক্যাল কীবোর্ড, ইউএসবি মাল্টি-হাব), অফিস ফার্নিচার (এরগনোমিক অফিস চেয়ার), এবং প্রিমিয়াম ফ্যাশন লাইফস্টাইল পণ্য পাওয়া যায়। আমাদের কাছে মোবাইল ফোন বা স্মার্টফোন পাওয়া যায় না। আমাদের প্রোডাক্ট কালেকশন বা যেকোনো পণ্যের বিস্তারিত জানতে আমাদের জানান।',
+                'priority'      => 100,
+            ],
+
             // ── 1. About Us ──────────────────────────────────────────────────
             [
                 'document_type' => 'about_us',
@@ -104,8 +112,8 @@ class StaticBusinessKnowledgeSeeder extends Seeder
             // ── 11. Contact Information ───────────────────────────────────────
             [
                 'document_type' => 'contact',
-                'question'      => 'Contact Information, Hotline & Store Address / যোগাযোগের ঠিকানা ও হটলাইন',
-                'answer'        => 'Reach our team directly: Flagship Store & Headquarters: House 42, Road 11, Block D, Banani, Dhaka-1213. Customer Hotline: +880-9612-345678 (9 AM – 10 PM daily). Official WhatsApp: +880-1712-345678. Support Email: support@entrepreneursautomation.com. Official Website: https://entrepreneursautomation.com.',
+                'question'      => 'Contact Information, Hotline, Store Address & Showroom / যোগাযোগের ঠিকানা, হটলাইন, শোরুম, দোকান ও আউটলেট (শোরুম কোথায় ও শপের ঠিকানা)',
+                'answer'        => 'আমাদের ফ্ল্যাগশিপ শোরুম ও হেডকোয়ার্টার্স: হাউস ৪২, রোড ১১, ব্লক ডি, বনানী, ঢাকা-১২১৩ (House 42, Road 11, Block D, Banani, Dhaka-1213)। কাস্টমার হটলাইন: +880-9612-345678 (প্রতিদিন সকাল ৯টা – রাত ১০টা)। অফিসিয়াল হোয়াটসঅ্যাপ: +880-1712-345678। সাপোর্ট ইমেইল: support@entrepreneursautomation.com। ওয়েবসাইট: https://entrepreneursautomation.com।',
                 'priority'      => 100,
             ],
 

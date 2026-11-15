@@ -31,9 +31,18 @@ Route::get('/health', HealthController::class)->name('health');
 
 Route::match(['GET', 'POST'], '/webhook/{channel?}', [WebhookController::class, 'handle'])->name('webhook.handle');
 
+// Web Chat Widget Synchronous Interaction Routes
+Route::post('/widget/chat', [\App\Http\Controllers\WidgetChatController::class, 'chat'])->name('widget.chat');
+Route::get('/widget/chat', fn () => redirect()->route('widget.demo'));
+Route::post('/api/v1/widget/chat', [\App\Http\Controllers\WidgetChatController::class, 'chat'])->name('api.widget.chat');
+Route::get('/widget/demo', fn () => response()->file(public_path('widget/demo.html')))->name('widget.demo');
+
 // Canonical Redirects
 Route::get('/simulator', fn () => redirect()->route('simulator.index'))->middleware('auth');
 Route::get('/knowledge-base', fn () => redirect()->route('knowledge-base.index'))->middleware('auth');
+Route::get('/admin/commercial', fn () => redirect()->route('commercial.index'))->middleware('auth');
+Route::get('/admin/workspaces', fn () => redirect()->route('workspaces.index'))->middleware('auth');
+Route::get('/commercial', fn () => redirect()->route('commercial.index'))->middleware('auth');
 
 Route::middleware('auth')->prefix('dashboard')->group(function () {
     Route::get('/', [DashboardController::class, 'dashboard'])->name('dashboard');
@@ -180,8 +189,25 @@ Route::middleware('auth')->prefix('dashboard')->group(function () {
         ->name('workspace.settings.update');
 
     // ── SaaS Commercial & Billing Administration (Stage 6) ─────────────
-    Route::get('/admin/commercial', [\App\Http\Controllers\SuperAdminCommercialController::class, 'index'])
+    Route::get('/commercial', [\App\Http\Controllers\SuperAdminCommercialController::class, 'index'])
         ->name('admin.commercial.index');
+    Route::get('/commercial-dashboard', fn() => redirect()->route('admin.commercial.index'))
+        ->name('commercial.index');
+    Route::get('/admin/commercial', fn() => redirect()->route('admin.commercial.index'));
+
+    // ── Multi-Tenant Workspaces Management ──────────────────────────────
+    Route::get('/workspaces', [\App\Http\Controllers\SuperAdminWorkspaceController::class, 'index'])
+        ->name('workspaces.index');
+    Route::post('/workspaces', [\App\Http\Controllers\SuperAdminWorkspaceController::class, 'store'])
+        ->name('workspaces.store');
+    Route::post('/workspaces/{workspace}/switch', [\App\Http\Controllers\SuperAdminWorkspaceController::class, 'switch'])
+        ->name('workspaces.switch');
+    Route::post('/workspaces/{workspace}/toggle-active', [\App\Http\Controllers\SuperAdminWorkspaceController::class, 'toggleActive'])
+        ->name('workspaces.toggle_active');
+
+    // ── Web Chat Widget Management ─────────────────────────────────────
+    Route::get('/widget', [\App\Http\Controllers\WidgetChatController::class, 'manage'])
+        ->name('widget.manage');
 
     // ── Dynamic Spreadsheet Ingestion & Mapping (Phase 2) ───────────────
     Route::prefix('/documents/{document}/spreadsheet')->name('documents.spreadsheet.')->group(function () {

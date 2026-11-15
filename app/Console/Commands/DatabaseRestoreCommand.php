@@ -20,7 +20,8 @@ class DatabaseRestoreCommand extends Command
     protected $signature = 'db:restore
                             {file : Filename (in storage/app/backups) or absolute path to the backup archive}
                             {--force : Force execution without interactive confirmation}
-                            {--skip-checksum : Skip SHA256 integrity verification}';
+                            {--skip-checksum : Skip SHA256 integrity verification}
+                            {--skip-safety-backup : Skip automated pre-restore safety snapshot}';
 
     /**
      * The console command description.
@@ -73,6 +74,25 @@ class DatabaseRestoreCommand extends Command
             }
         }
 
+        $safetySnapshotName = null;
+        if (! $this->option('skip-safety-backup')) {
+            $safetySnapshotName = 'pre_restore_safety_'.date('Y_m_d_His');
+            $this->info("Creating pre-restore safety snapshot: [{$safetySnapshotName}]...");
+            try {
+                $backupExit = $this->callSilent('db:backup', [
+                    '--filename' => $safetySnapshotName,
+                    '--retention' => 30,
+                ]);
+                if ($backupExit === self::SUCCESS) {
+                    $this->info("Pre-restore safety snapshot created successfully: {$safetySnapshotName}");
+                } else {
+                    $this->warn("Automated pre-restore safety snapshot returned exit code [{$backupExit}]. Proceeding with caution.");
+                }
+            } catch (\Throwable $e) {
+                $this->warn("Automated pre-restore safety snapshot failed: {$e->getMessage()}. Proceeding.");
+            }
+        }
+
         $this->info("Restoring database to connection: [{$connection}]...");
         $startTime = microtime(true);
 
@@ -95,13 +115,18 @@ class DatabaseRestoreCommand extends Command
                 'connection' => $connection,
                 'driver' => $driver,
                 'duration_ms' => $elapsedMs,
+                'safety_snapshot' => $safetySnapshotName,
             ]);
 
             return self::SUCCESS;
         } catch (\Throwable $e) {
             $this->error('Restore failed with exception: '.$e->getMessage());
-            Log::error('[DatabaseRestore] Restore failed', [
+            if ($safetySnapshotName) {
+                $this->error("CRITICAL: Target database may be in an inconsistent state. Automated safety snapshot is available to rollback: php artisan db:restore {$safetySnapshotName} --force");
+            }
+            Log::critical('[DatabaseRestore] Restore failed', [
                 'file' => $filePath,
+                'safety_snapshot' => $safetySnapshotName,
                 'error' => $e->getMessage(),
             ]);
 

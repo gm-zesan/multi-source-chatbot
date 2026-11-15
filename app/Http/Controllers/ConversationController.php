@@ -77,7 +77,17 @@ class ConversationController extends Controller
         }
         $conversations = $query->paginate(20);
 
-        return view('admin.conversations.show', compact('conversations', 'conversation'));
+        $workspaceId = $conversation->channelAccount?->workspace_id;
+        if ($workspaceId) {
+            $teamMembers = User::where(function ($q) use ($workspaceId) {
+                $q->where('workspace_id', $workspaceId)
+                  ->orWhereHas('roles', fn ($r) => $r->where('name', RoleEnum::SUPERADMIN->value));
+            })->orderBy('name')->get();
+        } else {
+            $teamMembers = User::orderBy('name')->get();
+        }
+
+        return view('admin.conversations.show', compact('conversations', 'conversation', 'teamMembers'));
     }
 
     /**

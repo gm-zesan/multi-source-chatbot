@@ -26,6 +26,8 @@ return new class extends Migration
                 $table->string('item_type')->default('standard');
                 $table->decimal('unit_price', 10, 2);
                 $table->decimal('cost_price', 10, 2)->default(0.00);
+                $table->integer('stock_quantity')->default(0);
+                $table->boolean('track_inventory')->default(true);
                 $table->text('description')->nullable();
                 $table->json('source_metadata')->nullable();
                 $table->boolean('is_active')->default(true);

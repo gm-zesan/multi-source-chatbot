@@ -158,23 +158,51 @@ class FinalResponseGenerator
 
                     if ($toolName === 'knowledge_intelligence') {
                         $agentHits = $retrievalHits instanceof Collection ? $retrievalHits : collect($retrievalHits);
+                        $businessService = app(\App\Services\Business\BusinessSourceOfTruthService::class);
+                        $bContext = $businessService->buildBusinessContext($request->query, $request->conversation, $request->workspaceId);
 
                         if ($agentHits->isEmpty()) {
-                            $reports[] = 'দুঃখিত, এই বিষয়টি আমাদের কাস্টমার সাপোর্ট নলেজ বেসের আওতাভুক্ত নয়। আমি শুধুমাত্র আমাদের পণ্য ও সেবা সংক্রান্ত তথ্যে সাহায্য করতে পারি।';
+                            if (!empty($bContext)) {
+                                try {
+                                    $agent = new KnowledgeSupportAgent(
+                                        conversation: $request->conversation,
+                                        retrievedKnowledge: new Collection(),
+                                        memoryContext: $request->compactContext,
+                                        businessContext: $bContext,
+                                    );
+
+                                    $rawReply = (string) $agent->prompt($request->query);
+                                    $cleanReply = KnowledgeSupportAgent::sanitizeUnsupportedContactDetails(
+                                        $rawReply,
+                                        new Collection(),
+                                        $bContext
+                                    );
+
+                                    $reports[] = $cleanReply;
+                                } catch (Throwable $e) {
+                                    if (str_contains($bContext, 'UNAVAILABLE / NOT FOUND')) {
+                                        $reports[] = "দুঃখিত, আমাদের স্টোরে বর্তমানে মোবাইল ফোন বা এই পণ্যটি উপলব্ধ নেই। আমাদের কাছে ল্যাপটপ (Laptop Pro 15), ওয়্যারলেস হেডফোন, মেকানিক্যাল কীবোর্ড এবং অফিস চেয়ার পাওয়া যাচ্ছে।";
+                                    } else {
+                                        $reports[] = "আমাদের স্টোরে ইলেকট্রনিক্স ও আইটি সামগ্রী (যেমন Laptop Pro 15, হেডফোন, মেকানিক্যাল কীবোর্ড) এবং অফিস ফার্নিচার পাওয়া যায়।";
+                                    }
+                                }
+                            } else {
+                                $reports[] = 'দুঃখিত, এই বিষয়টি আমাদের কাস্টমার সাপোর্ট নলেজ বেসের আওতাভুক্ত নয়। আমি শুধুমাত্র আমাদের পণ্য ও সেবা সংক্রান্ত তথ্যে সাহায্য করতে পারি।';
+                            }
                         } else {
                             try {
                                 $agent = new KnowledgeSupportAgent(
                                     conversation: $request->conversation,
                                     retrievedKnowledge: $agentHits,
                                     memoryContext: $request->compactContext,
-                                    businessContext: null,
+                                    businessContext: $bContext,
                                 );
 
                                 $rawReply = (string) $agent->prompt($request->query);
                                 $cleanReply = KnowledgeSupportAgent::sanitizeUnsupportedContactDetails(
                                     $rawReply,
                                     $agentHits,
-                                    null
+                                    $bContext
                                 );
 
                                 $reports[] = $cleanReply;

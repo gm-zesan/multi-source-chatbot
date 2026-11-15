@@ -14,6 +14,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\View\View;
 
 class AnalyticsDashboardController extends Controller
@@ -169,13 +170,18 @@ class AnalyticsDashboardController extends Controller
         // 4. Inventory Health
         $productsQuery = AnalyticsProduct::where('workspace_id', $workspaceId)->where('is_active', true);
         $totalProducts = (clone $productsQuery)->count();
-        $outOfStockCount = (clone $productsQuery)->where('stock_quantity', '<=', 0)->count();
-        $lowStockCount = (clone $productsQuery)->where('stock_quantity', '>', 0)->where('stock_quantity', '<=', 5)->count();
+        $outOfStockCount = 0;
+        $lowStockCount = 0;
+
+        if (Schema::hasColumn('analytics_products', 'stock_quantity')) {
+            $outOfStockCount = (clone $productsQuery)->where('stock_quantity', '<=', 0)->count();
+            $lowStockCount = (clone $productsQuery)->where('stock_quantity', '>', 0)->where('stock_quantity', '<=', 5)->count();
+        }
         $inStockCount = max(0, $totalProducts - $outOfStockCount);
 
         // 5. Customers Insights
         $totalCustomers = AnalyticsCustomer::where('workspace_id', $workspaceId)->count();
-        $repeatCustomers = AnalyticsCustomer::where('workspace_id', $workspaceId)->where('orders_count', '>', 1)->count();
+        $repeatCustomers = AnalyticsCustomer::where('workspace_id', $workspaceId)->has('orders', '>', 1)->count();
         $repeatRate = $totalCustomers > 0 ? round(($repeatCustomers / $totalCustomers) * 100, 1) : 0.0;
 
         // 6. Workforce Sales Performance

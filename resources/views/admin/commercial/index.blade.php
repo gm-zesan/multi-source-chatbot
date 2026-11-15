@@ -13,6 +13,20 @@
         </div>
     </div>
 
+    {{-- Sandbox / Demo Mode Banner --}}
+    <div class="alert alert-info border-info d-flex align-items-center justify-content-between mb-4 shadow-sm" role="alert">
+        <div class="d-flex align-items-center gap-3">
+            <i class="bi bi-shield-check fs-3 text-info"></i>
+            <div>
+                <strong class="d-block text-dark">Commercial Sandbox Mode (Prototype UI)</strong>
+                <span class="small text-muted">
+                    Payment gateway integration is intentionally decoupled in sandbox mode. Subscriptions, quota enforcement, and MRR metrics are actively simulated for testing. Live gateway credentials (e.g. bKash, SSLCommerz, Stripe) can be configured once a commercial provider is finalized.
+                </span>
+            </div>
+        </div>
+        <span class="badge bg-primary px-3 py-2 text-uppercase">Sandbox Active</span>
+    </div>
+
     {{-- Top Revenue Cards --}}
     <div class="row g-3 mb-4">
         <div class="col-md-3 col-12">

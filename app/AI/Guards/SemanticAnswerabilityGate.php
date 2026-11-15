@@ -24,7 +24,7 @@ class SemanticAnswerabilityGate
     /**
      * Multilingual commerce domain concept signals (EN, Native Bangla, Banglish, Code-mixed).
      */
-    private const COMMERCE_CONCEPT_PATTERN = '/(?:^|[^\p{L}\p{N}])(return|ferot|ফেরত|refund|রিফান্ড|টাকা\s*ফেরত|delivery|shipping|ডেলিভারি|শিপিং|courier|কুরিয়ার|কুরিয়ার|charge|fee|চার্জ|ফি|খরচ|payment|pay|টাকা|পেমেন্ট|cod|cash\s*on\s*delivery|বিকাশ|bkash|nagad|card|কার্ড|রকেট|rocket|warranty|guarantee|ওয়ারেন্টি|ওয়ারেন্টি|গ্যারান্টি|defect|broken|ভাঙা|নষ্ট|ছিঁড়া|selai|sewing|বোতাম|exchange|replace|বদলানো|পরিবর্তন|size|সাইজ|fitting|fit|মাপ|chest|track|tracking|ট্র্যাক|ট্র্যাকিং|order|অর্ডার|parcel|পার্সেল|cancel|বাতিল|ক্যানসেল|invoice|বিল|ইনভয়েস|ইনভয়েস|মেমো|memo|terms|শর্ত|privacy|গোপনীয়তা|গোপনীয়তা|contact|যোগাযোগ|support|হেল্প|help|discount|promo|কুপন|coupon|voucher|price|dam|taka|tk|দাম|মূল্য|offer|অফার|password|reset|login|signin|signup|register|account|akaunt|accaunt|acount|kulbo|store|hours|outlet|branch|location|address|open|close|পাসওয়ার্ড|লগইন|অ্যাকাউন্ট|একাউন্ট|দোকান|শাখা|ঠিকানা|সময়)(?:$|[^\p{L}\p{N}])/ui';
+    private const COMMERCE_CONCEPT_PATTERN = '/(?:^|[^\p{L}\p{N}])(return|ferot|ফেরত|refund|রিফান্ড|টাকা\s*ফেরত|delivery|shipping|ডেলিভারি|শিপিং|courier|কুরিয়ার|কুরিয়ার|charge|fee|চার্জ|ফি|খরচ|payment|pay|টাকা|পেমেন্ট|cod|cash\s*on\s*delivery|বিকাশ|bkash|nagad|card|কার্ড|রকেট|rocket|warranty|guarantee|ওয়ারেন্টি|ওয়ারেন্টি|গ্যারান্টি|defect|broken|ভাঙা|নষ্ট|ছিঁড়া|selai|sewing|বোতাম|exchange|replace|বদলানো|পরিবর্তন|size|সাইজ|fitting|fit|মাপ|chest|track|tracking|ট্র্যাক|ট্র্যাকিং|order|অর্ডার|parcel|পার্সেল|cancel|বাতিল|ক্যানসেল|invoice|বিল|ইনভয়েস|ইনভয়েস|মেমো|memo|terms|শর্ত|privacy|গোপনীয়তা|গোপনীয়তা|contact|যোগাযোগ|support|হেল্প|help|discount|promo|কুপন|coupon|voucher|price|dam|taka|tk|দাম|মূল্য|offer|অফার|password|reset|login|signin|signup|register|account|akaunt|accaunt|acount|kulbo|store|hours|outlet|branch|location|address|open|close|পাসওয়ার্ড|লগইন|অ্যাকাউন্ট|একাউন্ট|দোকান|শাখা|ঠিকানা|সময়|sale|sell|সেল|বিক্রি|kinte|kinbo|buy|purchase|কেনা|কিনতে|কিনবো|item|items|product|products|পণ্য|আইটেম|প্রোডাক্ট|goods|stock|স্টক|পাওয়া|pawa|phone|মোবাইল)(?:$|[^\p{L}\p{N}])/ui';
 
     /**
      * Pattern matching underspecified / generic fee questions without domain anchor.
@@ -230,7 +230,8 @@ class SemanticAnswerabilityGate
         // 6. Semantic Meaning Mismatch Guard (Criterion 6)
         // When dense embedding was computed, low semantic similarity reveals that the query meaning
         // diverges from the document despite incidental lexical overlap.
-        if ($isDenseEvaluated && $semanticScore !== null && $semanticScore < 0.35) {
+        $semanticThreshold = ($topScore >= 0.50 || $this->isBroadCatalogInquiry($cleanQuery) || ($this->detectCommerceAlignment($cleanQuery) && $topScore >= 0.30)) ? 0.20 : 0.35;
+        if ($isDenseEvaluated && $semanticScore !== null && $semanticScore < $semanticThreshold) {
             return new AnswerabilityDecision(
                 status: AnswerabilityStatus::UNANSWERABLE,
                 groundedHits: new Collection(),
@@ -281,8 +282,9 @@ class SemanticAnswerabilityGate
         $isModerateSeparated = ($topScore >= 0.45 && $hasAlignedEvidence && (!$hasCompetitor || $competitorMargin >= 0.03 || $this->isBroadCatalogInquiry($cleanQuery)));
         $isMarginalSeparated = ($topScore >= 0.38 && $competitorMargin >= 0.05 && $hasAlignedEvidence);
         $isCorroboratedSufficient = ($isCorroborating && $topScore >= 0.38 && $hasAlignedEvidence && (!$hasCompetitor || $competitorMargin >= 0.03 || $this->isBroadCatalogInquiry($cleanQuery)));
+        $isCatalogSufficient = ($this->isBroadCatalogInquiry($cleanQuery) && $topScore >= 0.28 && $hasAlignedEvidence);
 
-        $isSufficient = $isHighConfidenceSemantic || $isModerateSeparated || $isMarginalSeparated || $isCorroboratedSufficient;
+        $isSufficient = $isHighConfidenceSemantic || $isModerateSeparated || $isMarginalSeparated || $isCorroboratedSufficient || $isCatalogSufficient;
 
         if ($isSufficient) {
             $groundedHits = $this->filterGroundedHits($retrievalHits, $workspaceId);
@@ -857,6 +859,6 @@ class SemanticAnswerabilityGate
     {
         $qLower = mb_strtolower($query);
 
-        return (bool) preg_match('/(?:^|[^\p{L}\p{M}\p{N}])(collection|কালেকশন|available|অ্যাভেইলেবল|options?|অপশন|items?|পণ্য|আইটেম|products?|services?|সার্ভিস|তালিকা|catalog|catalogue)(?:$|[^\p{L}\p{M}\p{N}])/ui', $qLower);
+        return (bool) preg_match('/(?:^|[^\p{L}\p{M}\p{N}])(collection|কালেকশন|available|অ্যাভেইলেবল|options?|অপশন|items?|পণ্য|আইটেম|products?|services?|সার্ভিস|তালিকা|catalog|catalogue|sale|sell|সেল|বিক্রি|kinte|buy|কেনা|stock|স্টক)(?:$|[^\p{L}\p{M}\p{N}])/ui', $qLower);
     }
 }
