@@ -34,7 +34,12 @@
             <table class="app-table w-full" id="data-table">
                 <thead>
                     <tr>
-                        <th style="width: 8%;">SL NO</th>
+                        <th style="width: 80px;">
+                            <div class="flex items-center gap-2">
+                                <input type="checkbox" class="app-checkbox app-select-all-checkbox" title="Select All">
+                                <span>#</span>
+                            </div>
+                        </th>
                         <th style="width: 24%;">Name</th>
                         <th style="width: 24%;">Email</th>
                         <th style="width: 16%;">Phone No</th>
@@ -50,7 +55,7 @@
 </div>
 
 {{-- Assign Role Modal (Tailwind Native) --}}
-<div class="modal hidden fixed inset-0 z-50 flex items-center justify-center p-4" id="assignRoleModal" tabindex="-1" aria-hidden="true">
+<div class="modal hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-xs" id="assignRoleModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog w-full max-w-md app-card shadow-modal overflow-hidden transition-all duration-200">
         <form id="assignRoleForm" onsubmit="submitAssignRole(event)">
             @csrf
@@ -127,8 +132,15 @@
                     {
                         data: 'id',
                         name: 'id',
-                        orderable: true,
-                        width: '8%'
+                        orderable: false,
+                        searchable: false,
+                        width: '70px',
+                        render: function(data, type, row) {
+                            return `<div class="flex items-center gap-2">
+                                <input type="checkbox" class="app-checkbox app-row-checkbox" data-id="${data}" value="${data}">
+                                <span class="text-2xs text-light-muted dark:text-dark-muted font-mono tabular-nums">${data}</span>
+                            </div>`;
+                        }
                     },
                     {
                         data: 'name',
@@ -181,10 +193,20 @@
                     }
                 ],
                 order: [
-                    [0, 'asc']
+                    [1, 'asc']
                 ]
             });
         });
+
+        function filterUsersByRole(el, role) {
+            document.querySelectorAll('[data-user-role-chip]').forEach(function(chip) {
+                chip.classList.remove('active');
+            });
+            if (el) el.classList.add('active');
+            if (table) {
+                table.column(4).search(role || '').draw();
+            }
+        }
 
         function escapeHtml(text) {
             if (!text) return '';

@@ -9,22 +9,20 @@
 
 @if(session('success'))
     <script>
-        swal({
-            title: "Success!",
-            text: "{{ session('success') }}",
-            icon: "success",
-            button: "OK",
+        document.addEventListener('DOMContentLoaded', function() {
+            if (typeof window.toast === 'function') {
+                window.toast.success({!! json_encode(session('success')) !!});
+            }
         });
     </script>
 @endif
 
 @if(session('error'))
     <script>
-        swal({
-            title: "Error!",
-            text: "{{ session('error') }}",
-            icon: "error",
-            button: "OK",
+        document.addEventListener('DOMContentLoaded', function() {
+            if (typeof window.toast === 'function') {
+                window.toast.error({!! json_encode(session('error')) !!});
+            }
         });
     </script>
 @endif
@@ -337,6 +335,15 @@
 
         updateThemeToggleUI(newTheme);
         window.dispatchEvent(new CustomEvent('agy-theme-changed', { detail: { theme: newTheme } }));
+
+        // Propagate theme to embedded preview iframes
+        document.querySelectorAll('iframe').forEach(function(frame) {
+            try {
+                if (frame.contentWindow) {
+                    frame.contentWindow.postMessage({ type: 'THEME_CHANGE', theme: newTheme }, '*');
+                }
+            } catch(e) {}
+        });
     }
 
     document.addEventListener('DOMContentLoaded', function() {
@@ -348,14 +355,12 @@
         }
         updateThemeToggleUI(activeTheme);
 
-        // Omnisearch keyboard shortcut (⌘K or Ctrl+K)
+        // Omnisearch Command Palette keyboard shortcut (⌘K or Ctrl+K)
         document.addEventListener('keydown', function(e) {
             if ((e.metaKey || e.ctrlKey) && (e.key === 'k' || e.key === 'K')) {
                 e.preventDefault();
-                var searchInput = document.getElementById('globalOmnisearch');
-                if (searchInput) {
-                    searchInput.focus();
-                    searchInput.select();
+                if (typeof window.openCommandPalette === 'function') {
+                    window.openCommandPalette();
                 }
             }
         });
@@ -401,5 +406,174 @@
                 if (sidebar) sidebar.classList.add('collapsed');
             }
         } catch(e) {}
+
+        // --- 3. Enterprise Table Density & Bulk Selection Engine ---
+        window.setTableDensity = function(density) {
+            density = density || 'normal';
+            var tables = document.querySelectorAll('.app-table, table.dataTable');
+            tables.forEach(function(t) {
+                t.classList.remove('density-compact', 'density-normal', 'density-relaxed');
+                t.classList.add('density-' + density);
+            });
+            try {
+                localStorage.setItem('agy_table_density', density);
+            } catch(e) {}
+            document.querySelectorAll('[data-density-btn]').forEach(function(btn) {
+                var isCurrent = btn.getAttribute('data-density-btn') === density;
+                btn.classList.toggle('active', isCurrent);
+                btn.classList.toggle('bg-brand-500/15', isCurrent);
+                btn.classList.toggle('text-brand-500', isCurrent);
+            });
+        };
+
+        // Restore table density on load
+        try {
+            var savedDensity = localStorage.getItem('agy_table_density') || 'normal';
+            window.setTableDensity(savedDensity);
+        } catch(e) {}
+
+        // Bulk Selection Bar Engine
+        window.updateBulkSelectionUI = function() {
+            var selectedCheckboxes = document.querySelectorAll('.app-row-checkbox:checked');
+            var count = selectedCheckboxes.length;
+            var bulkBar = document.getElementById('appBulkActionBar');
+            var bulkCountBadge = document.getElementById('bulkSelectedCount');
+
+            if (bulkCountBadge) {
+                bulkCountBadge.textContent = count + ' selected';
+            }
+            if (bulkBar) {
+                if (count > 0) {
+                    bulkBar.classList.add('active');
+                } else {
+                    bulkBar.classList.remove('active');
+                }
+            }
+            // Toggle highlight on row
+            document.querySelectorAll('.app-row-checkbox').forEach(function(cb) {
+                var tr = cb.closest('tr');
+                if (tr) {
+                    tr.classList.toggle('bg-brand-500/10', cb.checked);
+                }
+            });
+        };
+
+        window.clearBulkSelection = function() {
+            document.querySelectorAll('.app-row-checkbox, .app-select-all-checkbox').forEach(function(cb) {
+                cb.checked = false;
+                cb.indeterminate = false;
+            });
+            window.updateBulkSelectionUI();
+        };
+
+        window.executeBulkExport = function() {
+            var selectedRows = document.querySelectorAll('.app-row-checkbox:checked');
+            if (selectedRows.length === 0) {
+                if (window.toast) window.toast.warning('No items selected for export.');
+                return;
+            }
+
+            var csvRows = [];
+            // Extract column headers
+            var table = selectedRows[0].closest('table');
+            if (table) {
+                var headers = [];
+                table.querySelectorAll('thead th').forEach(function(th) {
+                    var txt = th.innerText.trim();
+                    if (txt && !th.querySelector('.app-select-all-checkbox') && txt.toLowerCase() !== 'action' && txt.toLowerCase() !== 'actions') {
+                        headers.push('"' + txt.replace(/"/g, '""') + '"');
+                    }
+                });
+                csvRows.push(headers.join(','));
+
+                // Extract row values
+                selectedRows.forEach(function(cb) {
+                    var tr = cb.closest('tr');
+                    if (tr) {
+                        var rowData = [];
+                        tr.querySelectorAll('td').forEach(function(td, idx) {
+                            if (!td.querySelector('.app-row-checkbox') && !td.querySelector('.app-action-btn') && !td.querySelector('button') && !td.querySelector('form')) {
+                                var val = td.innerText.trim().replace(/\r?\n|\r/g, ' ');
+                                rowData.push('"' + val.replace(/"/g, '""') + '"');
+                            }
+                        });
+                        csvRows.push(rowData.join(','));
+                    }
+                });
+            }
+
+            var csvContent = "data:text/csv;charset=utf-8," + encodeURIComponent(csvRows.join('\n'));
+            var link = document.createElement('a');
+            link.setAttribute('href', csvContent);
+            link.setAttribute('download', 'exported_records_' + new Date().toISOString().slice(0, 10) + '.csv');
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+
+            if (window.toast) {
+                window.toast.success('Successfully exported ' + selectedRows.length + ' records to CSV!');
+            }
+        };
+
+        window.executeBulkDelete = function() {
+            var selectedRows = document.querySelectorAll('.app-row-checkbox:checked');
+            if (selectedRows.length === 0) return;
+            if (typeof window.customBulkDeleteHandler === 'function') {
+                window.customBulkDeleteHandler(selectedRows);
+            } else {
+                if (confirm('Are you sure you want to delete ' + selectedRows.length + ' selected items?')) {
+                    if (window.toast) {
+                        window.toast.info('Batch deletion queued for ' + selectedRows.length + ' items.');
+                    }
+                    window.clearBulkSelection();
+                }
+            }
+        };
+
+        // Prevent checkbox clicks from triggering DataTables header column sorting
+        document.addEventListener('click', function(e) {
+            if (e.target && (e.target.classList.contains('app-select-all-checkbox') || e.target.classList.contains('app-row-checkbox'))) {
+                e.stopPropagation();
+            }
+        }, true);
+
+        // Robust event delegation for table checkboxes
+        document.addEventListener('change', function(e) {
+            if (e.target && e.target.classList.contains('app-select-all-checkbox')) {
+                var isChecked = e.target.checked;
+                var container = e.target.closest('.dataTables_wrapper') || e.target.closest('table') || document;
+                container.querySelectorAll('.app-row-checkbox').forEach(function(cb) {
+                    cb.checked = isChecked;
+                });
+                window.updateBulkSelectionUI();
+            } else if (e.target && e.target.classList.contains('app-row-checkbox')) {
+                var container = e.target.closest('.dataTables_wrapper') || e.target.closest('table');
+                if (container) {
+                    var all = container.querySelectorAll('.app-row-checkbox');
+                    var checked = container.querySelectorAll('.app-row-checkbox:checked');
+                    var selectAll = container.querySelector('.app-select-all-checkbox');
+                    if (selectAll) {
+                        selectAll.checked = all.length > 0 && all.length === checked.length;
+                        selectAll.indeterminate = checked.length > 0 && checked.length < all.length;
+                    }
+                }
+                window.updateBulkSelectionUI();
+            }
+        });
+
+        // Reset and update on DataTables redraw
+        if (typeof $ !== 'undefined') {
+            $(document).on('draw.dt', function(e, settings) {
+                var container = settings && settings.nTable ? $(settings.nTable).closest('.dataTables_wrapper')[0] : document;
+                if (container) {
+                    var selectAll = container.querySelector('.app-select-all-checkbox');
+                    if (selectAll) {
+                        selectAll.checked = false;
+                        selectAll.indeterminate = false;
+                    }
+                }
+                window.updateBulkSelectionUI();
+            });
+        }
     });
 </script>

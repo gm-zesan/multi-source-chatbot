@@ -62,13 +62,17 @@
 @layer components {
     /* ==================== GLOBAL COMPACT COMPONENTS ==================== */
 
-    /* 1. App Cards */
+    /* 1. App Cards with Linear-style Inset Craft */
     .app-card {
         background-color: var(--color-surface);
         border: 1px solid var(--color-border);
         border-radius: 6px;
-        box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+        box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.04), 0 1px 2px 0 rgba(0, 0, 0, 0.05);
         transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    html:not(.dark) .app-card {
+        box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.03), 0 1px 2px -1px rgba(0, 0, 0, 0.03);
     }
 
     .app-card-header {
@@ -154,6 +158,10 @@
         text-decoration: none !important;
     }
 
+    .app-btn:active {
+        transform: scale(0.98) !important;
+    }
+
     .app-btn-primary {
         background-color: #0284C7 !important;
         color: #FFFFFF !important;
@@ -223,6 +231,10 @@
         border-bottom: 1px solid var(--color-border) !important;
         padding: 0.55rem 0.75rem !important;
         text-align: left !important;
+        position: sticky !important;
+        top: 0 !important;
+        z-index: 10 !important;
+        backdrop-filter: blur(4px) !important;
     }
 
     .app-table tbody td {
@@ -234,6 +246,83 @@
 
     .app-table tbody tr:hover td {
         background-color: var(--color-surface-elevated) !important;
+    }
+
+    /* Table Density Variations */
+    .app-table.density-compact thead th,
+    table.dataTable.density-compact thead th {
+        padding: 0.35rem 0.65rem !important;
+        font-size: 0.65rem !important;
+    }
+
+    .app-table.density-compact tbody td,
+    table.dataTable.density-compact tbody td {
+        padding: 0.35rem 0.65rem !important;
+        font-size: 0.75rem !important;
+        line-height: 1.1rem !important;
+    }
+
+    .app-table.density-compact .app-action-btn,
+    table.dataTable.density-compact .app-action-btn {
+        height: 26px !important;
+        width: 26px !important;
+        font-size: 0.75rem !important;
+    }
+
+    .app-table.density-relaxed thead th,
+    table.dataTable.density-relaxed thead th {
+        padding: 0.8rem 1rem !important;
+    }
+
+    .app-table.density-relaxed tbody td,
+    table.dataTable.density-relaxed tbody td {
+        padding: 0.8rem 1rem !important;
+        font-size: 0.875rem !important;
+    }
+
+    .app-table.density-relaxed .app-action-btn,
+    table.dataTable.density-relaxed .app-action-btn {
+        height: 34px !important;
+        width: 34px !important;
+    }
+
+    /* 4b. Modern SaaS Empty State Container */
+    .app-empty-state {
+        padding: 2.5rem 1rem;
+        text-align: center;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .app-empty-state-icon {
+        width: 2.75rem;
+        height: 2.75rem;
+        border-radius: 9999px;
+        background-color: var(--color-surface-elevated);
+        border: 1px solid var(--color-border);
+        color: var(--color-text-muted);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.25rem;
+        margin-bottom: 0.75rem;
+    }
+
+    .app-empty-state-title {
+        font-size: 0.8125rem;
+        font-weight: 600;
+        color: var(--color-text-primary);
+        margin-bottom: 0.25rem;
+    }
+
+    .app-empty-state-desc {
+        font-size: 0.75rem;
+        color: var(--color-text-muted);
+        max-width: 20rem;
+        line-height: 1.35;
+        margin-bottom: 0.75rem;
     }
 
     /* 5. Compact Badges */
@@ -379,6 +468,271 @@
     background: #0284C7 !important;
     color: #FFFFFF !important;
     border-color: #0284C7 !important;
+}
+
+.dataTables_wrapper .dataTables_paginate .paginate_button.disabled,
+.dataTables_wrapper .dataTables_paginate .paginate_button.disabled:hover {
+    opacity: 0.4 !important;
+    cursor: not-allowed !important;
+    background: transparent !important;
+    border-color: var(--color-border) !important;
+    color: var(--color-text-muted) !important;
+}
+
+.dataTables_wrapper .dataTables_empty {
+    padding: 2.5rem 1rem !important;
+    text-align: center !important;
+    color: var(--color-text-muted) !important;
+    font-size: 0.8125rem !important;
+}
+
+.dataTables_wrapper table.dataTable thead th.sorting:hover {
+    color: var(--color-accent) !important;
+}
+
+/* 4c. Active Column Sorting Indicators */
+/* Suppress all default DataTables pseudo-elements and background sorting icons */
+.dataTables_wrapper table.dataTable thead > tr > th.sorting:before,
+.dataTables_wrapper table.dataTable thead > tr > th.sorting_asc:before,
+.dataTables_wrapper table.dataTable thead > tr > th.sorting_desc:before,
+table.dataTable thead > tr > th.sorting:before,
+table.dataTable thead > tr > th.sorting_asc:before,
+table.dataTable thead > tr > th.sorting_desc:before,
+.dataTables_wrapper table.dataTable thead th.sorting:before,
+.dataTables_wrapper table.dataTable thead th.sorting_asc:before,
+.dataTables_wrapper table.dataTable thead th.sorting_desc:before,
+table.dataTable thead th.sorting:before,
+table.dataTable thead th.sorting_asc:before,
+table.dataTable thead th.sorting_desc:before {
+    display: none !important;
+    content: "" !important;
+    opacity: 0 !important;
+    visibility: hidden !important;
+}
+
+table.dataTable thead .sorting,
+table.dataTable thead .sorting_asc,
+table.dataTable thead .sorting_desc {
+    background-image: none !important;
+}
+
+.dataTables_wrapper table.dataTable thead th.sorting,
+.dataTables_wrapper table.dataTable thead th.sorting_asc,
+.dataTables_wrapper table.dataTable thead th.sorting_desc,
+.app-table thead th.sorting,
+.app-table thead th.sorting_asc,
+.app-table thead th.sorting_desc {
+    position: relative !important;
+    padding-right: 1.5rem !important;
+    cursor: pointer !important;
+    user-select: none !important;
+}
+
+.dataTables_wrapper table.dataTable thead th.sorting::after,
+.app-table thead th.sorting::after {
+    content: "↕";
+    position: absolute;
+    right: 0.5rem;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+    opacity: 0.35;
+    transition: opacity 0.15s ease, color 0.15s ease;
+}
+
+.dataTables_wrapper table.dataTable thead th.sorting_asc::after,
+.app-table thead th.sorting_asc::after {
+    content: "↑";
+    position: absolute;
+    right: 0.5rem;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 0.8125rem;
+    font-weight: 700;
+    color: var(--color-accent) !important;
+    opacity: 1 !important;
+}
+
+.dataTables_wrapper table.dataTable thead th.sorting_desc::after,
+.app-table thead th.sorting_desc::after {
+    content: "↓";
+    position: absolute;
+    right: 0.5rem;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 0.8125rem;
+    font-weight: 700;
+    color: var(--color-accent) !important;
+    opacity: 1 !important;
+}
+
+.dataTables_wrapper table.dataTable thead th.sorting:hover::after,
+.app-table thead th.sorting:hover::after {
+    opacity: 0.85;
+    color: var(--color-accent);
+}
+
+.dataTables_wrapper table.dataTable thead th.sorting_asc,
+.dataTables_wrapper table.dataTable thead th.sorting_desc,
+.app-table thead th.sorting_asc,
+.app-table thead th.sorting_desc {
+    color: var(--color-accent) !important;
+    background-color: var(--color-surface-elevated) !important;
+}
+
+/* 4d. Premium DataTables Preloader / Processing Indicator */
+.dataTables_wrapper {
+    position: relative;
+}
+
+.dataTables_wrapper .dataTables_processing {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    margin: 0;
+    width: auto;
+    min-width: 140px;
+    height: 38px;
+    padding: 0 1.25rem;
+    align-items: center;
+    justify-content: center;
+    gap: 0.625rem;
+    border-radius: 0.5rem;
+    border: 1px solid var(--color-border);
+    background: var(--color-surface);
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3), 0 8px 10px -6px rgba(0, 0, 0, 0.3);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    color: var(--color-text-main);
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    z-index: 50;
+    transition: opacity 0.2s ease;
+}
+
+/* Strictly hide when DataTables sets display: none or hidden */
+.dataTables_wrapper .dataTables_processing[style*="display: none"],
+.dataTables_wrapper .dataTables_processing.hidden {
+    display: none !important;
+}
+
+/* Only display as flex when active / not hidden */
+.dataTables_wrapper .dataTables_processing:not([style*="display: none"]) {
+    display: flex !important;
+}
+
+.dataTables_wrapper .dataTables_processing::before {
+    content: "";
+    display: inline-block;
+    width: 15px;
+    height: 15px;
+    border: 2px solid rgba(2, 132, 199, 0.25);
+    border-top-color: #0284c7;
+    border-radius: 50%;
+    animation: dt-spin 0.7s linear infinite;
+    flex-shrink: 0;
+}
+
+@keyframes dt-spin {
+    to { transform: rotate(360deg); }
+}
+
+/* 4d. Quick Facet Filter Chips */
+.app-facet-group {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    overflow-x: auto;
+    padding-bottom: 2px;
+}
+
+.app-facet-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    height: 28px;
+    padding: 0 0.65rem;
+    border-radius: 9999px;
+    font-size: 0.6875rem;
+    font-weight: 500;
+    color: var(--color-text-muted);
+    background-color: var(--color-surface);
+    border: 1px solid var(--color-border);
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.15s ease;
+    user-select: none;
+}
+
+.app-facet-chip:hover {
+    color: var(--color-text-primary);
+    border-color: var(--color-border-strong);
+    background-color: var(--color-surface-elevated);
+}
+
+.app-facet-chip.active {
+    background-color: var(--color-accent) !important;
+    color: #FFFFFF !important;
+    border-color: var(--color-accent) !important;
+    font-weight: 600;
+    box-shadow: 0 1px 2px rgba(2, 132, 199, 0.25);
+}
+
+.app-facet-chip .facet-count {
+    font-size: 0.625rem;
+    padding: 0.05rem 0.35rem;
+    border-radius: 9999px;
+    background-color: rgba(255, 255, 255, 0.2);
+    font-family: inherit;
+    font-variant-numeric: tabular-nums;
+}
+
+.app-facet-chip:not(.active) .facet-count {
+    background-color: var(--color-surface-elevated);
+    color: var(--color-text-muted);
+}
+
+/* 4e. Enterprise Table Checkbox & Floating Bulk Action Bar */
+.app-checkbox {
+    width: 1rem;
+    height: 1rem;
+    accent-color: #0284c7;
+    cursor: pointer;
+    vertical-align: middle;
+    border-radius: 0.25rem;
+}
+
+.app-checkbox:focus {
+    outline: 2px solid rgba(2, 132, 199, 0.5);
+    outline-offset: 1px;
+}
+
+.app-bulk-bar {
+    position: fixed;
+    bottom: 1.5rem;
+    left: 50%;
+    transform: translateX(-50%) translateY(2rem);
+    z-index: 999;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.08);
+    border-radius: 9999px;
+    padding: 0.4rem 0.6rem 0.4rem 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    opacity: 0;
+    pointer-events: none;
+    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.app-bulk-bar.active {
+    transform: translateX(-50%) translateY(0);
+    opacity: 1;
+    pointer-events: auto;
 }
 
 /* ==================== TAILWIND MODAL OVERLAYS & LEGACY COMPAT ==================== */
@@ -568,7 +922,18 @@ html[data-theme="dark"] .analytics-chart-card {
     border-color: #1E293B !important;
 }
 
-/* Simulator Diagnostics & Chat Panel Dark Mode */
+/* Simulator Diagnostics & Chat Panel Themes */
+.diag-card {
+    background: #FFFFFF !important;
+    border-color: #E2E8F0 !important;
+}
+
+.diag-header {
+    background: #FFFFFF !important;
+    border-color: #E2E8F0 !important;
+    color: #020617 !important;
+}
+
 html.dark .diag-card,
 html[data-theme="dark"] .diag-card {
     background: #0F172A !important;
@@ -579,6 +944,7 @@ html.dark .diag-header,
 html[data-theme="dark"] .diag-header {
     background: #0F172A !important;
     border-color: #1E293B !important;
+    color: #F8FAFC !important;
 }
 
 html.dark .diag-body,
@@ -754,12 +1120,18 @@ body {
     min-height: 0 !important;
 }
 
+/* Tabular Numerals for Finance & Analytics */
+.tabular-nums {
+    font-variant-numeric: tabular-nums;
+}
+
 #adminSidebar {
     height: 100% !important;
     max-height: 100% !important;
     overflow-y: auto !important;
+    overflow-x: hidden !important;
     min-height: 0 !important;
-    transition: margin-left 0.25s cubic-bezier(0.4, 0, 0.2, 1), transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: width 0.2s cubic-bezier(0.4, 0, 0.2, 1), transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .content-wrapper {
@@ -771,8 +1143,44 @@ body {
 }
 
 @media (min-width: 1024px) {
+    #adminSidebar {
+        width: 14rem;
+    }
+
+    /* Icon-only Slim Rail Mode when Collapsed */
     #adminSidebar.collapsed {
-        margin-left: -14rem !important; /* -w-56 */
+        width: 3.75rem !important; /* 60px mini rail */
+        min-width: 3.75rem !important;
+        max-width: 3.75rem !important;
+        margin-left: 0 !important;
+    }
+
+    #adminSidebar.collapsed .sidebar-text-label {
+        display: none !important;
+    }
+
+    #adminSidebar.collapsed .sidebar-brand {
+        justify-content: center !important;
+        padding-left: 0 !important;
+        padding-right: 0 !important;
+    }
+
+    #adminSidebar.collapsed .sidebar-section-title {
+        display: none !important;
+    }
+
+    #adminSidebar.collapsed .sidebar-nav-item {
+        justify-content: center !important;
+        padding-left: 0 !important;
+        padding-right: 0 !important;
+        border-left-width: 0 !important;
+        border-radius: 0.375rem !important;
+        position: relative;
+    }
+
+    #adminSidebar.collapsed .sidebar-nav-item i {
+        font-size: 1.15rem !important;
+        margin: 0 !important;
     }
 }
 
@@ -783,6 +1191,7 @@ body {
         bottom: 0 !important;
         left: 0 !important;
         z-index: 50 !important;
+        width: 14rem !important;
         height: calc(100vh - 3rem) !important;
         max-height: calc(100vh - 3rem) !important;
         transform: translateX(-100%);

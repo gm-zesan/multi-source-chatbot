@@ -32,7 +32,7 @@
                 </div>
 
                 <span class="app-badge bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 text-xs px-2.5 py-1" id="liveIndicator">
-                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping"></span>
+                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
                     Stream Active
                 </span>
 
@@ -196,20 +196,26 @@
     </div>
 
     {{-- Telemetry Traces Table --}}
-    <div class="app-card table-card">
+    <div class="app-card table-card overflow-hidden">
         <div class="app-card-header table-header">
             <div>
-                <h2 class="text-xs font-semibold text-text-primary uppercase tracking-wider">Recent Turn Traces</h2>
-                <p class="text-2xs text-text-muted">Diagnostic event records for outbound AI responses</p>
+                <h2 class="text-xs font-semibold text-light-text dark:text-dark-text uppercase tracking-wider">Recent Turn Traces</h2>
+                <p class="text-2xs text-light-muted dark:text-dark-muted">Diagnostic event records for outbound AI responses</p>
             </div>
-            <span class="text-2xs text-text-muted">Showing last {{ $messages->count() }} interactions</span>
+            <span class="text-2xs text-light-muted dark:text-dark-muted">Showing last {{ $messages->count() }} interactions</span>
         </div>
+
         <div class="app-card-body p-0">
-            <div class="overflow-x-auto p-4">
-                <table class="w-full text-xs" id="data-table">
+            <div class="overflow-x-auto p-3">
+                <table class="app-table w-full" id="data-table">
                     <thead>
                         <tr>
-                            <th style="width: 50px;">#</th>
+                            <th style="width: 70px;">
+                                <div class="flex items-center gap-2">
+                                    <input type="checkbox" class="app-checkbox app-select-all-checkbox" title="Select All">
+                                    <span>#</span>
+                                </div>
+                            </th>
                             <th style="width: 90px;">Time</th>
                             <th style="width: 170px;">Customer / Channel</th>
                             <th>AI Outbound Response</th>
@@ -228,7 +234,12 @@
                                 $latency = $meta['total_time_ms'] ?? $meta['routing_telemetry']['total_e2e_ms'] ?? null;
                             @endphp
                             <tr>
-                                <td class="text-text-muted">{{ $index + 1 }}</td>
+                                <td>
+                                    <div class="flex items-center gap-2">
+                                        <input type="checkbox" class="app-checkbox app-row-checkbox" data-id="{{ $msg->id }}" value="{{ $msg->id }}">
+                                        <span class="text-2xs text-light-muted dark:text-dark-muted font-mono tabular-nums">{{ $index + 1 }}</span>
+                                    </div>
+                                </td>
                                 <td>
                                     <span class="text-text-primary font-medium block">{{ $msg->created_at->format('H:i:s') }}</span>
                                     <span class="text-2xs text-text-muted block">{{ $msg->created_at->format('M d') }}</span>
@@ -282,7 +293,7 @@
                                     @endif
                                 </td>
                                 <td class="text-right">
-                                    <button type="button" class="app-action-btn hover:text-brand-primary" title="Inspect Trace"
+                                    <button type="button" class="app-action-btn bg-brand-500/15 text-brand-500 hover:bg-brand-500 hover:text-white" title="Inspect Trace"
                                         onclick="inspectTrace({{ json_encode($msg->id) }}, {{ json_encode($meta) }}, {{ json_encode($msg->body) }})">
                                         <i class="ri-scan-line"></i>
                                     </button>
@@ -298,14 +309,14 @@
 
 {{-- Trace Inspector Modal --}}
 <div class="fixed inset-0 z-50 hidden bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-4 modal" id="traceModal" tabindex="-1" aria-hidden="true">
-    <div class="app-card w-full max-w-3xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden modal-dialog">
+    <div class="app-card w-full max-w-3xl max-h-[90vh] flex flex-col shadow-modal overflow-hidden modal-dialog">
         <div class="app-card-header flex items-center justify-between">
             <div class="flex items-center gap-2">
-                <i class="ri-cpu-line text-brand-primary"></i>
-                <h3 class="text-xs font-semibold text-text-primary tracking-tight">Turn Diagnostic Trace (#<span id="modalMsgId">-</span>)</h3>
+                <i class="ri-cpu-line text-brand-500"></i>
+                <h3 class="text-xs font-semibold text-light-text dark:text-dark-text tracking-tight">Turn Diagnostic Trace (#<span id="modalMsgId">-</span>)</h3>
             </div>
-            <button type="button" class="app-action-btn" data-bs-dismiss="modal" aria-label="Close">
-                <i class="ri-close-line text-sm"></i>
+            <button type="button" class="text-light-muted dark:text-dark-muted hover:text-light-text dark:hover:text-dark-text" data-bs-dismiss="modal" aria-label="Close">
+                <i class="ri-close-line text-base"></i>
             </button>
         </div>
 
@@ -417,11 +428,33 @@
             }
         }
 
+        let obsTable = null;
+
+        function filterObservability(el, term) {
+            document.querySelectorAll('[data-obs-chip]').forEach(function(chip) {
+                chip.classList.remove('active');
+            });
+            if (el) el.classList.add('active');
+            if (obsTable) {
+                obsTable.search(term || '').draw();
+            }
+        }
+
         document.addEventListener('DOMContentLoaded', function () {
             if (typeof $.fn.DataTable !== 'undefined') {
-                $('#data-table').DataTable({
+                obsTable = $('#data-table').DataTable({
                     pageLength: 20,
-                    order: [[0, 'asc']]
+                    order: [[1, 'desc']],
+                    columns: [
+                        { orderable: false },
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        { orderable: false }
+                    ]
                 });
             }
 

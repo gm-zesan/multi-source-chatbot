@@ -56,7 +56,7 @@ function renderUsageWizard() {
     tbody.innerHTML = '';
 
     if (totalRequests === 0) {
-        tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-4"><i class="ri-inbox-line fs-3 opacity-25 d-block mb-1"></i>No requests logged yet.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="6" class="text-center text-light-muted dark:text-dark-muted py-6 text-xs"><i class="ri-inbox-line text-2xl opacity-40 block mb-1"></i>No requests logged yet.</td></tr>';
     }
 
     llmUsageHistory.forEach((req, index) => {
@@ -77,15 +77,16 @@ function renderUsageWizard() {
         totalCost += reqCost;
 
         const tr = document.createElement('tr');
+        tr.className = 'border-b border-light-border dark:border-dark-border hover:bg-light-surface-elevated/40 dark:hover:bg-dark-elevated/40 transition-colors';
         tr.innerHTML = `
-            <td class="ps-3">${index + 1}</td>
-            <td><span class="badge bg-secondary-subtle text-secondary border">${req.model || 'deepseek-chat'}</span></td>
-            <td class="text-end text-dark fw-medium">${reqInputTokens.toLocaleString()}</td>
-            <td class="text-end text-primary fw-medium">${reqOutputTokens.toLocaleString()}</td>
-            <td class="text-end text-muted fw-medium">${reqTotalTokens.toLocaleString()}</td>
-            <td class="text-end pe-3">
-                <span class="fw-bold text-success">$${reqCost.toFixed(6)}</span>
-                <span class="badge bg-light text-dark border ms-1" style="font-size: 11px;">৳${reqCostBdt.toFixed(4)}</span>
+            <td class="px-3 py-2 text-2xs text-light-muted dark:text-dark-muted font-mono">${index + 1}</td>
+            <td class="px-3 py-2 text-xs"><span class="app-badge app-badge-secondary font-mono !text-3xs">${escapeHtml(req.model || 'deepseek-chat')}</span></td>
+            <td class="px-3 py-2 text-xs text-right text-light-text dark:text-dark-text font-mono tabular-nums">${reqInputTokens.toLocaleString()}</td>
+            <td class="px-3 py-2 text-xs text-right text-brand-500 font-mono tabular-nums">${reqOutputTokens.toLocaleString()}</td>
+            <td class="px-3 py-2 text-xs text-right text-light-muted dark:text-dark-muted font-mono tabular-nums">${reqTotalTokens.toLocaleString()}</td>
+            <td class="px-3 py-2 text-xs text-right font-mono tabular-nums">
+                <span class="font-semibold text-emerald-500">$${reqCost.toFixed(6)}</span>
+                <span class="app-badge app-badge-primary !text-3xs font-mono tabular-nums ml-1">৳${reqCostBdt.toFixed(4)}</span>
             </td>
         `;
         tbody.appendChild(tr);
@@ -157,7 +158,7 @@ function updateActiveSpreadsheetUI(activeSpreadsheet) {
             if (!exists && activeSpreadsheet.filename) {
                 const newOpt = document.createElement('option');
                 newOpt.value = activeSpreadsheet.file_id;
-                newOpt.textContent = `📊 ${activeSpreadsheet.filename} (${(activeSpreadsheet.sheets || []).length} sheets)`;
+                newOpt.textContent = `${activeSpreadsheet.filename} (${(activeSpreadsheet.sheets || []).length} sheets)`;
                 selectEl.appendChild(newOpt);
                 selectEl.value = activeSpreadsheet.file_id;
             }
@@ -188,12 +189,12 @@ async function onSourceSelectionChange(fileId) {
         if (data.success) {
             updateActiveSpreadsheetUI(data.active_spreadsheet);
             if (data.active_spreadsheet && data.active_spreadsheet.filename) {
-                appendMessage(`📌 Focused document set to: **${data.active_spreadsheet.filename}** (${(data.active_spreadsheet.sheets || []).length} sheets, ${data.active_spreadsheet.total_rows || 0} rows)`, 'bot', {
+                appendMessage(`<i class="ri-pushpin-line text-brand-500 me-1"></i>Focused document set to: **${data.active_spreadsheet.filename}** (${(data.active_spreadsheet.sheets || []).length} sheets, ${data.active_spreadsheet.total_rows || 0} rows)`, 'bot', {
                     route: 'analytics',
                     confidence: 100
                 });
             } else {
-                appendMessage(`🌐 Context cleared. Questions will automatically resolve across all available workspace documents.`, 'bot', {
+                appendMessage(`<i class="ri-global-line text-brand-500 me-1"></i>Context cleared. Questions will automatically resolve across all available workspace documents.`, 'bot', {
                     route: 'analytics',
                     confidence: 100
                 });
@@ -223,7 +224,7 @@ async function clearUploadedExcel() {
         const data = await response.json();
         if (data.success) {
             updateActiveSpreadsheetUI(null);
-            appendMessage("🗑️ Active spreadsheet removed. Queries will now auto-resolve across all workspace data sources.", 'bot', {
+            appendMessage(`<i class="ri-delete-bin-line text-rose-500 me-1"></i>Active spreadsheet removed. Queries will now auto-resolve across all workspace data sources.`, 'bot', {
                 route: 'analytics',
                 confidence: 100
             });
@@ -314,7 +315,7 @@ async function handleSend(e) {
         }
 
         // ── RAW LLM RESPONSE & COMPLETE PAYLOAD DEBUG LOG ──
-        console.group("%c🤖 [Conversational AI] Raw Response & Pipeline Telemetry", "background: #2563eb; color: #fff; padding: 4px 8px; border-radius: 4px; font-weight: bold;");
+        console.group("%c[Conversational AI] Raw Response & Pipeline Telemetry", "background: #2563eb; color: #fff; padding: 4px 8px; border-radius: 4px; font-weight: bold;");
         console.log("%cQuery:", "font-weight: bold; color: #0284c7;", text);
         console.log("%cRoute:", "font-weight: bold; color: #16a34a;", data.route);
         console.log("%cRaw LLM Response Payload:", "font-weight: bold; color: #7c3aed;", data.raw_llm_response);
@@ -340,12 +341,12 @@ async function handleSend(e) {
             // Update diagnostic panel
             updateDiagnostics(data);
         } else {
-            appendMessage("❌ Error: " + (data.message || "Failed to process message"), 'bot');
+            appendMessage('<i class="ri-error-warning-line text-rose-500 me-1"></i>Error: ' + (data.message || "Failed to process message"), 'bot');
         }
     } catch (err) {
         removeElement(typingId);
         if (sendBtn) sendBtn.disabled = false;
-        appendMessage("❌ Request failed. Check server logs or connectivity.", 'bot');
+        appendMessage('<i class="ri-error-warning-line text-rose-500 me-1"></i>Request failed. Check server logs or connectivity.', 'bot');
         console.error(err);
     }
 }
@@ -548,7 +549,7 @@ function renderFormattedMessage(rawContent) {
             if (parsedJson && parsedJson.answer) {
                 contentToFormat = parsedJson.answer;
                 if (parsedJson.proposed_follow_up) {
-                    contentToFormat += '\n\n💡 _' + parsedJson.proposed_follow_up + '_';
+                    contentToFormat += '\n\n' + parsedJson.proposed_follow_up;
                 }
             }
         } catch (e) {
@@ -701,12 +702,12 @@ function updateDiagnostics(data) {
             crmBadge.className = "status-badge status-ok";
         }
         let tags = "";
-        if (crm.name) tags += `<span class="entity-tag">👤 Name: ${escapeHtml(crm.name)}</span>`;
-        (crm.phones || []).forEach(p => tags += `<span class="entity-tag">📞 ${escapeHtml(p)}</span>`);
-        (crm.emails || []).forEach(e => tags += `<span class="entity-tag">✉ ${escapeHtml(e)}</span>`);
-        if (crm.address) tags += `<span class="entity-tag">📍 Address: ${escapeHtml(crm.address)}</span>`;
-        (crm.websites || []).forEach(w => tags += `<span class="entity-tag">🌐 ${escapeHtml(w)}</span>`);
-        if (crm.nid) tags += `<span class="entity-tag">🪪 NID: ${escapeHtml(crm.nid)}</span>`;
+        if (crm.name) tags += `<span class="entity-tag"><i class="ri-user-line me-1 text-primary"></i>Name: ${escapeHtml(crm.name)}</span>`;
+        (crm.phones || []).forEach(p => tags += `<span class="entity-tag"><i class="ri-phone-line me-1 text-success"></i>${escapeHtml(p)}</span>`);
+        (crm.emails || []).forEach(e => tags += `<span class="entity-tag"><i class="ri-mail-line me-1 text-info"></i>${escapeHtml(e)}</span>`);
+        if (crm.address) tags += `<span class="entity-tag"><i class="ri-map-pin-line me-1 text-danger"></i>Address: ${escapeHtml(crm.address)}</span>`;
+        (crm.websites || []).forEach(w => tags += `<span class="entity-tag"><i class="ri-global-line me-1 text-secondary"></i>${escapeHtml(w)}</span>`);
+        if (crm.nid) tags += `<span class="entity-tag"><i class="ri-id-card-line me-1 text-warning"></i>NID: ${escapeHtml(crm.nid)}</span>`;
         if (crmResults) crmResults.innerHTML = tags;
     } else {
         if (crmBadge) {

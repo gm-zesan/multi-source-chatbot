@@ -87,7 +87,7 @@
 
                 @if(!empty($proposedFollowUp))
                     <div class="mt-2 pt-1.5 border-t border-white/20 text-xs opacity-95">
-                        💡 {{ $proposedFollowUp }}
+                        <i class="ri-lightbulb-line text-amber-300 mr-1"></i> {{ $proposedFollowUp }}
                     </div>
                 @endif
 

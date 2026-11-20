@@ -227,10 +227,13 @@
 
     {{-- Table View (Initially Hidden) --}}
     <div id="workspacesTableView" class="app-card overflow-hidden hidden">
-        <div class="overflow-x-auto">
-            <table class="app-table">
+        <div class="overflow-x-auto p-3">
+            <table class="app-table w-full">
                 <thead>
                     <tr>
+                        <th style="width: 40px;">
+                            <input type="checkbox" class="app-checkbox app-select-all-checkbox" title="Select All">
+                        </th>
                         <th>Workspace</th>
                         <th>Status</th>
                         <th>Plan</th>
@@ -252,6 +255,9 @@
                             $isCurrentActive = (int) $ws->id === (int) $activeWorkspaceId;
                         @endphp
                         <tr class="{{ $isCurrentActive ? 'bg-brand-500/5' : '' }}">
+                            <td>
+                                <input type="checkbox" class="app-checkbox app-row-checkbox" data-id="{{ $ws->id }}" value="{{ $ws->id }}">
+                            </td>
                             <td>
                                 <div class="flex items-center gap-2">
                                     <div class="w-6 h-6 rounded bg-brand-500/15 text-brand-500 font-bold text-2xs flex items-center justify-center">
@@ -309,7 +315,7 @@
 </div>
 
 {{-- Create Workspace Modal (Pure Tailwind) --}}
-<div class="modal hidden fixed inset-0 z-50 flex items-center justify-center p-4" id="createWorkspaceModal" tabindex="-1" aria-hidden="true">
+<div class="modal hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-xs" id="createWorkspaceModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog w-full max-w-md app-card shadow-modal overflow-hidden transition-all duration-200">
         <form method="POST" action="{{ route('workspaces.store') }}">
             @csrf

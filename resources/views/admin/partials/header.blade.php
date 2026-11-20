@@ -6,12 +6,6 @@
                 <i class="ri-menu-2-line text-sm"></i>
             </button>
 
-            <div class="hidden sm:inline-flex items-center gap-1.5 px-2 py-0.5 rounded border border-light-border dark:border-dark-border bg-light-canvas dark:bg-dark-canvas text-xs font-medium">
-                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_6px_#10B981]"></span>
-                <span class="text-light-text dark:text-dark-text truncate max-w-[150px]">{{ Auth::user()->workspace->name ?? 'Entrepreneurs AI' }}</span>
-                <span class="px-1 text-2xs font-bold uppercase rounded bg-brand-500/15 text-brand-400">PRO</span>
-            </div>
-
             <a target="_blank" href="{{ route('home') }}" class="hidden md:inline-flex items-center gap-1 px-2 py-1 rounded text-xs text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text dark:hover:text-dark-text hover:bg-light-elevated dark:hover:bg-dark-elevated transition-colors" title="Visit Storefront">
                 <i class="ri-external-link-line text-xs"></i>
                 <span>Storefront</span>
@@ -23,16 +17,18 @@
             </a>
         </div>
 
-        {{-- Center Section: Compact Omnisearch --}}
+        {{-- Center Section: Compact Omnisearch Trigger for Command Palette --}}
         <div class="hidden md:flex flex-1 max-w-sm mx-4">
-            <div class="w-full h-7 rounded border border-light-border dark:border-dark-border bg-light-canvas dark:bg-dark-canvas px-2.5 flex items-center gap-2 cursor-pointer focus-within:border-brand-500 focus-within:ring-1 focus-within:ring-brand-500 transition-all" onclick="document.getElementById('globalOmnisearch')?.focus()">
-                <i class="ri-search-2-line text-xs text-light-muted dark:text-dark-muted"></i>
-                <input type="text" id="globalOmnisearch" class="w-full bg-transparent border-0 p-0 text-xs text-light-text dark:text-dark-text placeholder:text-light-muted dark:placeholder:text-dark-muted focus:ring-0 focus:outline-none" placeholder="Search commands, workspaces, users... (⌘K)" autocomplete="off">
-                <div class="flex items-center gap-0.5">
-                    <kbd class="px-1 text-2xs font-mono font-medium rounded border border-light-border dark:border-dark-border text-light-muted dark:text-dark-muted">⌘</kbd>
-                    <kbd class="px-1 text-2xs font-mono font-medium rounded border border-light-border dark:border-dark-border text-light-muted dark:text-dark-muted">K</kbd>
+            <button type="button" class="w-full h-7 rounded border border-light-border dark:border-dark-border bg-light-canvas dark:bg-dark-canvas px-2.5 flex items-center justify-between text-xs text-light-muted dark:text-dark-muted hover:border-brand-500 hover:text-light-text dark:hover:text-dark-text transition-all cursor-pointer" onclick="openCommandPalette()" title="Press ⌘K or Ctrl+K to open Command Palette">
+                <div class="flex items-center gap-2">
+                    <i class="ri-search-2-line text-xs"></i>
+                    <span class="text-xs truncate">Search commands, pages...</span>
                 </div>
-            </div>
+                <div class="flex items-center gap-0.5">
+                    <kbd class="px-1 text-2xs font-mono font-medium rounded border border-light-border dark:border-dark-border">⌘</kbd>
+                    <kbd class="px-1 text-2xs font-mono font-medium rounded border border-light-border dark:border-dark-border">K</kbd>
+                </div>
+            </button>
         </div>
 
         {{-- Right Section: Theme Switcher & Profile --}}

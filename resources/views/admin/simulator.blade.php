@@ -6,7 +6,7 @@
 
 @push('custom-style')
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <link href="{{ asset('assets/css/simulator.css') }}" rel="stylesheet">
+    <link href="{{ asset('assets/css/simulator.css') }}?v={{ file_exists(public_path('assets/css/simulator.css')) ? filemtime(public_path('assets/css/simulator.css')) : '2.0' }}" rel="stylesheet">
 @endpush
 
 
@@ -30,7 +30,7 @@
                             <select id="simulatorWorkspaceSelect" class="app-select !h-6.5 !py-0 !px-1 !text-2xs !bg-transparent !border-0 text-light-text dark:text-dark-text font-medium outline-none cursor-pointer" onchange="onSimulatorWorkspaceChange(this.value)">
                                 @foreach($allWorkspaces as $ws)
                                     <option value="{{ $ws->id }}" class="bg-light-surface dark:bg-dark-surface text-light-text dark:text-dark-text" {{ (isset($workspaceId) && $workspaceId == $ws->id) ? 'selected' : '' }}>
-                                        🏢 {{ $ws->name }} (#{{ $ws->id }})
+                                        {{ $ws->name }} (#{{ $ws->id }})
                                     </option>
                                 @endforeach
                             </select>
@@ -63,7 +63,7 @@
             <!-- Messages area -->
             <div class="chat-messages flex-1 overflow-y-auto p-4 space-y-3 bg-light-canvas dark:bg-dark-canvas" id="chatMessages">
                 <div class="message-bubble message-bot max-w-2xl bg-light-surface dark:bg-dark-surface border border-light-border dark:border-dark-border text-light-text dark:text-dark-text p-3 rounded-lg shadow-2xs text-xs">
-                    👋 Hi! I am your AI Chatbot simulator. Type any question or message below.
+                    Hello! I am your AI Chatbot simulator. Type any question or message below to test real-time responses.
                 </div>
             </div>
 
@@ -76,14 +76,14 @@
                             <label for="simulatorSourceSelect" class="text-2xs font-semibold text-light-text-secondary dark:text-dark-text-secondary flex items-center gap-1 shrink-0 mb-0">
                                 <i class="ri-database-2-line text-brand-500"></i> Target Source:
                             </label>
-                            <select id="simulatorSourceSelect" class="app-select !h-7.5 !text-xs flex-1 max-w-sm !bg-light-surface dark:!bg-dark-surface !border-light-border dark:!border-dark-border !text-light-text dark:!text-dark-text" onchange="onSourceSelectionChange(this.value)">
-                                <option value="" class="bg-light-surface dark:bg-dark-surface text-light-text dark:text-dark-text">🌐 Auto-detect Dataset (Typesense Smart Routing)</option>
+                            <select id="simulatorSourceSelect" class="app-select !h-7.5 !text-xs flex-1 max-w-sm !bg-light-surface dark:!bg-dark-surface !border-light-border dark:!border-dark-border !text-light-text dark:text-dark-text" onchange="onSourceSelectionChange(this.value)">
+                                <option value="" class="bg-light-surface dark:bg-dark-surface text-light-text dark:text-dark-text">Auto-detect Dataset (Typesense Smart Routing)</option>
                                 @if(isset($availableDocuments) && $availableDocuments->isNotEmpty())
                                     <optgroup label="Workspace Spreadsheets (Generic Analytics)" class="bg-light-surface dark:bg-dark-surface text-light-text dark:text-dark-text">
                                         @foreach($availableDocuments as $doc)
                                             <option value="{{ $doc->source_id ?: $doc->id }}" class="bg-light-surface dark:bg-dark-surface text-light-text dark:text-dark-text"
                                                 {{ (!empty($activeSpreadsheet['file_id']) && ($activeSpreadsheet['file_id'] == $doc->source_id || $activeSpreadsheet['file_id'] == $doc->id)) ? 'selected' : '' }}>
-                                                📊 {{ $doc->original_filename ?: $doc->title }} ({{ $doc->sheets_count ?: 1 }} {{ \Illuminate\Support\Str::plural('sheet', $doc->sheets_count ?: 1) }})
+                                                {{ $doc->original_filename ?: $doc->title }} ({{ $doc->sheets_count ?: 1 }} {{ \Illuminate\Support\Str::plural('sheet', $doc->sheets_count ?: 1) }})
                                             </option>
                                         @endforeach
                                     </optgroup>
@@ -138,21 +138,21 @@
             class="diag-card fixed inset-y-0 right-0 w-full sm:w-[500px] lg:w-[540px] bg-light-surface dark:bg-dark-surface border-l border-light-border dark:border-dark-border z-50 flex flex-col shadow-2xl translate-x-full transition-transform duration-300 ease-in-out"
             aria-label="Pipeline Inspector">
             <!-- Drawer Header -->
-            <div class="diag-header flex items-center justify-between px-4 py-3 border-b !border-light-border dark:!border-dark-border !bg-light-surface dark:!bg-dark-surface shrink-0">
+            <div class="diag-header flex items-center justify-between px-4 py-3 border-b border-light-border dark:border-dark-border bg-light-surface dark:bg-dark-surface shrink-0">
                 <div class="flex items-center gap-2.5">
-                    <div class="w-7 h-7 rounded-md bg-brand-500/10 text-brand-500 flex items-center justify-center">
+                    <div class="w-7 h-7 rounded-md bg-brand-500/10 text-brand-500 flex items-center justify-center shrink-0">
                         <i class="ri-cpu-line text-sm"></i>
                     </div>
                     <div>
-                        <h6 class="text-xs font-semibold !text-light-text dark:!text-dark-text mb-0 flex items-center gap-1.5">
+                        <h6 class="text-xs font-semibold text-light-text dark:text-dark-text mb-0 flex items-center gap-1.5 leading-tight">
                             Pipeline Inspector
                         </h6>
-                        <small class="text-2xs !text-light-muted dark:!text-dark-muted block">Real-time multi-turn infrastructure trace</small>
+                        <small class="text-2xs text-light-muted dark:text-dark-muted block">Real-time multi-turn infrastructure trace</small>
                     </div>
                 </div>
                 <div class="flex items-center gap-2">
                     <span class="app-badge app-badge-primary !text-2xs font-mono" id="totalTimeBadge">0 ms</span>
-                    <button type="button" class="w-7 h-7 rounded-md flex items-center justify-center !text-light-muted hover:!text-light-text dark:!text-dark-muted dark:hover:!text-dark-text hover:bg-light-canvas dark:hover:bg-dark-canvas transition-colors"
+                    <button type="button" class="w-7 h-7 rounded-md flex items-center justify-center text-light-muted hover:text-light-text dark:text-dark-muted dark:hover:text-dark-text hover:bg-light-canvas dark:hover:bg-dark-canvas transition-colors"
                         onclick="toggleDiagnosticsDrawer(false)" title="Close Inspector (Esc)">
                         <i class="ri-close-line text-base"></i>
                     </button>
@@ -236,20 +236,20 @@
 
                         {{-- Granular Stage-Level Latency Tree --}}
                         <div class="mt-2 pt-2 border-t border-light-border dark:border-dark-border font-mono text-2xs text-light-text dark:text-dark-text space-y-1">
-                            <div class="flex justify-between py-0.5">
-                                <span class="text-light-muted dark:text-dark-muted">🧭 Router</span>
+                            <div class="flex justify-between py-0.5 items-center">
+                                <span class="text-light-muted dark:text-dark-muted flex items-center gap-1.5"><i class="ri-compass-3-line text-brand-500"></i> Router</span>
                                 <strong id="latDetailedRouter">0 ms</strong>
                             </div>
-                            <div class="flex justify-between py-0.5">
-                                <span class="text-light-muted dark:text-dark-muted">🧠 Context Resolution</span>
+                            <div class="flex justify-between py-0.5 items-center">
+                                <span class="text-light-muted dark:text-dark-muted flex items-center gap-1.5"><i class="ri-brain-line text-brand-500"></i> Context Resolution</span>
                                 <strong id="latDetailedContext">0 ms</strong>
                             </div>
-                            <div class="flex justify-between py-0.5">
-                                <span class="text-light-muted dark:text-dark-muted">💾 Memory Gate & Context</span>
+                            <div class="flex justify-between py-0.5 items-center">
+                                <span class="text-light-muted dark:text-dark-muted flex items-center gap-1.5"><i class="ri-hard-drive-2-line text-brand-500"></i> Memory Gate & Context</span>
                                 <strong id="latDetailedMemory">0 ms</strong>
                             </div>
-                            <div class="flex justify-between py-0.5">
-                                <span class="text-light-muted dark:text-dark-muted">🔍 Knowledge Retrieval</span>
+                            <div class="flex justify-between py-0.5 items-center">
+                                <span class="text-light-muted dark:text-dark-muted flex items-center gap-1.5"><i class="ri-search-eye-line text-brand-500"></i> Knowledge Retrieval</span>
                                 <strong id="latDetailedRetrieval" class="text-brand-500 dark:text-brand-400">0 ms</strong>
                             </div>
                             <div id="latRetrievalSubTree" class="pl-3 text-light-muted dark:text-dark-muted text-3xs space-y-0.5">
@@ -266,16 +266,16 @@
                                     <span id="latReranker">0 ms</span>
                                 </div>
                             </div>
-                            <div class="flex justify-between py-0.5">
-                                <span class="text-light-muted dark:text-dark-muted">⚖️ Answerability Gate</span>
+                            <div class="flex justify-between py-0.5 items-center">
+                                <span class="text-light-muted dark:text-dark-muted flex items-center gap-1.5"><i class="ri-scales-3-line text-brand-500"></i> Answerability Gate</span>
                                 <strong id="latDetailedGate">0 ms</strong>
                             </div>
-                            <div class="flex justify-between py-0.5">
-                                <span class="text-light-muted dark:text-dark-muted">⚡ Live LLM Generation</span>
+                            <div class="flex justify-between py-0.5 items-center">
+                                <span class="text-light-muted dark:text-dark-muted flex items-center gap-1.5"><i class="ri-flashlight-line text-brand-500"></i> Live LLM Generation</span>
                                 <strong id="latDetailedLlm" class="text-rose-500 dark:text-rose-400">0 ms</strong>
                             </div>
-                            <div class="flex justify-between py-0.5 border-t border-light-border dark:border-dark-border mt-1 pt-1 font-semibold">
-                                <span class="text-light-text dark:text-dark-text">⏱️ Total Pipeline (E2E)</span>
+                            <div class="flex justify-between py-0.5 border-t border-light-border dark:border-dark-border mt-1 pt-1 font-semibold items-center">
+                                <span class="text-light-text dark:text-dark-text flex items-center gap-1.5"><i class="ri-timer-flash-line text-emerald-500"></i> Total Pipeline (E2E)</span>
                                 <strong id="latDetailedTotal" class="text-emerald-500 dark:text-emerald-400">0 ms</strong>
                             </div>
                         </div>
@@ -414,286 +414,181 @@
             </div>
         </aside>
 
-        <!-- Usage & Cost Wizard Modal -->
-        <div class="modal hidden fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto" id="usageWizardModal" tabindex="-1" aria-labelledby="usageWizardLabel" aria-hidden="true" style="display: none;">
-
-            <div class="modal-dialog modal-dialog-centered modal-xl usage-wizard-dialog">
-                <div class="modal-content usage-wizard-modal p-0 border-0">
-
-                    <!-- HEADER -->
-                    <div class="usage-wizard-header">
-                        <div class="d-flex align-items-center gap-3">
-
-                            <div class="usage-wizard-icon">
-                                <i class="ri-bar-chart-box-line"></i>
+        <!-- Usage & Cost Wizard Modal (Tailwind Midnight Enterprise Pro) -->
+        <div class="modal hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-xs overflow-y-auto" id="usageWizardModal" tabindex="-1" aria-labelledby="usageWizardLabel" aria-hidden="true" style="display: none;">
+            <div class="modal-dialog w-full max-w-4xl app-card shadow-modal overflow-hidden transition-all duration-200 my-auto">
+                <div class="modal-content border-0 bg-transparent flex flex-col max-h-[90vh]">
+                    <!-- Header -->
+                    <div class="app-card-header flex items-center justify-between border-b border-light-border dark:border-dark-border px-4 py-3 bg-light-surface dark:bg-dark-surface shrink-0">
+                        <div class="flex items-center gap-2.5">
+                            <div class="w-8 h-8 rounded-md bg-brand-500/10 text-brand-500 flex items-center justify-center shrink-0">
+                                <i class="ri-funds-line text-base"></i>
                             </div>
-
                             <div>
-                                <h5 class="mb-0 text-white fw-bold" id="usageWizardLabel">
+                                <h5 class="text-xs font-semibold text-light-text dark:text-dark-text mb-0 flex items-center gap-1.5" id="usageWizardLabel">
                                     LLM Telemetry & Billing
                                 </h5>
-
-                                <div class="usage-wizard-subtitle">
-                                    Track token usage, request cost and billing
-                                </div>
+                                <small class="text-2xs text-light-muted dark:text-dark-muted block">Track session token consumption, latency, and estimated billing</small>
                             </div>
-
                         </div>
-
-                        <button type="button" class="usage-wizard-close" data-bs-dismiss="modal" aria-label="Close">
-                            <i class="ri-close-line"></i>
+                        <button type="button" class="w-7 h-7 rounded-md flex items-center justify-center text-light-muted hover:text-light-text dark:text-dark-muted dark:hover:text-dark-text hover:bg-light-canvas dark:hover:bg-dark-canvas transition-colors" data-bs-dismiss="modal" aria-label="Close">
+                            <i class="ri-close-line text-base"></i>
                         </button>
                     </div>
 
-
-                    <!-- BODY -->
-                    <div class="usage-wizard-body">
-
-                        <!-- TOP COST SUMMARY -->
-                        <div class="usage-cost-card">
-
-                            <!-- PRICING & RATE INFO (LEFT SIDE) -->
-                            <div class="usage-cost-rates">
-                                <div class="usage-label">PRICING SETUP (PEAK)</div>
-                                <div class="usage-rate-item mt-2">
-                                    <span class="text-muted"><i
-                                            class="ri-arrow-down-circle-line text-success me-1"></i>Input Rate:</span>
-                                    <strong class="text-dark">$0.30 <small class="text-muted fw-normal">/
-                                            1M</small></strong>
+                    <!-- Body -->
+                    <div class="app-card-body p-4 overflow-y-auto space-y-4 bg-light-surface dark:bg-dark-surface">
+                        <!-- Top Cost Summary Cards -->
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                            <!-- 1. Pricing Rates Panel -->
+                            <div class="p-3.5 rounded-lg bg-light-canvas dark:bg-dark-canvas border border-light-border dark:border-dark-border flex flex-col justify-between">
+                                <div class="text-2xs uppercase tracking-wider font-semibold text-light-muted dark:text-dark-muted mb-2 flex items-center gap-1">
+                                    <i class="ri-price-tag-3-line text-brand-500"></i> Pricing Setup (Peak)
                                 </div>
-                                <div class="usage-rate-item mt-1">
-                                    <span class="text-muted"><i class="ri-arrow-up-circle-line text-danger me-1"></i>Output
-                                        Rate:</span>
-                                    <strong class="text-dark">$1.20 <small class="text-muted fw-normal">/
-                                            1M</small></strong>
-                                </div>
-                                <div class="usage-rate-item mt-1">
-                                    <span class="text-muted"><i class="ri-exchange-dollar-line text-primary me-1"></i>USD /
-                                        BDT:</span>
-                                    <strong class="text-primary">1 USD = ৳130</strong>
-                                </div>
-                            </div>
-
-                            <div class="usage-cost-main">
-
-                                <div class="usage-label">
-                                    TOTAL SESSION COST
-                                </div>
-
-                                <div class="usage-total-cost">
-                                    <span id="wizTotalCost">$0.000000</span>
-                                    <span
-                                        class="badge bg-success-subtle text-success border border-success-subtle fs-6 ms-2 align-middle"
-                                        id="wizTotalCostBdt"
-                                        style="font-weight: 700; font-size: 16px !important;">৳0.0000</span>
-                                </div>
-
-                                <div class="usage-cost-meta">
-                                    <span>
-                                        <i class="ri-pulse-line"></i>
-                                        <span id="wizTotalRequests">0</span> requests
-                                    </span>
-
-                                    <span class="usage-dot"></span>
-
-                                    <span>
-                                        <span id="wizAvgTokens">0</span> avg tokens/request
-                                    </span>
-                                </div>
-
-                            </div>
-
-
-                            <div class="usage-cost-breakdown">
-
-                                <div class="usage-cost-row input">
-                                    <div>
-                                        <i class="ri-arrow-down-line"></i>
-                                        <span>Input Cost</span>
+                                <div class="space-y-1.5 text-xs">
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-light-muted dark:text-dark-muted flex items-center gap-1">
+                                            <i class="ri-arrow-down-circle-line text-emerald-500"></i> Input Rate:
+                                        </span>
+                                        <strong class="text-light-text dark:text-dark-text font-mono tabular-nums">$0.30 <span class="text-2xs font-normal text-light-muted dark:text-dark-muted">/ 1M</span></strong>
                                     </div>
-
-                                    <strong id="wizInputCost">
-                                        $0.00000
-                                    </strong>
-                                </div>
-
-
-                                <div class="usage-cost-row output">
-                                    <div>
-                                        <i class="ri-arrow-up-line"></i>
-                                        <span>Output Cost</span>
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-light-muted dark:text-dark-muted flex items-center gap-1">
+                                            <i class="ri-arrow-up-circle-line text-rose-500"></i> Output Rate:
+                                        </span>
+                                        <strong class="text-light-text dark:text-dark-text font-mono tabular-nums">$1.20 <span class="text-2xs font-normal text-light-muted dark:text-dark-muted">/ 1M</span></strong>
                                     </div>
-
-                                    <strong id="wizOutputCost">
-                                        $0.00000
-                                    </strong>
+                                    <div class="flex items-center justify-between pt-1 border-t border-light-border dark:border-dark-border">
+                                        <span class="text-light-muted dark:text-dark-muted flex items-center gap-1">
+                                            <i class="ri-exchange-dollar-line text-brand-500"></i> USD / BDT:
+                                        </span>
+                                        <strong class="text-brand-500 font-mono tabular-nums">1 USD = ৳130</strong>
+                                    </div>
                                 </div>
-
                             </div>
 
+                            <!-- 2. Total Session Cost Panel -->
+                            <div class="p-3.5 rounded-lg bg-light-canvas dark:bg-dark-canvas border border-light-border dark:border-dark-border flex flex-col justify-between">
+                                <div class="text-2xs uppercase tracking-wider font-semibold text-light-muted dark:text-dark-muted flex items-center gap-1">
+                                    <i class="ri-wallet-3-line text-emerald-500"></i> Total Session Cost
+                                </div>
+                                <div class="my-2">
+                                    <div class="flex items-baseline gap-2 flex-wrap">
+                                        <span class="text-xl font-bold font-mono tracking-tight text-light-text dark:text-dark-text tabular-nums" id="wizTotalCost">$0.000000</span>
+                                        <span class="app-badge app-badge-success !text-xs font-mono font-bold tabular-nums" id="wizTotalCostBdt">৳0.0000</span>
+                                    </div>
+                                </div>
+                                <div class="flex items-center gap-2 text-2xs text-light-muted dark:text-dark-muted font-mono">
+                                    <span><span id="wizTotalRequests" class="text-light-text dark:text-dark-text font-semibold">0</span> requests</span>
+                                    <span>·</span>
+                                    <span><span id="wizAvgTokens" class="text-light-text dark:text-dark-text font-semibold">0</span> avg tokens</span>
+                                </div>
+                            </div>
+
+                            <!-- 3. Cost Breakdown Panel -->
+                            <div class="p-3.5 rounded-lg bg-light-canvas dark:bg-dark-canvas border border-light-border dark:border-dark-border flex flex-col justify-between">
+                                <div class="text-2xs uppercase tracking-wider font-semibold text-light-muted dark:text-dark-muted mb-2 flex items-center gap-1">
+                                    <i class="ri-pie-chart-line text-amber-500"></i> Cost Distribution
+                                </div>
+                                <div class="space-y-2 text-xs">
+                                    <div class="p-2 rounded bg-light-surface dark:bg-dark-surface border border-light-border dark:border-dark-border flex items-center justify-between">
+                                        <span class="text-light-muted dark:text-dark-muted flex items-center gap-1">
+                                            <i class="ri-arrow-down-line text-emerald-500"></i> Input Cost
+                                        </span>
+                                        <strong id="wizInputCost" class="font-mono text-light-text dark:text-dark-text tabular-nums">$0.00000</strong>
+                                    </div>
+                                    <div class="p-2 rounded bg-light-surface dark:bg-dark-surface border border-light-border dark:border-dark-border flex items-center justify-between">
+                                        <span class="text-light-muted dark:text-dark-muted flex items-center gap-1">
+                                            <i class="ri-arrow-up-line text-rose-500"></i> Output Cost
+                                        </span>
+                                        <strong id="wizOutputCost" class="font-mono text-light-text dark:text-dark-text tabular-nums">$0.00000</strong>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
 
-
-                        <!-- STATS -->
-                        <div class="usage-stats-grid">
-
-                            <div class="usage-stat-card">
-                                <div class="usage-stat-icon blue">
-                                    <i class="ri-message-3-line"></i>
+                        <!-- 4 Stat Metric Cards Strip -->
+                        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                            <div class="p-2.5 rounded-lg bg-light-canvas dark:bg-dark-canvas border border-light-border dark:border-dark-border flex items-center gap-2.5">
+                                <div class="w-8 h-8 rounded bg-brand-500/10 text-brand-500 flex items-center justify-center shrink-0">
+                                    <i class="ri-message-3-line text-sm"></i>
                                 </div>
-
                                 <div>
-                                    <div class="usage-stat-label">
-                                        REQUESTS
-                                    </div>
-
-                                    <div class="usage-stat-value" id="wizTotalRequests_stat">
-                                        0
-                                    </div>
+                                    <div class="text-3xs uppercase tracking-wider font-semibold text-light-muted dark:text-dark-muted">Requests</div>
+                                    <div class="text-sm font-bold font-mono text-light-text dark:text-dark-text tabular-nums" id="wizTotalRequests_stat">0</div>
                                 </div>
                             </div>
-
-
-                            <div class="usage-stat-card">
-                                <div class="usage-stat-icon amber">
-                                    <i class="ri-speed-up-line"></i>
+                            <div class="p-2.5 rounded-lg bg-light-canvas dark:bg-dark-canvas border border-light-border dark:border-dark-border flex items-center gap-2.5">
+                                <div class="w-8 h-8 rounded bg-amber-500/10 text-amber-500 flex items-center justify-center shrink-0">
+                                    <i class="ri-speed-up-line text-sm"></i>
                                 </div>
-
                                 <div>
-                                    <div class="usage-stat-label">
-                                        TOKENS / QUERY
-                                    </div>
-
-                                    <div class="usage-stat-value" id="wizAvgTokens_stat">
-                                        0
-                                    </div>
+                                    <div class="text-3xs uppercase tracking-wider font-semibold text-light-muted dark:text-dark-muted">Tokens / Query</div>
+                                    <div class="text-sm font-bold font-mono text-light-text dark:text-dark-text tabular-nums" id="wizAvgTokens_stat">0</div>
                                 </div>
                             </div>
-
-
-                            <div class="usage-stat-card">
-                                <div class="usage-stat-icon green">
-                                    <i class="ri-arrow-down-line"></i>
+                            <div class="p-2.5 rounded-lg bg-light-canvas dark:bg-dark-canvas border border-light-border dark:border-dark-border flex items-center gap-2.5">
+                                <div class="w-8 h-8 rounded bg-emerald-500/10 text-emerald-500 flex items-center justify-center shrink-0">
+                                    <i class="ri-arrow-down-line text-sm"></i>
                                 </div>
-
                                 <div>
-                                    <div class="usage-stat-label">
-                                        INPUT TOKENS
-                                    </div>
-
-                                    <div class="usage-stat-value" id="wizTotalInputTokens">
-                                        0
-                                    </div>
+                                    <div class="text-3xs uppercase tracking-wider font-semibold text-light-muted dark:text-dark-muted">Input Tokens</div>
+                                    <div class="text-sm font-bold font-mono text-light-text dark:text-dark-text tabular-nums" id="wizTotalInputTokens">0</div>
                                 </div>
                             </div>
-
-
-                            <div class="usage-stat-card">
-                                <div class="usage-stat-icon purple">
-                                    <i class="ri-arrow-up-line"></i>
+                            <div class="p-2.5 rounded-lg bg-light-canvas dark:bg-dark-canvas border border-light-border dark:border-dark-border flex items-center gap-2.5">
+                                <div class="w-8 h-8 rounded bg-purple-500/10 text-purple-500 flex items-center justify-center shrink-0">
+                                    <i class="ri-arrow-up-line text-sm"></i>
                                 </div>
-
                                 <div>
-                                    <div class="usage-stat-label">
-                                        OUTPUT TOKENS
-                                    </div>
-
-                                    <div class="usage-stat-value" id="wizTotalOutputTokens">
-                                        0
-                                    </div>
+                                    <div class="text-3xs uppercase tracking-wider font-semibold text-light-muted dark:text-dark-muted">Output Tokens</div>
+                                    <div class="text-sm font-bold font-mono text-light-text dark:text-dark-text tabular-nums" id="wizTotalOutputTokens">0</div>
                                 </div>
                             </div>
-
                         </div>
 
-
-                        <!-- MAIN GRID -->
-                        <div class="usage-main-grid">
-
-                            <!-- REQUEST BREAKDOWN (FULL WIDTH) -->
-                            <div class="usage-panel usage-request-panel">
-
-                                <div class="usage-panel-header">
-
-                                    <div>
-                                        <div class="usage-panel-title">
-                                            <i class="ri-list-check-2"></i>
-                                            Request Breakdown
-                                        </div>
-
-                                        <div class="usage-panel-description">
-                                            Individual LLM usage and cost
-                                        </div>
-                                    </div>
-
-                                    <div class="usage-average-badge">
-                                        Avg.
-                                        <strong id="wizAvgCost">$0.00</strong>
-                                        / req
-                                    </div>
-
+                        <!-- Request Breakdown DataTable Container -->
+                        <div class="app-card overflow-hidden">
+                            <div class="app-card-header flex items-center justify-between border-b border-light-border dark:border-dark-border px-3 py-2 bg-light-surface-elevated/40 dark:bg-dark-elevated/40">
+                                <div class="flex items-center gap-1.5">
+                                    <i class="ri-list-check-2 text-brand-500 text-xs"></i>
+                                    <span class="text-xs font-semibold text-light-text dark:text-dark-text">Request Breakdown</span>
                                 </div>
-
-
-                                <div class="usage-table-wrapper">
-
-                                    <table class="usage-table">
-
-                                        <thead>
-                                            <tr>
-                                                <th>#</th>
-                                                <th>MODEL</th>
-                                                <th class="text-end">
-                                                    INPUT
-                                                </th>
-                                                <th class="text-end">
-                                                    OUTPUT
-                                                </th>
-                                                <th class="text-end">
-                                                    TOTAL
-                                                </th>
-                                                <th class="text-end">
-                                                    COST
-                                                </th>
-                                            </tr>
-                                        </thead>
-
-                                        <tbody id="wizBreakdownTableBody">
-
-                                            <tr>
-                                                <td colspan="6">
-
-                                                    <div class="usage-empty-state">
-
-                                                        <div class="usage-empty-icon">
-                                                            <i class="ri-inbox-line"></i>
-                                                        </div>
-
-                                                        <div class="usage-empty-title">
-                                                            No requests logged yet
-                                                        </div>
-
-                                                        <div class="usage-empty-text">
-                                                            LLM request usage will appear here.
-                                                        </div>
-
-                                                    </div>
-
-                                                </td>
-                                            </tr>
-
-                                        </tbody>
-
-                                    </table>
-
+                                <div class="text-2xs text-light-muted dark:text-dark-muted font-mono flex items-center gap-1">
+                                    <span>Avg.</span>
+                                    <strong id="wizAvgCost" class="text-light-text dark:text-dark-text tabular-nums">$0.00</strong>
+                                    <span>/ req</span>
                                 </div>
-
                             </div>
-
+                            <div class="overflow-x-auto max-h-[300px] overflow-y-auto">
+                                <table class="app-table w-full">
+                                    <thead>
+                                        <tr>
+                                            <th style="width: 45px;">#</th>
+                                            <th>Model</th>
+                                            <th class="text-right">Input</th>
+                                            <th class="text-right">Output</th>
+                                            <th class="text-right">Total</th>
+                                            <th class="text-right">Cost</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="wizBreakdownTableBody">
+                                        <tr>
+                                            <td colspan="6" class="text-center text-light-muted dark:text-dark-muted py-6 text-xs">
+                                                <i class="ri-inbox-line text-2xl opacity-40 block mb-1"></i>
+                                                No requests logged yet.
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
-
                     </div>
 
+                    <!-- Footer -->
+                    <div class="app-card-footer flex items-center justify-end px-4 py-3 border-t border-light-border dark:border-dark-border bg-light-surface dark:bg-dark-surface shrink-0">
+                        <button type="button" class="app-btn app-btn-secondary !h-7.5 !text-xs" data-bs-dismiss="modal">Close</button>
+                    </div>
                 </div>
             </div>
         </div>

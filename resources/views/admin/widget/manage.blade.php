@@ -146,21 +146,21 @@
                             Click any prompt below to automatically open the chat drawer in the live preview and test:
                         </p>
                         <div class="flex flex-wrap gap-1.5">
-                            <button type="button" class="app-btn app-btn-secondary !h-7 !px-2.5 text-2xs"
+                            <button type="button" class="app-btn app-btn-secondary !h-7 !px-2.5 text-2xs flex items-center"
                                 onclick="sendTestPrompt('apnara ki ki sale koren?')">
-                                🛍️ apnara ki ki sale koren?
+                                <i class="ri-shopping-bag-3-line text-brand-500 mr-1 text-xs"></i> apnara ki ki sale koren?
                             </button>
-                            <button type="button" class="app-btn app-btn-secondary !h-7 !px-2.5 text-2xs"
+                            <button type="button" class="app-btn app-btn-secondary !h-7 !px-2.5 text-2xs flex items-center"
                                 onclick="sendTestPrompt('do you have mobile phones?')">
-                                📱 do you have mobile phones?
+                                <i class="ri-smartphone-line text-sky-500 mr-1 text-xs"></i> do you have mobile phones?
                             </button>
-                            <button type="button" class="app-btn app-btn-secondary !h-7 !px-2.5 text-2xs"
+                            <button type="button" class="app-btn app-btn-secondary !h-7 !px-2.5 text-2xs flex items-center"
                                 onclick="sendTestPrompt('ডেলিভারি চার্জ এবং সময় কত?')">
-                                🚚 ডেলিভারি চার্জ কত?
+                                <i class="ri-truck-line text-emerald-500 mr-1 text-xs"></i> ডেলিভারি চার্জ কত?
                             </button>
-                            <button type="button" class="app-btn app-btn-secondary !h-7 !px-2.5 text-2xs"
+                            <button type="button" class="app-btn app-btn-secondary !h-7 !px-2.5 text-2xs flex items-center"
                                 onclick="sendTestPrompt('আপনাদের শোরুমের ঠিকানা কোথায়?')">
-                                📍 শোরুমের ঠিকানা কোথায়?
+                                <i class="ri-map-pin-line text-rose-500 mr-1 text-xs"></i> শোরুমের ঠিকানা কোথায়?
                             </button>
                         </div>
                     </div>
@@ -208,7 +208,7 @@
                 <div class="flex-1 bg-light-canvas dark:bg-dark-canvas flex justify-center items-center overflow-hidden p-2.5"
                     id="viewportContainer">
                     <div id="frameWrapper"
-                        class="w-full h-full rounded border border-light-border dark:border-dark-border overflow-hidden bg-white shadow-xs transition-all duration-200">
+                        class="w-full h-full rounded border border-light-border dark:border-dark-border overflow-hidden bg-light-surface dark:bg-dark-surface shadow-xs transition-all duration-200">
                         <iframe id="widgetPreviewFrame" src="{{ route('widget.demo') }}"
                             class="w-full h-full border-0 transition-all duration-200"></iframe>
                     </div>

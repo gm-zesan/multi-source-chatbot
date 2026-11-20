@@ -44,7 +44,7 @@
             <div class="flex items-start justify-between">
                 <div>
                     <div class="text-2xs font-semibold uppercase tracking-wider text-light-muted dark:text-dark-muted">Net Revenue</div>
-                    <div class="text-xl font-bold tracking-tight text-brand-500 mt-0.5" id="kpiNetSales">
+                    <div class="text-xl font-bold tracking-tight text-brand-500 mt-0.5 tabular-nums" id="kpiNetSales">
                         {{ $initialData['currency'] }} {{ number_format($initialData['summary']['net_sales'], 2) }}
                     </div>
                 </div>
@@ -68,7 +68,7 @@
             <div class="flex items-start justify-between">
                 <div>
                     <div class="text-2xs font-semibold uppercase tracking-wider text-light-muted dark:text-dark-muted">Completed Orders</div>
-                    <div class="text-xl font-bold tracking-tight text-emerald-500 mt-0.5" id="kpiTotalOrders">
+                    <div class="text-xl font-bold tracking-tight text-emerald-500 mt-0.5 tabular-nums" id="kpiTotalOrders">
                         {{ number_format($initialData['summary']['total_orders']) }}
                     </div>
                 </div>
@@ -87,7 +87,7 @@
             <div class="flex items-start justify-between">
                 <div>
                     <div class="text-2xs font-semibold uppercase tracking-wider text-light-muted dark:text-dark-muted">Discounts Applied</div>
-                    <div class="text-xl font-bold tracking-tight text-amber-500 mt-0.5" id="kpiDiscounts">
+                    <div class="text-xl font-bold tracking-tight text-amber-500 mt-0.5 tabular-nums" id="kpiDiscounts">
                         {{ $initialData['currency'] }} {{ number_format($initialData['summary']['total_discount'], 2) }}
                     </div>
                 </div>
@@ -106,7 +106,7 @@
             <div class="flex items-start justify-between">
                 <div>
                     <div class="text-2xs font-semibold uppercase tracking-wider text-light-muted dark:text-dark-muted">Customer Base</div>
-                    <div class="text-xl font-bold tracking-tight text-sky-500 mt-0.5" id="kpiCustomers">
+                    <div class="text-xl font-bold tracking-tight text-sky-500 mt-0.5 tabular-nums" id="kpiCustomers">
                         {{ number_format($initialData['customers']['total']) }}
                     </div>
                 </div>
@@ -462,8 +462,31 @@
                 fontSize: '11px'
             },
             tooltip: {
-                theme: isDarkMode() ? 'dark' : 'light',
-                shared: true
+                custom: function({ series, seriesIndex, dataPointIndex, w }) {
+                    const rawDate = dates[dataPointIndex] || '';
+                    const rev = series[0] && series[0][dataPointIndex] !== undefined ? series[0][dataPointIndex] : 0;
+                    const ord = series[1] && series[1][dataPointIndex] !== undefined ? series[1][dataPointIndex] : 0;
+                    const isDark = isDarkMode();
+                    
+                    return `
+                    <div style="background: ${isDark ? '#0F172A' : '#FFFFFF'}; border: 1px solid ${isDark ? '#1E293B' : '#E2E8F0'}; border-radius: 8px; padding: 10px 12px; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.3); font-family: Inter, sans-serif; min-width: 180px;">
+                        <div style="font-size: 11px; font-weight: 600; color: ${isDark ? '#94A3B8' : '#64748B'}; margin-bottom: 6px; padding-bottom: 4px; border-bottom: 1px solid ${isDark ? '#1E293B' : '#F1F5F9'};">
+                            ${rawDate}
+                        </div>
+                        <div style="display: flex; align-items: center; justify-content: space-between; font-size: 11px; margin-bottom: 4px;">
+                            <span style="display: flex; align-items: center; gap: 5px; color: ${isDark ? '#F8FAFC' : '#020617'};">
+                                <span style="width: 7px; height: 7px; border-radius: 50%; background: #0284C7; display: inline-block;"></span> Net Sales
+                            </span>
+                            <strong style="color: #0284C7; font-variant-numeric: tabular-nums;">${currency} ${Number(rev).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>
+                        </div>
+                        <div style="display: flex; align-items: center; justify-content: space-between; font-size: 11px;">
+                            <span style="display: flex; align-items: center; gap: 5px; color: ${isDark ? '#F8FAFC' : '#020617'};">
+                                <span style="width: 7px; height: 7px; border-radius: 50%; background: #10B981; display: inline-block;"></span> Orders
+                            </span>
+                            <strong style="color: #10B981; font-variant-numeric: tabular-nums;">${Math.round(ord).toLocaleString()}</strong>
+                        </div>
+                    </div>`;
+                }
             }
         };
 

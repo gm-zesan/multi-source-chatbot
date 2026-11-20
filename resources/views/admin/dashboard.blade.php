@@ -18,7 +18,7 @@
                 </span>
             </div>
             <h1 class="text-base sm:text-lg font-bold text-light-text dark:text-dark-text">
-                Welcome back, {{ Auth::user()->name }}! 👋
+                Welcome back, {{ Auth::user()->name }}!
             </h1>
             <p class="text-xs text-light-text-secondary dark:text-dark-text-secondary">
                 Real-time omnichannel customer support volume, AI automation efficiency, and commerce telemetry.
@@ -49,7 +49,7 @@
                     <div class="text-2xs font-semibold uppercase tracking-wider text-light-muted dark:text-dark-muted">
                         Total Conversations
                     </div>
-                    <div class="text-xl font-bold tracking-tight text-light-text dark:text-dark-text mt-0.5">
+                    <div class="text-xl font-bold tracking-tight text-light-text dark:text-dark-text mt-0.5 tabular-nums">
                         {{ number_format($metrics['overview']['conversations']['total']) }}
                     </div>
                 </div>
@@ -76,7 +76,7 @@
                     <div class="text-2xs font-semibold uppercase tracking-wider text-light-muted dark:text-dark-muted">
                         AI Resolution Rate
                     </div>
-                    <div class="text-xl font-bold tracking-tight text-emerald-500 mt-0.5">
+                    <div class="text-xl font-bold tracking-tight text-emerald-500 mt-0.5 tabular-nums">
                         {{ $metrics['overview']['ai_resolution']['rate'] }}%
                     </div>
                 </div>
@@ -103,7 +103,7 @@
                     <div class="text-2xs font-semibold uppercase tracking-wider text-light-muted dark:text-dark-muted">
                         Commerce Revenue
                     </div>
-                    <div class="text-xl font-bold tracking-tight text-sky-500 mt-0.5">
+                    <div class="text-xl font-bold tracking-tight text-sky-500 mt-0.5 tabular-nums">
                         {{ $metrics['overview']['currency'] }} {{ number_format($metrics['overview']['revenue']['total'], 2) }}
                     </div>
                 </div>
@@ -130,7 +130,7 @@
                     <div class="text-2xs font-semibold uppercase tracking-wider text-light-muted dark:text-dark-muted">
                         Pending Queue
                     </div>
-                    <div class="text-xl font-bold tracking-tight text-amber-500 mt-0.5">
+                    <div class="text-xl font-bold tracking-tight text-amber-500 mt-0.5 tabular-nums">
                         {{ $metrics['overview']['pending']['total_actionable'] }}
                     </div>
                 </div>
@@ -185,19 +185,19 @@
                 <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-3 mt-1 border-t border-light-border dark:border-dark-border text-2xs">
                     <div class="p-2 rounded bg-light-canvas dark:bg-dark-canvas border border-light-border dark:border-dark-border">
                         <div class="text-light-muted dark:text-dark-muted">Total Inbound</div>
-                        <div class="text-sm font-bold text-brand-500 mt-0.5" id="statTotalInbound">{{ number_format($metrics['activity']['totals']['inbound']) }}</div>
+                        <div class="text-sm font-bold text-brand-500 mt-0.5 tabular-nums" id="statTotalInbound">{{ number_format($metrics['activity']['totals']['inbound']) }}</div>
                     </div>
                     <div class="p-2 rounded bg-light-canvas dark:bg-dark-canvas border border-light-border dark:border-dark-border">
                         <div class="text-light-muted dark:text-dark-muted">AI Responses</div>
-                        <div class="text-sm font-bold text-emerald-500 mt-0.5" id="statTotalAi">{{ number_format($metrics['activity']['totals']['ai_replies']) }}</div>
+                        <div class="text-sm font-bold text-emerald-500 mt-0.5 tabular-nums" id="statTotalAi">{{ number_format($metrics['activity']['totals']['ai_replies']) }}</div>
                     </div>
                     <div class="p-2 rounded bg-light-canvas dark:bg-dark-canvas border border-light-border dark:border-dark-border">
                         <div class="text-light-muted dark:text-dark-muted">Human Agent</div>
-                        <div class="text-sm font-bold text-amber-500 mt-0.5" id="statTotalHuman">{{ number_format($metrics['activity']['totals']['human_replies']) }}</div>
+                        <div class="text-sm font-bold text-amber-500 mt-0.5 tabular-nums" id="statTotalHuman">{{ number_format($metrics['activity']['totals']['human_replies']) }}</div>
                     </div>
                     <div class="p-2 rounded bg-light-canvas dark:bg-dark-canvas border border-light-border dark:border-dark-border">
                         <div class="text-light-muted dark:text-dark-muted">Unanswered</div>
-                        <div class="text-sm font-bold text-red-500 mt-0.5" id="statTotalUnanswered">{{ number_format($metrics['activity']['totals']['unanswered']) }}</div>
+                        <div class="text-sm font-bold text-red-500 mt-0.5 tabular-nums" id="statTotalUnanswered">{{ number_format($metrics['activity']['totals']['unanswered']) }}</div>
                     </div>
                 </div>
             </div>
@@ -473,8 +473,38 @@
                     fontSize: '11px'
                 },
                 tooltip: {
-                    theme: isDarkMode() ? 'dark' : 'light',
-                    y: { formatter: val => val + ' messages' }
+                    custom: function({ series, seriesIndex, dataPointIndex, w }) {
+                        const date = w.globals.categoryLabels[dataPointIndex] || (data.dates ? data.dates[dataPointIndex] : '');
+                        const inbound = series[0] && series[0][dataPointIndex] !== undefined ? series[0][dataPointIndex] : 0;
+                        const ai = series[1] && series[1][dataPointIndex] !== undefined ? series[1][dataPointIndex] : 0;
+                        const human = series[2] && series[2][dataPointIndex] !== undefined ? series[2][dataPointIndex] : 0;
+                        const isDark = isDarkMode();
+                        
+                        return `
+                        <div style="background: ${isDark ? '#0F172A' : '#FFFFFF'}; border: 1px solid ${isDark ? '#1E293B' : '#E2E8F0'}; border-radius: 8px; padding: 10px 12px; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.3); font-family: Inter, sans-serif; min-width: 175px;">
+                            <div style="font-size: 11px; font-weight: 600; color: ${isDark ? '#94A3B8' : '#64748B'}; margin-bottom: 6px; padding-bottom: 4px; border-bottom: 1px solid ${isDark ? '#1E293B' : '#F1F5F9'};">
+                                ${date}
+                            </div>
+                            <div style="display: flex; align-items: center; justify-content: space-between; font-size: 11px; margin-bottom: 3px;">
+                                <span style="display: flex; align-items: center; gap: 5px; color: ${isDark ? '#F8FAFC' : '#020617'};">
+                                    <span style="width: 7px; height: 7px; border-radius: 50%; background: #0EA5E9; display: inline-block;"></span> Inbound
+                                </span>
+                                <strong style="color: #0EA5E9; font-variant-numeric: tabular-nums;">${Number(inbound).toLocaleString()}</strong>
+                            </div>
+                            <div style="display: flex; align-items: center; justify-content: space-between; font-size: 11px; margin-bottom: 3px;">
+                                <span style="display: flex; align-items: center; gap: 5px; color: ${isDark ? '#F8FAFC' : '#020617'};">
+                                    <span style="width: 7px; height: 7px; border-radius: 50%; background: #10B981; display: inline-block;"></span> AI Automated
+                                </span>
+                                <strong style="color: #10B981; font-variant-numeric: tabular-nums;">${Number(ai).toLocaleString()}</strong>
+                            </div>
+                            <div style="display: flex; align-items: center; justify-content: space-between; font-size: 11px;">
+                                <span style="display: flex; align-items: center; gap: 5px; color: ${isDark ? '#F8FAFC' : '#020617'};">
+                                    <span style="width: 7px; height: 7px; border-radius: 50%; background: #F59E0B; display: inline-block;"></span> Human Support
+                                </span>
+                                <strong style="color: #F59E0B; font-variant-numeric: tabular-nums;">${Number(human).toLocaleString()}</strong>
+                            </div>
+                        </div>`;
+                    }
                 }
             };
 

@@ -111,11 +111,16 @@
                 </div>
             </div>
             <div class="app-card-body p-0">
-                <div class="overflow-x-auto p-4">
-                    <table class="w-full text-xs" id="faq-data-table">
+                <div class="overflow-x-auto p-3">
+                    <table class="app-table w-full" id="faq-data-table">
                         <thead>
                             <tr>
-                                <th style="width: 50px;">SL NO</th>
+                                <th style="width: 70px;">
+                                    <div class="flex items-center gap-2">
+                                        <input type="checkbox" class="app-checkbox app-select-all-checkbox" title="Select All">
+                                        <span>#</span>
+                                    </div>
+                                </th>
                                 <th>Question / Title</th>
                                 <th style="width: 140px;">Type</th>
                                 <th style="width: 70px;">Priority</th>
@@ -134,11 +139,11 @@
     @if ($canViewDocs)
     {{-- Section 2: Analytics Data Sources Table --}}
     <div id="doc-table-container" class="{{ in_array($activeTab, ['data_sources', 'documents']) ? '' : 'hidden' }}">
-        <div class="app-card table-card">
+        <div class="app-card table-card overflow-hidden">
             <div class="app-card-header flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                 <div>
-                    <h2 class="text-xs font-semibold text-text-primary uppercase tracking-wider">Analytics Data Sources</h2>
-                    <p class="text-2xs text-text-muted">Spreadsheets registered for automated multi-source SQL reporting</p>
+                    <h2 class="text-xs font-semibold text-light-text dark:text-dark-text uppercase tracking-wider">Analytics Data Sources</h2>
+                    <p class="text-2xs text-light-muted dark:text-dark-muted">Spreadsheets registered for automated multi-source SQL reporting</p>
                 </div>
                 <div class="flex items-center gap-2 flex-wrap">
                     @if (!empty($isSuperAdmin) && isset($workspaces) && count($workspaces) > 0)
@@ -159,11 +164,16 @@
                 </div>
             </div>
             <div class="app-card-body p-0">
-                <div class="overflow-x-auto p-4">
-                    <table class="w-full text-xs" id="doc-data-table">
+                <div class="overflow-x-auto p-3">
+                    <table class="app-table w-full" id="doc-data-table">
                         <thead>
                             <tr>
-                                <th style="width: 50px;">SL NO</th>
+                                <th style="width: 70px;">
+                                    <div class="flex items-center gap-2">
+                                        <input type="checkbox" class="app-checkbox app-select-all-checkbox" title="Select All">
+                                        <span>#</span>
+                                    </div>
+                                </th>
                                 <th>Title</th>
                                 <th>Original Filename</th>
                                 <th style="width: 80px;">Size</th>
@@ -182,10 +192,10 @@
     @endif
 </div>
         <!-- Document Preview & Metadata Details Modal -->
-        <div class="modal hidden fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto" id="documentDetailsModal" tabindex="-1" aria-labelledby="documentDetailsModalLabel" aria-hidden="true" style="display: none;">
+        <div class="modal hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-xs overflow-y-auto" id="documentDetailsModal" tabindex="-1" aria-labelledby="documentDetailsModalLabel" aria-hidden="true" style="display: none;">
             <div class="modal-dialog w-full max-w-5xl app-card shadow-modal overflow-hidden transition-all duration-200 my-auto">
                 <div class="modal-content border-0 bg-transparent flex flex-col max-h-[90vh]">
-                    <div class="app-card-header flex items-center justify-between">
+                    <div class="app-card-header flex items-center justify-between border-b border-light-border dark:border-dark-border px-4 py-3 bg-light-surface dark:bg-dark-surface">
                         <div class="flex items-center gap-2">
                             <i id="modalFileIcon" class="ri-file-search-line text-brand-500 text-lg"></i>
                             <div>
@@ -200,7 +210,7 @@
                             <i class="ri-close-line"></i>
                         </button>
                     </div>
-                    <div class="modal-body p-3">
+                    <div class="modal-body p-4 bg-light-surface dark:bg-dark-surface overflow-y-auto">
                         <!-- Nav Tabs: Preview vs Schema & Metadata -->
                         <ul class="nav nav-tabs nav-tabs-bordered mb-3" id="docModalTabs" role="tablist">
                             <li class="nav-item" role="presentation">
@@ -264,11 +274,11 @@
                                         style="font-size: 12px; background-color: #f8fafc;">
                                         <!-- Dynamic sheet info -->
                                     </div>
-                                    <div class="table-responsive border rounded bg-white shadow-sm"
+                                    <div class="overflow-x-auto border border-light-border dark:border-dark-border rounded-md bg-light-surface dark:bg-dark-surface"
                                         style="max-height: 480px; overflow-y: auto;">
-                                        <table class="table table-sm table-striped table-hover mb-0 text-nowrap"
-                                            id="previewTable" style="font-size: 12.5px;">
-                                            <thead class="table-light sticky-top border-bottom" id="previewTableThead"
+                                        <table class="app-table w-full text-nowrap"
+                                            id="previewTable">
+                                            <thead class="sticky-top" id="previewTableThead"
                                                 style="z-index: 2;"></thead>
                                             <tbody id="previewTableTbody"></tbody>
                                         </table>
@@ -387,10 +397,10 @@
         </div>
 
         <!-- Spreadsheet Column Mapping Confirmation Modal (Phase 2) -->
-        <div class="modal hidden fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto" id="spreadsheetMappingModal" tabindex="-1" aria-labelledby="spreadsheetMappingModalLabel" aria-hidden="true" data-bs-backdrop="static" style="display: none;">
+        <div class="modal hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-xs overflow-y-auto" id="spreadsheetMappingModal" tabindex="-1" aria-labelledby="spreadsheetMappingModalLabel" aria-hidden="true" data-bs-backdrop="static" style="display: none;">
             <div class="modal-dialog w-full max-w-5xl app-card shadow-modal overflow-hidden transition-all duration-200 my-auto">
                 <div class="modal-content border-0 bg-transparent flex flex-col max-h-[90vh]">
-                    <div class="app-card-header flex items-center justify-between">
+                    <div class="app-card-header flex items-center justify-between border-b border-light-border dark:border-dark-border px-4 py-3 bg-light-surface dark:bg-dark-surface">
                         <div class="flex items-center gap-2">
                             <i class="ri-table-line text-amber-500 text-lg"></i>
                             <div>
@@ -402,7 +412,7 @@
                             <i class="ri-close-line"></i>
                         </button>
                     </div>
-                    <div class="modal-body p-4">
+                    <div class="modal-body p-4 bg-light-surface dark:bg-dark-surface overflow-y-auto">
                         <div id="mappingModalLoader" class="text-center py-5">
                             <div class="spinner-border text-primary" role="status"></div>
                             <div class="text-muted small mt-2">Inspecting spreadsheet structure...</div>
@@ -453,12 +463,12 @@
                             </div>
 
                             <!-- Column Mapping Table -->
-                            <h6 class="fw-bold text-dark mb-2 d-flex align-items-center justify-content-between">
-                                <span><i class="ri-layout-column-line me-1 text-primary"></i>Column Categorization & Projections</span>
-                                <span class="badge bg-light text-dark border small" id="mappingColumnCountBadge">0 columns</span>
+                            <h6 class="font-semibold text-xs text-light-text dark:text-dark-text mb-2 flex items-center justify-between">
+                                <span class="flex items-center gap-1.5"><i class="ri-layout-column-line text-brand-500"></i>Column Categorization & Projections</span>
+                                <span class="app-badge app-badge-secondary !text-2xs font-mono" id="mappingColumnCountBadge">0 columns</span>
                             </h6>
-                            <div class="table-responsive border rounded mb-3" style="max-height: 380px;">
-                                <table class="table table-sm table-hover align-middle mb-0" id="mappingColumnsTable">
+                            <div class="overflow-x-auto border border-light-border dark:border-dark-border rounded-md mb-3" style="max-height: 380px;">
+                                <table class="app-table w-full align-middle mb-0" id="mappingColumnsTable">
                                     <thead class="table-light sticky-top">
                                         <tr>
                                             <th style="width: 25%;">Spreadsheet Column</th>
@@ -524,6 +534,20 @@
                     reloadDocTable();
                 }
             }
+
+            window.selectFaqStatusFacet = function(el, status) {
+                document.querySelectorAll('[data-faq-chip]').forEach(function(c) { c.classList.remove('active'); });
+                if (el) el.classList.add('active');
+                $('#faq-status-filter').val(status);
+                reloadFaqTable();
+            };
+
+            window.selectDocStatusFacet = function(el, status) {
+                document.querySelectorAll('[data-doc-chip]').forEach(function(c) { c.classList.remove('active'); });
+                if (el) el.classList.add('active');
+                $('#doc-status-filter').val(status);
+                reloadDocTable();
+            };
 
             function reloadFaqTable() {
                 if (faqDataTable) {
@@ -658,7 +682,19 @@
                         }
                     },
                     columns: [
-                        { data: 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false },
+                        {
+                            data: 'DT_RowIndex',
+                            name: 'DT_RowIndex',
+                            orderable: false,
+                            searchable: false,
+                            render: function(data, type, row) {
+                                var id = (row && row['action-btn'] && row['action-btn'].id) ? row['action-btn'].id : data;
+                                return `<div class="flex items-center gap-2">
+                                    <input type="checkbox" class="app-checkbox app-row-checkbox" data-id="${id}" value="${id}">
+                                    <span class="text-2xs text-light-muted dark:text-dark-muted font-mono">${data}</span>
+                                </div>`;
+                            }
+                        },
                         {
                             data: 'question',
                             name: 'question',
@@ -684,13 +720,13 @@
                                 var resyncBtn = '';
                                 if (!trashed && hasFailed) {
                                     resyncBtn = `
-                                            <button onclick="triggerResync('${id}')" class="btn btn-sm btn-outline-warning me-1" title="Retry Sync (${error || 'Failed'})">
-                                                <i class="ri-refresh-line"></i> Retry
+                                            <button onclick="triggerResync('${id}')" class="app-action-btn bg-amber-500/15 text-amber-500 hover:bg-amber-500 hover:text-white" title="Retry Sync (${error || 'Failed'})">
+                                                <i class="ri-refresh-line"></i>
                                             </button>
                                         `;
                                 } else if (!trashed) {
                                     resyncBtn = `
-                                            <button onclick="triggerResync('${id}')" class="btn btn-sm btn-outline-info me-1" title="Re-sync Vector Index">
+                                            <button onclick="triggerResync('${id}')" class="app-action-btn bg-brand-500/15 text-brand-500 hover:bg-brand-500 hover:text-white" title="Re-sync Vector Index">
                                                 <i class="ri-refresh-line"></i>
                                             </button>
                                         `;
@@ -698,11 +734,11 @@
 
                                 if (trashed) {
                                     return `
-                                            <div class="d-flex align-items-center">
+                                            <div class="flex items-center justify-end gap-1.5">
                                                 <form action="${SITEURL}/dashboard/faqs/${id}/restore" method="POST" style="display:inline-block;">
                                                     @csrf
-                                                    <button type="submit" class="btn btn-sm btn-outline-success me-1" title="Restore FAQ">
-                                                        <i class="ri-refresh-line"></i> Restore
+                                                    <button type="submit" class="app-action-btn bg-emerald-500/15 text-emerald-500 hover:bg-emerald-500 hover:text-white" title="Restore FAQ">
+                                                        <i class="ri-refresh-line"></i>
                                                     </button>
                                                 </form>
                                             </div>
@@ -710,16 +746,16 @@
                                 }
 
                                 return `
-                                        <div class="d-flex align-items-center">
+                                        <div class="flex items-center justify-end gap-1.5">
                                             ${resyncBtn}
-                                            <a href="${SITEURL}/dashboard/faqs/${id}/edit" class="btn btn-sm btn-outline-primary me-1" title="Edit">
-                                                <i class="ri-pencil-line"></i>
+                                            <a href="${SITEURL}/dashboard/faqs/${id}/edit" class="app-action-btn bg-sky-500/15 text-sky-500 hover:bg-sky-500 hover:text-white" title="Edit">
+                                                <i class="ri-edit-line"></i>
                                             </a>
                                             <form action="${SITEURL}/dashboard/faqs/${id}" method="POST" onsubmit="return confirm('Are you sure you want to delete this FAQ?');" style="display:inline-block;">
                                                 @csrf
                                                 @method('DELETE')
-                                                <button type="submit" class="btn btn-sm btn-outline-danger" title="Delete">
-                                                    <i class="ri-delete-bin-line"></i>
+                                                <button type="submit" class="app-action-btn bg-red-500/15 text-red-500 hover:bg-red-500 hover:text-white" title="Delete">
+                                                    <i class="ri-delete-bin-2-line"></i>
                                                 </button>
                                             </form>
                                         </div>
@@ -748,7 +784,19 @@
                         }
                     },
                     columns: [
-                        { data: 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false },
+                        {
+                            data: 'DT_RowIndex',
+                            name: 'DT_RowIndex',
+                            orderable: false,
+                            searchable: false,
+                            render: function(data, type, row) {
+                                var id = (row && row['action-btn'] && row['action-btn'].id) ? row['action-btn'].id : data;
+                                return `<div class="flex items-center gap-2">
+                                    <input type="checkbox" class="app-checkbox app-row-checkbox" data-id="${id}" value="${id}">
+                                    <span class="text-2xs text-light-muted dark:text-dark-muted font-mono">${data}</span>
+                                </div>`;
+                            }
+                        },
                         {
                             data: 'title',
                             name: 'title',
@@ -783,41 +831,41 @@
 
                                 if (data.trashed) {
                                     return `
-                                            <div class="d-flex align-items-center">
+                                            <div class="flex items-center justify-end gap-1.5">
                                                 <form action="${SITEURL}/dashboard/documents/${id}/restore" method="POST" style="display:inline-block;">
                                                     @csrf
-                                                    <button type="submit" class="btn btn-sm btn-outline-success" title="Restore Document">
-                                                        <i class="ri-refresh-line"></i> Restore
+                                                    <button type="submit" class="app-action-btn bg-emerald-500/15 text-emerald-500 hover:bg-emerald-500 hover:text-white" title="Restore Document">
+                                                        <i class="ri-refresh-line"></i>
                                                     </button>
                                                 </form>
                                             </div>
                                         `;
                                 }
 
-                                var btns = '<div class="action-btn d-flex align-items-center gap-1">';
+                                var btns = '<div class="flex items-center justify-end gap-1.5">';
 
                                 // 1. Details & Interactive Preview Modal Button
-                                btns += `<button type="button" class="btn btn-sm btn-outline-info btn-view-doc me-1" data-id="${id}" title="View Document & Data"><i class="ri-eye-line"></i></button>`;
+                                btns += `<button type="button" class="app-action-btn bg-brand-500/15 text-brand-500 hover:bg-brand-500 hover:text-white btn-view-doc" data-id="${id}" title="View Document & Data"><i class="ri-eye-line"></i></button>`;
 
                                 // 2. Ask in Simulator shortcut (when active)
                                 if (data.is_active) {
                                     var targetId = data.source_id || data.id;
-                                    btns += `<a href="${SITEURL}/dashboard/simulator?file_id=${encodeURIComponent(targetId)}" class="btn btn-sm btn-primary text-white me-1" title="Ask Questions in Simulator" style="padding: 2px 8px; font-size: 12px;"><i class="ri-chat-smile-2-line"></i></a>`;
+                                    btns += `<a href="${SITEURL}/dashboard/simulator?file_id=${encodeURIComponent(targetId)}" class="app-action-btn bg-emerald-500/15 text-emerald-500 hover:bg-emerald-500 hover:text-white" title="Ask Questions in Simulator"><i class="ri-chat-smile-2-line"></i></a>`;
                                 }
 
                                 // 2.5 Review & Confirm Mapping (for spreadsheets requiring owner mapping)
                                 if (data.requires_mapping && data.can_update) {
-                                    btns += `<button type="button" class="btn btn-sm btn-warning text-dark me-1 btn-review-mapping" data-id="${id}" title="Review & Confirm Column Mapping"><i class="ri-table-line me-1"></i>Confirm</button>`;
+                                    btns += `<button type="button" class="app-action-btn bg-amber-500/15 text-amber-500 hover:bg-amber-500 hover:text-white btn-review-mapping" data-id="${id}" title="Review & Confirm Column Mapping"><i class="ri-table-line"></i></button>`;
                                 }
 
                                 // 3. Retry / Ingest Button (for pending or failed documents)
                                 if ((data.has_failed || data.is_pending) && data.can_update) {
                                     var btnTitle = data.is_pending ? 'Ingest & Activate Now' : 'Retry Ingestion';
-                                    var btnClass = data.is_pending ? 'btn-primary' : 'btn-warning';
+                                    var btnClass = data.is_pending ? 'bg-brand-500/15 text-brand-500 hover:bg-brand-500' : 'bg-amber-500/15 text-amber-500 hover:bg-amber-500';
                                     var btnIcon = data.is_pending ? 'ri-play-circle-line' : 'ri-refresh-line';
-                                    btns += `<form action="${SITEURL}/dashboard/documents/${id}/retry" method="POST" style="display:inline-block;" class="me-1">
+                                    btns += `<form action="${SITEURL}/dashboard/documents/${id}/retry" method="POST" style="display:inline-block;">
                                                 @csrf
-                                                <button type="submit" class="btn btn-sm btn-outline-${btnClass}" title="${btnTitle}">
+                                                <button type="submit" class="app-action-btn ${btnClass} hover:text-white" title="${btnTitle}">
                                                     <i class="${btnIcon}"></i>
                                                 </button>
                                             </form>`;
@@ -828,8 +876,8 @@
                                     btns += `<form action="${SITEURL}/dashboard/documents/${id}" method="POST" onsubmit="return confirm('Are you sure you want to delete this document?');" style="display:inline-block;">
                                                 @csrf
                                                 @method('DELETE')
-                                                <button type="submit" class="btn btn-sm btn-outline-danger" title="Delete">
-                                                    <i class="ri-delete-bin-line"></i>
+                                                <button type="submit" class="app-action-btn bg-red-500/15 text-red-500 hover:bg-red-500 hover:text-white" title="Delete">
+                                                    <i class="ri-delete-bin-2-line"></i>
                                                 </button>
                                             </form>`;
                                 }

@@ -20,19 +20,25 @@
     </div>
 
     {{-- Table Card --}}
-    <div class="app-card">
+    <div class="app-card overflow-hidden">
         <div class="app-card-header">
             <div>
-                <h2 class="text-xs font-semibold text-text-primary uppercase tracking-wider">Inbound Customer Inquiries</h2>
-                <p class="text-2xs text-text-muted">Messages received through public website contact forms</p>
+                <h2 class="text-xs font-semibold text-light-text dark:text-dark-text uppercase tracking-wider">Inbound Customer Inquiries</h2>
+                <p class="text-2xs text-light-muted dark:text-dark-muted">Messages received through public website contact forms</p>
             </div>
         </div>
+
         <div class="app-card-body p-0">
-            <div class="overflow-x-auto p-4">
-                <table class="w-full text-xs" id="data-table">
+            <div class="overflow-x-auto p-3">
+                <table class="app-table w-full" id="data-table">
                     <thead>
                         <tr>
-                            <th style="width: 60px;">SL NO</th>
+                            <th style="width: 70px;">
+                                <div class="flex items-center gap-2">
+                                    <input type="checkbox" class="app-checkbox app-select-all-checkbox" title="Select All">
+                                    <span>#</span>
+                                </div>
+                            </th>
                             <th>Name</th>
                             <th>Email</th>
                             <th>Phone</th>
@@ -52,15 +58,15 @@
 
 <!-- Message Read Modal -->
 <div class="fixed inset-0 z-50 hidden bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-4 modal" id="readMessage" tabindex="-1">
-    <div class="app-card w-full max-w-lg shadow-2xl modal-dialog">
-        <div class="app-card-header">
-            <h3 class="text-xs font-semibold text-text-primary tracking-tight truncate" id="readMessageLabel">Message Details</h3>
-            <button type="button" class="app-action-btn" data-bs-dismiss="modal" aria-label="Close">
-                <i class="ri-close-line text-sm"></i>
+    <div class="app-card w-full max-w-lg shadow-modal modal-dialog overflow-hidden">
+        <div class="app-card-header flex items-center justify-between">
+            <h3 class="text-xs font-semibold text-light-text dark:text-dark-text tracking-tight truncate" id="readMessageLabel">Message Details</h3>
+            <button type="button" class="text-light-muted dark:text-dark-muted hover:text-light-text dark:hover:text-dark-text" data-bs-dismiss="modal" aria-label="Close">
+                <i class="ri-close-line text-base"></i>
             </button>
         </div>
         <div class="app-card-body max-h-[60vh] overflow-y-auto">
-            <div class="text-xs text-text-secondary leading-relaxed whitespace-pre-wrap modal-body" id="readMessageBody">
+            <div class="text-xs text-light-text-secondary dark:text-dark-text-secondary leading-relaxed whitespace-pre-wrap modal-body" id="readMessageBody">
             </div>
         </div>
         <div class="app-card-footer flex justify-end">
@@ -77,9 +83,20 @@
         var listUrl = SITEURL + '/dashboard/message';
         var readStatusUrl = SITEURL + '/dashboard/message/read';
         var importantStatusUrl = SITEURL + '/dashboard/message/important';
+        var table;
+
+        function filterMessagesByStatus(el, status) {
+            document.querySelectorAll('[data-msg-chip]').forEach(function(chip) {
+                chip.classList.remove('active');
+            });
+            if (el) el.classList.add('active');
+            if (table) {
+                table.column(6).search(status || '').draw();
+            }
+        }
 
         $(document).ready(function() {
-            var table = $('#data-table').DataTable({
+            table = $('#data-table').DataTable({
                 processing: true,
                 responsive: true,
                 serverSide: true,
@@ -90,7 +107,19 @@
                     type: 'GET'
                 },
                 columns: [
-                    { data: 'id', name: 'id', orderable: true },
+                    { 
+                        data: 'id', 
+                        name: 'id', 
+                        orderable: false,
+                        searchable: false,
+                        width: '70px',
+                        render: function(data) {
+                            return `<div class="flex items-center gap-2">
+                                <input type="checkbox" class="app-checkbox app-row-checkbox" data-id="${data}" value="${data}">
+                                <span class="text-2xs text-light-muted dark:text-dark-muted font-mono tabular-nums">${data}</span>
+                            </div>`;
+                        }
+                    },
                     { data: 'name', name: 'name', orderable: true },
                     { data: 'email', name: 'email', orderable: true },
                     { data: 'phone', name: 'phone', orderable: true },
@@ -126,10 +155,10 @@
                         render: function(data) {
                             return `
                                 <div class="flex items-center justify-end gap-1.5">
-                                    <button type="button" class="app-action-btn hover:text-brand-primary" onclick="modalRead(this, '${escapeHtml(data.message)}')" id="${data.id}" title="Read Message">
+                                    <button type="button" class="app-action-btn bg-brand-500/15 text-brand-500 hover:bg-brand-500 hover:text-white" onclick="modalRead(this, '${escapeHtml(data.message)}')" id="${data.id}" title="Read Message">
                                         <i class="ri-book-read-line"></i>
                                     </button>
-                                    <a href="message/delete/${data.id}" class="app-action-btn text-rose-500 hover:text-rose-400 hover:border-rose-500/30" title="Delete Message" onclick="return confirm('Delete this message?')">
+                                    <a href="message/delete/${data.id}" class="app-action-btn bg-red-500/15 text-red-500 hover:bg-red-500 hover:text-white" title="Delete Message" onclick="return confirm('Delete this message?')">
                                         <i class="ri-delete-bin-2-line"></i>
                                     </a>
                                 </div>`;

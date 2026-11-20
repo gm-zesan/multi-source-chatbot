@@ -34,7 +34,12 @@
             <table class="app-table w-full" id="data-table">
                 <thead>
                     <tr>
-                        <th style="width: 12%;">SL NO</th>
+                        <th style="width: 80px;">
+                            <div class="flex items-center gap-2">
+                                <input type="checkbox" class="app-checkbox app-select-all-checkbox" title="Select All">
+                                <span>#</span>
+                            </div>
+                        </th>
                         <th style="width: 68%;">Role Name</th>
                         <th style="width: 20%; text-align: right;">Action</th>
                     </tr>
@@ -70,8 +75,15 @@
                     {
                         data: 'id',
                         name: 'id',
-                        orderable: true,
-                        width: '12%'
+                        orderable: false,
+                        searchable: false,
+                        width: '70px',
+                        render: function(data) {
+                            return `<div class="flex items-center gap-2">
+                                <input type="checkbox" class="app-checkbox app-row-checkbox" data-id="${data}" value="${data}">
+                                <span class="text-2xs text-light-muted dark:text-dark-muted font-mono tabular-nums">${data}</span>
+                            </div>`;
+                        }
                     },
                     {
                         data: 'name',
@@ -102,7 +114,7 @@
                     }
                 ],
                 order: [
-                    [0, 'asc']
+                    [1, 'asc']
                 ]
             });
         });

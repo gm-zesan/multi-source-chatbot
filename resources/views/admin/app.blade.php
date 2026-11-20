@@ -48,6 +48,18 @@
         </div>
     </div>
 
+    {{-- Floating Command Palette (⌘K Spotlight Modal) --}}
+    @include('admin.partials.command-palette')
+
+    {{-- Keyboard Shortcuts Cheat Sheet Modal (?) --}}
+    @include('admin.partials.shortcuts-modal')
+
+    {{-- Floating Toast Notification System (Sonner-style) --}}
+    @include('admin.partials.toasts')
+
+    {{-- Floating Bulk Action Bar --}}
+    @include('admin.partials.bulk-action-bar')
+
     @include('admin.partials.scripts')
     @stack('custom-scripts')
 </body>
