@@ -4,432 +4,319 @@
     Web Chat Widget Studio
 @endsection
 
-@push('custom-style')
-<style>
-    .studio-hero-card {
-        background: linear-gradient(135deg, #eff6ff 0%, #ffffff 50%, #f0fdf4 100%);
-        border: 1px solid #dbeafe;
-        border-radius: 14px;
-        padding: 1.5rem 1.75rem;
-    }
-    .studio-card {
-        border-radius: 12px;
-        border: 1px solid #e2e8f0;
-        background: #ffffff;
-        box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.04);
-        transition: box-shadow 0.2s ease, border-color 0.2s ease;
-    }
-    .studio-card:hover {
-        border-color: #cbd5e1;
-        box-shadow: 0 6px 16px -2px rgba(0, 0, 0, 0.06);
-    }
-    .code-editor-box {
-        background: #0f172a;
-        border-radius: 10px;
-        padding: 1.15rem;
-        position: relative;
-        border: 1px solid #1e293b;
-    }
-    .code-tab-btn {
-        padding: 6px 14px;
-        font-size: 0.8rem;
-        font-weight: 600;
-        border-radius: 6px;
-        border: none;
-        background: transparent;
-        color: #64748b;
-        transition: all 0.15s ease;
-    }
-    .code-tab-btn.active {
-        background: #eff6ff;
-        color: #2563eb;
-    }
-    .quick-test-chip {
-        font-size: 0.82rem;
-        font-weight: 500;
-        border-radius: 8px;
-        border: 1px solid #e2e8f0;
-        background: #ffffff;
-        color: #334155;
-        padding: 8px 14px;
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        cursor: pointer;
-        transition: all 0.15s ease;
-        text-align: left;
-    }
-    .quick-test-chip:hover {
-        background: #eff6ff;
-        border-color: #93c5fd;
-        color: #1d4ed8;
-        transform: translateY(-1px);
-        box-shadow: 0 2px 6px rgba(37, 99, 235, 0.1);
-    }
-    /* macOS Browser Frame Mockup */
-    .browser-frame-mockup {
-        border-radius: 12px;
-        border: 1px solid #cbd5e1;
-        background: #ffffff;
-        box-shadow: 0 12px 28px -4px rgba(0, 0, 0, 0.08), 0 4px 10px -2px rgba(0, 0, 0, 0.04);
-        overflow: hidden;
-        display: flex;
-        flex-direction: column;
-    }
-    .browser-titlebar {
-        background: #f1f5f9;
-        border-bottom: 1px solid #e2e8f0;
-        padding: 10px 16px;
-        display: flex;
-        align-items: center;
-        gap: 12px;
-    }
-    .browser-dots {
-        display: flex;
-        gap: 6px;
-    }
-    .browser-dot {
-        width: 11px;
-        height: 11px;
-        border-radius: 50%;
-    }
-    .browser-dot.red { background: #ff5f56; }
-    .browser-dot.yellow { background: #ffbd2e; }
-    .browser-dot.green { background: #27c93f; }
-    .browser-address-bar {
-        flex: 1;
-        background: #ffffff;
-        border: 1px solid #e2e8f0;
-        border-radius: 6px;
-        padding: 3px 12px;
-        font-size: 11px;
-        color: #475569;
-        display: flex;
-        align-items: center;
-        gap: 6px;
-        max-width: 380px;
-        margin: 0 auto;
-    }
-    .device-switcher-btn {
-        padding: 4px 8px;
-        font-size: 13px;
-        border-radius: 6px;
-        border: 1px solid transparent;
-        background: transparent;
-        color: #64748b;
-        cursor: pointer;
-    }
-    .device-switcher-btn.active {
-        background: #ffffff;
-        border-color: #cbd5e1;
-        color: #0f172a;
-        box-shadow: 0 1px 2px rgba(0,0,0,0.05);
-    }
-    .preview-viewport-container {
-        background: #e2e8f0;
-        display: flex;
-        justify-content: center;
-        padding: 0;
-        transition: all 0.3s ease;
-        overflow: hidden;
-    }
-    #widgetPreviewFrame {
-        width: 100%;
-        height: 640px;
-        border: none;
-        background: #ffffff;
-        transition: width 0.3s ease;
-    }
-    #widgetPreviewFrame.mobile-view {
-        width: 380px;
-        box-shadow: 0 0 20px rgba(0,0,0,0.15);
-    }
-</style>
-@endpush
-
 @section('content')
-<div class="container-fluid py-2">
-    {{-- Header Banner --}}
-    <div class="studio-hero-card mb-4 shadow-sm">
-        <div class="row align-items-center g-3">
-            <div class="col-lg-8 col-12">
-                <div class="d-flex align-items-center gap-2 mb-2">
-                    <span class="badge badge-soft-primary px-3 py-1.5 rounded-pill small fw-semibold">
-                        <i class="ri-code-box-line me-1"></i> Storefront Chat Studio
+    <div class="space-y-4">
+        {{-- Header Banner --}}
+        <div class="app-card p-3 sm:p-4 flex flex-col md:flex-row md:items-center justify-between gap-3">
+            <div class="space-y-1">
+                <div class="flex items-center gap-2">
+                    <span class="text-2xs text-light-muted dark:text-dark-muted flex items-center gap-1.5">
+                        <i class="ri-building-4-line text-brand-500"></i> Workspace: <strong
+                            class="text-light-text dark:text-dark-text">{{ $workspace->name ?? 'Default Workspace' }}</strong>
                     </span>
-                    <span class="badge badge-soft-success px-3 py-1.5 rounded-pill small fw-semibold">
-                        <i class="ri-checkbox-circle-fill me-1"></i> Driver Live
-                    </span>
-                    <span class="text-muted small">Workspace: <strong>{{ $workspace->name ?? 'Default Workspace' }}</strong></span>
                 </div>
-                <h4 class="fw-bold text-dark mb-1">
+                <h1 class="text-base sm:text-lg font-bold text-light-text dark:text-dark-text">
                     Storefront Web Chat Widget Studio
-                </h4>
-                <p class="text-muted small mb-0">
-                    Deploy your zero-latency, multi-lingual AI customer support assistant on any e-commerce storefront, WordPress site, or custom web application.
+                </h1>
+                <p class="text-xs text-light-text-secondary dark:text-dark-text-secondary">
+                    Deploy your zero-latency, multi-lingual AI customer support assistant on any e-commerce storefront,
+                    WordPress site, or custom web application.
                 </p>
             </div>
-            <div class="col-lg-4 col-12 text-lg-end d-flex gap-2 justify-content-lg-end">
-                <a href="{{ route('widget.demo') }}" target="_blank" class="btn btn-outline-primary btn-sm d-flex align-items-center gap-1 shadow-sm">
-                    <i class="ri-external-link-line"></i> Fullscreen Preview
+            <div class="flex items-center gap-2">
+                <a href="{{ route('widget.demo') }}" target="_blank" class="app-btn app-btn-secondary">
+                    <i class="ri-external-link-line text-xs"></i> Fullscreen
                 </a>
-                <button type="button" class="btn btn-primary btn-sm d-flex align-items-center gap-1 shadow-sm" onclick="reloadPreview()">
-                    <i class="ri-refresh-line"></i> Refresh Sandbox
+                <button type="button" class="app-btn app-btn-primary" onclick="reloadPreview()">
+                    <i class="ri-refresh-line text-xs"></i> Refresh
                 </button>
             </div>
         </div>
-    </div>
 
-    <div class="row g-4">
-        {{-- Left Column: Studio Controls & Integration Snippet --}}
-        <div class="col-xl-6 col-12">
-            {{-- Quick Embed Snippet Card --}}
-            <div class="card studio-card mb-4">
-                <div class="card-header bg-white border-bottom py-3 px-4 d-flex justify-content-between align-items-center">
-                    <div class="d-flex align-items-center gap-2">
-                        <div class="icon-box-primary" style="width: 34px; height: 34px; font-size: 1.15rem;">
-                            <i class="ri-code-s-slash-line"></i>
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            {{-- Left Column: Embed & Settings --}}
+            <div class="space-y-4">
+                {{-- Embed Code Card --}}
+                <div class="app-card overflow-hidden">
+                    <div class="app-card-header">
+                        <div class="flex items-center gap-2">
+                            <i class="ri-code-s-slash-line text-brand-500 text-sm"></i>
+                            <div>
+                                <h2 class="text-xs font-semibold text-light-text dark:text-dark-text">One-Line Embed Code
+                                </h2>
+                                <div class="text-2xs text-light-muted dark:text-dark-muted">Instant installation across all
+                                    storefront platforms</div>
+                            </div>
                         </div>
+                    </div>
+                    <div class="app-card-body space-y-3">
+                        {{-- Platform Tabs --}}
+                        <div
+                            class="flex items-center gap-1 border-b border-light-border dark:border-dark-border pb-2 overflow-x-auto">
+                            <button type="button"
+                                class="code-tab-btn px-2.5 py-1 rounded text-xs font-medium bg-brand-500/10 text-brand-500 font-semibold"
+                                onclick="switchSnippetTab('html', this)">HTML / JS</button>
+                            <button type="button"
+                                class="code-tab-btn px-2.5 py-1 rounded text-xs font-medium text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text dark:hover:text-dark-text"
+                                onclick="switchSnippetTab('wordpress', this)">WordPress</button>
+                            <button type="button"
+                                class="code-tab-btn px-2.5 py-1 rounded text-xs font-medium text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text dark:hover:text-dark-text"
+                                onclick="switchSnippetTab('shopify', this)">Shopify</button>
+                            <button type="button"
+                                class="code-tab-btn px-2.5 py-1 rounded text-xs font-medium text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text dark:hover:text-dark-text"
+                                onclick="switchSnippetTab('nextjs', this)">Next.js</button>
+                        </div>
+
+                        {{-- Snippet Box --}}
+                        <div class="relative p-3 rounded bg-dark-canvas border border-dark-border text-slate-200">
+                            <pre class="text-2xs font-mono whitespace-pre-wrap break-all pr-16 text-slate-300"
+                                id="widgetEmbedCode">&lt;script src="{{ $widgetUrl }}" data-endpoint="{{ $chatEndpoint }}" data-account-id="{{ $channelAccount->id ?? 1 }}" async&gt;&lt;/script&gt;</pre>
+                            <button type="button" class="absolute top-2 right-2 app-btn app-btn-primary !h-6 !px-2 text-2xs"
+                                onclick="copyEmbedCode(this)">
+                                <i class="ri-file-copy-line"></i> Copy
+                            </button>
+                        </div>
+
+                        <p class="text-2xs text-light-muted dark:text-dark-muted" id="snippetInstructionText">
+                            Paste this single script tag right before the closing <code>&lt;/body&gt;</code> tag on any
+                            HTML, WordPress theme, WooCommerce, or custom storefront.
+                        </p>
+
+                        <div
+                            class="grid grid-cols-2 gap-2 text-2xs text-light-muted dark:text-dark-muted pt-2 border-t border-light-border dark:border-dark-border">
+                            <div class="flex items-center gap-1.5"><i class="ri-check-line text-emerald-500 text-sm"></i>
+                                Sub-second Response</div>
+                            <div class="flex items-center gap-1.5"><i class="ri-check-line text-emerald-500 text-sm"></i>
+                                Auto Session Memory</div>
+                            <div class="flex items-center gap-1.5"><i class="ri-check-line text-emerald-500 text-sm"></i>
+                                Zero CSS Conflicts</div>
+                            <div class="flex items-center gap-1.5"><i class="ri-check-line text-emerald-500 text-sm"></i>
+                                Mobile & Desktop Drawer</div>
+                        </div>
+                    </div>
+                </div>
+
+                {{-- Telemetry Metadata --}}
+                <div class="app-card">
+                    <div class="app-card-header">
+                        <div class="flex items-center gap-1.5 text-xs font-semibold text-light-text dark:text-dark-text">
+                            <i class="ri-shield-check-line text-brand-500"></i>
+                            <span>Integration Identity & Telemetry</span>
+                        </div>
+                        <span class="app-badge app-badge-secondary">Driver #{{ $channelAccount->id ?? 1 }}</span>
+                    </div>
+                    <div class="app-card-body">
+                        <div class="grid grid-cols-2 gap-2.5 text-xs">
+                            <div
+                                class="p-2.5 rounded border border-light-border dark:border-dark-border bg-light-canvas dark:bg-dark-canvas">
+                                <div class="text-2xs text-light-muted dark:text-dark-muted">Account Display Name</div>
+                                <strong
+                                    class="text-light-text dark:text-dark-text">{{ $channelAccount->name ?? 'Storefront Web Widget' }}</strong>
+                            </div>
+                            <div
+                                class="p-2.5 rounded border border-light-border dark:border-dark-border bg-light-canvas dark:bg-dark-canvas">
+                                <div class="text-2xs text-light-muted dark:text-dark-muted">Channel Driver</div>
+                                <span class="app-badge app-badge-primary">Website Driver</span>
+                            </div>
+                            <div
+                                class="p-2.5 rounded border border-light-border dark:border-dark-border bg-light-canvas dark:bg-dark-canvas">
+                                <div class="text-2xs text-light-muted dark:text-dark-muted">Account External ID</div>
+                                <code
+                                    class="text-brand-500 font-mono text-2xs">{{ $channelAccount->external_id ?? 'widget_default' }}</code>
+                            </div>
+                            <div
+                                class="p-2.5 rounded border border-light-border dark:border-dark-border bg-light-canvas dark:bg-dark-canvas">
+                                <div class="text-2xs text-light-muted dark:text-dark-muted">Connection Status</div>
+                                <span class="app-badge app-badge-success">● Connected & Live</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {{-- Interactive Test Inquiries Card --}}
+                <div class="app-card">
+                    <div class="app-card-header">
+                        <div class="flex items-center gap-1.5 text-xs font-semibold text-light-text dark:text-dark-text">
+                            <i class="ri-sparkling-fill text-amber-500"></i>
+                            <span>Test Inquiries in Sandbox</span>
+                        </div>
+                    </div>
+                    <div class="app-card-body space-y-2">
+                        <p class="text-2xs text-light-muted dark:text-dark-muted">
+                            Click any prompt below to automatically open the chat drawer in the live preview and test:
+                        </p>
+                        <div class="flex flex-wrap gap-1.5">
+                            <button type="button" class="app-btn app-btn-secondary !h-7 !px-2.5 text-2xs"
+                                onclick="sendTestPrompt('apnara ki ki sale koren?')">
+                                🛍️ apnara ki ki sale koren?
+                            </button>
+                            <button type="button" class="app-btn app-btn-secondary !h-7 !px-2.5 text-2xs"
+                                onclick="sendTestPrompt('do you have mobile phones?')">
+                                📱 do you have mobile phones?
+                            </button>
+                            <button type="button" class="app-btn app-btn-secondary !h-7 !px-2.5 text-2xs"
+                                onclick="sendTestPrompt('ডেলিভারি চার্জ এবং সময় কত?')">
+                                🚚 ডেলিভারি চার্জ কত?
+                            </button>
+                            <button type="button" class="app-btn app-btn-secondary !h-7 !px-2.5 text-2xs"
+                                onclick="sendTestPrompt('আপনাদের শোরুমের ঠিকানা কোথায়?')">
+                                📍 শোরুমের ঠিকানা কোথায়?
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {{-- Right Column: Live Web Chat Widget Preview Frame --}}
+            <div class="app-card overflow-hidden flex flex-col h-[700px]">
+                <div class="app-card-header flex-shrink-0">
+                    <div class="flex items-center gap-2">
+                        <i class="ri-macbook-line text-brand-500 text-sm"></i>
                         <div>
-                            <h6 class="fw-bold mb-0 text-dark">One-Line Embed Code</h6>
-                            <small class="text-muted">Instant installation across all storefront platforms</small>
+                            <h2 class="text-xs font-semibold text-light-text dark:text-dark-text">Live Web Chat Widget
+                                Preview</h2>
+                            <div class="text-2xs text-light-muted dark:text-dark-muted">Interactive storefront sandbox with
+                                live widget</div>
                         </div>
                     </div>
-                    <span class="badge badge-soft-success px-2.5 py-1 rounded-pill small fw-semibold">
-                        Production Ready
-                    </span>
-                </div>
-                <div class="card-body p-4">
-                    {{-- Platform Tabs --}}
-                    <div class="d-flex gap-2 mb-3 border-bottom pb-2">
-                        <button type="button" class="code-tab-btn active" onclick="switchSnippetTab('html', this)">HTML / JS Tag</button>
-                        <button type="button" class="code-tab-btn" onclick="switchSnippetTab('wordpress', this)">WordPress / WooCommerce</button>
-                        <button type="button" class="code-tab-btn" onclick="switchSnippetTab('shopify', this)">Shopify Liquid</button>
-                        <button type="button" class="code-tab-btn" onclick="switchSnippetTab('nextjs', this)">Next.js / React</button>
-                    </div>
-
-                    {{-- Snippet Box --}}
-                    <div class="code-editor-box mb-3">
-                        <pre class="text-light mb-0 small" style="white-space: pre-wrap; word-break: break-all; font-family: ui-monospace, SFMono-Regular, Menlo, monospace;" id="widgetEmbedCode">&lt;script src="{{ $widgetUrl }}" data-endpoint="{{ $chatEndpoint }}" data-account-id="{{ $channelAccount->id ?? 1 }}" async&gt;&lt;/script&gt;</pre>
-                        <button type="button" class="btn btn-sm btn-primary position-absolute top-0 end-0 m-2 shadow-sm" onclick="copyEmbedCode(this)">
-                            <i class="ri-file-copy-line me-1"></i> Copy Code
-                        </button>
-                    </div>
-
-                    <p class="text-muted small mb-3" id="snippetInstructionText">
-                        Paste this single script tag right before the closing <code>&lt;/body&gt;</code> tag on any HTML, WordPress theme, WooCommerce, or custom storefront.
-                    </p>
-
-                    <div class="row g-2 text-muted small pt-2 border-top">
-                        <div class="col-sm-6 col-12 d-flex align-items-center gap-2">
-                            <i class="ri-check-line text-success fs-5"></i> Sub-second Synchronous Response
+                    <div class="flex items-center gap-1.5">
+                        <div
+                            class="inline-flex items-center p-0.5 rounded bg-light-canvas dark:bg-dark-canvas border border-light-border dark:border-dark-border text-2xs">
+                            <button type="button"
+                                class="px-2 py-0.5 rounded font-medium text-brand-500 bg-light-surface dark:bg-dark-surface shadow-xs transition-all"
+                                id="btnViewDesktop" onclick="setDeviceView('desktop')" title="Desktop View">
+                                <i class="ri-macbook-line mr-1"></i> Desktop
+                            </button>
+                            <button type="button"
+                                class="px-2 py-0.5 rounded font-medium text-light-muted dark:text-dark-muted hover:text-light-text dark:hover:text-dark-text transition-all"
+                                id="btnViewMobile" onclick="setDeviceView('mobile')" title="Mobile View">
+                                <i class="ri-smartphone-line mr-1"></i> Mobile
+                            </button>
                         </div>
-                        <div class="col-sm-6 col-12 d-flex align-items-center gap-2">
-                            <i class="ri-check-line text-success fs-5"></i> Auto Session State Storage
-                        </div>
-                        <div class="col-sm-6 col-12 d-flex align-items-center gap-2">
-                            <i class="ri-check-line text-success fs-5"></i> Zero External CSS Conflicts
-                        </div>
-                        <div class="col-sm-6 col-12 d-flex align-items-center gap-2">
-                            <i class="ri-check-line text-success fs-5"></i> Mobile & Desktop Responsive Drawer
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            {{-- Channel Account Metadata & Telemetry --}}
-            <div class="card studio-card mb-4">
-                <div class="card-header bg-white border-bottom py-3 px-4 d-flex justify-content-between align-items-center">
-                    <h6 class="fw-bold mb-0 text-dark"><i class="ri-shield-check-line text-primary me-2"></i> Integration Telemetry & Identity</h6>
-                    <span class="badge badge-soft-primary small">Driver #{{ $channelAccount->id ?? 1 }}</span>
-                </div>
-                <div class="card-body p-4">
-                    <div class="row g-3">
-                        <div class="col-md-6 col-12">
-                            <div class="p-3 bg-light rounded-3">
-                                <small class="text-muted d-block mb-1">Account Display Name</small>
-                                <strong class="text-dark">{{ $channelAccount->name ?? 'Storefront Web Widget' }}</strong>
-                            </div>
-                        </div>
-                        <div class="col-md-6 col-12">
-                            <div class="p-3 bg-light rounded-3">
-                                <small class="text-muted d-block mb-1">Channel Driver</small>
-                                <span class="badge badge-soft-info px-2.5 py-1 rounded">Website Driver</span>
-                            </div>
-                        </div>
-                        <div class="col-md-6 col-12">
-                            <div class="p-3 bg-light rounded-3">
-                                <small class="text-muted d-block mb-1">Account External ID</small>
-                                <code class="fw-semibold text-primary">{{ $channelAccount->external_id ?? 'widget_default' }}</code>
-                            </div>
-                        </div>
-                        <div class="col-md-6 col-12">
-                            <div class="p-3 bg-light rounded-3">
-                                <small class="text-muted d-block mb-1">Connection Telemetry</small>
-                                <span class="badge badge-soft-success px-2.5 py-1 rounded">
-                                    <i class="ri-checkbox-circle-fill me-1"></i> Connected & Active
-                                </span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            {{-- Interactive Test Inquiries Card --}}
-            <div class="card studio-card">
-                <div class="card-header bg-white border-bottom py-3 px-4">
-                    <h6 class="fw-bold mb-0 text-dark"><i class="ri-sparkling-fill text-warning me-2"></i> Try Inquiries in Live Sandbox</h6>
-                </div>
-                <div class="card-body p-4">
-                    <p class="text-muted small mb-3">
-                        Click any prompt below to automatically pop open the chat drawer in the live storefront on the right and submit the inquiry:
-                    </p>
-                    <div class="d-flex flex-wrap gap-2">
-                        <button type="button" class="quick-test-chip" onclick="sendTestPrompt('apnara ki ki sale koren?')">
-                            <span>🛍️</span> <span>apnara ki ki sale koren?</span>
-                        </button>
-                        <button type="button" class="quick-test-chip" onclick="sendTestPrompt('do you have mobile phones?')">
-                            <span>📱</span> <span>do you have mobile phones?</span>
-                        </button>
-                        <button type="button" class="quick-test-chip" onclick="sendTestPrompt('ডেলিভারি চার্জ এবং সময় কত?')">
-                            <span>🚚</span> <span>ডেলিভারি চার্জ এবং সময় কত?</span>
-                        </button>
-                        <button type="button" class="quick-test-chip" onclick="sendTestPrompt('আপনাদের শোরুমের ঠিকানা কোথায়?')">
-                            <span>📍</span> <span>আপনাদের শোরুমের ঠিকানা কোথায়?</span>
-                        </button>
-                        <button type="button" class="quick-test-chip" onclick="sendTestPrompt('UltraBook Pro 14 ল্যাপটপটির দাম কত?')">
-                            <span>💻</span> <span>UltraBook Pro 14 ল্যাপটপটির দাম কত?</span>
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        {{-- Right Column: Simulated Storefront Device Frame Mockup --}}
-        <div class="col-xl-6 col-12">
-            <div class="browser-frame-mockup h-100 shadow">
-                {{-- macOS Browser Titlebar --}}
-                <div class="browser-titlebar">
-                    <div class="browser-dots">
-                        <span class="browser-dot red"></span>
-                        <span class="browser-dot yellow"></span>
-                        <span class="browser-dot green"></span>
-                    </div>
-                    <div class="browser-address-bar">
-                        <i class="ri-lock-fill text-success" style="font-size: 11px;"></i>
-                        <span>https://apex-storefront.com/catalog</span>
-                    </div>
-                    <div class="d-flex gap-1 align-items-center ms-auto">
-                        <button type="button" class="device-switcher-btn active" id="btnViewDesktop" onclick="setDeviceView('desktop')" title="Desktop View">
-                            <i class="ri-macbook-line"></i>
-                        </button>
-                        <button type="button" class="device-switcher-btn" id="btnViewMobile" onclick="setDeviceView('mobile')" title="Mobile View">
-                            <i class="ri-smartphone-line"></i>
-                        </button>
-                        <button type="button" class="device-switcher-btn" onclick="reloadPreview()" title="Reload Frame">
+                        <button type="button" class="app-btn app-btn-secondary !h-7 !px-2 text-2xs"
+                            onclick="reloadPreview()" title="Reload Frame">
                             <i class="ri-refresh-line"></i>
                         </button>
+                        <a href="{{ route('widget.demo') }}" target="_blank"
+                            class="app-btn app-btn-secondary !h-7 !px-2 text-2xs" title="Open in new window">
+                            <i class="ri-external-link-line"></i>
+                        </a>
                     </div>
                 </div>
 
-                {{-- Interactive Storefront Iframe --}}
-                <div class="preview-viewport-container flex-grow-1" id="viewportContainer">
-                    <iframe id="widgetPreviewFrame" src="{{ route('widget.demo') }}"></iframe>
+                {{-- Storefront Iframe Container --}}
+                <div class="flex-1 bg-light-canvas dark:bg-dark-canvas flex justify-center items-center overflow-hidden p-2.5"
+                    id="viewportContainer">
+                    <div id="frameWrapper"
+                        class="w-full h-full rounded border border-light-border dark:border-dark-border overflow-hidden bg-white shadow-xs transition-all duration-200">
+                        <iframe id="widgetPreviewFrame" src="{{ route('widget.demo') }}"
+                            class="w-full h-full border-0 transition-all duration-200"></iframe>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
-</div>
 @endsection
 
 @push('custom-scripts')
-<script>
-    const snippets = {
-        html: '<script src="{{ $widgetUrl }}" data-endpoint="{{ $chatEndpoint }}" data-account-id="{{ $channelAccount->id ?? 1 }}" async><\/script>',
-        wordpress: '<!-- Add to header.php or functions.php wp_footer hook -->\n<script src="{{ $widgetUrl }}" data-endpoint="{{ $chatEndpoint }}" data-account-id="{{ $channelAccount->id ?? 1 }}" async><\/script>',
-        shopify: '<!-- In Shopify Admin > Themes > Edit Code > theme.liquid (before </body>) -->\n<script src="{{ $widgetUrl }}" data-endpoint="{{ $chatEndpoint }}" data-account-id="{{ $channelAccount->id ?? 1 }}" async><\/script>',
-        nextjs: '// In Next.js pages/_app.js or app/layout.jsx\nimport Script from "next/script";\n\n<Script\n  src="{{ $widgetUrl }}"\n  data-endpoint="{{ $chatEndpoint }}"\n  data-account-id="{{ $channelAccount->id ?? 1 }}"\n  strategy="afterInteractive"\n/>'
-    };
+    <script>
+        const snippets = {
+            html: '<script src="{{ $widgetUrl }}" data-endpoint="{{ $chatEndpoint }}" data-account-id="{{ $channelAccount->id ?? 1 }}" async><\/script>',
+            wordpress: '<!-- Add to footer.php before </body> -->\n<script src="{{ $widgetUrl }}" data-endpoint="{{ $chatEndpoint }}" data-account-id="{{ $channelAccount->id ?? 1 }}" async><\/script>',
+            shopify: '<!-- In theme.liquid before </body> -->\n<script src="{{ $widgetUrl }}" data-endpoint="{{ $chatEndpoint }}" data-account-id="{{ $channelAccount->id ?? 1 }}" async><\/script>',
+            nextjs: '// In pages/_app.js or app/layout.jsx\nimport Script from "next/script";\n\n<Script\n  src="{{ $widgetUrl }}"\n  data-endpoint="{{ $chatEndpoint }}"\n  data-account-id="{{ $channelAccount->id ?? 1 }}"\n  strategy="afterInteractive"\n/>'
+        };
 
-    const instructions = {
-        html: 'Paste this single script tag right before the closing <code>&lt;/body&gt;</code> tag on any HTML, WordPress theme, WooCommerce, or custom storefront.',
-        wordpress: 'For WordPress, paste this in <strong>Appearance &gt; Theme File Editor &gt; footer.php</strong> right before <code>&lt;/body&gt;</code>, or use any Header & Footer Code Manager plugin.',
-        shopify: 'In Shopify Admin, navigate to <strong>Online Store &gt; Themes &gt; Edit Code</strong>, open <code>layout/theme.liquid</code>, and paste right above <code>&lt;/body&gt;</code>.',
-        nextjs: 'In Next.js (App Router or Pages Router), import the Next Script component and inject it into your root layout with <code>strategy="afterInteractive"</code>.'
-    };
+        const instructions = {
+            html: 'Paste this single script tag right before the closing <code>&lt;/body&gt;</code> tag on any HTML, WordPress theme, WooCommerce, or custom storefront.',
+            wordpress: 'For WordPress, paste this in <strong>Appearance &gt; Theme File Editor &gt; footer.php</strong> right before <code>&lt;/body&gt;</code>.',
+            shopify: 'In Shopify Admin, open <code>layout/theme.liquid</code>, and paste right above <code>&lt;/body&gt;</code>.',
+            nextjs: 'In Next.js, import Next Script component with <code>strategy="afterInteractive"</code>.'
+        };
 
-    function switchSnippetTab(tabKey, btn) {
-        document.querySelectorAll('.code-tab-btn').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
+        function switchSnippetTab(tabKey, btn) {
+            document.querySelectorAll('.code-tab-btn').forEach(b => {
+                b.classList.remove('bg-brand-500/10', 'text-brand-500', 'font-semibold');
+                b.classList.add('text-light-text-secondary', 'dark:text-dark-text-secondary');
+            });
+            btn.classList.add('bg-brand-500/10', 'text-brand-500', 'font-semibold');
+            btn.classList.remove('text-light-text-secondary', 'dark:text-dark-text-secondary');
 
-        document.getElementById('widgetEmbedCode').textContent = snippets[tabKey] || snippets.html;
-        document.getElementById('snippetInstructionText').innerHTML = instructions[tabKey] || instructions.html;
-    }
-
-    function copyEmbedCode(btn) {
-        const code = document.getElementById('widgetEmbedCode').innerText;
-        navigator.clipboard.writeText(code).then(() => {
-            const originalHtml = btn.innerHTML;
-            btn.innerHTML = '<i class="ri-check-line me-1"></i> Copied!';
-            btn.classList.remove('btn-primary');
-            btn.classList.add('btn-success');
-            setTimeout(() => {
-                btn.innerHTML = originalHtml;
-                btn.classList.remove('btn-success');
-                btn.classList.add('btn-primary');
-            }, 2000);
-        });
-    }
-
-    function reloadPreview() {
-        const frame = document.getElementById('widgetPreviewFrame');
-        if (frame) {
-            frame.src = frame.src;
+            document.getElementById('widgetEmbedCode').textContent = snippets[tabKey] || snippets.html;
+            document.getElementById('snippetInstructionText').innerHTML = instructions[tabKey] || instructions.html;
         }
-    }
 
-    function setDeviceView(mode) {
-        const frame = document.getElementById('widgetPreviewFrame');
-        const btnDesktop = document.getElementById('btnViewDesktop');
-        const btnMobile = document.getElementById('btnViewMobile');
-
-        if (mode === 'mobile') {
-            frame.classList.add('mobile-view');
-            btnMobile.classList.add('active');
-            btnDesktop.classList.remove('active');
-        } else {
-            frame.classList.remove('mobile-view');
-            btnDesktop.classList.add('active');
-            btnMobile.classList.remove('active');
+        function copyEmbedCode(btn) {
+            const code = document.getElementById('widgetEmbedCode').innerText;
+            navigator.clipboard.writeText(code).then(() => {
+                const originalHtml = btn.innerHTML;
+                btn.innerHTML = '<i class="ri-check-line"></i> Copied!';
+                setTimeout(() => { btn.innerHTML = originalHtml; }, 2000);
+            });
         }
-    }
 
-    function sendTestPrompt(text) {
-        const frame = document.getElementById('widgetPreviewFrame');
-        if (!frame) return;
+        function reloadPreview() {
+            const frame = document.getElementById('widgetPreviewFrame');
+            if (frame) frame.src = frame.src;
+        }
 
-        try {
-            const iframeDoc = frame.contentDocument || frame.contentWindow.document;
-            const bubble = iframeDoc.getElementById('agy-chat-bubble');
-            const chatWin = iframeDoc.getElementById('agy-chat-window');
+        function setDeviceView(mode) {
+            const frameWrapper = document.getElementById('frameWrapper');
+            const btnDesktop = document.getElementById('btnViewDesktop');
+            const btnMobile = document.getElementById('btnViewMobile');
 
-            // Open chat window if not visible
-            if (chatWin && chatWin.style.display !== 'flex') {
-                if (bubble) bubble.click();
-            }
-
-            setTimeout(() => {
-                const input = iframeDoc.getElementById('agy-chat-input');
-                const sendBtn = iframeDoc.getElementById('agy-chat-send');
-                if (input && sendBtn) {
-                    input.value = text;
-                    input.dispatchEvent(new Event('input', { bubbles: true }));
-                    sendBtn.click();
+            if (mode === 'mobile') {
+                if (frameWrapper) {
+                    frameWrapper.style.maxWidth = '390px';
+                    frameWrapper.style.height = '620px';
+                    frameWrapper.classList.add('rounded-2xl', 'shadow-lg');
                 }
-            }, 250);
-        } catch (e) {
-            console.log('Cross-origin restriction or frame loading:', e);
+                if (btnMobile) {
+                    btnMobile.className = 'px-2 py-0.5 rounded font-medium text-brand-500 bg-light-surface dark:bg-dark-surface shadow-xs transition-all';
+                }
+                if (btnDesktop) {
+                    btnDesktop.className = 'px-2 py-0.5 rounded font-medium text-light-muted dark:text-dark-muted hover:text-light-text dark:hover:text-dark-text transition-all';
+                }
+            } else {
+                if (frameWrapper) {
+                    frameWrapper.style.maxWidth = '100%';
+                    frameWrapper.style.height = '100%';
+                    frameWrapper.classList.remove('rounded-2xl', 'shadow-lg');
+                }
+                if (btnDesktop) {
+                    btnDesktop.className = 'px-2 py-0.5 rounded font-medium text-brand-500 bg-light-surface dark:bg-dark-surface shadow-xs transition-all';
+                }
+                if (btnMobile) {
+                    btnMobile.className = 'px-2 py-0.5 rounded font-medium text-light-muted dark:text-dark-muted hover:text-light-text dark:hover:text-dark-text transition-all';
+                }
+            }
         }
-    }
-</script>
+
+        function sendTestPrompt(text) {
+            const frame = document.getElementById('widgetPreviewFrame');
+            if (!frame) return;
+
+            try {
+                const iframeDoc = frame.contentDocument || frame.contentWindow.document;
+                const bubble = iframeDoc.getElementById('agy-chat-bubble');
+                const chatWin = iframeDoc.getElementById('agy-chat-window');
+
+                if (chatWin && chatWin.style.display !== 'flex') {
+                    if (bubble) bubble.click();
+                }
+
+                setTimeout(() => {
+                    const input = iframeDoc.getElementById('agy-chat-input');
+                    const sendBtn = iframeDoc.getElementById('agy-chat-send');
+                    if (input && sendBtn) {
+                        input.value = text;
+                        input.dispatchEvent(new Event('input', { bubbles: true }));
+                        sendBtn.click();
+                    }
+                }, 250);
+            } catch (e) {
+                console.log('Frame interaction error:', e);
+            }
+        }
+    </script>
 @endpush

@@ -1,7 +1,4 @@
-<form
-    action="{{ route('conversations.reply', $conversation->id) }}"
-    method="POST"
-    class="composer">
+<form action="{{ route('conversations.reply', $conversation->id) }}" method="POST" class="composer">
 
     @csrf
 
@@ -13,16 +10,9 @@
 
         </button>
 
-        <textarea
-            id="message"
-            name="message"
-            rows="1"
-            placeholder="Type your message..."
-            required></textarea>
+        <textarea id="message" name="message" rows="1" placeholder="Type your message..." required></textarea>
 
-        <button
-            type="submit"
-            class="send-btn">
+        <button type="submit" class="send-btn">
 
             <i class="bi bi-send-fill"></i>
 

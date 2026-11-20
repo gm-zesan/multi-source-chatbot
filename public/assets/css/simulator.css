@@ -311,10 +311,10 @@
 }
 
 .diag-header {
-    padding: 16px 20px;
-    border-bottom: 1px solid #f1f5f9;
-    background: #0f172a;
-    color: #ffffff;
+    padding: 14px 16px;
+    border-bottom: 1px solid #e2e8f0;
+    background: #ffffff;
+    color: #0f172a;
 }
 
 .diag-body {
@@ -1111,4 +1111,220 @@
     .usage-stats-grid {
         grid-template-columns: 1fr;
     }
+}
+
+/* ==========================================================================
+   Midnight Enterprise Pro Theme Integration for Simulator & Diagnostics
+   ========================================================================== */
+html.dark .chat-card,
+html[data-theme="dark"] .chat-card {
+    background: #0B1329 !important;
+    border-color: #1E293B !important;
+    color: #F8FAFC !important;
+}
+
+html.dark .chat-messages,
+html[data-theme="dark"] .chat-messages {
+    background: #090D16 !important;
+}
+
+html.dark .chat-input-area,
+html[data-theme="dark"] .chat-input-area {
+    background: #0B1329 !important;
+    border-color: #1E293B !important;
+}
+
+html.dark .message-bot,
+html[data-theme="dark"] .message-bot {
+    background: #0F172A !important;
+    border-color: #1E293B !important;
+    color: #F8FAFC !important;
+}
+
+html.dark .diag-card,
+html[data-theme="dark"] .diag-card {
+    background: #0B1329 !important;
+    border-color: #1E293B !important;
+}
+
+html.dark .diag-header,
+html[data-theme="dark"] .diag-header {
+    background: #0F172A !important;
+    border-color: #1E293B !important;
+}
+
+html.dark .diag-body,
+html[data-theme="dark"] .diag-body {
+    background: #090D16 !important;
+}
+
+html.dark .diag-section,
+html[data-theme="dark"] .diag-section {
+    background: #0F172A !important;
+    border-color: #1E293B !important;
+    color: #F8FAFC !important;
+}
+
+html.dark .status-none,
+html[data-theme="dark"] .status-none {
+    background: #1E293B !important;
+    color: #94A3B8 !important;
+}
+
+html.dark .status-ok,
+html[data-theme="dark"] .status-ok {
+    background: rgba(16, 185, 129, 0.15) !important;
+    color: #34D399 !important;
+}
+
+html.dark .status-degraded,
+html[data-theme="dark"] .status-degraded {
+    background: rgba(245, 158, 11, 0.15) !important;
+    color: #FBBF24 !important;
+}
+
+html.dark .status-failed,
+html[data-theme="dark"] .status-failed {
+    background: rgba(239, 68, 68, 0.15) !important;
+    color: #F87171 !important;
+}
+
+html.dark .route-pill.chat,
+html[data-theme="dark"] .route-pill.chat {
+    background: rgba(139, 92, 246, 0.15) !important;
+    color: #A78BFA !important;
+    border-color: rgba(139, 92, 246, 0.3) !important;
+}
+
+html.dark .route-pill.knowledge,
+html[data-theme="dark"] .route-pill.knowledge {
+    background: rgba(16, 185, 129, 0.15) !important;
+    color: #34D399 !important;
+    border-color: rgba(16, 185, 129, 0.3) !important;
+}
+
+html.dark .route-pill.ood,
+html[data-theme="dark"] .route-pill.ood {
+    background: #1E293B !important;
+    color: #94A3B8 !important;
+    border-color: #334155 !important;
+}
+
+html.dark .route-pill.uncertain,
+html[data-theme="dark"] .route-pill.uncertain {
+    background: rgba(245, 158, 11, 0.15) !important;
+    color: #FBBF24 !important;
+    border-color: rgba(245, 158, 11, 0.3) !important;
+}
+
+html.dark .route-pill.action,
+html[data-theme="dark"] .route-pill.action {
+    background: rgba(2, 132, 199, 0.15) !important;
+    color: #38BDF8 !important;
+    border-color: rgba(2, 132, 199, 0.3) !important;
+}
+
+html.dark .route-pill.analytics,
+html[data-theme="dark"] .route-pill.analytics {
+    background: rgba(124, 58, 237, 0.15) !important;
+    color: #C4B5FD !important;
+    border-color: rgba(124, 58, 237, 0.3) !important;
+}
+
+html.dark .score-progress,
+html[data-theme="dark"] .score-progress {
+    background: #1E293B !important;
+}
+
+html.dark .usage-wizard-modal,
+html[data-theme="dark"] .usage-wizard-modal {
+    background: #0F172A !important;
+    color: #F8FAFC !important;
+}
+
+html.dark .usage-wizard-header,
+html[data-theme="dark"] .usage-wizard-header {
+    background: #0B1329 !important;
+    border-color: #1E293B !important;
+}
+
+html.dark .usage-wizard-body,
+html[data-theme="dark"] .usage-wizard-body {
+    background: #090D16 !important;
+}
+
+html.dark .usage-cost-card,
+html[data-theme="dark"] .usage-cost-card {
+    background: #0F172A !important;
+    border-color: #1E293B !important;
+}
+
+html.dark .usage-cost-rates,
+html[data-theme="dark"] .usage-cost-rates {
+    border-color: #1E293B !important;
+}
+
+html.dark .usage-cost-breakdown,
+html[data-theme="dark"] .usage-cost-breakdown {
+    border-color: #1E293B !important;
+}
+
+html.dark .usage-stat-card,
+html[data-theme="dark"] .usage-stat-card {
+    background: #0F172A !important;
+    border-color: #1E293B !important;
+}
+
+html.dark .usage-panel,
+html[data-theme="dark"] .usage-panel {
+    background: #0F172A !important;
+    border-color: #1E293B !important;
+}
+
+html.dark .usage-table-wrapper,
+html[data-theme="dark"] .usage-table-wrapper {
+    background: #0F172A !important;
+    border-color: #1E293B !important;
+}
+
+html.dark .usage-table,
+html[data-theme="dark"] .usage-table {
+    color: #F8FAFC !important;
+}
+
+html.dark .usage-table thead,
+html[data-theme="dark"] .usage-table thead {
+    background: #0B1329 !important;
+    border-color: #1E293B !important;
+}
+
+html.dark .usage-table th,
+html[data-theme="dark"] .usage-table th {
+    color: #94A3B8 !important;
+    border-color: #1E293B !important;
+}
+
+html.dark .usage-table td,
+html[data-theme="dark"] .usage-table td {
+    color: #F8FAFC !important;
+    border-color: #1E293B !important;
+}
+
+html.dark .usage-table tr:hover,
+html[data-theme="dark"] .usage-table tr:hover {
+    background: #1E293B !important;
+}
+
+html.dark .suggestion-chip,
+html[data-theme="dark"] .suggestion-chip {
+    background: #0F172A !important;
+    border-color: #F59E0B !important;
+    color: #FBBF24 !important;
+}
+
+html.dark .source-chip,
+html[data-theme="dark"] .source-chip {
+    background: rgba(16, 185, 129, 0.15) !important;
+    border-color: rgba(16, 185, 129, 0.3) !important;
+    color: #34D399 !important;
 }

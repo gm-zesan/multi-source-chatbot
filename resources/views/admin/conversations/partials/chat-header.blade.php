@@ -1,86 +1,66 @@
-<div class="chat-header d-flex flex-wrap align-items-center justify-content-between p-3 border-bottom bg-white">
-    <div class="chat-user d-flex align-items-center gap-3">
-        <div class="chat-avatar">
+<div class="chat-header flex items-center justify-between px-3 sm:px-4 border-b border-light-border dark:border-dark-border bg-light-surface dark:bg-dark-surface h-14 min-h-[56px] max-h-[56px] gap-2 shrink-0">
+    <div class="flex items-center gap-2.5 min-w-0 flex-1">
+        <div class="w-8 h-8 rounded-full shrink-0 flex items-center justify-center font-bold text-xs bg-brand-500/15 text-brand-500 overflow-hidden">
             @if($conversation->customer_avatar)
-                <img src="{{ $conversation->customer_avatar }}" alt="{{ $conversation->customer_name }}" class="rounded-circle" width="42" height="42">
+                <img src="{{ $conversation->customer_avatar }}" alt="{{ $conversation->customer_name }}" class="w-full h-full object-cover rounded-full">
             @else
-                <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center fw-bold" style="width: 42px; height: 42px; font-size: 16px;">
-                    {{ strtoupper(substr($conversation->customer_name ?? 'U',0,1)) }}
-                </div>
+                {{ strtoupper(substr($conversation->customer_name ?? 'U',0,1)) }}
             @endif
         </div>
 
-        <div>
-            <div class="d-flex align-items-center gap-2">
-                <h5 class="mb-0 fw-bold">{{ $conversation->customer_name ?? 'Anonymous Visitor' }}</h5>
+        <div class="min-w-0 flex-1">
+            <div class="flex items-center gap-1.5 flex-wrap">
+                <h5 class="text-xs font-semibold text-light-text dark:text-dark-text truncate mb-0 max-w-[150px]">{{ $conversation->customer_name ?? 'Anonymous Visitor' }}</h5>
                 @php
-                    $statusColors = [
-                        'open'        => 'bg-primary',
-                        'pending'     => 'bg-warning text-dark',
-                        'in_progress' => 'bg-info text-dark',
-                        'resolved'    => 'bg-success',
-                        'closed'      => 'bg-secondary',
-                    ];
-                    $priorityColors = [
-                        'low'    => 'border border-secondary text-secondary',
-                        'normal' => 'bg-secondary',
-                        'high'   => 'bg-warning text-dark',
-                        'urgent' => 'bg-danger',
-                    ];
                     $currentStatus = $conversation->status ?? 'open';
                     $currentPriority = $conversation->priority ?? 'normal';
                 @endphp
-                <span class="badge {{ $statusColors[$currentStatus] ?? 'bg-primary' }}">
+                <span class="app-badge {{ $currentStatus === 'resolved' ? 'app-badge-success' : ($currentStatus === 'closed' ? 'app-badge-secondary' : 'app-badge-primary') }} !text-2xs shrink-0">
                     {{ ucfirst(str_replace('_', ' ', $currentStatus)) }}
                 </span>
-                <span class="badge {{ $priorityColors[$currentPriority] ?? 'bg-secondary' }}">
+                <span class="app-badge {{ $currentPriority === 'urgent' ? 'app-badge-danger' : ($currentPriority === 'high' ? 'app-badge-warning' : 'app-badge-secondary') }} !text-2xs shrink-0">
                     {{ ucfirst($currentPriority) }}
                 </span>
             </div>
 
-            <div class="chat-meta text-muted small mt-1 d-flex align-items-center gap-2">
-                <span class="channel badge bg-light text-dark border">
+            <div class="text-2xs text-light-muted dark:text-dark-muted flex items-center gap-1 mt-0.5">
+                <span class="app-badge app-badge-secondary !text-2xs shrink-0">
                     {{ ucfirst($conversation->channelAccount?->channel?->name ?? 'Channel') }}
                 </span>
-                <span>•</span>
-                <span>ID: {{ $conversation->external_user_id }}</span>
                 @if($conversation->assignedTo)
                     <span>•</span>
-                    <span class="text-primary"><i class="bi bi-person-check-fill me-1"></i>{{ $conversation->assignedTo->name }}</span>
+                    <span class="text-brand-500 flex items-center gap-1 truncate"><i class="ri-user-follow-line"></i>{{ $conversation->assignedTo->name }}</span>
                 @endif
             </div>
         </div>
     </div>
 
-    <div class="chat-actions d-flex flex-wrap align-items-center gap-2 mt-2 mt-md-0">
+    <div class="flex items-center gap-1.5 shrink-0">
         {{-- Agent Assignment Selector --}}
-        <form action="{{ route('conversations.assign', $conversation->id) }}" method="POST" class="d-inline-flex align-items-center">
+        <form action="{{ route('conversations.assign', $conversation->id) }}" method="POST" class="inline-flex items-center">
             @csrf
-            <div class="input-group input-group-sm">
-                <span class="input-group-text bg-light text-muted"><i class="bi bi-person"></i></span>
-                <select name="assigned_to_user_id" class="form-select form-select-sm" onchange="this.form.submit()" title="Assign conversation to agent" style="max-width: 150px;">
-                    <option value="">Unassigned</option>
-                    @if(isset($teamMembers))
-                        @foreach($teamMembers as $member)
-                            <option value="{{ $member->id }}" {{ $conversation->assigned_to_user_id == $member->id ? 'selected' : '' }}>
-                                {{ $member->name }}
-                            </option>
-                        @endforeach
-                    @endif
-                </select>
-            </div>
+            <select name="assigned_to_user_id" class="app-select !h-7 !py-0 !px-1.5 !text-2xs !bg-light-canvas dark:!bg-dark-canvas !border-light-border dark:!border-dark-border !text-light-text dark:!text-dark-text max-w-[110px]" onchange="this.form.submit()" title="Assign conversation to agent">
+                <option value="">Unassigned</option>
+                @if(isset($teamMembers))
+                    @foreach($teamMembers as $member)
+                        <option value="{{ $member->id }}" {{ $conversation->assigned_to_user_id == $member->id ? 'selected' : '' }}>
+                            {{ $member->name }}
+                        </option>
+                    @endforeach
+                @endif
+            </select>
         </form>
 
         {{-- Status & Priority Selector --}}
-        <form action="{{ route('conversations.update-status', $conversation->id) }}" method="POST" class="d-inline-flex align-items-center gap-1">
+        <form action="{{ route('conversations.update-status', $conversation->id) }}" method="POST" class="inline-flex items-center gap-1">
             @csrf
-            <select name="status" class="form-select form-select-sm" onchange="this.form.submit()" title="Change Ticket Status" style="max-width: 120px;">
+            <select name="status" class="app-select !h-7 !py-0 !px-1.5 !text-2xs !bg-light-canvas dark:!bg-dark-canvas !border-light-border dark:!border-dark-border !text-light-text dark:!text-dark-text max-w-[95px]" onchange="this.form.submit()" title="Change Ticket Status">
                 <option value="open" {{ $conversation->status === 'open' ? 'selected' : '' }}>Open</option>
                 <option value="in_progress" {{ $conversation->status === 'in_progress' ? 'selected' : '' }}>In Progress</option>
                 <option value="resolved" {{ $conversation->status === 'resolved' ? 'selected' : '' }}>Resolved</option>
                 <option value="closed" {{ $conversation->status === 'closed' ? 'selected' : '' }}>Closed</option>
             </select>
-            <select name="priority" class="form-select form-select-sm" onchange="this.form.submit()" title="Change Ticket Priority" style="max-width: 100px;">
+            <select name="priority" class="app-select !h-7 !py-0 !px-1.5 !text-2xs !bg-light-canvas dark:!bg-dark-canvas !border-light-border dark:!border-dark-border !text-light-text dark:!text-dark-text max-w-[85px]" onchange="this.form.submit()" title="Change Ticket Priority">
                 <option value="low" {{ ($conversation->priority ?? 'normal') === 'low' ? 'selected' : '' }}>Low</option>
                 <option value="normal" {{ ($conversation->priority ?? 'normal') === 'normal' ? 'selected' : '' }}>Normal</option>
                 <option value="high" {{ ($conversation->priority ?? 'normal') === 'high' ? 'selected' : '' }}>High</option>
@@ -89,11 +69,12 @@
         </form>
 
         {{-- AI Reply Button --}}
-        <form action="{{ route('conversations.ai-reply', $conversation->id) }}" method="POST" class="d-inline">
+        <form action="{{ route('conversations.ai-reply', $conversation->id) }}" method="POST" class="inline">
             @csrf
-            <button type="submit" class="btn btn-sm btn-outline-primary" style="display: flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 6px; font-weight: 500; font-size: 13px;" title="Generate AI Assistant Response">
-                <i class="bi bi-robot"></i>
-                <span>Generate AI Reply</span>
+            <button type="submit" class="app-btn app-btn-primary !h-7 !px-2.5 !text-2xs whitespace-nowrap" title="Generate AI Assistant Response">
+                <i class="ri-robot-2-line text-xs"></i>
+                <span class="hidden md:inline">Generate AI Reply</span>
+                <span class="md:hidden">AI Reply</span>
             </button>
         </form>
     </div>

@@ -4,6 +4,28 @@
  * decision traces, Chart.js visualizations, and session state handling.
  */
 
+// ── Slide-Over Diagnostics Drawer Controller ──
+window.toggleDiagnosticsDrawer = function(show) {
+    const drawer = document.getElementById('diagnosticsDrawer');
+    const backdrop = document.getElementById('diagnosticsBackdrop');
+    if (!drawer) return;
+    const isCurrentlyOpen = !drawer.classList.contains('translate-x-full');
+    const shouldOpen = (typeof show === 'boolean') ? show : !isCurrentlyOpen;
+    if (shouldOpen) {
+        drawer.classList.remove('translate-x-full');
+        if (backdrop) backdrop.classList.remove('hidden');
+    } else {
+        drawer.classList.add('translate-x-full');
+        if (backdrop) backdrop.classList.add('hidden');
+    }
+};
+
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        window.toggleDiagnosticsDrawer(false);
+    }
+});
+
 // ── LLM Usage & Cost Wizard State ──
 let llmUsageHistory = (window.SIMULATOR_CONFIG && window.SIMULATOR_CONFIG.llmUsageHistory) || [];
 
@@ -480,11 +502,14 @@ function appendMessage(content, sender, data = null) {
             `;
         }
 
-        // Footer metadata
+        // Footer metadata with click-to-inspect link
         metaHtml = `
-            <div class="message-meta">
-                <span>${data.pipeline_diagnostics?.total_time_ms || 0} ms</span>
-                <span>Route: <strong>${route.toUpperCase()}</strong></span>
+            <div class="message-meta flex items-center gap-2 pt-1 mt-1 border-t border-light-border/40 dark:border-dark-border/40 text-2xs text-light-muted dark:text-dark-muted">
+                <button type="button" class="hover:text-brand-500 flex items-center gap-1 cursor-pointer font-mono" onclick="toggleDiagnosticsDrawer(true)" title="Inspect real-time trace in Pipeline Drawer">
+                    <i class="ri-cpu-line text-brand-500"></i> ${data.pipeline_diagnostics?.total_time_ms || 0} ms
+                </button>
+                <span class="opacity-40">•</span>
+                <span>Route: <strong class="text-light-text dark:text-dark-text">${route.toUpperCase()}</strong></span>
             </div>
         `;
     }
@@ -515,8 +540,24 @@ function appendMessage(content, sender, data = null) {
 function renderFormattedMessage(rawContent) {
     if (rawContent === null || rawContent === undefined) return '';
 
+    // Check if rawContent is a JSON string containing answer or proposed_follow_up
+    let contentToFormat = rawContent;
+    if (typeof rawContent === 'string' && (rawContent.trim().startsWith('{') && rawContent.trim().endsWith('}'))) {
+        try {
+            const parsedJson = JSON.parse(rawContent.trim());
+            if (parsedJson && parsedJson.answer) {
+                contentToFormat = parsedJson.answer;
+                if (parsedJson.proposed_follow_up) {
+                    contentToFormat += '\n\n💡 _' + parsedJson.proposed_follow_up + '_';
+                }
+            }
+        } catch (e) {
+            // Not valid JSON, keep rawContent
+        }
+    }
+
     // 1. Escape basic HTML entities first to prevent XSS without losing characters
-    let text = escapeHtml(String(rawContent));
+    let text = escapeHtml(String(contentToFormat));
 
     // 2. Fenced code blocks (```code```)
     text = text.replace(/```([\s\S]*?)```/g, (match, p1) => {
@@ -630,6 +671,10 @@ function updateDiagnostics(data) {
     if (totalTimeEl) {
         totalTimeEl.textContent = `${diag.total_time_ms} ms`;
         totalTimeEl.className = 'status-badge status-ok';
+    }
+    const headerLatency = document.getElementById('headerLatencyBadge');
+    if (headerLatency) {
+        headerLatency.textContent = `${diag.total_time_ms} ms`;
     }
 
     // 0. Hybrid Router
@@ -773,13 +818,13 @@ function updateDiagnostics(data) {
         const sources = data.sources || [];
         if (sources.length > 0) {
             sources.forEach(s => {
-                docHtml += `<div class="d-flex justify-content-between align-items-center p-1 px-2 mb-1" style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 4px; font-size: 11px;">
-                                <span class="text-truncate" style="max-width: 220px;"><strong>[${escapeHtml(s.category)}]</strong> ${escapeHtml(s.question)}</span>
-                                <span class="badge bg-success-subtle text-success">${s.score}%</span>
+                docHtml += `<div class="flex justify-between items-center p-1.5 px-2 mb-1 rounded bg-light-surface dark:bg-dark-surface border border-light-border dark:border-dark-border text-2xs">
+                                <span class="truncate max-w-[260px] text-light-text dark:text-dark-text"><strong>[${escapeHtml(s.category)}]</strong> ${escapeHtml(s.question)}</span>
+                                <span class="app-badge app-badge-success !text-3xs">${s.score}%</span>
                             </div>`;
             });
         } else {
-            docHtml = '<span class="text-muted small">Zero ungrounded documents passed to LLM (Safe fallback).</span>';
+            docHtml = '<span class="text-light-muted dark:text-dark-muted text-2xs">Zero ungrounded documents passed to LLM (Safe fallback).</span>';
         }
         if (gateGroundedDocs) gateGroundedDocs.innerHTML = docHtml;
     } else {
@@ -821,8 +866,8 @@ function renderTurnHistoryPills() {
 
     nav.innerHTML = turnHistory.map((t, idx) => {
         const isActive = (idx === currentTurnIndex);
-        const btnClass = isActive ? 'btn-primary text-white shadow-sm' : 'btn-outline-secondary';
-        return `<button type="button" class="btn btn-xs ${btnClass} py-0 px-2" style="font-size: 11px; border-radius: 12px; white-space: nowrap;" onclick="selectTurn(${idx})">
+        const badgeClass = isActive ? 'app-badge app-badge-primary font-semibold shadow-xs' : 'app-badge app-badge-secondary hover:bg-brand-500/10 cursor-pointer';
+        return `<button type="button" class="${badgeClass} !text-2xs py-0.5 px-2 cursor-pointer transition-all whitespace-nowrap" onclick="selectTurn(${idx})">
                     Turn #${t.turnNumber}
                 </button>`;
     }).join('');

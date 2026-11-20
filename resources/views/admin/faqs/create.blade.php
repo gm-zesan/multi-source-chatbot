@@ -1,189 +1,187 @@
 @extends('admin.app')
-@section('title')
-    Create FAQ
-@endsection
+@section('title', 'Create FAQ')
 
 @section('content')
-    <div class="container-fluid">
-        <form action="{{ route('faqs.store') }}" method="POST" autocomplete="off">
-            @csrf
-            <input type="hidden" name="redirect_to" value="hub">
-            <div class="row">
-                <div class="col-md-8 col-12">
-                    <div class="card table-card">
-                        <div class="card-header table-header">
-                            <div class="title-with-breadcrumb">
-                                <div class="table-title">Create FAQ</div>
-                                <nav aria-label="breadcrumb">
-                                    <ol class="breadcrumb mb-0">
-                                        <li class="breadcrumb-item">
-                                            <a href="{{ route('dashboard') }}">Dashboard</a>
-                                        </li>
-                                        <li class="breadcrumb-item">
-                                            <a href="{{ route('knowledge-base.index', ['tab' => 'faqs']) }}">Knowledge Base</a>
-                                        </li>
-                                        <li class="breadcrumb-item active" aria-current="page">Create FAQ</li>
-                                    </ol>
-                                </nav>
-                            </div>
-                            <a href="{{ route('knowledge-base.index', ['tab' => 'faqs']) }}" class="add-new">FAQ List<i class="ms-1 ri-list-ordered-2"></i></a>
-                        </div>
-                        <div class="card-body custom-form">
-                            <div class="mb-3">
-                                <label for="question" class="form-label custom-label">Question <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control custom-input @error('question') is-invalid @enderror" name="question" id="question" value="{{ old('question') }}" placeholder="Enter the FAQ question">
-                                @error('question')
-                                    <div class="error_msg">{{ $message }}</div>
-                                @enderror
-                            </div>
+<div class="space-y-4">
+    {{-- Header & Breadcrumbs --}}
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-3 border-b border-border">
+        <div>
+            <h1 class="text-base font-semibold text-text-primary tracking-tight">Create FAQ / Knowledge Entry</h1>
+            <div class="flex items-center gap-1.5 text-xs text-text-muted mt-0.5">
+                <a href="{{ route('dashboard') }}" class="hover:text-text-primary transition-colors">Dashboard</a>
+                <span>/</span>
+                <a href="{{ route('knowledge-base.index', ['tab' => 'faqs']) }}" class="hover:text-text-primary transition-colors">Knowledge Base</a>
+                <span>/</span>
+                <span class="text-text-secondary font-medium">Create FAQ</span>
+            </div>
+        </div>
+        <div class="flex items-center gap-2">
+            <a href="{{ route('knowledge-base.index', ['tab' => 'faqs']) }}" class="app-btn app-btn-secondary">
+                <i class="ri-arrow-left-line"></i> Back to Knowledge Base
+            </a>
+        </div>
+    </div>
 
-                            <div class="mb-3">
-                                <label for="answer" class="form-label custom-label">Answer <span class="text-danger">*</span></label>
-                                <textarea class="form-control custom-input @error('answer') is-invalid @enderror" name="answer" id="answer" rows="8" placeholder="Enter the FAQ answer">{{ old('answer') }}</textarea>
-                                <div class="d-flex justify-content-between align-items-center mt-1 flex-wrap gap-1">
-                                    <div class="small text-muted" style="font-size: 11.5px;">
-                                        <i class="ri-information-line text-primary me-1"></i>Limit: ১–২ প্যারাগ্রাফ (Max 250 words)। বড় পলিসি হলে আলাদা টপিকে ভাগ করুন।
-                                    </div>
-                                    <div class="small text-muted" id="answerWordCountBadge" style="font-size: 11.5px; font-weight: 600;">
-                                        <span id="answerWordCount">0</span> / 250 words
-                                    </div>
+    <form action="{{ route('faqs.store') }}" method="POST" autocomplete="off">
+        @csrf
+        <input type="hidden" name="redirect_to" value="hub">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            {{-- Main Q&A Content --}}
+            <div class="lg:col-span-2 space-y-4">
+                <div class="app-card">
+                    <div class="app-card-header">
+                        <div>
+                            <h2 class="text-xs font-semibold text-text-primary uppercase tracking-wider">Question & Answer Definition</h2>
+                            <p class="text-2xs text-text-muted">Direct questions and answers indexed into vector search embeddings</p>
+                        </div>
+                    </div>
+                    <div class="app-card-body space-y-3.5">
+                        <div>
+                            <label for="question" class="block text-xs font-medium text-text-secondary mb-1">Question / Inquiry Intent <span class="text-rose-500">*</span></label>
+                            <input type="text" class="app-input w-full @error('question') border-rose-500 @enderror" name="question" id="question" value="{{ old('question') }}" placeholder="e.g. What is your return and refund window?" required>
+                            @error('question')
+                                <p class="text-rose-500 text-2xs mt-1">{{ $message }}</p>
+                            @enderror
+                        </div>
+
+                        <div>
+                            <div class="flex items-center justify-between mb-1">
+                                <label for="answer" class="block text-xs font-medium text-text-secondary">Official Grounded Answer <span class="text-rose-500">*</span></label>
+                                <div class="text-2xs text-text-muted font-medium" id="answerWordCountBadge">
+                                    <span id="answerWordCount">0</span> / 250 words
                                 </div>
-                                @error('answer')
-                                    <div class="error_msg">{{ $message }}</div>
-                                @enderror
                             </div>
+                            <textarea class="app-textarea w-full text-xs rounded-md border border-border bg-surface text-text-primary p-2.5 outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-all @error('answer') border-rose-500 @enderror" name="answer" id="answer" rows="7" placeholder="Enter clear, concise response (1-2 paragraphs). Avoid ambiguous assertions..." required>{{ old('answer') }}</textarea>
+                            <p class="text-2xs text-text-muted mt-1 flex items-center gap-1">
+                                <i class="ri-information-line text-brand-primary"></i> Optimal length: 1–2 paragraphs (Max 250 words). For extensive policy manuals, split into topical articles.
+                            </p>
+                            @error('answer')
+                                <p class="text-rose-500 text-2xs mt-1">{{ $message }}</p>
+                            @enderror
                         </div>
                     </div>
                 </div>
 
-                <div class="col-md-4 col-12">
-                    <div class="card table-card">
-                        <div class="card-header table-header">
-                            <div class="table-title">Classification & Settings</div>
+                {{-- AI Retrieval Optimization Tip --}}
+                <div class="app-card border-brand-primary/20 bg-brand-primary/5">
+                    <div class="app-card-body space-y-1.5">
+                        <div class="flex items-center gap-1.5 text-xs font-semibold text-brand-primary">
+                            <i class="ri-sparkling-fill"></i> Vector Semantic Search Optimization
                         </div>
-                        <div class="card-body custom-form">
-                            @if (!empty($isSuperAdmin) && isset($workspaces) && count($workspaces) > 0)
-                                <div class="mb-3">
-                                    <label for="workspace_id" class="form-label custom-label">Target Workspace <span class="text-danger">*</span></label>
-                                    <select name="workspace_id" id="workspace_id" class="form-control custom-input single-select2 @error('workspace_id') is-invalid @enderror @error('workspace') is-invalid @enderror">
-                                        <option value="">Select Workspace</option>
-                                        @foreach ($workspaces as $ws)
-                                            <option value="{{ $ws->id }}" {{ old('workspace_id') == $ws->id ? 'selected' : '' }}>
-                                                {{ $ws->name }}
-                                            </option>
-                                        @endforeach
-                                    </select>
-                                    @error('workspace_id')
-                                        <div class="error_msg">{{ $message }}</div>
-                                    @enderror
-                                    @error('workspace')
-                                        <div class="error_msg">{{ $message }}</div>
-                                    @enderror
-                                </div>
-                            @endif
-
-                            <div class="mb-3">
-                                <label for="document_type" class="form-label custom-label">Policy / Document Type <span class="text-danger">*</span></label>
-                                <select name="document_type" id="document_type" class="form-control custom-input single-select2 @error('document_type') is-invalid @enderror">
-                                    <option value="faq" {{ old('document_type') == 'faq' ? 'selected' : '' }}>General FAQ</option>
-                                    <option value="refund_policy" {{ old('document_type') == 'refund_policy' ? 'selected' : '' }}>Refund Policy</option>
-                                    <option value="return_policy" {{ old('document_type') == 'return_policy' ? 'selected' : '' }}>Return Policy</option>
-                                    <option value="exchange_policy" {{ old('document_type') == 'exchange_policy' ? 'selected' : '' }}>Exchange Policy</option>
-                                    <option value="delivery_policy" {{ old('document_type') == 'delivery_policy' ? 'selected' : '' }}>Delivery Policy</option>
-                                    <option value="payment_policy" {{ old('document_type') == 'payment_policy' ? 'selected' : '' }}>Payment Policy</option>
-                                    <option value="cancellation_policy" {{ old('document_type') == 'cancellation_policy' ? 'selected' : '' }}>Cancellation Policy</option>
-                                    <option value="warranty_policy" {{ old('document_type') == 'warranty_policy' ? 'selected' : '' }}>Warranty Policy</option>
-                                    <option value="terms" {{ old('document_type') == 'terms' ? 'selected' : '' }}>Terms & Conditions</option>
-                                    <option value="privacy_policy" {{ old('document_type') == 'privacy_policy' ? 'selected' : '' }}>Privacy Policy</option>
-                                    <option value="about_us" {{ old('document_type') == 'about_us' ? 'selected' : '' }}>About Us</option>
-                                    <option value="contact" {{ old('document_type') == 'contact' ? 'selected' : '' }}>Contact Information</option>
-                                    <option value="customer_support" {{ old('document_type') == 'customer_support' ? 'selected' : '' }}>Customer Support Desk</option>
-                                    <option value="social_media_policy" {{ old('document_type') == 'social_media_policy' ? 'selected' : '' }}>Social Media Policy</option>
-                                </select>
-                                @error('document_type')
-                                    <div class="error_msg">{{ $message }}</div>
-                                @enderror
-                            </div>
-
-
-                            <div class="mb-3">
-                                <label for="priority" class="form-label custom-label">Priority</label>
-                                <input type="number" class="form-control custom-input @error('priority') is-invalid @enderror" name="priority" id="priority" value="{{ old('priority', 0) }}" min="0">
-                                @error('priority')
-                                    <div class="error_msg">{{ $message }}</div>
-                                @enderror
-                            </div>
-
-                            <div class="mb-3">
-                                <label class="form-label custom-label d-block">Status</label>
-                                <div class="form-check form-switch">
-                                    <input class="form-check-input" type="checkbox" name="is_active" id="is_active" value="1" checked>
-                                    <label class="form-check-label" for="is_active">Active</label>
-                                </div>
-                            </div>
-
-                            <div class="mb-3 p-3" style="background-color: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px;">
-                                <div class="d-flex align-items-center mb-1 text-success fw-bold small">
-                                    <i class="ri-sparkling-fill me-1"></i> MPNet AI Model Guidance
-                                </div>
-                                <p class="text-muted mb-2" style="font-size: 11px; line-height: 1.4;">
-                                    Optimized for <strong>paraphrase-multilingual-mpnet-base-v2</strong>. Real business model best practices:
-                                </p>
-                                <ul class="text-muted ps-3 mb-0" style="font-size: 11px; line-height: 1.4;">
-                                    <li class="mb-1"><strong>সাধারণ FAQs:</strong> ১–২ প্যারাগ্রাফের স্পেসিফিক সরাসরি উত্তর দিন (Max 250 words)।</li>
-                                    <li class="mb-1"><strong>পলিসি (Policies):</strong> পুরো হ্যান্ডবুক একসাথে না দিয়ে ক্যাটাগরিভিত্তিক (রিফান্ড, ডেলিভারি, ওয়ারেন্টি) আলাদা এন্ট্রি হিসেবে দিন।</li>
-                                    <li><strong>বিজনেস ইনফো:</strong> About Us, Contact Desk, ব্রাঞ্চ ও হেল্পলাইন স্পষ্টভাবে আলাদা এন্ট্রি হিসেবে দিন।</li>
-                                </ul>
-                            </div>
-
-                            <div class="form-actions">
-                                <div class="row">
-                                    <div class="col-6">
-                                        <button type="submit" class="btn submit-button">Save
-                                            <span class="ms-1 spinner-border spinner-border-sm d-none" role="status"></span>
-                                        </button>
-                                    </div>
-                                    <div class="col-6">
-                                        <a href="{{ route('knowledge-base.index', ['tab' => 'faqs']) }}" class="btn cancel-button">Cancel</a>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+                        <p class="text-2xs text-text-secondary leading-relaxed">
+                            Content is automatically vectorized using <strong>paraphrase-multilingual-mpnet-base-v2</strong>. Write factual, affirmative answers. Negative assertions about unrelated products are discouraged to maintain clean retrieval semantics.
+                        </p>
                     </div>
                 </div>
             </div>
-        </form>
-    </div>
+
+            {{-- Sidebar Classification & Actions --}}
+            <div class="space-y-4">
+                <div class="app-card">
+                    <div class="app-card-header">
+                        <h2 class="text-xs font-semibold text-text-primary uppercase tracking-wider">Classification & Settings</h2>
+                    </div>
+                    <div class="app-card-body space-y-3.5">
+                        @if (!empty($isSuperAdmin) && isset($workspaces) && count($workspaces) > 0)
+                            <div>
+                                <label for="workspace_id" class="block text-xs font-medium text-text-secondary mb-1">Target Workspace <span class="text-rose-500">*</span></label>
+                                <select name="workspace_id" id="workspace_id" class="app-select w-full @error('workspace_id') border-rose-500 @enderror" required>
+                                    <option value="">Select Workspace</option>
+                                    @foreach ($workspaces as $ws)
+                                        <option value="{{ $ws->id }}" {{ old('workspace_id') == $ws->id ? 'selected' : '' }}>
+                                            {{ $ws->name }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                                @error('workspace_id')
+                                    <p class="text-rose-500 text-2xs mt-1">{{ $message }}</p>
+                                @enderror
+                            </div>
+                        @endif
+
+                        <div>
+                            <label for="document_type" class="block text-xs font-medium text-text-secondary mb-1">Document Category <span class="text-rose-500">*</span></label>
+                            <select name="document_type" id="document_type" class="app-select w-full @error('document_type') border-rose-500 @enderror" required>
+                                <option value="faq" {{ old('document_type') == 'faq' ? 'selected' : '' }}>General FAQ</option>
+                                <option value="refund_policy" {{ old('document_type') == 'refund_policy' ? 'selected' : '' }}>Refund Policy</option>
+                                <option value="return_policy" {{ old('document_type') == 'return_policy' ? 'selected' : '' }}>Return Policy</option>
+                                <option value="exchange_policy" {{ old('document_type') == 'exchange_policy' ? 'selected' : '' }}>Exchange Policy</option>
+                                <option value="delivery_policy" {{ old('document_type') == 'delivery_policy' ? 'selected' : '' }}>Delivery Policy</option>
+                                <option value="payment_policy" {{ old('document_type') == 'payment_policy' ? 'selected' : '' }}>Payment Policy</option>
+                                <option value="cancellation_policy" {{ old('document_type') == 'cancellation_policy' ? 'selected' : '' }}>Cancellation Policy</option>
+                                <option value="warranty_policy" {{ old('document_type') == 'warranty_policy' ? 'selected' : '' }}>Warranty Policy</option>
+                                <option value="terms" {{ old('document_type') == 'terms' ? 'selected' : '' }}>Terms & Conditions</option>
+                                <option value="privacy_policy" {{ old('document_type') == 'privacy_policy' ? 'selected' : '' }}>Privacy Policy</option>
+                                <option value="about_us" {{ old('document_type') == 'about_us' ? 'selected' : '' }}>About Us</option>
+                                <option value="contact" {{ old('document_type') == 'contact' ? 'selected' : '' }}>Contact Information</option>
+                                <option value="customer_support" {{ old('document_type') == 'customer_support' ? 'selected' : '' }}>Customer Support Desk</option>
+                                <option value="social_media_policy" {{ old('document_type') == 'social_media_policy' ? 'selected' : '' }}>Social Media Policy</option>
+                            </select>
+                            @error('document_type')
+                                <p class="text-rose-500 text-2xs mt-1">{{ $message }}</p>
+                            @enderror
+                        </div>
+
+                        <div>
+                            <label for="priority" class="block text-xs font-medium text-text-secondary mb-1">Index Priority</label>
+                            <input type="number" class="app-input w-full @error('priority') border-rose-500 @enderror" name="priority" id="priority" value="{{ old('priority', 0) }}" min="0">
+                            @error('priority')
+                                <p class="text-rose-500 text-2xs mt-1">{{ $message }}</p>
+                            @enderror
+                        </div>
+
+                        <div class="flex items-center gap-2 pt-1">
+                            <input type="checkbox" name="is_active" id="is_active" value="1" class="rounded border-border text-brand-primary focus:ring-brand-primary" checked>
+                            <label for="is_active" class="text-xs font-medium text-text-primary select-none cursor-pointer">
+                                Active & Searchable Immediately
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                {{-- Action Buttons --}}
+                <div class="app-card">
+                    <div class="app-card-header">
+                        <h2 class="text-xs font-semibold text-text-primary uppercase tracking-wider">Publish Entry</h2>
+                    </div>
+                    <div class="app-card-body space-y-2">
+                        <button type="submit" class="app-btn app-btn-primary w-full justify-center">
+                            <i class="ri-check-line"></i> Save & Index FAQ
+                        </button>
+                        <a href="{{ route('knowledge-base.index', ['tab' => 'faqs']) }}" class="app-btn app-btn-secondary w-full justify-center">
+                            Cancel
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
 @endsection
 
 @push('custom-scripts')
-    @if (Session::has('success'))
-        <script>
-            swal("success", "{{ Session::get('success') }}", "success", {
-                timer: 1000,
-                button: false,
-            });
-        </script>
-    @endif
-
-    <script>
-        function updateWordCount() {
-            var val = $('#answer').val() || '';
-            var words = val.trim().split(/\s+/).filter(Boolean);
-            var count = words.length;
-            $('#answerWordCount').text(count.toLocaleString());
-            var badge = $('#answerWordCountBadge');
-            if (count > 250) {
-                badge.removeClass('text-muted text-warning').addClass('text-danger fw-bold');
-            } else if (count > 200) {
-                badge.removeClass('text-muted text-danger').addClass('text-warning fw-bold');
-            } else {
-                badge.removeClass('text-danger text-warning').addClass('text-muted');
-            }
+<script>
+    function updateWordCount() {
+        var val = document.getElementById('answer').value || '';
+        var words = val.trim().split(/\s+/).filter(Boolean);
+        var count = words.length;
+        document.getElementById('answerWordCount').textContent = count.toLocaleString();
+        var badge = document.getElementById('answerWordCountBadge');
+        if (count > 250) {
+            badge.className = 'text-2xs text-rose-500 font-bold';
+        } else if (count > 200) {
+            badge.className = 'text-2xs text-amber-500 font-semibold';
+        } else {
+            badge.className = 'text-2xs text-text-muted font-medium';
         }
-        $(document).ready(function () {
-            $('#answer').on('input propertychange', updateWordCount);
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        var answerEl = document.getElementById('answer');
+        if (answerEl) {
+            answerEl.addEventListener('input', updateWordCount);
             updateWordCount();
-        });
-    </script>
+        }
+    });
+</script>
 @endpush

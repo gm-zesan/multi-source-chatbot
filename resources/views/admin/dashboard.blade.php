@@ -4,359 +4,287 @@
     Dashboard
 @endsection
 
-@push('custom-style')
-<style>
-    .dash-hero-card {
-        background: linear-gradient(135deg, #eff6ff 0%, #ffffff 60%, #f0fdf4 100%);
-        border: 1px solid #dbeafe;
-        border-radius: 14px;
-        padding: 1.5rem 1.75rem;
-    }
-    .stat-card-modern {
-        border-radius: 12px;
-        border: 1px solid #e2e8f0;
-        background: #ffffff;
-        transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-        position: relative;
-        overflow: hidden;
-    }
-    .stat-card-modern:hover {
-        transform: translateY(-3px);
-        box-shadow: 0 10px 20px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -4px rgba(0, 0, 0, 0.03);
-        border-color: #cbd5e1;
-    }
-    .stat-icon-wrapper {
-        width: 48px;
-        height: 48px;
-        border-radius: 10px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 1.35rem;
-    }
-    .stat-val {
-        font-size: 1.85rem;
-        font-weight: 700;
-        line-height: 1.2;
-        color: #0f172a;
-    }
-    .stat-label-text {
-        font-size: 0.82rem;
-        font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        color: #64748b;
-    }
-    .queue-box {
-        background: #f8fafc;
-        border: 1px solid #e2e8f0;
-        border-radius: 10px;
-        padding: 1.15rem;
-        transition: all 0.2s ease;
-    }
-    .queue-box:hover {
-        background: #ffffff;
-        border-color: #3b82f6;
-        box-shadow: 0 4px 12px rgba(59, 130, 246, 0.08);
-    }
-</style>
-@endpush
-
 @section('content')
-<div class="container-fluid py-2">
+<div class="space-y-4">
     {{-- Hero Welcome Banner --}}
-    <div class="dash-hero-card mb-4 shadow-sm">
-        <div class="row align-items-center g-3">
-            <div class="col-lg-8 col-12">
-                <div class="d-flex align-items-center gap-2 mb-2">
-                    <span class="badge badge-soft-primary px-3 py-1.5 rounded-pill small fw-semibold">
-                        <i class="ri-radar-line me-1"></i> System Operational
-                    </span>
-                    <span class="text-muted small">Multi-Tenant AI Business Platform</span>
-                </div>
-                <h4 class="fw-bold text-dark mb-1">
-                    Welcome back, {{ Auth::user()->name }}! 👋
-                </h4>
-                <p class="text-muted small mb-0">
-                    Real-time omnichannel customer support queue, automated FAQ vector engine, and conversational memory diagnostics.
-                </p>
+    <div class="app-card p-3 sm:p-4 flex flex-col md:flex-row md:items-center justify-between gap-3">
+        <div class="space-y-1">
+            <div class="flex items-center gap-2">
+                <span class="app-badge app-badge-primary">
+                    <i class="ri-radar-line"></i> Operational
+                </span>
+                <span class="text-2xs text-light-muted dark:text-dark-muted">Multi-Tenant AI Business Platform</span>
             </div>
-            <div class="col-lg-4 col-12 text-lg-end">
-                <div class="d-flex flex-wrap gap-2 justify-content-lg-end">
-                    <a href="{{ route('analytics.index') }}" class="btn btn-outline-primary btn-sm d-inline-flex align-items-center gap-1 shadow-sm">
-                        <i class="ri-bar-chart-2-line"></i> BI Analytics
-                    </a>
-                    <a href="{{ route('widget.manage') }}" class="btn btn-outline-secondary btn-sm d-inline-flex align-items-center gap-1 shadow-sm">
-                        <i class="ri-message-3-line"></i> Chat Widget
-                    </a>
-                    <a href="{{ route('simulator.index') }}" class="btn btn-primary btn-sm d-inline-flex align-items-center gap-1 shadow-sm">
-                        <i class="ri-robot-2-line"></i> Chat Simulator
-                    </a>
-                </div>
-            </div>
+            <h1 class="text-base sm:text-lg font-bold text-light-text dark:text-dark-text">
+                Welcome back, {{ Auth::user()->name }}! 👋
+            </h1>
+            <p class="text-xs text-light-text-secondary dark:text-dark-text-secondary">
+                Real-time omnichannel customer support queue, automated FAQ vector engine, and conversational memory diagnostics.
+            </p>
+        </div>
+        <div class="flex items-center gap-2 flex-wrap">
+            <a href="{{ route('analytics.index') }}" class="app-btn app-btn-secondary">
+                <i class="ri-bar-chart-2-line text-xs"></i>
+                <span>BI Analytics</span>
+            </a>
+            <a href="{{ route('widget.manage') }}" class="app-btn app-btn-secondary">
+                <i class="ri-code-s-slash-line text-xs"></i>
+                <span>Web Widget</span>
+            </a>
+            <a href="{{ route('simulator.index') }}" class="app-btn app-btn-primary">
+                <i class="ri-robot-2-line text-xs"></i>
+                <span>Simulator</span>
+            </a>
         </div>
     </div>
 
-    {{-- Top 4 KPI Stat Cards --}}
-    <div class="row g-3 mb-4">
-        {{-- Conversations Card --}}
-        <div class="col-xl-3 col-md-6 col-12">
-            <div class="stat-card-modern p-4 h-100">
-                <div class="d-flex justify-content-between align-items-start mb-2">
-                    <div>
-                        <div class="stat-label-text">Total Conversations</div>
-                        <div class="stat-val mt-1">{{ number_format($metrics['conversation']['total_conversations']) }}</div>
-                    </div>
-                    <div class="icon-box-primary">
-                        <i class="ri-message-3-line"></i>
-                    </div>
-                </div>
-                <div class="d-flex align-items-center gap-2 mt-3 pt-2 border-top">
-                    <span class="badge badge-soft-success">
-                        <i class="ri-checkbox-circle-line me-0.5"></i> {{ $metrics['conversation']['open_conversations'] }} Open
-                    </span>
-                    <small class="text-muted">Active support threads</small>
-                </div>
-            </div>
-        </div>
-
-        {{-- Messages Activity Card --}}
-        <div class="col-xl-3 col-md-6 col-12">
-            <div class="stat-card-modern p-4 h-100">
-                <div class="d-flex justify-content-between align-items-start mb-2">
-                    <div>
-                        <div class="stat-label-text">All Messages</div>
-                        <div class="stat-val mt-1">{{ number_format($metrics['conversation']['total_messages']) }}</div>
-                    </div>
-                    <div class="icon-box-success">
-                        <i class="ri-chat-check-line"></i>
-                    </div>
-                </div>
-                <div class="d-flex align-items-center gap-2 mt-3 pt-2 border-top">
-                    <span class="badge badge-soft-primary">
-                        +{{ $metrics['conversation']['today_messages'] }} today
-                    </span>
-                    <small class="text-muted">Inbound & outbound</small>
-                </div>
-            </div>
-        </div>
-
-        {{-- Knowledge Base Card --}}
-        <div class="col-xl-3 col-md-6 col-12">
-            <div class="stat-card-modern p-4 h-100">
-                <div class="d-flex justify-content-between align-items-start mb-2">
-                    <div>
-                        <div class="stat-label-text">Knowledge Base</div>
-                        <div class="stat-val mt-1">{{ number_format($metrics['faq']['total_faqs']) }}</div>
-                    </div>
-                    <div class="icon-box-info">
-                        <i class="ri-book-open-line"></i>
-                    </div>
-                </div>
-                <div class="d-flex align-items-center gap-2 mt-3 pt-2 border-top">
-                    <span class="badge badge-soft-info">
-                        {{ $metrics['faq']['active_faqs'] }} Active FAQs
-                    </span>
-                    <small class="text-muted">{{ number_format($metrics['faq']['total_hits']) }} views</small>
-                </div>
-            </div>
-        </div>
-
-        {{-- Unanswered Inquiries Card --}}
-        <div class="col-xl-3 col-md-6 col-12">
-            <div class="stat-card-modern p-4 h-100">
-                <div class="d-flex justify-content-between align-items-start mb-2">
-                    <div>
-                        <div class="stat-label-text">Pending Questions</div>
-                        <div class="stat-val mt-1 text-warning">{{ number_format($metrics['unanswered']['pending']) }}</div>
-                    </div>
-                    <div class="icon-box-warning">
-                        <i class="ri-question-mark"></i>
-                    </div>
-                </div>
-                <div class="d-flex align-items-center gap-2 mt-3 pt-2 border-top">
-                    <span class="badge badge-soft-warning">
-                        Requires Review
-                    </span>
-                    <small class="text-muted">{{ $metrics['unanswered']['total'] }} total logged</small>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    {{-- Queue Workers Ingestion Health Card --}}
-    <div class="card border-0 shadow-sm rounded-3 mb-4">
-        <div class="card-header bg-white border-bottom py-3 px-4 d-flex justify-content-between align-items-center">
-            <div class="d-flex align-items-center gap-2">
-                <div class="icon-box-primary" style="width: 36px; height: 36px; font-size: 1.1rem;">
-                    <i class="ri-hard-drive-3-line"></i>
-                </div>
+    {{-- Top 4 KPI Metrics --}}
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        {{-- Total Conversations --}}
+        <div class="app-card p-3.5 flex flex-col justify-between">
+            <div class="flex items-start justify-between">
                 <div>
-                    <h6 class="fw-bold mb-0 text-dark">Background Queues & Real-Time Processing</h6>
-                    <small class="text-muted">High-concurrency workers handling webhooks, CRM extraction, and vector index sync</small>
+                    <div class="text-2xs font-semibold uppercase tracking-wider text-light-muted dark:text-dark-muted">Total Conversations</div>
+                    <div class="text-xl font-bold tracking-tight text-light-text dark:text-dark-text mt-0.5">
+                        {{ number_format($metrics['conversation']['total_conversations']) }}
+                    </div>
+                </div>
+                <div class="w-8 h-8 rounded bg-brand-500/15 text-brand-500 flex items-center justify-center text-sm">
+                    <i class="ri-message-3-line"></i>
                 </div>
             </div>
-            <a href="{{ route('dashboard') }}" class="btn btn-outline-secondary btn-sm d-flex align-items-center gap-1 shadow-sm">
+            <div class="flex items-center gap-1.5 pt-2 mt-2 border-t border-light-border dark:border-dark-border text-2xs">
+                <span class="app-badge app-badge-success">
+                    <i class="ri-checkbox-circle-line"></i> {{ $metrics['conversation']['open_conversations'] }} Open
+                </span>
+                <span class="text-light-muted dark:text-dark-muted">Active support threads</span>
+            </div>
+        </div>
+
+        {{-- All Messages --}}
+        <div class="app-card p-3.5 flex flex-col justify-between">
+            <div class="flex items-start justify-between">
+                <div>
+                    <div class="text-2xs font-semibold uppercase tracking-wider text-light-muted dark:text-dark-muted">All Messages</div>
+                    <div class="text-xl font-bold tracking-tight text-light-text dark:text-dark-text mt-0.5">
+                        {{ number_format($metrics['conversation']['total_messages']) }}
+                    </div>
+                </div>
+                <div class="w-8 h-8 rounded bg-emerald-500/15 text-emerald-500 flex items-center justify-center text-sm">
+                    <i class="ri-chat-check-line"></i>
+                </div>
+            </div>
+            <div class="flex items-center gap-1.5 pt-2 mt-2 border-t border-light-border dark:border-dark-border text-2xs">
+                <span class="app-badge app-badge-primary">
+                    +{{ $metrics['conversation']['today_messages'] }} today
+                </span>
+                <span class="text-light-muted dark:text-dark-muted">Inbound & outbound</span>
+            </div>
+        </div>
+
+        {{-- Knowledge Base --}}
+        <div class="app-card p-3.5 flex flex-col justify-between">
+            <div class="flex items-start justify-between">
+                <div>
+                    <div class="text-2xs font-semibold uppercase tracking-wider text-light-muted dark:text-dark-muted">Knowledge Articles</div>
+                    <div class="text-xl font-bold tracking-tight text-light-text dark:text-dark-text mt-0.5">
+                        {{ number_format($metrics['faq']['total_faqs']) }}
+                    </div>
+                </div>
+                <div class="w-8 h-8 rounded bg-sky-500/15 text-sky-500 flex items-center justify-center text-sm">
+                    <i class="ri-book-open-line"></i>
+                </div>
+            </div>
+            <div class="flex items-center gap-1.5 pt-2 mt-2 border-t border-light-border dark:border-dark-border text-2xs">
+                <span class="app-badge app-badge-secondary">
+                    {{ $metrics['faq']['active_faqs'] }} Active FAQs
+                </span>
+                <span class="text-light-muted dark:text-dark-muted">{{ number_format($metrics['faq']['total_hits']) }} views</span>
+            </div>
+        </div>
+
+        {{-- Pending Inquiries --}}
+        <div class="app-card p-3.5 flex flex-col justify-between">
+            <div class="flex items-start justify-between">
+                <div>
+                    <div class="text-2xs font-semibold uppercase tracking-wider text-light-muted dark:text-dark-muted">Pending Inquiries</div>
+                    <div class="text-xl font-bold tracking-tight text-amber-500 mt-0.5">
+                        {{ number_format($metrics['unanswered']['pending']) }}
+                    </div>
+                </div>
+                <div class="w-8 h-8 rounded bg-amber-500/15 text-amber-500 flex items-center justify-center text-sm">
+                    <i class="ri-question-mark"></i>
+                </div>
+            </div>
+            <div class="flex items-center gap-1.5 pt-2 mt-2 border-t border-light-border dark:border-dark-border text-2xs">
+                <span class="app-badge app-badge-warning">
+                    Review Required
+                </span>
+                <span class="text-light-muted dark:text-dark-muted">{{ $metrics['unanswered']['total'] }} logged</span>
+            </div>
+        </div>
+    </div>
+
+    {{-- Background Queues & Processing Card --}}
+    <div class="app-card">
+        <div class="app-card-header">
+            <div class="flex items-center gap-2">
+                <i class="ri-hard-drive-3-line text-brand-500 text-sm"></i>
+                <div>
+                    <div class="text-xs font-semibold text-light-text dark:text-dark-text">Background Queues & Real-Time Processing</div>
+                    <div class="text-2xs text-light-muted dark:text-dark-muted">High-concurrency workers handling webhooks, CRM extraction, and vector index sync</div>
+                </div>
+            </div>
+            <a href="{{ route('dashboard') }}" class="app-btn app-btn-secondary text-2xs">
                 <i class="ri-refresh-line"></i> Refresh Queues
             </a>
         </div>
-        <div class="card-body p-4">
-            <div class="row g-3">
-                <div class="col-md-4 col-12">
-                    <div class="queue-box">
-                        <div class="d-flex justify-content-between align-items-center mb-2">
-                            <span class="fw-bold text-dark small"><i class="ri-messenger-line text-primary me-1"></i> Messenger / Omnichannel</span>
-                            <span class="badge badge-soft-primary small">Inbound Hook</span>
+        <div class="app-card-body space-y-3">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                {{-- Messenger Queue --}}
+                <div class="p-3 rounded border border-light-border dark:border-dark-border bg-light-canvas dark:bg-dark-canvas space-y-2">
+                    <div class="flex items-center justify-between text-xs">
+                        <span class="font-medium text-light-text dark:text-dark-text flex items-center gap-1.5">
+                            <i class="ri-messenger-line text-brand-500"></i> Omnichannel Hook
+                        </span>
+                        <span class="app-badge app-badge-primary">Webhook</span>
+                    </div>
+                    <div class="flex items-end justify-between pt-1">
+                        <div>
+                            <div class="text-2xs text-light-muted dark:text-dark-muted">Pending Jobs</div>
+                            <div class="text-lg font-bold text-light-text dark:text-dark-text">{{ $metrics['queue']['pending']['messenger'] }}</div>
                         </div>
-                        <div class="d-flex justify-content-between align-items-end mt-3">
-                            <div>
-                                <small class="text-muted d-block">Pending Jobs</small>
-                                <h4 class="fw-bold text-dark mb-0">{{ $metrics['queue']['pending']['messenger'] }}</h4>
-                            </div>
-                            <div class="text-end">
-                                <small class="text-danger d-block">Failed Jobs</small>
-                                <span class="fw-bold text-danger">{{ $metrics['queue']['failed']['messenger'] }}</span>
-                            </div>
+                        <div class="text-right">
+                            <div class="text-2xs text-red-500">Failed Jobs</div>
+                            <div class="text-xs font-semibold text-red-500">{{ $metrics['queue']['failed']['messenger'] }}</div>
                         </div>
                     </div>
                 </div>
 
-                <div class="col-md-4 col-12">
-                    <div class="queue-box">
-                        <div class="d-flex justify-content-between align-items-center mb-2">
-                            <span class="fw-bold text-dark small"><i class="ri-user-search-line text-success me-1"></i> CRM Entity Extractor</span>
-                            <span class="badge badge-soft-success small">Contact Sync</span>
+                {{-- CRM Queue --}}
+                <div class="p-3 rounded border border-light-border dark:border-dark-border bg-light-canvas dark:bg-dark-canvas space-y-2">
+                    <div class="flex items-center justify-between text-xs">
+                        <span class="font-medium text-light-text dark:text-dark-text flex items-center gap-1.5">
+                            <i class="ri-user-search-line text-emerald-500"></i> CRM Extractor
+                        </span>
+                        <span class="app-badge app-badge-success">Contact Sync</span>
+                    </div>
+                    <div class="flex items-end justify-between pt-1">
+                        <div>
+                            <div class="text-2xs text-light-muted dark:text-dark-muted">Pending Jobs</div>
+                            <div class="text-lg font-bold text-light-text dark:text-dark-text">{{ $metrics['queue']['pending']['crm'] }}</div>
                         </div>
-                        <div class="d-flex justify-content-between align-items-end mt-3">
-                            <div>
-                                <small class="text-muted d-block">Pending Jobs</small>
-                                <h4 class="fw-bold text-dark mb-0">{{ $metrics['queue']['pending']['crm'] }}</h4>
-                            </div>
-                            <div class="text-end">
-                                <small class="text-danger d-block">Failed Jobs</small>
-                                <span class="fw-bold text-danger">{{ $metrics['queue']['failed']['crm'] }}</span>
-                            </div>
+                        <div class="text-right">
+                            <div class="text-2xs text-red-500">Failed Jobs</div>
+                            <div class="text-xs font-semibold text-red-500">{{ $metrics['queue']['failed']['crm'] }}</div>
                         </div>
                     </div>
                 </div>
 
-                <div class="col-md-4 col-12">
-                    <div class="queue-box">
-                        <div class="d-flex justify-content-between align-items-center mb-2">
-                            <span class="fw-bold text-dark small"><i class="ri-brain-line text-info me-1"></i> FAQ Vector Indexer</span>
-                            <span class="badge badge-soft-info small">Typesense Sync</span>
+                {{-- FAQ Indexer --}}
+                <div class="p-3 rounded border border-light-border dark:border-dark-border bg-light-canvas dark:bg-dark-canvas space-y-2">
+                    <div class="flex items-center justify-between text-xs">
+                        <span class="font-medium text-light-text dark:text-dark-text flex items-center gap-1.5">
+                            <i class="ri-brain-line text-sky-500"></i> Vector Indexer
+                        </span>
+                        <span class="app-badge app-badge-secondary">Typesense Sync</span>
+                    </div>
+                    <div class="flex items-end justify-between pt-1">
+                        <div>
+                            <div class="text-2xs text-light-muted dark:text-dark-muted">Pending Jobs</div>
+                            <div class="text-lg font-bold text-light-text dark:text-dark-text">{{ $metrics['queue']['pending']['faq'] }}</div>
                         </div>
-                        <div class="d-flex justify-content-between align-items-end mt-3">
-                            <div>
-                                <small class="text-muted d-block">Pending Jobs</small>
-                                <h4 class="fw-bold text-dark mb-0">{{ $metrics['queue']['pending']['faq'] }}</h4>
-                            </div>
-                            <div class="text-end">
-                                <small class="text-danger d-block">Failed Jobs</small>
-                                <span class="fw-bold text-danger">{{ $metrics['queue']['failed']['faq'] }}</span>
-                            </div>
+                        <div class="text-right">
+                            <div class="text-2xs text-red-500">Failed Jobs</div>
+                            <div class="text-xs font-semibold text-red-500">{{ $metrics['queue']['failed']['faq'] }}</div>
                         </div>
                     </div>
                 </div>
             </div>
-            <div class="d-flex justify-content-between align-items-center mt-3 pt-3 border-top small text-muted">
-                <div>
-                    <i class="ri-check-line text-success me-1"></i> Overall Queue Status: 
-                    <strong class="text-dark">{{ $metrics['queue']['pending']['total'] }} pending</strong>
-                    &middot;
-                    <span class="{{ $metrics['queue']['failed']['total'] > 0 ? 'text-danger fw-bold' : 'text-muted' }}">
-                        {{ $metrics['queue']['failed']['total'] }} failed
-                    </span>
+
+            <div class="flex items-center justify-between pt-2 border-t border-light-border dark:border-dark-border text-2xs text-light-muted dark:text-dark-muted">
+                <div class="flex items-center gap-1.5">
+                    <i class="ri-checkbox-circle-fill text-emerald-500"></i>
+                    <span>Overall: <strong class="text-light-text dark:text-dark-text">{{ $metrics['queue']['pending']['total'] }} pending</strong></span>
+                    <span>&middot;</span>
+                    <span class="{{ $metrics['queue']['failed']['total'] > 0 ? 'text-red-500 font-semibold' : '' }}">{{ $metrics['queue']['failed']['total'] }} failed</span>
                 </div>
-                <code>queues: faq,default,documents,memory,telemetry</code>
+                <code class="px-1.5 py-0.5 rounded bg-light-elevated dark:bg-dark-elevated text-brand-500 font-mono">queues: faq,default,documents,memory,telemetry</code>
             </div>
         </div>
     </div>
 
     {{-- Bottom Two Columns: Knowledge Insights & Unanswered Funnel --}}
-    <div class="row g-3">
-        <div class="col-lg-6 col-12">
-            <div class="card border-0 shadow-sm rounded-3 h-100">
-                <div class="card-header bg-white border-bottom py-3 px-4 d-flex justify-content-between align-items-center">
-                    <h6 class="fw-bold mb-0 text-dark"><i class="ri-book-read-line me-1 text-primary"></i> Knowledge Base & Insights</h6>
-                    <a href="{{ route('faqs.index') }}" class="btn btn-sm btn-link text-primary text-decoration-none p-0">Manage FAQs &rarr;</a>
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-3">
+        {{-- Knowledge Base & Insights --}}
+        <div class="app-card flex flex-col justify-between">
+            <div class="app-card-header">
+                <div class="flex items-center gap-1.5 text-xs font-semibold text-light-text dark:text-dark-text">
+                    <i class="ri-book-read-line text-brand-500"></i>
+                    <span>Knowledge Base & Insights</span>
                 </div>
-                <div class="card-body p-4">
-                    <div class="row g-3 text-center mb-3">
-                        <div class="col-6 p-3 bg-light rounded-3">
-                            <h3 class="fw-bold text-primary mb-0">{{ $metrics['faq']['total_faqs'] }}</h3>
-                            <small class="text-muted">Total Knowledge Items</small>
+                <a href="{{ route('faqs.index') }}" class="text-brand-500 hover:text-brand-400 text-xs font-medium">Manage FAQs &rarr;</a>
+            </div>
+            <div class="app-card-body space-y-3">
+                <div class="grid grid-cols-2 gap-3 text-center">
+                    <div class="p-3 rounded border border-light-border dark:border-dark-border bg-light-canvas dark:bg-dark-canvas">
+                        <div class="text-lg font-bold text-brand-500">{{ $metrics['faq']['total_faqs'] }}</div>
+                        <div class="text-2xs text-light-muted dark:text-dark-muted">Total Knowledge Items</div>
+                    </div>
+                    <div class="p-3 rounded border border-light-border dark:border-dark-border bg-light-canvas dark:bg-dark-canvas">
+                        <div class="text-lg font-bold text-sky-500">{{ number_format($metrics['faq']['total_hits']) }}</div>
+                        <div class="text-2xs text-light-muted dark:text-dark-muted">Customer Answer Views</div>
+                    </div>
+                </div>
+
+                @if ($metrics['faq']['top_faq'])
+                    <div class="p-2.5 rounded border border-brand-500/20 bg-brand-500/10 space-y-1">
+                        <div class="flex items-center justify-between text-2xs font-semibold text-brand-500">
+                            <span><i class="ri-fire-fill text-amber-500 me-1"></i> Most Frequently Asked</span>
+                            <span class="px-1.5 py-0.5 rounded-full bg-brand-500 text-white font-mono">{{ number_format($metrics['faq']['top_faq']->hit_count) }} hits</span>
                         </div>
-                        <div class="col-6 p-3 bg-light rounded-3">
-                            <h3 class="fw-bold text-info mb-0">{{ number_format($metrics['faq']['total_hits']) }}</h3>
-                            <small class="text-muted">Customer Answer Views</small>
+                        <div class="text-xs font-medium text-light-text dark:text-dark-text truncate">
+                            "{{ Str::limit($metrics['faq']['top_faq']->question, 80) }}"
                         </div>
                     </div>
-                    @if ($metrics['faq']['top_faq'])
-                        <div class="p-3 rounded-3" style="background-color: #eff6ff; border: 1px solid #bfdbfe;">
-                            <div class="d-flex justify-content-between align-items-center mb-1">
-                                <small class="text-primary fw-bold"><i class="ri-fire-fill text-danger me-1"></i> Most Frequently Asked FAQ</small>
-                                <span class="badge bg-primary text-white rounded-pill px-2 py-0.5 small">{{ number_format($metrics['faq']['top_faq']->hit_count) }} views</span>
-                            </div>
-                            <div class="text-dark small fw-medium mt-1">
-                                "{{ Str::limit($metrics['faq']['top_faq']->question, 85) }}"
-                            </div>
-                        </div>
-                    @endif
-                </div>
+                @endif
             </div>
         </div>
 
-        <div class="col-lg-6 col-12">
-            <div class="card border-0 shadow-sm rounded-3 h-100">
-                <div class="card-header bg-white border-bottom py-3 px-4 d-flex justify-content-between align-items-center">
-                    <h6 class="fw-bold mb-0 text-dark"><i class="ri-question-answer-line me-1 text-warning"></i> Unanswered Questions Funnel</h6>
-                    <a href="{{ route('faqs.index') }}" class="btn btn-sm btn-link text-primary text-decoration-none p-0">Manage FAQs &rarr;</a>
+        {{-- Unanswered Questions Funnel --}}
+        <div class="app-card flex flex-col justify-between">
+            <div class="app-card-header">
+                <div class="flex items-center gap-1.5 text-xs font-semibold text-light-text dark:text-dark-text">
+                    <i class="ri-question-answer-line text-amber-500"></i>
+                    <span>Unanswered Questions Funnel</span>
                 </div>
-                <div class="card-body p-4">
-                    <div class="row g-2 text-center mb-3">
-                        <div class="col-3">
-                            <div class="p-3 rounded-3" style="background-color: #fffbeb; border: 1px solid #fde68a;">
-                                <h4 class="fw-bold text-warning mb-0">{{ $metrics['unanswered']['pending'] }}</h4>
-                                <small class="text-muted small">Pending</small>
-                            </div>
-                        </div>
-                        <div class="col-3">
-                            <div class="p-3 rounded-3" style="background-color: #f0fdfa; border: 1px solid #99f6e4;">
-                                <h4 class="fw-bold text-info mb-0">{{ $metrics['unanswered']['reviewed'] }}</h4>
-                                <small class="text-muted small">Reviewed</small>
-                            </div>
-                        </div>
-                        <div class="col-3">
-                            <div class="p-3 rounded-3" style="background-color: #ecfdf5; border: 1px solid #a7f3d0;">
-                                <h4 class="fw-bold text-success mb-0">{{ $metrics['unanswered']['answered'] }}</h4>
-                                <small class="text-muted small">Resolved</small>
-                            </div>
-                        </div>
-                        <div class="col-3">
-                            <div class="p-3 rounded-3" style="background-color: #f8fafc; border: 1px solid #e2e8f0;">
-                                <h4 class="fw-bold text-secondary mb-0">{{ $metrics['unanswered']['dismissed'] }}</h4>
-                                <small class="text-muted small">Dismissed</small>
-                            </div>
-                        </div>
+                <a href="{{ route('faqs.index') }}" class="text-brand-500 hover:text-brand-400 text-xs font-medium">Review &rarr;</a>
+            </div>
+            <div class="app-card-body space-y-3">
+                <div class="grid grid-cols-4 gap-2 text-center">
+                    <div class="p-2 rounded border border-amber-500/30 bg-amber-500/10">
+                        <div class="text-base font-bold text-amber-500">{{ $metrics['unanswered']['pending'] }}</div>
+                        <div class="text-2xs text-light-muted dark:text-dark-muted">Pending</div>
                     </div>
-                    <p class="text-muted small mb-0">
-                        Questions logged when customer inquiries fall outside existing knowledge articles. Reviewing these helps expand your FAQ embeddings coverage.
-                    </p>
+                    <div class="p-2 rounded border border-brand-500/30 bg-brand-500/10">
+                        <div class="text-base font-bold text-brand-500">{{ $metrics['unanswered']['reviewed'] }}</div>
+                        <div class="text-2xs text-light-muted dark:text-dark-muted">Reviewed</div>
+                    </div>
+                    <div class="p-2 rounded border border-emerald-500/30 bg-emerald-500/10">
+                        <div class="text-base font-bold text-emerald-500">{{ $metrics['unanswered']['answered'] }}</div>
+                        <div class="text-2xs text-light-muted dark:text-dark-muted">Resolved</div>
+                    </div>
+                    <div class="p-2 rounded border border-light-border dark:border-dark-border bg-light-canvas dark:bg-dark-canvas">
+                        <div class="text-base font-bold text-light-muted dark:text-dark-muted">{{ $metrics['unanswered']['dismissed'] }}</div>
+                        <div class="text-2xs text-light-muted dark:text-dark-muted">Dismissed</div>
+                    </div>
                 </div>
+
+                <p class="text-2xs text-light-muted dark:text-dark-muted">
+                    Questions logged when customer inquiries fall outside existing knowledge articles. Reviewing these expands bot coverage.
+                </p>
             </div>
         </div>
     </div>
 </div>
 @endsection
-
-@push('custom-scripts')
-    @if (Session::has('success'))
-        <script>
-            swal("Success", "{{ Session::get('success') }}", "success", {
-                timer: 1500,
-                button: false,
-            });
-        </script>
-    @endif
-@endpush

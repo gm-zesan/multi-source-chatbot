@@ -67,7 +67,29 @@
 
             <div class="message-bubble">
 
-                {{ $message->body }}
+                @php
+                    $displayBody = $message->body;
+                    $proposedFollowUp = null;
+                    if (is_string($displayBody) && str_starts_with(trim($displayBody), '{') && str_ends_with(trim($displayBody), '}')) {
+                        $decoded = json_decode(trim($displayBody), true);
+                        if (is_array($decoded) && isset($decoded['answer'])) {
+                            $displayBody = $decoded['answer'];
+                            if (!empty($decoded['proposed_follow_up'])) {
+                                $proposedFollowUp = $decoded['proposed_follow_up'];
+                            }
+                        }
+                    }
+                @endphp
+
+                <div class="message-text">
+                    {!! nl2br(e($displayBody)) !!}
+                </div>
+
+                @if(!empty($proposedFollowUp))
+                    <div class="mt-2 pt-1.5 border-t border-white/20 text-xs opacity-95">
+                        💡 {{ $proposedFollowUp }}
+                    </div>
+                @endif
 
                 <div class="message-meta">
 

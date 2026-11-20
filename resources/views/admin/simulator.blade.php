@@ -11,416 +11,411 @@
 
 
 @section('content')
-    <div class="container-fluid">
-        <!-- Simulator Main Layout -->
-        <div class="row simulator-container">
-            <!-- Left: Interactive Chat Window -->
-            <div class="col-lg-7 col-md-12 mb-3 mb-lg-0 h-100">
-                <div class="chat-card">
-                    <!-- Chat Header -->
-                    <div class="chat-header">
-                        <div class="d-flex align-items-center gap-3">
-                            <div>
-                                <h5 class="mb-0 fw-bold d-flex align-items-center gap-2" style="color: #0f172a;">
-                                    <i class="ri-robot-2-line text-primary"></i> AI Assistant
-                                </h5>
-                                <small class="text-muted" style="font-size: 11px;">Interactive test environment</small>
-                            </div>
+    <div class="h-[calc(100vh-80px)] flex flex-col p-0">
+        <!-- Simulator Main Layout: Full Width Interactive Chat Window -->
+        <div class="chat-card w-full h-full flex flex-col bg-light-surface dark:bg-dark-surface border border-light-border dark:border-dark-border rounded-lg shadow-2xs overflow-hidden">
+            <!-- Chat Header -->
+            <div class="chat-header flex flex-wrap md:flex-nowrap items-center justify-between p-3 border-b border-light-border dark:border-dark-border bg-light-surface dark:bg-dark-surface min-h-[58px] gap-2">
+                <div class="flex items-center gap-2.5 flex-wrap">
+                    <div>
+                        <h5 class="text-xs font-semibold text-light-text dark:text-dark-text flex items-center gap-1.5 mb-0">
+                            <i class="ri-robot-2-line text-brand-500"></i> AI Assistant
+                        </h5>
+                        <small class="text-2xs text-light-muted dark:text-dark-muted">Interactive test environment</small>
+                    </div>
 
-                            @if(isset($allWorkspaces) && $allWorkspaces->isNotEmpty())
-                                <div class="d-flex align-items-center gap-1 bg-white border border-primary-subtle px-2 py-1 rounded-2 shadow-sm" style="font-size: 12px;">
-                                    <i class="ri-building-4-line text-primary fs-6"></i>
-                                    <label for="simulatorWorkspaceSelect" class="small fw-bold text-muted mb-0 d-none d-md-inline">Workspace:</label>
-                                    <select id="simulatorWorkspaceSelect" class="form-select form-select-sm border-0 bg-transparent py-0 ps-1 pe-4 fw-semibold text-primary shadow-none" style="font-size: 12px; cursor: pointer; min-width: 150px;" onchange="onSimulatorWorkspaceChange(this.value)">
-                                        @foreach($allWorkspaces as $ws)
-                                            <option value="{{ $ws->id }}" {{ (isset($workspaceId) && $workspaceId == $ws->id) ? 'selected' : '' }}>
-                                                🏢 {{ $ws->name }} (#{{ $ws->id }})
+                    @if(isset($allWorkspaces) && $allWorkspaces->isNotEmpty())
+                        <div class="flex items-center gap-1 px-2 py-0.5 rounded-md border border-light-border dark:border-dark-border bg-light-canvas dark:bg-dark-canvas text-xs">
+                            <i class="ri-building-4-line text-brand-500 text-xs"></i>
+                            <select id="simulatorWorkspaceSelect" class="app-select !h-6.5 !py-0 !px-1 !text-2xs !bg-transparent !border-0 text-light-text dark:text-dark-text font-medium outline-none cursor-pointer" onchange="onSimulatorWorkspaceChange(this.value)">
+                                @foreach($allWorkspaces as $ws)
+                                    <option value="{{ $ws->id }}" class="bg-light-surface dark:bg-dark-surface text-light-text dark:text-dark-text" {{ (isset($workspaceId) && $workspaceId == $ws->id) ? 'selected' : '' }}>
+                                        🏢 {{ $ws->name }} (#{{ $ws->id }})
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+                    @elseif(isset($currentWorkspace))
+                        <span class="app-badge app-badge-secondary !text-2xs flex items-center gap-1">
+                            <i class="ri-building-4-line text-brand-500"></i> {{ $currentWorkspace->name }}
+                        </span>
+                    @endif
+                </div>
+                <div class="flex items-center gap-2 shrink-0">
+                    <button type="button"
+                        class="app-btn app-btn-outline !h-7.5 !text-xs !border-rose-500/30 text-rose-500 hover:bg-rose-500/10"
+                        onclick="clearSimulatorChat()">
+                        <i class="ri-delete-bin-line text-xs"></i> Clear
+                    </button>
+                    <button type="button" class="app-btn app-btn-secondary !h-7.5 !text-xs"
+                        data-bs-toggle="modal" data-bs-target="#usageWizardModal">
+                        <i class="ri-money-dollar-circle-line text-amber-500 text-xs"></i> Usage & Cost
+                    </button>
+                    <button type="button" class="app-btn app-btn-secondary !h-7.5 !text-xs flex items-center gap-1.5"
+                        id="openInspectorBtn" onclick="toggleDiagnosticsDrawer(true)" title="Inspect real-time pipeline trace & latencies">
+                        <i class="ri-cpu-line text-brand-500 text-xs"></i>
+                        <span class="hidden sm:inline">Pipeline Inspector</span>
+                        <span class="app-badge app-badge-primary !text-2xs font-mono" id="headerLatencyBadge">0 ms</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Messages area -->
+            <div class="chat-messages flex-1 overflow-y-auto p-4 space-y-3 bg-light-canvas dark:bg-dark-canvas" id="chatMessages">
+                <div class="message-bubble message-bot max-w-2xl bg-light-surface dark:bg-dark-surface border border-light-border dark:border-dark-border text-light-text dark:text-dark-text p-3 rounded-lg shadow-2xs text-xs">
+                    👋 Hi! I am your AI Chatbot simulator. Type any question or message below.
+                </div>
+            </div>
+
+            <!-- Input area -->
+            <div class="chat-input-area p-3 border-t border-light-border dark:border-dark-border bg-light-surface dark:bg-dark-surface">
+                <!-- Multi-Source Selection & Active Spreadsheet Bar -->
+                <div class="simulator-source-control mb-2 p-2 rounded-md border border-light-border dark:border-dark-border bg-light-elevated dark:bg-dark-elevated">
+                    <div class="flex flex-wrap items-center justify-between gap-2">
+                        <div class="flex items-center gap-2 flex-grow min-w-[260px]">
+                            <label for="simulatorSourceSelect" class="text-2xs font-semibold text-light-text-secondary dark:text-dark-text-secondary flex items-center gap-1 shrink-0 mb-0">
+                                <i class="ri-database-2-line text-brand-500"></i> Target Source:
+                            </label>
+                            <select id="simulatorSourceSelect" class="app-select !h-7.5 !text-xs flex-1 max-w-sm !bg-light-surface dark:!bg-dark-surface !border-light-border dark:!border-dark-border !text-light-text dark:!text-dark-text" onchange="onSourceSelectionChange(this.value)">
+                                <option value="" class="bg-light-surface dark:bg-dark-surface text-light-text dark:text-dark-text">🌐 Auto-detect Dataset (Typesense Smart Routing)</option>
+                                @if(isset($availableDocuments) && $availableDocuments->isNotEmpty())
+                                    <optgroup label="Workspace Spreadsheets (Generic Analytics)" class="bg-light-surface dark:bg-dark-surface text-light-text dark:text-dark-text">
+                                        @foreach($availableDocuments as $doc)
+                                            <option value="{{ $doc->source_id ?: $doc->id }}" class="bg-light-surface dark:bg-dark-surface text-light-text dark:text-dark-text"
+                                                {{ (!empty($activeSpreadsheet['file_id']) && ($activeSpreadsheet['file_id'] == $doc->source_id || $activeSpreadsheet['file_id'] == $doc->id)) ? 'selected' : '' }}>
+                                                📊 {{ $doc->original_filename ?: $doc->title }} ({{ $doc->sheets_count ?: 1 }} {{ \Illuminate\Support\Str::plural('sheet', $doc->sheets_count ?: 1) }})
                                             </option>
                                         @endforeach
-                                    </select>
-                                </div>
-                            @elseif(isset($currentWorkspace))
-                                <span class="badge bg-light text-secondary border d-flex align-items-center gap-1 py-1 px-2" style="font-size: 11px;">
-                                    <i class="ri-building-4-line text-primary"></i> {{ $currentWorkspace->name }}
-                                </span>
-                            @endif
-                        </div>
-                        <div class="d-flex align-items-center gap-2">
-
-                            <button type="button"
-                                class="btn btn-sm btn-outline-danger d-flex align-items-center gap-1 shadow-sm px-3"
-                                onclick="clearSimulatorChat()" style="font-size: 13px; border-radius: 6px;">
-                                <i class="ri-delete-bin-line"></i> Clear
-                            </button>
-                            <button type="button" class="btn btn-sm btn-dark d-flex align-items-center gap-1 shadow-sm px-3"
-                                data-bs-toggle="modal" data-bs-target="#usageWizardModal"
-                                style="font-size: 13px; border-radius: 6px;">
-                                <i class="ri-money-dollar-circle-line text-warning"></i> Usage & Cost
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- Messages area -->
-                    <div class="chat-messages" id="chatMessages">
-                        <div class="message-bubble message-bot">
-                            👋 Hi! I am your AI Chatbot simulator. Type any question or message below.
-                        </div>
-                    </div>
-
-                    <!-- Input area -->
-                    <div class="chat-input-area">
-                        <!-- Multi-Source Selection & Active Spreadsheet Bar -->
-                        <div class="simulator-source-control mb-2 p-2 rounded-3 bg-light border">
-                            <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
-                                <div class="d-flex align-items-center gap-2 flex-grow-1" style="min-width: 280px;">
-                                    <label for="simulatorSourceSelect" class="small fw-bold text-muted mb-0 d-flex align-items-center gap-1 text-nowrap">
-                                        <i class="ri-database-2-line text-primary"></i> Target Source:
-                                    </label>
-                                    <select id="simulatorSourceSelect" class="form-select form-select-sm border bg-white shadow-none" style="font-size: 13px; max-width: 320px;" onchange="onSourceSelectionChange(this.value)">
-                                        <option value="">🌐 Auto-detect Dataset (Typesense Smart Routing)</option>
-                                        @if(isset($availableDocuments) && $availableDocuments->isNotEmpty())
-                                            <optgroup label="Workspace Spreadsheets (Generic Analytics)">
-                                                @foreach($availableDocuments as $doc)
-                                                    <option value="{{ $doc->source_id ?: $doc->id }}" 
-                                                        {{ (!empty($activeSpreadsheet['file_id']) && ($activeSpreadsheet['file_id'] == $doc->source_id || $activeSpreadsheet['file_id'] == $doc->id)) ? 'selected' : '' }}>
-                                                        📊 {{ $doc->original_filename ?: $doc->title }} ({{ $doc->sheets_count ?: 1 }} {{ \Illuminate\Support\Str::plural('sheet', $doc->sheets_count ?: 1) }})
-                                                    </option>
-                                                @endforeach
-                                            </optgroup>
-                                        @endif
-                                    </select>
-                                </div>
-
-                                <div class="d-flex align-items-center gap-2">
-                                    <div id="activeSpreadsheetBar" class="{{ !empty($activeSpreadsheet['file_id']) ? '' : 'd-none' }}">
-                                        <div class="d-flex align-items-center gap-1">
-                                            <span class="badge bg-success-subtle text-success border border-success-subtle d-flex align-items-center gap-1 py-1 px-2">
-                                                <i class="ri-file-excel-2-fill"></i> <span id="activeSpreadsheetName" class="text-truncate" style="max-width: 140px;">{{ $activeSpreadsheet['filename'] ?? '' }}</span>
-                                            </span>
-                                            <span id="activeSpreadsheetAutoBadge" class="badge bg-primary text-white py-1 px-2 {{ !empty($activeSpreadsheet['auto_resolved']) ? '' : 'd-none' }}" title="Auto-detected by Typesense">
-                                                <i class="ri-sparkling-fill text-warning me-1"></i> Auto
-                                            </span>
-                                            <span id="activeSpreadsheetSheets" class="badge bg-secondary-subtle text-secondary small py-1 px-2">
-                                                {{ count($activeSpreadsheet['sheets'] ?? []) }} sheets
-                                            </span>
-                                            <button type="button" class="btn btn-sm btn-outline-danger py-0 px-1 rounded-circle" onclick="clearUploadedExcel()" title="Clear active document">
-                                                <i class="ri-close-line"></i>
-                                            </button>
-                                        </div>
-                                    </div>
-                                    <a href="{{ route('knowledge-base.index', ['tab' => 'data_sources']) }}" class="btn btn-sm btn-outline-secondary d-flex align-items-center gap-1 px-2 py-1" style="font-size: 12px;" title="View Documents Catalog & Schema">
-                                        <i class="ri-file-list-3-line"></i>
-                                        <span class="d-none d-sm-inline">Catalog</span>
-                                    </a>
-                                </div>
-                            </div>
+                                    </optgroup>
+                                @endif
+                            </select>
                         </div>
 
-                        <form id="chatForm" onsubmit="handleSend(event); return false;" class="d-flex gap-2 align-items-center">
-                            <input type="text" id="userInput" class="form-control form-control-lg fs-6"
-                                placeholder="Type your message or ask spreadsheet questions..." autocomplete="off" required>
-                            <button type="button" onclick="handleSend(event)" id="sendBtn"
-                                class="btn btn-primary px-4 d-flex align-items-center gap-1">
-                                <i class="ri-send-plane-fill"></i> Send
-                            </button>
-                        </form>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Right: Live Pipeline Diagnostics -->
-            <div class="col-lg-5 col-md-12 h-100">
-                <div class="diag-card">
-                    <div class="diag-header d-flex justify-content-between align-items-center">
-                        <div>
-                            <h6 class="mb-0 text-white fw-bold"><i class="ri-cpu-line me-1"></i> Pipeline Inspector</h6>
-                            <small class="text-white-50" style="font-size: 11px;">Real-time infrastructure trace</small>
-                        </div>
-                        <div class="d-flex align-items-center gap-2">
-                            <span class="status-badge status-none" id="totalTimeBadge">0 ms</span>
-                        </div>
-                    </div>
-
-                    <div class="diag-body" id="diagBody">
-                        <!-- Turn Decision Trace (Real-Time Multi-Turn Inspector) -->
-                        <div class="diag-section mb-3" id="turnDecisionTraceCard"
-                            style="background: #ffffff; border: 2px solid #3b82f6; border-radius: 10px; padding: 16px; box-shadow: 0 4px 14px rgba(59, 130, 246, 0.08);">
-                            <div class="d-flex align-items-center justify-content-between mb-2">
-                                <h6 class="fw-bold mb-0 text-primary d-flex align-items-center" style="font-size: 14px;">
-                                    <i class="ri-git-commit-line me-1"></i> Turn Decision Trace
-                                </h6>
-                                <span class="badge bg-primary" id="traceTurnBadge">Ready</span>
-                            </div>
-
-                            {{-- Turn History Navigation Pills --}}
-                            <div id="turnHistoryNav" class="d-flex align-items-center gap-1 mb-2 overflow-auto py-1"
-                                style="max-width: 100%;">
-                                <span class="text-muted small" style="font-size: 11px;">Send a message to view live turn
-                                    trace</span>
-                            </div>
-
-                            {{-- Query Box --}}
-                            <div class="p-2 mb-3 rounded"
-                                style="background: #f8fafc; border: 1px solid #e2e8f0; font-size: 13px;">
-                                <span class="text-muted small fw-bold d-block text-uppercase" style="font-size: 10px;">User
-                                    Query</span>
-                                <strong id="traceUserQuery" class="text-dark">"Waiting for user message..."</strong>
-                            </div>
-
-                            {{-- Decision Key Metrics Matrix --}}
-                            <div class="row g-2 mb-3" style="font-size: 12px;">
-                                <div class="col-6">
-                                    <div class="p-2 border rounded bg-white">
-                                        <span class="text-muted d-block small" style="font-size: 10px;">Route
-                                            Decision</span>
-                                        <span id="traceRouteBadge" class="route-pill chat mt-1">IDLE</span>
-                                    </div>
-                                </div>
-                                <div class="col-6">
-                                    <div class="p-2 border rounded bg-white">
-                                        <span class="text-muted d-block small" style="font-size: 10px;">Memory
-                                            Decision</span>
-                                        <span id="traceMemoryBadge" class="badge bg-secondary mt-1">IDLE</span>
-                                    </div>
-                                </div>
-                                <div class="col-6">
-                                    <div class="p-2 border rounded bg-white">
-                                        <span class="text-muted d-block small" style="font-size: 10px;">Contextual
-                                            Signal</span>
-                                        <strong id="traceContextSignal" class="text-dark mt-1 d-block"
-                                            style="font-size: 11px;">NONE</strong>
-                                    </div>
-                                </div>
-                                <div class="col-6">
-                                    <div class="p-2 border rounded bg-white">
-                                        <span class="text-muted d-block small" style="font-size: 10px;">Retrieval
-                                            Summary</span>
-                                        <strong id="traceRetrievalSummary" class="text-dark mt-1 d-block"
-                                            style="font-size: 11px;">0 hits</strong>
-                                    </div>
-                                </div>
-                                <div class="col-6">
-                                    <div class="p-2 border rounded bg-white">
-                                        <span class="text-muted d-block small" style="font-size: 10px;">Answerability
-                                            Gate</span>
-                                        <span id="traceGateBadge" class="badge bg-secondary mt-1">IDLE</span>
-                                    </div>
-                                </div>
-                                <div class="col-6">
-                                    <div class="p-2 border rounded bg-white">
-                                        <span class="text-muted d-block small" style="font-size: 10px;">Grounded Hit
-                                            Count</span>
-                                        <strong id="traceGroundedCount" class="text-success mt-1 d-block"
-                                            style="font-size: 11px;">0 Docs</strong>
-                                    </div>
+                        <div class="flex items-center gap-2 shrink-0">
+                            <div id="activeSpreadsheetBar" class="{{ !empty($activeSpreadsheet['file_id']) ? '' : 'd-none' }}">
+                                <div class="flex items-center gap-1.5">
+                                    <span class="app-badge app-badge-success !text-2xs flex items-center gap-1">
+                                        <i class="ri-file-excel-2-fill"></i> <span id="activeSpreadsheetName" class="truncate max-w-[120px]">{{ $activeSpreadsheet['filename'] ?? '' }}</span>
+                                    </span>
+                                    <span id="activeSpreadsheetAutoBadge" class="app-badge app-badge-primary !text-2xs {{ !empty($activeSpreadsheet['auto_resolved']) ? '' : 'd-none' }}" title="Auto-detected by Typesense">
+                                        <i class="ri-sparkling-fill text-amber-400"></i> Auto
+                                    </span>
+                                    <span id="activeSpreadsheetSheets" class="app-badge app-badge-secondary !text-2xs">
+                                        {{ count($activeSpreadsheet['sheets'] ?? []) }} sheets
+                                    </span>
+                                    <button type="button" class="text-rose-500 hover:text-rose-600 p-0.5" onclick="clearUploadedExcel()" title="Clear active document">
+                                        <i class="ri-close-line text-sm"></i>
+                                    </button>
                                 </div>
                             </div>
-
-
-                            {{-- LLM Generation & Latency Breakdown --}}
-                            <div class="p-2 rounded"
-                                style="background: #f1f5f9; border: 1px solid #e2e8f0; font-size: 12px;">
-                                <div class="d-flex justify-content-between mb-1">
-                                    <span class="text-muted small">LLM Generation:</span>
-                                    <strong id="traceLlmStatus" class="text-dark small">Ready</strong>
-                                </div>
-                                <hr class="my-1" style="border-color: #cbd5e1;">
-                                <div class="row g-1 text-center small mt-1">
-                                    <div class="col-3 border-end">
-                                        <span class="text-muted d-block" style="font-size: 10px;">Router</span>
-                                        <strong id="latRouter">0 ms</strong>
-                                    </div>
-                                    <div class="col-3 border-end">
-                                        <span class="text-muted d-block" style="font-size: 10px;">Retrieval</span>
-                                        <strong id="latRetrieval">0 ms</strong>
-                                    </div>
-                                    <div class="col-3 border-end">
-                                        <span class="text-muted d-block" style="font-size: 10px;">LLM</span>
-                                        <strong id="latLlm">0 ms</strong>
-                                    </div>
-                                    <div class="col-3">
-                                        <span class="text-muted d-block" style="font-size: 10px;">Total E2E</span>
-                                        <strong id="latTotal" class="text-primary">0 ms</strong>
-                                    </div>
-                                </div>
-
-                                {{-- Granular Stage-Level Latency Tree --}}
-                                <div class="mt-2 pt-2 border-top"
-                                    style="border-color: #cbd5e1 !important; font-family: monospace; font-size: 11px;">
-                                    <div class="d-flex justify-content-between py-0.5">
-                                        <span>🧭 Router</span>
-                                        <strong id="latDetailedRouter">0 ms</strong>
-                                    </div>
-                                    <div class="d-flex justify-content-between py-0.5">
-                                        <span>🧠 Context Resolution</span>
-                                        <strong id="latDetailedContext">0 ms</strong>
-                                    </div>
-                                    <div class="d-flex justify-content-between py-0.5">
-                                        <span>💾 Memory Gate & Context</span>
-                                        <strong id="latDetailedMemory">0 ms</strong>
-                                    </div>
-                                    <div class="d-flex justify-content-between py-0.5">
-                                        <span>🔍 Knowledge Retrieval</span>
-                                        <strong id="latDetailedRetrieval" class="text-primary">0 ms</strong>
-                                    </div>
-                                    <div id="latRetrievalSubTree"
-                                        style="padding-left: 14px; color: #64748b; font-size: 10.5px;">
-
-                                        <div class="d-flex justify-content-between">
-                                            <span>├─ Embedding</span>
-                                            <span id="latEmbedding">0 ms</span>
-                                        </div>
-                                        <div class="d-flex justify-content-between">
-                                            <span>├─ Typesense Search</span>
-                                            <span id="latTypesense">0 ms</span>
-                                        </div>
-                                        <div class="d-flex justify-content-between">
-                                            <span>└─ Reranker</span>
-                                            <span id="latReranker">0 ms</span>
-                                        </div>
-                                    </div>
-                                    <div class="d-flex justify-content-between py-0.5">
-                                        <span>⚖️ Answerability Gate</span>
-                                        <strong id="latDetailedGate">0 ms</strong>
-                                    </div>
-                                    <div class="d-flex justify-content-between py-0.5">
-                                        <span>⚡ Live LLM Generation</span>
-                                        <strong id="latDetailedLlm" class="text-danger">0 ms</strong>
-                                    </div>
-                                    <div class="d-flex justify-content-between py-0.5 border-top mt-1 pt-1"
-                                        style="border-color: #cbd5e1 !important;">
-                                        <span class="fw-bold text-dark">⏱️ Total Pipeline (E2E)</span>
-                                        <strong id="latDetailedTotal" class="text-success fw-bold">0 ms</strong>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Step 0: Hybrid Router Capability Decision -->
-                        <div class="diag-section" style="background: #faf5ff; border-color: #e9d5ff;">
-                            <div class="diag-title" style="color: #7e22ce;">
-                                <span><i class="ri-compass-3-line me-1"></i> 0. Hybrid Router Capability</span>
-                                <span class="route-pill chat" id="routerBadge">Idle</span>
-                            </div>
-                            <div id="routerResults">
-                                <div class="d-flex justify-content-between small text-muted">
-                                    <span>Route: <strong id="routerRoute" class="text-dark">N/A</strong></span>
-                                    <span>Intent: <strong id="routerIntent" class="text-dark">None</strong></span>
-                                </div>
-                                <div class="d-flex justify-content-between small text-muted mt-1">
-                                    <span>Router Latency: <strong id="routerLatency">0 ms</strong></span>
-                                    <span>Confidence: <strong id="routerConfidence">0%</strong></span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Step 1: CRM Entity Extraction -->
-                        <div class="diag-section">
-                            <div class="diag-title text-purple">
-                                <span><i class="ri-contacts-book-2-line me-1"></i> 1. Contact / CRM Extractor</span>
-                                <span class="status-badge status-none" id="crmBadge">No Data</span>
-                            </div>
-                            <div id="crmResults">
-                                <span class="text-muted small">Send a message to view extracted emails/phones.</span>
-                            </div>
-                        </div>
-
-                        <!-- Step 2: Python Embedding Service -->
-                        <div class="diag-section">
-                            <div class="diag-title text-primary">
-                                <span><i class="ri-code-s-slash-line me-1"></i> 2. Python FastAPI Embedding</span>
-                                <span class="status-badge status-none" id="pyBadge">Idle</span>
-                            </div>
-                            <div id="pyResults">
-                                <div class="d-flex justify-content-between small text-muted">
-                                    <span>Model: <strong id="pyModel">paraphrase-multilingual-mpnet-base-v2</strong></span>
-                                    <span>Dims: <strong id="pyDims">768</strong></span>
-                                </div>
-                                <div class="small text-muted mt-1" id="pyVectorSample">Vector: [ Waiting for request... ]
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Step 3: Typesense Hybrid Search -->
-                        <div class="diag-section">
-                            <div class="diag-title text-info">
-                                <span><i class="ri-search-eye-line me-1"></i> 3. Typesense Search Engine</span>
-                                <span class="status-badge status-none" id="tsBadge">Idle</span>
-                            </div>
-                            <div id="tsResults">
-                                <div class="d-flex justify-content-between small text-muted">
-                                    <span>Match Type: <strong id="tsMatchType" class="text-dark">N/A</strong></span>
-                                    <span>Matched FAQ ID: <strong id="tsFaqId">None</strong></span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Step 4: Scoring Breakdown & Confidence -->
-                        <div class="diag-section">
-                            <div class="diag-title text-success">
-                                <span><i class="ri-bar-chart-grouped-line me-1"></i> 4. Confidence & Auto-Reply</span>
-                                <span class="status-badge status-none" id="scoreBadge">0.0%</span>
-                            </div>
-                            <div id="scoreResults">
-                                <div class="mb-2">
-                                    <div class="d-flex justify-content-between small">
-                                        <span>Keyword Score:</span>
-                                        <strong id="kwScoreText">0%</strong>
-                                    </div>
-                                    <div class="score-progress">
-                                        <div class="score-bar" id="kwBar" style="width: 0%; background: #3b82f6;"></div>
-                                    </div>
-                                </div>
-                                <div class="mb-2">
-                                    <div class="d-flex justify-content-between small">
-                                        <span>Semantic Score:</span>
-                                        <strong id="semScoreText">0%</strong>
-                                    </div>
-                                    <div class="score-progress">
-                                        <div class="score-bar" id="semBar" style="width: 0%; background: #8b5cf6;"></div>
-                                    </div>
-                                </div>
-                                <div>
-                                    <div class="d-flex justify-content-between small">
-                                        <span>Final Confidence Score:</span>
-                                        <strong id="finalScoreText" class="text-success">0%</strong>
-                                    </div>
-                                    <div class="score-progress">
-                                        <div class="score-bar" id="finalBar" style="width: 0%; background: #10b981;"></div>
-                                    </div>
-                                    <div class="small text-muted mt-1 text-end">Threshold: 40.0%</div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Step 5: Semantic Answerability & Safety Gate (Tier 4) -->
-                        <div class="diag-section" style="background: #f0fdf4; border-color: #bbf7d0;">
-                            <div class="diag-title" style="color: #166534;">
-                                <span><i class="ri-shield-check-line me-1"></i> 5. Semantic Answerability Gate</span>
-                                <span class="status-badge status-none" id="gateBadge">IDLE</span>
-                            </div>
-                            <div id="gateResults">
-                                <div class="d-flex justify-content-between small text-muted mb-1">
-                                    <span>Gate Decision: <strong id="gateStatusText" class="text-dark">N/A</strong></span>
-                                    <span>Confidence: <strong id="gateConfidenceText">0.0%</strong></span>
-                                </div>
-                                <div class="d-flex justify-content-between small text-muted mb-1">
-                                    <span>Barrier Rule: <strong id="gateRuleText" class="text-dark">None</strong></span>
-                                    <span>Score Margin: <strong id="gateMarginText">0.00</strong></span>
-                                </div>
-                                <div class="small text-muted mt-2">
-                                    <span>Grounded Hits Authorized: <strong id="gateGroundedCount"
-                                            class="text-success">0</strong></span>
-                                    <div id="gateGroundedDocs" class="mt-1"></div>
-                                </div>
-                            </div>
+                            <a href="{{ route('knowledge-base.index', ['tab' => 'data_sources']) }}" class="app-btn app-btn-secondary !h-7.5 !text-xs flex items-center gap-1" title="View Documents Catalog & Schema">
+                                <i class="ri-file-list-3-line text-xs"></i>
+                                <span class="hidden sm:inline">Catalog</span>
+                            </a>
                         </div>
                     </div>
                 </div>
+
+                <form id="chatForm" onsubmit="handleSend(event); return false;" class="flex gap-2 items-center">
+                    <input type="text" id="userInput" class="app-input flex-1 !h-10 !text-xs bg-light-surface dark:bg-dark-surface border-light-border dark:border-dark-border text-light-text dark:text-dark-text placeholder:text-light-muted dark:placeholder:text-dark-muted"
+                        placeholder="Type your message or ask spreadsheet questions..." autocomplete="off" required>
+                    <button type="button" onclick="handleSend(event)" id="sendBtn"
+                        class="app-btn app-btn-primary !h-10 px-4 !text-xs flex items-center gap-1 shrink-0">
+                        <i class="ri-send-plane-fill text-xs"></i> <span>Send</span>
+                    </button>
+                </form>
             </div>
         </div>
+
+        <!-- Pipeline Inspector Slide-Over Backdrop -->
+        <div id="diagnosticsBackdrop"
+            class="fixed inset-0 bg-black/50 backdrop-blur-[2px] z-40 hidden transition-opacity duration-200"
+            onclick="toggleDiagnosticsDrawer(false)">
+        </div>
+
+        <!-- Pipeline Inspector Slide-Over Drawer -->
+        <aside id="diagnosticsDrawer"
+            class="diag-card fixed inset-y-0 right-0 w-full sm:w-[500px] lg:w-[540px] bg-light-surface dark:bg-dark-surface border-l border-light-border dark:border-dark-border z-50 flex flex-col shadow-2xl translate-x-full transition-transform duration-300 ease-in-out"
+            aria-label="Pipeline Inspector">
+            <!-- Drawer Header -->
+            <div class="diag-header flex items-center justify-between px-4 py-3 border-b !border-light-border dark:!border-dark-border !bg-light-surface dark:!bg-dark-surface shrink-0">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-7 h-7 rounded-md bg-brand-500/10 text-brand-500 flex items-center justify-center">
+                        <i class="ri-cpu-line text-sm"></i>
+                    </div>
+                    <div>
+                        <h6 class="text-xs font-semibold !text-light-text dark:!text-dark-text mb-0 flex items-center gap-1.5">
+                            Pipeline Inspector
+                        </h6>
+                        <small class="text-2xs !text-light-muted dark:!text-dark-muted block">Real-time multi-turn infrastructure trace</small>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span class="app-badge app-badge-primary !text-2xs font-mono" id="totalTimeBadge">0 ms</span>
+                    <button type="button" class="w-7 h-7 rounded-md flex items-center justify-center !text-light-muted hover:!text-light-text dark:!text-dark-muted dark:hover:!text-dark-text hover:bg-light-canvas dark:hover:bg-dark-canvas transition-colors"
+                        onclick="toggleDiagnosticsDrawer(false)" title="Close Inspector (Esc)">
+                        <i class="ri-close-line text-base"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Drawer Body -->
+            <div class="diag-body flex-1 overflow-y-auto p-4 space-y-3 bg-light-canvas dark:bg-dark-canvas" id="diagBody">
+                <!-- Turn Decision Trace (Real-Time Multi-Turn Inspector) -->
+                <div class="diag-section app-card p-3 border border-brand-500/30 bg-light-surface dark:bg-dark-surface rounded-lg shadow-2xs" id="turnDecisionTraceCard">
+                    <div class="flex items-center justify-between mb-2">
+                        <h6 class="text-xs font-semibold text-brand-500 dark:text-brand-400 flex items-center gap-1.5 mb-0">
+                            <i class="ri-git-commit-line text-xs"></i> Turn Decision Trace
+                        </h6>
+                        <span class="app-badge app-badge-primary !text-2xs" id="traceTurnBadge">Ready</span>
+                    </div>
+
+                    {{-- Turn History Navigation Pills --}}
+                    <div id="turnHistoryNav" class="flex items-center gap-1.5 mb-2.5 overflow-x-auto py-1 scrollbar-none">
+                        <span class="text-2xs text-light-muted dark:text-dark-muted">Send a message to view live turn trace</span>
+                    </div>
+
+                    {{-- Query Box --}}
+                    <div class="p-2 mb-2.5 rounded-md bg-light-elevated dark:bg-dark-elevated border border-light-border dark:border-dark-border text-xs">
+                        <span class="text-3xs uppercase tracking-wider font-semibold text-light-muted dark:text-dark-muted block mb-0.5">User Query</span>
+                        <strong id="traceUserQuery" class="text-light-text dark:text-dark-text break-words font-medium">"Waiting for user message..."</strong>
+                    </div>
+
+                    {{-- Decision Key Metrics Matrix --}}
+                    <div class="grid grid-cols-2 gap-2 mb-2.5 text-xs">
+                        <div class="p-2 rounded-md bg-light-elevated dark:bg-dark-elevated border border-light-border dark:border-dark-border">
+                            <span class="text-3xs uppercase tracking-wider text-light-muted dark:text-dark-muted block">Route Decision</span>
+                            <span id="traceRouteBadge" class="route-pill chat mt-1">IDLE</span>
+                        </div>
+                        <div class="p-2 rounded-md bg-light-elevated dark:bg-dark-elevated border border-light-border dark:border-dark-border">
+                            <span class="text-3xs uppercase tracking-wider text-light-muted dark:text-dark-muted block">Memory Decision</span>
+                            <span id="traceMemoryBadge" class="app-badge app-badge-secondary !text-2xs mt-1">IDLE</span>
+                        </div>
+                        <div class="p-2 rounded-md bg-light-elevated dark:bg-dark-elevated border border-light-border dark:border-dark-border">
+                            <span class="text-3xs uppercase tracking-wider text-light-muted dark:text-dark-muted block">Contextual Signal</span>
+                            <strong id="traceContextSignal" class="text-light-text dark:text-dark-text mt-1 block text-2xs truncate">NONE</strong>
+                        </div>
+                        <div class="p-2 rounded-md bg-light-elevated dark:bg-dark-elevated border border-light-border dark:border-dark-border">
+                            <span class="text-3xs uppercase tracking-wider text-light-muted dark:text-dark-muted block">Retrieval Summary</span>
+                            <strong id="traceRetrievalSummary" class="text-light-text dark:text-dark-text mt-1 block text-2xs truncate">0 hits</strong>
+                        </div>
+                        <div class="p-2 rounded-md bg-light-elevated dark:bg-dark-elevated border border-light-border dark:border-dark-border">
+                            <span class="text-3xs uppercase tracking-wider text-light-muted dark:text-dark-muted block">Answerability Gate</span>
+                            <span id="traceGateBadge" class="app-badge app-badge-secondary !text-2xs mt-1">IDLE</span>
+                        </div>
+                        <div class="p-2 rounded-md bg-light-elevated dark:bg-dark-elevated border border-light-border dark:border-dark-border">
+                            <span class="text-3xs uppercase tracking-wider text-light-muted dark:text-dark-muted block">Grounded Hit Count</span>
+                            <strong id="traceGroundedCount" class="text-emerald-500 dark:text-emerald-400 mt-1 block text-2xs">0 Docs</strong>
+                        </div>
+                    </div>
+
+                    {{-- LLM Generation & Latency Breakdown --}}
+                    <div class="p-2.5 rounded-md bg-light-elevated dark:bg-dark-elevated border border-light-border dark:border-dark-border text-xs">
+                        <div class="flex items-center justify-between mb-1.5 pb-1 border-b border-light-border dark:border-dark-border">
+                            <span class="text-2xs text-light-muted dark:text-dark-muted">LLM Generation:</span>
+                            <strong id="traceLlmStatus" class="text-light-text dark:text-dark-text text-2xs">Ready</strong>
+                        </div>
+                        <div class="grid grid-cols-4 gap-1 text-center py-1">
+                            <div class="border-r border-light-border dark:border-dark-border pr-1">
+                                <span class="text-3xs uppercase tracking-wider text-light-muted dark:text-dark-muted block">Router</span>
+                                <strong id="latRouter" class="text-light-text dark:text-dark-text text-2xs font-mono">0 ms</strong>
+                            </div>
+                            <div class="border-r border-light-border dark:border-dark-border pr-1">
+                                <span class="text-3xs uppercase tracking-wider text-light-muted dark:text-dark-muted block">Retrieval</span>
+                                <strong id="latRetrieval" class="text-light-text dark:text-dark-text text-2xs font-mono">0 ms</strong>
+                            </div>
+                            <div class="border-r border-light-border dark:border-dark-border pr-1">
+                                <span class="text-3xs uppercase tracking-wider text-light-muted dark:text-dark-muted block">LLM</span>
+                                <strong id="latLlm" class="text-light-text dark:text-dark-text text-2xs font-mono">0 ms</strong>
+                            </div>
+                            <div>
+                                <span class="text-3xs uppercase tracking-wider text-light-muted dark:text-dark-muted block">Total E2E</span>
+                                <strong id="latTotal" class="text-brand-500 dark:text-brand-400 text-2xs font-mono font-bold">0 ms</strong>
+                            </div>
+                        </div>
+
+                        {{-- Granular Stage-Level Latency Tree --}}
+                        <div class="mt-2 pt-2 border-t border-light-border dark:border-dark-border font-mono text-2xs text-light-text dark:text-dark-text space-y-1">
+                            <div class="flex justify-between py-0.5">
+                                <span class="text-light-muted dark:text-dark-muted">🧭 Router</span>
+                                <strong id="latDetailedRouter">0 ms</strong>
+                            </div>
+                            <div class="flex justify-between py-0.5">
+                                <span class="text-light-muted dark:text-dark-muted">🧠 Context Resolution</span>
+                                <strong id="latDetailedContext">0 ms</strong>
+                            </div>
+                            <div class="flex justify-between py-0.5">
+                                <span class="text-light-muted dark:text-dark-muted">💾 Memory Gate & Context</span>
+                                <strong id="latDetailedMemory">0 ms</strong>
+                            </div>
+                            <div class="flex justify-between py-0.5">
+                                <span class="text-light-muted dark:text-dark-muted">🔍 Knowledge Retrieval</span>
+                                <strong id="latDetailedRetrieval" class="text-brand-500 dark:text-brand-400">0 ms</strong>
+                            </div>
+                            <div id="latRetrievalSubTree" class="pl-3 text-light-muted dark:text-dark-muted text-3xs space-y-0.5">
+                                <div class="flex justify-between">
+                                    <span>├─ Embedding</span>
+                                    <span id="latEmbedding">0 ms</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span>├─ Typesense Search</span>
+                                    <span id="latTypesense">0 ms</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span>└─ Reranker</span>
+                                    <span id="latReranker">0 ms</span>
+                                </div>
+                            </div>
+                            <div class="flex justify-between py-0.5">
+                                <span class="text-light-muted dark:text-dark-muted">⚖️ Answerability Gate</span>
+                                <strong id="latDetailedGate">0 ms</strong>
+                            </div>
+                            <div class="flex justify-between py-0.5">
+                                <span class="text-light-muted dark:text-dark-muted">⚡ Live LLM Generation</span>
+                                <strong id="latDetailedLlm" class="text-rose-500 dark:text-rose-400">0 ms</strong>
+                            </div>
+                            <div class="flex justify-between py-0.5 border-t border-light-border dark:border-dark-border mt-1 pt-1 font-semibold">
+                                <span class="text-light-text dark:text-dark-text">⏱️ Total Pipeline (E2E)</span>
+                                <strong id="latDetailedTotal" class="text-emerald-500 dark:text-emerald-400">0 ms</strong>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 0: Hybrid Router Capability Decision -->
+                <div class="diag-section app-card p-3 border border-purple-500/20 bg-light-surface dark:bg-dark-surface rounded-lg">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-xs font-semibold text-purple-600 dark:text-purple-400 flex items-center gap-1">
+                            <i class="ri-compass-3-line"></i> 0. Hybrid Router Capability
+                        </span>
+                        <span class="route-pill chat" id="routerBadge">Idle</span>
+                    </div>
+                    <div id="routerResults" class="space-y-1 text-2xs text-light-muted dark:text-dark-muted">
+                        <div class="flex justify-between">
+                            <span>Route: <strong id="routerRoute" class="text-light-text dark:text-dark-text">N/A</strong></span>
+                            <span>Intent: <strong id="routerIntent" class="text-light-text dark:text-dark-text">None</strong></span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span>Router Latency: <strong id="routerLatency" class="text-light-text dark:text-dark-text">0 ms</strong></span>
+                            <span>Confidence: <strong id="routerConfidence" class="text-light-text dark:text-dark-text">0%</strong></span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 1: CRM Entity Extraction -->
+                <div class="diag-section app-card p-3 border border-light-border dark:border-dark-border bg-light-surface dark:bg-dark-surface rounded-lg">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-xs font-semibold text-purple-500 flex items-center gap-1">
+                            <i class="ri-contacts-book-2-line"></i> 1. Contact / CRM Extractor
+                        </span>
+                        <span class="app-badge app-badge-secondary !text-2xs" id="crmBadge">No Data</span>
+                    </div>
+                    <div id="crmResults" class="text-2xs text-light-muted dark:text-dark-muted">
+                        <span>Send a message to view extracted emails/phones.</span>
+                    </div>
+                </div>
+
+                <!-- Step 2: Python Embedding Service -->
+                <div class="diag-section app-card p-3 border border-light-border dark:border-dark-border bg-light-surface dark:bg-dark-surface rounded-lg">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-xs font-semibold text-brand-500 flex items-center gap-1">
+                            <i class="ri-code-s-slash-line"></i> 2. Python FastAPI Embedding
+                        </span>
+                        <span class="app-badge app-badge-secondary !text-2xs" id="pyBadge">Idle</span>
+                    </div>
+                    <div id="pyResults" class="space-y-1 text-2xs text-light-muted dark:text-dark-muted">
+                        <div class="flex justify-between">
+                            <span>Model: <strong id="pyModel" class="text-light-text dark:text-dark-text">paraphrase-multilingual-mpnet-base-v2</strong></span>
+                            <span>Dims: <strong id="pyDims" class="text-light-text dark:text-dark-text">768</strong></span>
+                        </div>
+                        <div class="text-3xs text-light-muted dark:text-dark-muted mt-1 truncate font-mono" id="pyVectorSample">Vector: [ Waiting for request... ]</div>
+                    </div>
+                </div>
+
+                <!-- Step 3: Typesense Hybrid Search -->
+                <div class="diag-section app-card p-3 border border-light-border dark:border-dark-border bg-light-surface dark:bg-dark-surface rounded-lg">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-xs font-semibold text-cyan-500 flex items-center gap-1">
+                            <i class="ri-search-eye-line"></i> 3. Typesense Search Engine
+                        </span>
+                        <span class="app-badge app-badge-secondary !text-2xs" id="tsBadge">Idle</span>
+                    </div>
+                    <div id="tsResults" class="space-y-1 text-2xs text-light-muted dark:text-dark-muted">
+                        <div class="flex justify-between">
+                            <span>Match Type: <strong id="tsMatchType" class="text-light-text dark:text-dark-text">N/A</strong></span>
+                            <span>Matched FAQ ID: <strong id="tsFaqId" class="text-light-text dark:text-dark-text">None</strong></span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 4: Scoring Breakdown & Confidence -->
+                <div class="diag-section app-card p-3 border border-light-border dark:border-dark-border bg-light-surface dark:bg-dark-surface rounded-lg">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-xs font-semibold text-emerald-500 flex items-center gap-1">
+                            <i class="ri-bar-chart-grouped-line"></i> 4. Confidence & Auto-Reply
+                        </span>
+                        <span class="app-badge app-badge-secondary !text-2xs" id="scoreBadge">0.0%</span>
+                    </div>
+                    <div id="scoreResults" class="space-y-2 text-2xs">
+                        <div>
+                            <div class="flex justify-between mb-1 text-light-muted dark:text-dark-muted">
+                                <span>Keyword Score:</span>
+                                <strong id="kwScoreText" class="text-light-text dark:text-dark-text">0%</strong>
+                            </div>
+                            <div class="h-1.5 w-full bg-light-border dark:bg-dark-border rounded-full overflow-hidden">
+                                <div class="h-full bg-brand-500 transition-all duration-300" id="kwBar" style="width: 0%;"></div>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="flex justify-between mb-1 text-light-muted dark:text-dark-muted">
+                                <span>Semantic Score:</span>
+                                <strong id="semScoreText" class="text-light-text dark:text-dark-text">0%</strong>
+                            </div>
+                            <div class="h-1.5 w-full bg-light-border dark:bg-dark-border rounded-full overflow-hidden">
+                                <div class="h-full bg-purple-500 transition-all duration-300" id="semBar" style="width: 0%;"></div>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="flex justify-between mb-1 text-light-muted dark:text-dark-muted">
+                                <span>Final Confidence Score:</span>
+                                <strong id="finalScoreText" class="text-emerald-500 font-bold">0%</strong>
+                            </div>
+                            <div class="h-1.5 w-full bg-light-border dark:bg-dark-border rounded-full overflow-hidden">
+                                <div class="h-full bg-emerald-500 transition-all duration-300" id="finalBar" style="width: 0%;"></div>
+                            </div>
+                            <div class="text-3xs text-light-muted dark:text-dark-muted mt-1 text-end">Threshold: 40.0%</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 5: Semantic Answerability & Safety Gate (Tier 4) -->
+                <div class="diag-section app-card p-3 border border-emerald-500/20 bg-light-surface dark:bg-dark-surface rounded-lg">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-xs font-semibold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                            <i class="ri-shield-check-line"></i> 5. Semantic Answerability Gate
+                        </span>
+                        <span class="app-badge app-badge-secondary !text-2xs" id="gateBadge">IDLE</span>
+                    </div>
+                    <div id="gateResults" class="space-y-1.5 text-2xs text-light-muted dark:text-dark-muted">
+                        <div class="flex justify-between">
+                            <span>Gate Decision: <strong id="gateStatusText" class="text-light-text dark:text-dark-text">N/A</strong></span>
+                            <span>Confidence: <strong id="gateConfidenceText" class="text-light-text dark:text-dark-text">0.0%</strong></span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span>Barrier Rule: <strong id="gateRuleText" class="text-light-text dark:text-dark-text">None</strong></span>
+                            <span>Score Margin: <strong id="gateMarginText" class="text-light-text dark:text-dark-text">0.00</strong></span>
+                        </div>
+                        <div class="pt-1 border-t border-light-border dark:border-dark-border">
+                            <span>Grounded Hits Authorized: <strong id="gateGroundedCount" class="text-emerald-500 font-semibold">0</strong></span>
+                            <div id="gateGroundedDocs" class="mt-1 space-y-1"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
         <!-- Usage & Cost Wizard Modal -->
-        <div class="modal fade" id="usageWizardModal" tabindex="-1" aria-labelledby="usageWizardLabel" aria-hidden="true">
+        <div class="modal hidden fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto" id="usageWizardModal" tabindex="-1" aria-labelledby="usageWizardLabel" aria-hidden="true" style="display: none;">
 
             <div class="modal-dialog modal-dialog-centered modal-xl usage-wizard-dialog">
                 <div class="modal-content usage-wizard-modal p-0 border-0">

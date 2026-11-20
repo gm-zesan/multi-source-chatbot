@@ -1,138 +1,196 @@
 @extends('admin.app')
-@section('title')
-    Create Role
-@endsection
+@section('title', 'Create Role')
 
 @section('content')
-    <div class="container-fluid">
-        <form action="{{ route('roles.store') }}" method="POST">
-            @csrf
-            <div class="row">
-                <div class="col-md-8 col-12">
-                    <div class="card table-card mb-4">
-                        <div class="card-header table-header">
-                            <div class="title-with-breadcrumb">
-                                <div class="table-title">Create Role</div>
-                                <nav aria-label="breadcrumb">
-                                    <ol class="breadcrumb mb-0">
-                                        <li class="breadcrumb-item">
-                                            <a href="{{ route('dashboard') }}">Dashboard</a>
-                                        </li>
-                                        <li class="breadcrumb-item">
-                                            <a href="{{ route('roles.index') }}">Roles</a>
-                                        </li>
-                                        <li class="breadcrumb-item active" aria-current="page">Create Role</li>
-                                    </ol>
-                                </nav>
-                            </div>
-                            <a href="{{ route('roles.index') }}" class="add-new">Role List<i class="ms-1 ri-list-ordered-2"></i></a>
-                        </div>
-                        <div class="card-body custom-form">
-                            <div class="mb-3">
-                                <label for="name" class="form-label custom-label">Role Name</label>
-                                <input type="text" class="form-control custom-input @error('name') is-invalid @enderror" name="name" id="name" placeholder="Role name">
-                                @error('name')
-                                    <div class="error_msg">{{ $message }}</div>
-                                @enderror
-                            </div>
+<div class="space-y-4">
+    {{-- Header & Breadcrumbs --}}
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-3 border-b border-border">
+        <div>
+            <h1 class="text-base font-semibold text-text-primary tracking-tight">Create Role</h1>
+            <div class="flex items-center gap-1.5 text-xs text-text-muted mt-0.5">
+                <a href="{{ route('dashboard') }}" class="hover:text-text-primary transition-colors">Dashboard</a>
+                <span>/</span>
+                <a href="{{ route('roles.index') }}" class="hover:text-text-primary transition-colors">Roles</a>
+                <span>/</span>
+                <span class="text-text-secondary font-medium">Create Role</span>
+            </div>
+        </div>
+        <div class="flex items-center gap-2">
+            <a href="{{ route('roles.index') }}" class="app-btn app-btn-secondary">
+                <i class="ri-arrow-left-line"></i> Back to Roles
+            </a>
+        </div>
+    </div>
 
-                            <div class="mb-3">
-                                <label for="description" class="form-label custom-label">Role Description</label>
-                                <textarea class="form-control custom-input @error('description') is-invalid @enderror" name="description" id="description" rows="5" placeholder="Role Description">{{ old('description') }}</textarea>
-                                @error('description')
-                                    <div class="error_msg">{{ $message }}</div>
-                                @enderror
-                            </div>
+    <form action="{{ route('roles.store') }}" method="POST">
+        @csrf
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            {{-- Primary Details & Permissions --}}
+            <div class="lg:col-span-2 space-y-4">
+                {{-- Role Meta Card --}}
+                <div class="app-card">
+                    <div class="app-card-header">
+                        <div>
+                            <h2 class="text-xs font-semibold text-text-primary uppercase tracking-wider">Role Definition</h2>
+                            <p class="text-2xs text-text-muted">Specify the unique system name and purpose of this security role</p>
                         </div>
                     </div>
-
-                    <div class="card table-card">
-                        <div class="card-header table-header">
-                            <div class="table-title">Permissions</div>
+                    <div class="app-card-body space-y-3.5">
+                        <div>
+                            <label for="name" class="block text-xs font-medium text-text-secondary mb-1">Role Name <span class="text-rose-500">*</span></label>
+                            <input type="text" class="app-input w-full @error('name') border-rose-500 @enderror" name="name" id="name" value="{{ old('name') }}" placeholder="e.g. content_moderator" required>
+                            @error('name')
+                                <p class="text-rose-500 text-2xs mt-1">{{ $message }}</p>
+                            @enderror
                         </div>
-                        <div class="card-body custom-form">
-                            <div class="form-group">
-                                @foreach ($modules as $module)
-                                    <div class="form-check-wrapper mb-3">
-                                        <div class="form-check">
-                                            <input type="checkbox" name="module" id="{{ $module->module }}" class="form-check-input custom-checkbox" onclick="checkRoleModule(this)">
-                                            <label for="{{ $module->module }}" class="form-check-label custom-checkbox-label">
-                                                {{ $module->module }}
-                                            </label>
-                                        </div>
-                                        @foreach ($permission as $value)
-                                            @if($module->module == $value->module)
-                                                <div class="form-check d-inline-block mb-2 inner-form-check">
-                                                    <input type="checkbox" name="permission[]" class="form-check-input custom-checkbox inner-checkbox" id="check-{{ $value->id }}" value="{{ $value->id }}" data-module="{{ $module->module }}" onclick="innerCheckboxUncheck(this)">
-                                                    <label class="form-check-label custom-checkbox-label" for="check-{{ $value->id }}">{{ $value->display_name }}</label>
-                                                </div>
-                                            @endif
-                                        @endforeach
-                                    </div>
-                                @endforeach
-                            </div>
+
+                        <div>
+                            <label for="description" class="block text-xs font-medium text-text-secondary mb-1">Role Description</label>
+                            <textarea class="app-textarea w-full text-xs rounded-md border border-border bg-surface text-text-primary p-2.5 outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-all @error('description') border-rose-500 @enderror" name="description" id="description" rows="3" placeholder="Describe the operational responsibilities and scope">{{ old('description') }}</textarea>
+                            @error('description')
+                                <p class="text-rose-500 text-2xs mt-1">{{ $message }}</p>
+                            @enderror
                         </div>
                     </div>
                 </div>
 
-                <div class="col-md-4 col-12">
-                    <div class="card table-card">
-                        <div class="card-header table-header">
-                            <div class="table-title">Action</div>
+                {{-- Permissions Matrix Card --}}
+                <div class="app-card">
+                    <div class="app-card-header flex items-center justify-between">
+                        <div>
+                            <h2 class="text-xs font-semibold text-text-primary uppercase tracking-wider">Assigned Capabilities & Permissions</h2>
+                            <p class="text-2xs text-text-muted">Grant specific administrative access rights by functional module</p>
                         </div>
-                        <div class="custom-form card-body">
-                            <div class="row">
-                                <div class="col-6">
-                                    <button type="submit" class="btn submit-button">Save
-                                        <span class="ms-1 spinner-border spinner-border-sm d-none" role="status"></span>
-                                    </button>
+                        <div class="flex items-center gap-2">
+                            <label class="flex items-center gap-1.5 text-2xs font-medium text-text-secondary cursor-pointer select-none">
+                                <input type="checkbox" id="selectAllPermissionsMaster" class="rounded border-border text-brand-primary focus:ring-brand-primary" onclick="toggleAllPermissions(this)">
+                                <span>Select All</span>
+                            </label>
+                        </div>
+                    </div>
+                    <div class="app-card-body space-y-4 divide-y divide-border">
+                        @foreach ($modules as $module)
+                            <div class="pt-3 first:pt-0">
+                                <div class="flex items-center gap-2 mb-2">
+                                    <input type="checkbox" name="module" id="{{ $module->module }}" class="rounded border-border text-brand-primary focus:ring-brand-primary" onclick="checkRoleModule(this)">
+                                    <label for="{{ $module->module }}" class="text-xs font-semibold text-text-primary cursor-pointer uppercase tracking-wider">
+                                        {{ $module->module }}
+                                    </label>
                                 </div>
-                                <div class="col-6">
-                                    <a href="{{ route('roles.index') }}" class="btn cancel-button">Cancel</a>
+                                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 pl-6">
+                                    @foreach ($permission as $value)
+                                        @if($module->module == $value->module)
+                                            <label class="flex items-center gap-2 text-xs text-text-secondary cursor-pointer hover:text-text-primary select-none py-1">
+                                                <input type="checkbox" name="permission[]" class="rounded border-border text-brand-primary focus:ring-brand-primary inner-checkbox" id="check-{{ $value->id }}" value="{{ $value->id }}" data-module="{{ $module->module }}" onclick="innerCheckboxUncheck(this)">
+                                                <span>{{ $value->display_name }}</span>
+                                            </label>
+                                        @endif
+                                    @endforeach
                                 </div>
                             </div>
-                        </div>
+                        @endforeach
                     </div>
                 </div>
             </div>
-        </form>
-    </div>
+
+            {{-- Right Sidebar Actions --}}
+            <div class="space-y-4">
+                <div class="app-card">
+                    <div class="app-card-header">
+                        <h2 class="text-xs font-semibold text-text-primary uppercase tracking-wider">Publish Role</h2>
+                    </div>
+                    <div class="app-card-body space-y-2">
+                        <button type="submit" class="app-btn app-btn-primary w-full justify-center">
+                            <i class="ri-check-line"></i> Save Role
+                        </button>
+                        <a href="{{ route('roles.index') }}" class="app-btn app-btn-secondary w-full justify-center">
+                            Cancel
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
 @endsection
 
 @push('custom-scripts')
-    <script>
-        $('.submit-button').click(function(){
-            $(this).css('opacity', '1');
-            $(this).find('.spinner-border').removeClass('d-none');
-            $(this).attr('disabled', true);
-            $(this).closest('form').submit();
+<script>
+    function checkRoleModule(moduleCheckbox) {
+        var moduleId = moduleCheckbox.id;
+        var isChecked = moduleCheckbox.checked;
+
+        var innerCheckboxes = document.querySelectorAll('[data-module="' + moduleId + '"]');
+        innerCheckboxes.forEach(function(innerCheckbox) {
+            innerCheckbox.checked = isChecked;
         });
-    </script>
+        syncMasterCheckbox();
+    }
 
-    <script>
-        function checkRoleModule(moduleCheckbox) {
-            var moduleId = moduleCheckbox.id;
-            var isChecked = moduleCheckbox.checked;
+    function innerCheckboxUncheck(innerCheckbox) {
+        var moduleId = innerCheckbox.getAttribute('data-module');
+        var moduleCheckbox = document.getElementById(moduleId);
 
-            var innerCheckboxes = document.querySelectorAll('[data-module="' + moduleId + '"]');
-            innerCheckboxes.forEach(function(innerCheckbox) {
-                innerCheckbox.checked = isChecked;
-            });
-        }
+        var allInnerCheckboxes = document.querySelectorAll('[data-module="' + moduleId + '"]');
+        var allChecked = true;
+        var anyChecked = false;
+        allInnerCheckboxes.forEach(function(checkbox) {
+            if (checkbox.checked) {
+                anyChecked = true;
+            } else {
+                allChecked = false;
+            }
+        });
 
-        function innerCheckboxUncheck(innerCheckbox) {
-            var moduleId = innerCheckbox.getAttribute('data-module');
-            var moduleCheckbox = document.getElementById(moduleId);
-
-            var allInnerCheckboxes = document.querySelectorAll('[data-module="' + moduleId + '"]');
-            var allChecked = true;
-            allInnerCheckboxes.forEach(function(checkbox) {
-                if (!checkbox.checked) {
-                    allChecked = false;
-                }
-            });
-
+        if (moduleCheckbox) {
             moduleCheckbox.checked = allChecked;
+            moduleCheckbox.indeterminate = !allChecked && anyChecked;
         }
-    </script>
+        syncMasterCheckbox();
+    }
+
+    function toggleAllPermissions(masterCheckbox) {
+        var isChecked = masterCheckbox.checked;
+        document.querySelectorAll('input[name="module"]').forEach(function(m) {
+            m.checked = isChecked;
+            m.indeterminate = false;
+        });
+        document.querySelectorAll('input[name="permission[]"]').forEach(function(p) {
+            p.checked = isChecked;
+        });
+    }
+
+    function syncMasterCheckbox() {
+        var master = document.getElementById('selectAllPermissionsMaster');
+        if (!master) return;
+        var allPerms = document.querySelectorAll('input[name="permission[]"]');
+        if (allPerms.length === 0) return;
+        var allChecked = true;
+        var anyChecked = false;
+        allPerms.forEach(function(p) {
+            if (p.checked) anyChecked = true;
+            else allChecked = false;
+        });
+        master.checked = allChecked;
+        master.indeterminate = !allChecked && anyChecked;
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        document.querySelectorAll('input[name="module"]').forEach(function(moduleCheckbox) {
+            var moduleId = moduleCheckbox.id;
+            var allInnerCheckboxes = document.querySelectorAll('[data-module="' + moduleId + '"]');
+            if (allInnerCheckboxes.length > 0) {
+                var allChecked = true;
+                var anyChecked = false;
+                allInnerCheckboxes.forEach(function(cb) {
+                    if (cb.checked) anyChecked = true;
+                    else allChecked = false;
+                });
+                moduleCheckbox.checked = allChecked;
+                moduleCheckbox.indeterminate = !allChecked && anyChecked;
+            }
+        });
+        syncMasterCheckbox();
+    });
+</script>
 @endpush

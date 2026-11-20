@@ -8,14 +8,14 @@
 @endpush
 
 @section('content')
-<div class="inbox-container">
+<div class="inbox-container w-full h-full overflow-hidden">
     {{-- Left Sidebar --}}
     <div class="inbox-sidebar">
         @include('admin.conversations.partials.sidebar')
     </div>
 
     {{-- Right Chat Panel --}}
-    <div class="inbox-chat-panel">
+    <div class="inbox-chat-panel flex-1 flex flex-col h-full overflow-hidden">
         @include('admin.conversations.partials.chat-header')
         @include('admin.conversations.partials.messages')
         <emoji-picker id="emoji-picker"></emoji-picker>
@@ -32,23 +32,25 @@
         const emojiPicker = document.getElementById('emoji-picker');
         const messageInput = document.getElementById('message');
 
-        emojiBtn.addEventListener('click', () => {
-            emojiPicker.style.display = emojiPicker.style.display === 'block' ? 'none' : 'block';
-        });
+        if (emojiBtn && emojiPicker && messageInput) {
+            emojiBtn.addEventListener('click', () => {
+                emojiPicker.style.display = emojiPicker.style.display === 'block' ? 'none' : 'block';
+            });
 
-        emojiPicker.addEventListener('emoji-click', event => {
-            messageInput.value += event.detail.unicode;
-            messageInput.dispatchEvent(new Event('input'));
-        });
+            emojiPicker.addEventListener('emoji-click', event => {
+                messageInput.value += event.detail.unicode;
+                messageInput.dispatchEvent(new Event('input'));
+            });
 
-        document.addEventListener('click', (event) => {
-            if (
-                !emojiPicker.contains(event.target) &&
-                !emojiBtn.contains(event.target)
-            ) {
-                emojiPicker.style.display = 'none';
-            }
-        });
+            document.addEventListener('click', (event) => {
+                if (
+                    !emojiPicker.contains(event.target) &&
+                    !emojiBtn.contains(event.target)
+                ) {
+                    emojiPicker.style.display = 'none';
+                }
+            });
+        }
     </script>
 
     <script>

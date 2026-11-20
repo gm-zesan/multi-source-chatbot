@@ -107,9 +107,6 @@ Route::middleware('auth')->prefix('dashboard')->group(function () {
             RolePermission::DELETE->value,
         ]));
 
-    // Assign Roles
-    Route::resource('/assign-roles', AssignRoleController::class)->only(['index', 'store'])
-        ->middleware('permission:' . RolePermission::VIEW->value);
 
     // Messages
     Route::get('/message', [ContactFormController::class,'index'])->name('message')

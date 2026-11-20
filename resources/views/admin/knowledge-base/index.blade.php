@@ -5,44 +5,7 @@
 
 @push('custom-style')
     <link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/jquery.dataTables.min.css">
-    <link rel="stylesheet" href="https://cdn.datatables.net/1.10.25/css/dataTables.semanticui.min.css">
     <style>
-        .kb-pill-tabs {
-            display: flex;
-            gap: 8px;
-            flex-wrap: wrap;
-            padding: 4px;
-            background: #f1f5f9;
-            border-radius: 10px;
-            margin-bottom: 20px;
-        }
-
-        .kb-pill-btn {
-            border: none;
-            background: transparent;
-            padding: 8px 16px;
-            border-radius: 8px;
-            font-size: 13px;
-            font-weight: 500;
-            color: #64748b;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            display: inline-flex;
-            align-items: center;
-        }
-
-        .kb-pill-btn:hover {
-            color: #0f172a;
-            background: rgba(255, 255, 255, 0.6);
-        }
-
-        .kb-pill-btn.active {
-            background: #ffffff;
-            color: #0d6efd;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-            font-weight: 600;
-        }
-
         .faq-question-cell {
             max-width: 320px;
             white-space: nowrap;
@@ -64,223 +27,178 @@
             overflow: hidden;
             text-overflow: ellipsis;
             font-family: monospace;
-            font-size: 12px;
-            color: #64748b;
-        }
-
-        /* Ensure dataTables_wrapper does NOT scroll horizontally so search and pagination stay 100% width */
-        .dataTables_wrapper {
-            width: 100% !important;
-            overflow-x: visible !important;
-            position: relative;
-        }
-
-        /* Scroll strictly on the .dataTable element itself on the x-axis, NOT on dataTables_wrapper */
-        table.dataTable {
-            display: block !important;
-            width: 100% !important;
-            overflow-x: auto !important;
-            -webkit-overflow-scrolling: touch;
-            border-collapse: collapse;
-        }
-
-        table.dataTable thead,
-        table.dataTable tbody,
-        table.dataTable tfoot {
-            display: table;
-            width: 100%;
-            table-layout: fixed;
-        }
-
-        table.dataTable thead tr,
-        table.dataTable tbody tr {
-            display: table-row;
-        }
-
-        table.dataTable th,
-        table.dataTable td {
-            display: table-cell;
+            font-size: 11px;
+            color: var(--color-text-muted);
         }
     </style>
 @endpush
 
 @section('content')
-    <div class="container-fluid">
-        <div class="row">
-            <div class="col-12">
-                <div class="card table-card">
-                    <div class="card-header table-header">
-                        <div class="title-with-breadcrumb">
-                            <div class="table-title">Knowledge Base</div>
-                            <nav aria-label="breadcrumb">
-                                <ol class="breadcrumb mb-0">
-                                    <li class="breadcrumb-item">
-                                        <a href="{{ route('dashboard') }}">Dashboard</a>
-                                    </li>
-                                    <li class="breadcrumb-item active" aria-current="page">Knowledge Base</li>
-                                </ol>
-                            </nav>
-                        </div>
-                        <div class="d-flex align-items-center gap-2">
-                            @can(\App\Enums\Permissions\FAQPermission::UPDATE->value)
-                                <button type="button" class="btn btn-outline-primary btn-sm d-inline-flex align-items-center" id="btn-reindex-all" onclick="triggerReindexAll()" style="font-weight: 500; height: 38px; border-radius: 6px; padding: 0 14px;">
-                                    <i class="ri-refresh-line me-1" id="reindex-btn-icon"></i>
-                                    <span id="reindex-btn-text">Reindex Knowledge Base</span>
-                                </button>
-                            @endcan
-                            @can(\App\Enums\Permissions\FAQPermission::CREATE->value)
-                                <a href="{{ route('faqs.create') }}" class="add-new">
-                                    <i class="ri-add-line me-1"></i>New FAQ / Policy
-                                </a>
-                            @endcan
-                            @can(\App\Enums\Permissions\KnowledgeDocumentPermission::CREATE->value)
-                                <a href="{{ route('documents.create') }}" class="add-new"
-                                    style="background: #2563eb; border-color: #2563eb; color: #fff;">
-                                    <i class="ri-upload-cloud-2-line me-1"></i>Upload Data Source
-                                </a>
-                            @endcan
-                        </div>
-                    </div>
+<div class="space-y-4">
+    {{-- Header & Breadcrumbs --}}
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-3 border-b border-border">
+        <div>
+            <h1 class="text-base font-semibold text-text-primary tracking-tight">Knowledge Base</h1>
+            <div class="flex items-center gap-1.5 text-xs text-text-muted mt-0.5">
+                <a href="{{ route('dashboard') }}" class="hover:text-text-primary transition-colors">Dashboard</a>
+                <span>/</span>
+                <span class="text-text-secondary font-medium">Knowledge Base</span>
+            </div>
+        </div>
+        <div class="flex items-center gap-2">
+            @can(\App\Enums\Permissions\FAQPermission::UPDATE->value)
+                <button type="button" class="app-btn app-btn-secondary" id="btn-reindex-all" onclick="triggerReindexAll()">
+                    <i class="ri-refresh-line" id="reindex-btn-icon"></i>
+                    <span id="reindex-btn-text">Reindex Knowledge Base</span>
+                </button>
+            @endcan
+            @can(\App\Enums\Permissions\FAQPermission::CREATE->value)
+                <a href="{{ route('faqs.create') }}" class="app-btn app-btn-secondary">
+                    <i class="ri-add-line"></i> New FAQ / Policy
+                </a>
+            @endcan
+            @can(\App\Enums\Permissions\KnowledgeDocumentPermission::CREATE->value)
+                <a href="{{ route('documents.create') }}" class="app-btn app-btn-primary">
+                    <i class="ri-upload-cloud-2-line"></i> Upload Data Source
+                </a>
+            @endcan
+        </div>
+    </div>
 
-                    <div class="card-body">
-                        {{-- Content Type Navigation Pills --}}
-                        <div class="kb-pill-tabs">
-                            @if ($canViewFaqs)
-                                <button type="button" class="kb-pill-btn {{ $activeTab === 'faqs' ? 'active' : '' }}"
-                                    id="tab-btn-faqs" onclick="switchTab('faqs')">
-                                    <i class="ri-question-answer-line me-1"></i>FAQs (Q&A)
-                                </button>
-                                <button type="button" class="kb-pill-btn {{ $activeTab === 'policies' ? 'active' : '' }}"
-                                    id="tab-btn-policies" onclick="switchTab('policies')">
-                                    <i class="ri-shield-check-line me-1"></i>Policies
-                                </button>
-                                <button type="button" class="kb-pill-btn {{ $activeTab === 'business_info' ? 'active' : '' }}"
-                                    id="tab-btn-business_info" onclick="switchTab('business_info')">
-                                    <i class="ri-building-line me-1"></i>Business Information
-                                </button>
-                            @endif
-                            @if ($canViewDocs)
-                                <button type="button" class="kb-pill-btn {{ $activeTab === 'data_sources' ? 'active' : '' }}"
-                                    id="tab-btn-data_sources" onclick="switchTab('data_sources')">
-                                    <i class="ri-bar-chart-2-line me-1"></i>Analytics Data Sources
-                                </button>
-                            @endif
-                        </div>
+    {{-- Content Type Navigation Pills --}}
+    <div class="flex items-center gap-1 p-1 bg-surface border border-border rounded-lg overflow-x-auto w-fit">
+        @if ($canViewFaqs)
+            <button type="button" class="kb-pill-btn app-btn {{ $activeTab === 'faqs' ? 'app-btn-primary' : 'app-btn-secondary' }} text-xs" id="tab-btn-faqs" onclick="switchTab('faqs')">
+                <i class="ri-question-answer-line"></i> FAQs (Q&A)
+            </button>
+            <button type="button" class="kb-pill-btn app-btn {{ $activeTab === 'policies' ? 'app-btn-primary' : 'app-btn-secondary' }} text-xs" id="tab-btn-policies" onclick="switchTab('policies')">
+                <i class="ri-shield-check-line"></i> Policies
+            </button>
+            <button type="button" class="kb-pill-btn app-btn {{ $activeTab === 'business_info' ? 'app-btn-primary' : 'app-btn-secondary' }} text-xs" id="tab-btn-business_info" onclick="switchTab('business_info')">
+                <i class="ri-building-line"></i> Business Information
+            </button>
+        @endif
+        @if ($canViewDocs)
+            <button type="button" class="kb-pill-btn app-btn {{ $activeTab === 'data_sources' ? 'app-btn-primary' : 'app-btn-secondary' }} text-xs" id="tab-btn-data_sources" onclick="switchTab('data_sources')">
+                <i class="ri-bar-chart-2-line"></i> Analytics Data Sources
+            </button>
+        @endif
+    </div>
 
-                        {{-- Section 1: FAQ, Policies, and Business Information Table --}}
-                        <div id="faq-table-container"
-                            class="{{ in_array($activeTab, ['faqs', 'policies', 'business_info']) ? '' : 'd-none' }}">
-                            <div class="row g-2 mb-3">
-                                @if (!empty($isSuperAdmin) && isset($workspaces) && count($workspaces) > 0)
-                                    <div class="col-md-3 col-sm-6">
-                                        <select id="faq-workspace-filter" class="form-select form-select-sm hub-workspace-select"
-                                            onchange="reloadTablesOnWorkspaceChange(this.value)">
-                                            <option value="">All Workspaces</option>
-                                            @foreach ($workspaces as $ws)
-                                                <option value="{{ $ws->id }}">{{ $ws->name }}</option>
-                                            @endforeach
-                                        </select>
-                                    </div>
-                                @endif
-                                <div class="col-md-3 col-sm-6">
-                                    <select id="faq-status-filter" class="form-select form-select-sm"
-                                        onchange="reloadFaqTable()">
-                                        <option value="">All Statuses</option>
-                                        <option value="active">Active Only</option>
-                                        <option value="inactive">Inactive / Draft</option>
-                                        <option value="trashed">Deleted</option>
-                                    </select>
-                                </div>
-                            </div>
-
-                            <div class="table-container">
-                                <table class="table dataTable w-100" id="faq-data-table" style="min-width: 850px;">
-                                    <thead>
-                                        <tr>
-                                            <th scope="col">SL NO</th>
-                                            <th scope="col">Question / Title</th>
-                                            <th scope="col">Type</th>
-                                            <th scope="col">Priority</th>
-                                            <th scope="col">Hits</th>
-                                            <th scope="col">Status</th>
-                                            <th scope="col">Action</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody></tbody>
-                                </table>
-                            </div>
-                        </div>
-
-                        {{-- Section 2: Analytics Data Sources Table --}}
-                        <div id="doc-table-container"
-                            class="{{ in_array($activeTab, ['data_sources', 'documents']) ? '' : 'd-none' }}">
-                            <div class="row g-2 mb-3">
-                                @if (!empty($isSuperAdmin) && isset($workspaces) && count($workspaces) > 0)
-                                    <div class="col-md-3 col-sm-6">
-                                        <select id="doc-workspace-filter" class="form-select form-select-sm hub-workspace-select"
-                                            onchange="reloadTablesOnWorkspaceChange(this.value)">
-                                            <option value="">All Workspaces</option>
-                                            @foreach ($workspaces as $ws)
-                                                <option value="{{ $ws->id }}">{{ $ws->name }}</option>
-                                            @endforeach
-                                        </select>
-                                    </div>
-                                @endif
-                                <div class="col-md-3 col-sm-6">
-                                    <select id="doc-status-filter" class="form-select form-select-sm"
-                                        onchange="reloadDocTable()">
-                                        <option value="">All Statuses</option>
-                                        <option value="active">Active</option>
-                                        <option value="pending">Pending Ingestion</option>
-                                        <option value="failed">Failed</option>
-                                        <option value="trashed">Deleted</option>
-                                    </select>
-                                </div>
-                            </div>
-
-                            <div class="table-container">
-                                <table class="table dataTable w-100" id="doc-data-table" style="min-width: 850px;">
-                                    <thead>
-                                        <tr>
-                                            <th scope="col">SL NO</th>
-                                            <th scope="col">Title</th>
-                                            <th scope="col">Original Filename</th>
-                                            <th scope="col">Size</th>
-                                            <th scope="col">Sheets</th>
-                                            <th scope="col">Uploaded At</th>
-                                            <th scope="col">Status</th>
-                                            <th scope="col">Action</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody></tbody>
-                                </table>
-                            </div>
-                        </div>
-
-                    </div>
+    {{-- Section 1: FAQ, Policies, and Business Information Table --}}
+    <div id="faq-table-container" class="{{ in_array($activeTab, ['faqs', 'policies', 'business_info']) ? '' : 'hidden' }}">
+        <div class="app-card table-card">
+            <div class="app-card-header flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <div>
+                    <h2 class="text-xs font-semibold text-text-primary uppercase tracking-wider">Semantic Knowledge Items</h2>
+                    <p class="text-2xs text-text-muted">Grounded FAQs, operational policies, and storefront information</p>
+                </div>
+                <div class="flex items-center gap-2 flex-wrap">
+                    @if (!empty($isSuperAdmin) && isset($workspaces) && count($workspaces) > 0)
+                        <select id="faq-workspace-filter" class="app-select hub-workspace-select w-44 text-xs" onchange="reloadTablesOnWorkspaceChange(this.value)">
+                            <option value="">All Workspaces</option>
+                            @foreach ($workspaces as $ws)
+                                <option value="{{ $ws->id }}">{{ $ws->name }}</option>
+                            @endforeach
+                        </select>
+                    @endif
+                    <select id="faq-status-filter" class="app-select w-36 text-xs" onchange="reloadFaqTable()">
+                        <option value="">All Statuses</option>
+                        <option value="active">Active Only</option>
+                        <option value="inactive">Inactive / Draft</option>
+                        <option value="trashed">Deleted</option>
+                    </select>
+                </div>
+            </div>
+            <div class="app-card-body p-0">
+                <div class="overflow-x-auto p-4">
+                    <table class="w-full text-xs" id="faq-data-table">
+                        <thead>
+                            <tr>
+                                <th style="width: 50px;">SL NO</th>
+                                <th>Question / Title</th>
+                                <th style="width: 140px;">Type</th>
+                                <th style="width: 70px;">Priority</th>
+                                <th style="width: 60px;">Hits</th>
+                                <th style="width: 130px;">Status</th>
+                                <th style="width: 90px;" class="text-right">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
                 </div>
             </div>
         </div>
+    </div>
+
+    @if ($canViewDocs)
+    {{-- Section 2: Analytics Data Sources Table --}}
+    <div id="doc-table-container" class="{{ in_array($activeTab, ['data_sources', 'documents']) ? '' : 'hidden' }}">
+        <div class="app-card table-card">
+            <div class="app-card-header flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <div>
+                    <h2 class="text-xs font-semibold text-text-primary uppercase tracking-wider">Analytics Data Sources</h2>
+                    <p class="text-2xs text-text-muted">Spreadsheets registered for automated multi-source SQL reporting</p>
+                </div>
+                <div class="flex items-center gap-2 flex-wrap">
+                    @if (!empty($isSuperAdmin) && isset($workspaces) && count($workspaces) > 0)
+                        <select id="doc-workspace-filter" class="app-select hub-workspace-select w-44 text-xs" onchange="reloadTablesOnWorkspaceChange(this.value)">
+                            <option value="">All Workspaces</option>
+                            @foreach ($workspaces as $ws)
+                                <option value="{{ $ws->id }}">{{ $ws->name }}</option>
+                            @endforeach
+                        </select>
+                    @endif
+                    <select id="doc-status-filter" class="app-select w-36 text-xs" onchange="reloadDocTable()">
+                        <option value="">All Statuses</option>
+                        <option value="active">Active</option>
+                        <option value="pending">Pending Ingestion</option>
+                        <option value="failed">Failed</option>
+                        <option value="trashed">Deleted</option>
+                    </select>
+                </div>
+            </div>
+            <div class="app-card-body p-0">
+                <div class="overflow-x-auto p-4">
+                    <table class="w-full text-xs" id="doc-data-table">
+                        <thead>
+                            <tr>
+                                <th style="width: 50px;">SL NO</th>
+                                <th>Title</th>
+                                <th>Original Filename</th>
+                                <th style="width: 80px;">Size</th>
+                                <th style="width: 70px;">Sheets</th>
+                                <th style="width: 100px;">Uploaded At</th>
+                                <th style="width: 120px;">Status</th>
+                                <th style="width: 120px;" class="text-right">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    @endif
+</div>
         <!-- Document Preview & Metadata Details Modal -->
-        <div class="modal fade" id="documentDetailsModal" tabindex="-1" aria-labelledby="documentDetailsModalLabel"
-            aria-hidden="true">
-            <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
-                <div class="modal-content border-0 shadow-lg">
-                    <div class="modal-header bg-light border-bottom py-2 px-3">
-                        <div class="d-flex align-items-center gap-2">
-                            <i id="modalFileIcon" class="ri-file-search-line text-primary fs-3"></i>
+        <div class="modal hidden fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto" id="documentDetailsModal" tabindex="-1" aria-labelledby="documentDetailsModalLabel" aria-hidden="true" style="display: none;">
+            <div class="modal-dialog w-full max-w-5xl app-card shadow-modal overflow-hidden transition-all duration-200 my-auto">
+                <div class="modal-content border-0 bg-transparent flex flex-col max-h-[90vh]">
+                    <div class="app-card-header flex items-center justify-between">
+                        <div class="flex items-center gap-2">
+                            <i id="modalFileIcon" class="ri-file-search-line text-brand-500 text-lg"></i>
                             <div>
-                                <h5 class="modal-title fw-bold text-dark mb-0" id="documentDetailsModalLabel">Document
-                                    Preview & Details</h5>
-                                <div class="d-flex align-items-center gap-1 flex-wrap mt-1">
-                                    <span class="badge bg-secondary-subtle text-secondary border px-2 py-0 font-monospace"
-                                        id="modalDocFilename" style="font-size: 11px;"></span>
-                                    <span class="badge bg-info-subtle text-info-emphasis border px-2 py-0 d-none"
-                                        id="modalDocWorkspace" style="font-size: 11px;"></span>
+                                <h5 class="text-xs font-semibold text-light-text dark:text-dark-text mb-0" id="documentDetailsModalLabel">Document Preview & Details</h5>
+                                <div class="flex items-center gap-1 flex-wrap mt-0.5">
+                                    <span class="app-badge app-badge-secondary font-mono text-2xs" id="modalDocFilename"></span>
+                                    <span class="app-badge app-badge-primary text-2xs d-none" id="modalDocWorkspace"></span>
                                 </div>
                             </div>
                         </div>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        <button type="button" class="text-light-muted dark:text-dark-muted hover:text-light-text dark:hover:text-dark-text text-base p-1" data-bs-dismiss="modal" aria-label="Close">
+                            <i class="ri-close-line"></i>
+                        </button>
                     </div>
                     <div class="modal-body p-3">
                         <!-- Nav Tabs: Preview vs Schema & Metadata -->
@@ -447,22 +365,21 @@
                             </div>
                         </div>
                     </div>
-                    <div
-                        class="modal-footer bg-light border-top d-flex justify-content-between align-items-center py-2 px-3">
-                        <div class="d-flex align-items-center gap-3">
-                            <span class="text-muted small" id="modalSourceIdText"></span>
+                    <div class="app-card-footer flex justify-between items-center py-2 px-3">
+                        <div class="flex items-center gap-3">
+                            <span class="text-light-muted dark:text-dark-muted text-2xs" id="modalSourceIdText"></span>
                             <a href="#" id="modalDownloadBtn"
-                                class="btn btn-sm btn-outline-secondary d-flex align-items-center gap-1" target="_blank"
+                                class="app-btn app-btn-secondary !h-7 !text-2xs flex items-center gap-1" target="_blank"
                                 download>
                                 <i class="ri-download-2-line"></i> Download Original File
                             </a>
                         </div>
-                        <div class="d-flex gap-2">
+                        <div class="flex items-center gap-2">
                             <a href="{{ route('simulator.index') }}"
-                                class="btn btn-sm btn-primary d-flex align-items-center gap-1" id="modalAskSimulatorBtn">
+                                class="app-btn app-btn-primary !h-7 !text-2xs flex items-center gap-1" id="modalAskSimulatorBtn">
                                 <i class="ri-chat-smile-2-line"></i> Ask in Simulator
                             </a>
-                            <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Close</button>
+                            <button type="button" class="app-btn app-btn-secondary !h-7 !text-2xs" data-bs-dismiss="modal">Close</button>
                         </div>
                     </div>
                 </div>
@@ -470,18 +387,20 @@
         </div>
 
         <!-- Spreadsheet Column Mapping Confirmation Modal (Phase 2) -->
-        <div class="modal fade" id="spreadsheetMappingModal" tabindex="-1" aria-labelledby="spreadsheetMappingModalLabel" aria-hidden="true" data-bs-backdrop="static">
-            <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
-                <div class="modal-content border-0 shadow-lg">
-                    <div class="modal-header bg-light border-bottom py-3 px-4">
-                        <div class="d-flex align-items-center gap-2">
-                            <i class="ri-table-line text-warning fs-3"></i>
+        <div class="modal hidden fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto" id="spreadsheetMappingModal" tabindex="-1" aria-labelledby="spreadsheetMappingModalLabel" aria-hidden="true" data-bs-backdrop="static" style="display: none;">
+            <div class="modal-dialog w-full max-w-5xl app-card shadow-modal overflow-hidden transition-all duration-200 my-auto">
+                <div class="modal-content border-0 bg-transparent flex flex-col max-h-[90vh]">
+                    <div class="app-card-header flex items-center justify-between">
+                        <div class="flex items-center gap-2">
+                            <i class="ri-table-line text-amber-500 text-lg"></i>
                             <div>
-                                <h5 class="modal-title fw-bold text-dark mb-0" id="spreadsheetMappingModalLabel">Confirm Spreadsheet Schema & Column Mappings</h5>
-                                <div class="text-muted small" id="mappingModalSubtitle">Configure header rows, verify inferred column categories, and resolve ambiguities.</div>
+                                <h5 class="text-xs font-semibold text-light-text dark:text-dark-text mb-0" id="spreadsheetMappingModalLabel">Confirm Spreadsheet Schema & Column Mappings</h5>
+                                <div class="text-light-muted dark:text-dark-muted text-2xs" id="mappingModalSubtitle">Configure header rows, verify inferred column categories, and resolve ambiguities.</div>
                             </div>
                         </div>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        <button type="button" class="text-light-muted dark:text-dark-muted hover:text-light-text dark:hover:text-dark-text text-base p-1" data-bs-dismiss="modal" aria-label="Close">
+                            <i class="ri-close-line"></i>
+                        </button>
                     </div>
                     <div class="modal-body p-4">
                         <div id="mappingModalLoader" class="text-center py-5">
@@ -556,9 +475,9 @@
                             </div>
                         </div>
                     </div>
-                    <div class="modal-footer bg-light border-top py-2 px-4 d-flex justify-content-between">
-                        <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
-                        <button type="button" class="btn btn-sm btn-primary d-flex align-items-center gap-1" id="btnConfirmAndIngest">
+                    <div class="app-card-footer flex justify-between items-center py-2 px-4">
+                        <button type="button" class="app-btn app-btn-secondary !h-7 !text-2xs" data-bs-dismiss="modal">Cancel</button>
+                        <button type="button" class="app-btn app-btn-primary !h-7 !text-2xs flex items-center gap-1" id="btnConfirmAndIngest">
                             <i class="ri-check-line"></i> Confirm & Start Ingestion
                         </button>
                     </div>
@@ -587,8 +506,8 @@
 
             function switchTab(tabName) {
                 currentTab = tabName;
-                $('.kb-pill-btn').removeClass('active');
-                $(`#tab-btn-${tabName}`).addClass('active');
+                $('.kb-pill-btn').removeClass('active app-btn-primary').addClass('app-btn-secondary');
+                $(`#tab-btn-${tabName}`).addClass('active app-btn-primary').removeClass('app-btn-secondary');
 
                 // Update URL without full reload
                 const url = new URL(window.location);
@@ -596,12 +515,12 @@
                 window.history.replaceState({}, '', url);
 
                 if (['faqs', 'policies', 'business_info'].includes(tabName)) {
-                    $('#faq-table-container').removeClass('d-none');
-                    $('#doc-table-container').addClass('d-none');
+                    $('#faq-table-container').removeClass('hidden d-none');
+                    $('#doc-table-container').addClass('hidden d-none');
                     reloadFaqTable();
                 } else {
-                    $('#faq-table-container').addClass('d-none');
-                    $('#doc-table-container').removeClass('d-none');
+                    $('#faq-table-container').addClass('hidden d-none');
+                    $('#doc-table-container').removeClass('hidden d-none');
                     reloadDocTable();
                 }
             }

@@ -1,145 +1,132 @@
-<div class="sidebar sidebar-navigation active">
-    <!-- Logo Section -->
-    {{-- <div class="logo_content">
-        <a href="{{ route('dashboard') }}" class="logo">
-            <img src="{{ asset('images/logo.png') }}" alt="logo" class="logo_img" />
-            <div class="logo_name">
-                <span class="logo-text">Admin</span>
+<aside id="adminSidebar" class="w-56 border-r border-light-border dark:border-dark-border bg-light-surface dark:bg-dark-surface flex-shrink-0 flex flex-col justify-between overflow-y-auto scrollbar transition-all duration-200">
+    <div class="p-2 space-y-4">
+        {{-- Brand / Workspace Identity --}}
+        <div class="p-2 flex items-center gap-2 border-b border-light-border dark:border-dark-border pb-2.5">
+            <div class="w-7 h-7 rounded bg-brand-500/15 text-brand-500 flex items-center justify-center text-sm font-bold flex-shrink-0">
+                <i class="ri-sparkling-fill"></i>
             </div>
-        </a>
-    </div> --}}
+            <div class="overflow-hidden">
+                <div class="text-xs font-semibold text-light-text dark:text-dark-text truncate">
+                    {{ Auth::user()->workspace->name ?? 'Entrepreneurs AI' }}
+                </div>
+                <div class="text-2xs text-light-muted dark:text-dark-muted truncate">
+                    Enterprise Platform
+                </div>
+            </div>
+        </div>
 
-    <!-- Navigation Menu -->
-    <nav class="sidebar-menu">
-        <ul class="nav_list ps-0 scrollbar">
-            <!-- Main Section -->
-            <li class="nav-section">
-                <span class="nav-section-title">Main</span>
-            </li>
-            <li class="nav-item">
-                <a href="{{ route('dashboard') }}" class="nav-link {{ Route::is('dashboard') ? 'active' : '' }}">
-                    <i class="ri-home-4-line nav-icon"></i>
-                    <span class="nav-label">Dashboard</span>
-                </a>
-            </li>
-            <li class="nav-item">
-                <a href="{{ route('analytics.index') }}" class="nav-link {{ Route::is('analytics.index') ? 'active' : '' }}">
-                    <i class="ri-bar-chart-box-line nav-icon"></i>
-                    <span class="nav-label">Analytics & BI</span>
-                </a>
-            </li>
+        {{-- Navigation Menu --}}
+        <nav class="space-y-3">
+            {{-- Core Section --}}
+            <div>
+                <div class="px-2 pb-1 text-2xs font-semibold uppercase tracking-wider text-light-muted dark:text-dark-muted">
+                    Core
+                </div>
+                <div class="space-y-0.5">
+                    <a href="{{ route('dashboard') }}" class="flex items-center gap-2 px-2.5 py-1.5 rounded text-xs font-medium transition-colors {{ Route::is('dashboard') ? 'text-brand-600 dark:text-brand-400 bg-brand-500/10 font-semibold border-l-2 border-brand-500 rounded-l-none' : 'text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text dark:hover:text-dark-text hover:bg-light-elevated dark:hover:bg-dark-elevated' }}">
+                        <i class="ri-dashboard-3-line text-sm {{ Route::is('dashboard') ? 'text-brand-500' : 'text-light-muted dark:text-dark-muted' }}"></i>
+                        <span>Dashboard</span>
+                    </a>
+                    <a href="{{ route('analytics.index') }}" class="flex items-center gap-2 px-2.5 py-1.5 rounded text-xs font-medium transition-colors {{ Route::is('analytics.index') ? 'text-brand-600 dark:text-brand-400 bg-brand-500/10 font-semibold border-l-2 border-brand-500 rounded-l-none' : 'text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text dark:hover:text-dark-text hover:bg-light-elevated dark:hover:bg-dark-elevated' }}">
+                        <i class="ri-bar-chart-2-line text-sm {{ Route::is('analytics.index') ? 'text-brand-500' : 'text-light-muted dark:text-dark-muted' }}"></i>
+                        <span>Analytics & BI</span>
+                    </a>
+                </div>
+            </div>
 
-            <!-- Conversations Section -->
-            <li class="nav-section">
-                <span class="nav-section-title">Omni-Channel Inbox</span>
-            </li>
-            <li class="nav-item">
-                <a href="{{ route('conversations.index') }}" class="nav-link {{ Route::is('conversations.index') ? 'active' : '' }}">
-                    <i class="ri-message-3-line nav-icon"></i>
-                    <span class="nav-label">Conversations</span>
-                </a>
-            </li>
-            <li class="nav-item">
-                <a href="{{ route('widget.manage') }}" class="nav-link {{ Route::is('widget.manage') ? 'active' : '' }}">
-                    <i class="ri-chat-smile-2-line nav-icon"></i>
-                    <span class="nav-label">Web Chat Widget</span>
-                </a>
-            </li>
-            <li class="nav-item">
-                <a href="{{ route('simulator.index') }}" class="nav-link {{ Route::is('simulator.index') ? 'active' : '' }}">
-                    <i class="ri-robot-2-line nav-icon"></i>
-                    <span class="nav-label">Chat Simulator</span>
-                </a>
-            </li>
-            <li class="nav-item">
-                <a href="{{ route('observability.index') }}" class="nav-link {{ Route::is('observability.index') ? 'active' : '' }}">
-                    <i class="ri-pulse-line nav-icon"></i>
-                    <span class="nav-label">Observability & Telemetry</span>
-                </a>
-            </li>
+            {{-- Omni-Channel AI --}}
+            <div>
+                <div class="px-2 pb-1 text-2xs font-semibold uppercase tracking-wider text-light-muted dark:text-dark-muted">
+                    Omni-Channel AI
+                </div>
+                <div class="space-y-0.5">
+                    <a href="{{ route('conversations.index') }}" class="flex items-center gap-2 px-2.5 py-1.5 rounded text-xs font-medium transition-colors {{ Route::is('conversations.index') ? 'text-brand-600 dark:text-brand-400 bg-brand-500/10 font-semibold border-l-2 border-brand-500 rounded-l-none' : 'text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text dark:hover:text-dark-text hover:bg-light-elevated dark:hover:bg-dark-elevated' }}">
+                        <i class="ri-message-3-line text-sm {{ Route::is('conversations.index') ? 'text-brand-500' : 'text-light-muted dark:text-dark-muted' }}"></i>
+                        <span>Conversations</span>
+                    </a>
+                    <a href="{{ route('widget.manage') }}" class="flex items-center gap-2 px-2.5 py-1.5 rounded text-xs font-medium transition-colors {{ Route::is('widget.manage') ? 'text-brand-600 dark:text-brand-400 bg-brand-500/10 font-semibold border-l-2 border-brand-500 rounded-l-none' : 'text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text dark:hover:text-dark-text hover:bg-light-elevated dark:hover:bg-dark-elevated' }}">
+                        <i class="ri-code-s-slash-line text-sm {{ Route::is('widget.manage') ? 'text-brand-500' : 'text-light-muted dark:text-dark-muted' }}"></i>
+                        <span>Web Chat Widget</span>
+                    </a>
+                    <a href="{{ route('simulator.index') }}" class="flex items-center gap-2 px-2.5 py-1.5 rounded text-xs font-medium transition-colors {{ Route::is('simulator.index') ? 'text-brand-600 dark:text-brand-400 bg-brand-500/10 font-semibold border-l-2 border-brand-500 rounded-l-none' : 'text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text dark:hover:text-dark-text hover:bg-light-elevated dark:hover:bg-dark-elevated' }}">
+                        <i class="ri-robot-2-line text-sm {{ Route::is('simulator.index') ? 'text-brand-500' : 'text-light-muted dark:text-dark-muted' }}"></i>
+                        <span>Chat Simulator</span>
+                    </a>
+                    <a href="{{ route('observability.index') }}" class="flex items-center gap-2 px-2.5 py-1.5 rounded text-xs font-medium transition-colors {{ Route::is('observability.index') ? 'text-brand-600 dark:text-brand-400 bg-brand-500/10 font-semibold border-l-2 border-brand-500 rounded-l-none' : 'text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text dark:hover:text-dark-text hover:bg-light-elevated dark:hover:bg-dark-elevated' }}">
+                        <i class="ri-pulse-line text-sm {{ Route::is('observability.index') ? 'text-brand-500' : 'text-light-muted dark:text-dark-muted' }}"></i>
+                        <span>Telemetry</span>
+                    </a>
+                    @can(\App\Enums\Permissions\MessagePermission::VIEW->value)
+                    <a href="{{ route('message') }}" class="flex items-center gap-2 px-2.5 py-1.5 rounded text-xs font-medium transition-colors {{ Route::is('message*') ? 'text-brand-600 dark:text-brand-400 bg-brand-500/10 font-semibold border-l-2 border-brand-500 rounded-l-none' : 'text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text dark:hover:text-dark-text hover:bg-light-elevated dark:hover:bg-dark-elevated' }}">
+                        <i class="ri-mail-line text-sm {{ Route::is('message*') ? 'text-brand-500' : 'text-light-muted dark:text-dark-muted' }}"></i>
+                        <span>Contact Messages</span>
+                    </a>
+                    @endcan
+                </div>
+            </div>
 
-            <!-- Superadmin Multi-Tenant Governance -->
+            {{-- Platform Governance (Superadmin) or Workspace Settings --}}
             @if(Auth::user() && (Auth::user()->hasRole('superadmin') || Auth::user()->hasRole('admin') || Auth::user()->email === 'superadmin@example.com' || (int) Auth::user()->id === 1))
-            <li class="nav-section">
-                <span class="nav-section-title">Platform Governance</span>
-            </li>
-            <li class="nav-item">
-                <a href="{{ route('workspaces.index') }}" class="nav-link {{ Route::is('workspaces.*') || Route::is('workspace.settings.*') ? 'active' : '' }}">
-                    <i class="ri-building-line nav-icon"></i>
-                    <span class="nav-label">Workspaces & Settings</span>
-                </a>
-            </li>
-            <li class="nav-item">
-                <a href="{{ route('admin.commercial.index') }}" class="nav-link {{ (Route::is('commercial.*') || Route::is('admin.commercial.*')) ? 'active' : '' }}">
-                    <i class="ri-money-dollar-circle-line nav-icon"></i>
-                    <span class="nav-label">Commercial & Billing</span>
-                </a>
-            </li>
+            <div>
+                <div class="px-2 pb-1 text-2xs font-semibold uppercase tracking-wider text-light-muted dark:text-dark-muted">
+                    Governance
+                </div>
+                <div class="space-y-0.5">
+                    <a href="{{ route('workspaces.index') }}" class="flex items-center gap-2 px-2.5 py-1.5 rounded text-xs font-medium transition-colors {{ Route::is('workspaces.*') || Route::is('workspace.settings.*') ? 'text-brand-600 dark:text-brand-400 bg-brand-500/10 font-semibold border-l-2 border-brand-500 rounded-l-none' : 'text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text dark:hover:text-dark-text hover:bg-light-elevated dark:hover:bg-dark-elevated' }}">
+                        <i class="ri-building-line text-sm {{ Route::is('workspaces.*') ? 'text-brand-500' : 'text-light-muted dark:text-dark-muted' }}"></i>
+                        <span>Workspaces & Settings</span>
+                    </a>
+                    <a href="{{ route('admin.commercial.index') }}" class="flex items-center gap-2 px-2.5 py-1.5 rounded text-xs font-medium transition-colors {{ Route::is('commercial.*') || Route::is('admin.commercial.*') ? 'text-brand-600 dark:text-brand-400 bg-brand-500/10 font-semibold border-l-2 border-brand-500 rounded-l-none' : 'text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text dark:hover:text-dark-text hover:bg-light-elevated dark:hover:bg-dark-elevated' }}">
+                        <i class="ri-money-dollar-circle-line text-sm {{ Route::is('commercial.*') ? 'text-brand-500' : 'text-light-muted dark:text-dark-muted' }}"></i>
+                        <span>Commercial & Billing</span>
+                    </a>
+                </div>
+            </div>
             @else
-            <!-- Tenant Settings Section for Non-Superadmin -->
-            <li class="nav-section">
-                <span class="nav-section-title">Settings</span>
-            </li>
-            <li class="nav-item">
-                <a href="{{ route('workspace.settings.edit') }}" class="nav-link {{ Route::is('workspace.settings.*') ? 'active' : '' }}">
-                    <i class="ri-settings-4-line nav-icon"></i>
-                    <span class="nav-label">Workspace Settings</span>
-                </a>
-            </li>
+            <div>
+                <div class="px-2 pb-1 text-2xs font-semibold uppercase tracking-wider text-light-muted dark:text-dark-muted">
+                    Settings
+                </div>
+                <div class="space-y-0.5">
+                    <a href="{{ route('workspace.settings.edit') }}" class="flex items-center gap-2 px-2.5 py-1.5 rounded text-xs font-medium transition-colors {{ Route::is('workspace.settings.*') ? 'text-brand-600 dark:text-brand-400 bg-brand-500/10 font-semibold border-l-2 border-brand-500 rounded-l-none' : 'text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text dark:hover:text-dark-text hover:bg-light-elevated dark:hover:bg-dark-elevated' }}">
+                        <i class="ri-settings-4-line text-sm {{ Route::is('workspace.settings.*') ? 'text-brand-500' : 'text-light-muted dark:text-dark-muted' }}"></i>
+                        <span>Workspace Settings</span>
+                    </a>
+                </div>
+            </div>
             @endif
 
-            <!-- Knowledge Base Section -->
+            {{-- Knowledge Base --}}
             @canany([\App\Enums\Permissions\FAQPermission::VIEW->value, \App\Enums\Permissions\KnowledgeDocumentPermission::VIEW->value])
-            <li class="nav-section">
-                <span class="nav-section-title">Knowledge Base</span>
-            </li>
-            <li class="nav-item">
-                <a href="{{ route('knowledge-base.index') }}" class="nav-link {{ in_array(Route::currentRouteName(), ['knowledge-base.index', 'faqs.index', 'faqs.create', 'faqs.edit', 'documents.index', 'documents.create']) ? 'active' : '' }}">
-                    <i class="ri-book-read-line nav-icon"></i>
-                    <span class="nav-label">Knowledge Base</span>
-                </a>
-            </li>
+            <div>
+                <div class="px-2 pb-1 text-2xs font-semibold uppercase tracking-wider text-light-muted dark:text-dark-muted">
+                    Knowledge Base
+                </div>
+                <div class="space-y-0.5">
+                    <a href="{{ route('knowledge-base.index') }}" class="flex items-center gap-2 px-2.5 py-1.5 rounded text-xs font-medium transition-colors {{ in_array(Route::currentRouteName(), ['knowledge-base.index', 'faqs.index', 'faqs.create', 'faqs.edit', 'documents.index', 'documents.create']) ? 'text-brand-600 dark:text-brand-400 bg-brand-500/10 font-semibold border-l-2 border-brand-500 rounded-l-none' : 'text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text dark:hover:text-dark-text hover:bg-light-elevated dark:hover:bg-dark-elevated' }}">
+                        <i class="ri-book-open-line text-sm {{ Route::is('knowledge-base.*') ? 'text-brand-500' : 'text-light-muted dark:text-dark-muted' }}"></i>
+                        <span>Knowledge Base</span>
+                    </a>
+                </div>
+            </div>
             @endcanany
 
-            <!-- Users & Roles Section -->
-            <li class="nav-section">
-                <span class="nav-section-title">Users & Access</span>
-            </li>
-            <li class="nav-item">
-                <a href="{{ route('users.index') }}" class="nav-link {{ in_array(Route::currentRouteName(), ['users.index', 'users.create', 'users.edit']) ? 'active' : '' }}">
-                    <i class="ri-user-3-line nav-icon"></i>
-                    <span class="nav-label">Users</span>
-                </a>
-            </li>
-            <li class="nav-item">
-                <a href="{{ route('roles.index') }}" class="nav-link {{ in_array(Route::currentRouteName(), ['roles.index', 'roles.create', 'roles.edit']) ? 'active' : '' }}">
-                    <i class="ri-shield-user-line nav-icon"></i>
-                    <span class="nav-label">Roles</span>
-                </a>
-            </li>
-        </ul>
-    </nav>
-
-    <!-- Profile Section -->
-    {{-- <div class="sidebar-profile">
-        <div class="profile-card">
-            <div class="profile-avatar">
-                @if(Auth::user()->image)
-                    <img id="sidebarImageDB" src="{{ asset('storage/' . Auth::user()->image) }}" alt="{{ Auth::user()->name }}" class="avatar-img">
-                @else
-                    <i class="ri-user-3-line"></i>
-                @endif
+            {{-- Users & Roles --}}
+            <div>
+                <div class="px-2 pb-1 text-2xs font-semibold uppercase tracking-wider text-light-muted dark:text-dark-muted">
+                    Users & Access
+                </div>
+                <div class="space-y-0.5">
+                    <a href="{{ route('users.index') }}" class="flex items-center gap-2 px-2.5 py-1.5 rounded text-xs font-medium transition-colors {{ in_array(Route::currentRouteName(), ['users.index', 'users.create', 'users.edit']) ? 'text-brand-600 dark:text-brand-400 bg-brand-500/10 font-semibold border-l-2 border-brand-500 rounded-l-none' : 'text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text dark:hover:text-dark-text hover:bg-light-elevated dark:hover:bg-dark-elevated' }}">
+                        <i class="ri-user-settings-line text-sm {{ Route::is('users.*') ? 'text-brand-500' : 'text-light-muted dark:text-dark-muted' }}"></i>
+                        <span>Users</span>
+                    </a>
+                    <a href="{{ route('roles.index') }}" class="flex items-center gap-2 px-2.5 py-1.5 rounded text-xs font-medium transition-colors {{ in_array(Route::currentRouteName(), ['roles.index', 'roles.create', 'roles.edit']) ? 'text-brand-600 dark:text-brand-400 bg-brand-500/10 font-semibold border-l-2 border-brand-500 rounded-l-none' : 'text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text dark:hover:text-dark-text hover:bg-light-elevated dark:hover:bg-dark-elevated' }}">
+                        <i class="ri-shield-keyhole-line text-sm {{ Route::is('roles.*') ? 'text-brand-500' : 'text-light-muted dark:text-dark-muted' }}"></i>
+                        <span>Roles</span>
+                    </a>
+                </div>
             </div>
-            <div class="profile-info">
-                <p class="profile-name">{{ Auth::user()->name }}</p>
-                <p class="profile-role">{{ Auth::user()->designation }}</p>
-            </div>
-            <form method="POST" action="{{ route('logout') }}" class="logout-form">
-                @csrf
-                <button type="submit" class="logout-btn" title="Logout">
-                    <i class="ri-logout-box-r-line"></i>
-                </button>
-            </form>
-        </div>
-    </div> --}}
-</div>
+        </nav>
+    </div>
+</aside>
