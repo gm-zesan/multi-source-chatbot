@@ -210,15 +210,6 @@
 
 /* ==================== BADGE ANIMATION ==================== */
 .badge-pulse {
-    animation: pulse-badge 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-}
-
-@keyframes pulse-badge {
-    0%, 100% {
-        opacity: 1;
-    }
-
-    50% {
-        opacity: 0.8;
-    }
+    /* Pulse removed per design standard */
+    opacity: 1;
 }

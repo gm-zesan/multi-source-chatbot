@@ -162,19 +162,19 @@
                 <div class="space-y-1.5 pt-3 border-t border-light-border dark:border-dark-border text-xs">
                     <div class="flex items-center justify-between py-0.5">
                         <span class="flex items-center gap-1.5 text-light-text dark:text-dark-text">
-                            <span class="w-2 h-2 rounded-full bg-emerald-500"></span> In Stock
+                            <span class="w-2.5 h-1.5 rounded-xs inline-block bg-emerald-500"></span> In Stock
                         </span>
                         <strong class="font-mono text-emerald-500 font-bold" id="invInStock">{{ $initialData['inventory']['in_stock'] }}</strong>
                     </div>
                     <div class="flex items-center justify-between py-0.5">
                         <span class="flex items-center gap-1.5 text-light-text dark:text-dark-text">
-                            <span class="w-2 h-2 rounded-full bg-amber-500"></span> Low Stock (≤ 5)
+                            <span class="w-2.5 h-1.5 rounded-xs inline-block bg-amber-500"></span> Low Stock (≤ 5)
                         </span>
                         <strong class="font-mono text-amber-500 font-bold" id="invLowStock">{{ $initialData['inventory']['low_stock'] }}</strong>
                     </div>
                     <div class="flex items-center justify-between py-0.5">
                         <span class="flex items-center gap-1.5 text-light-text dark:text-dark-text">
-                            <span class="w-2 h-2 rounded-full bg-red-500"></span> Out of Stock
+                            <span class="w-2.5 h-1.5 rounded-xs inline-block bg-red-500"></span> Out of Stock
                         </span>
                         <strong class="font-mono text-red-500 font-bold" id="invOutOfStock">{{ $initialData['inventory']['out_of_stock'] }}</strong>
                     </div>

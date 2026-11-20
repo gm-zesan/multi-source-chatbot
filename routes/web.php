@@ -17,14 +17,34 @@ use App\Http\Controllers\ConversationController;
 use App\Http\Controllers\KnowledgeBaseController;
 use App\Http\Controllers\KnowledgeDocumentController;
 use App\Http\Controllers\RoleController;
+use App\Http\Controllers\PublicPageController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\WebhookController;
 use App\Enums\Permissions\KnowledgeDocumentPermission;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/', function () {
-    return view('welcome');
-})->name('home');
+// Public Website Marketing Pages (Linear / Stripe Theme)
+Route::controller(PublicPageController::class)->group(function () {
+    Route::get('/', 'home')->name('home');
+    Route::get('/platform', 'platform')->name('platform');
+    Route::get('/knowledge-engine', 'knowledgeEngine')->name('knowledge-engine');
+    Route::get('/unified-inbox', 'unifiedInbox')->name('unified-inbox');
+    Route::get('/business-intelligence', 'businessIntelligence')->name('business-intelligence');
+    Route::get('/automation', 'automation')->name('automation');
+    Route::get('/integrations', 'integrations')->name('integrations');
+    Route::get('/solutions', 'solutions')->name('solutions');
+    Route::get('/pricing', 'pricing')->name('pricing');
+    Route::get('/about', 'about')->name('about');
+    Route::get('/contact', 'contact')->name('contact');
+    Route::get('/resources', 'resources')->name('resources');
+    Route::get('/faq', 'faq')->name('faq');
+    Route::get('/privacy', 'privacy')->name('privacy');
+    Route::get('/terms', 'terms')->name('terms');
+    Route::get('/cookies', 'cookies')->name('cookies');
+});
+
+// Public Contact Form Submission (Reuses ContactFormController & Model)
+Route::post('/contact', [ContactFormController::class, 'store'])->name('contact.store');
 
 // Health check — no auth, used by load balancers / uptime monitors
 Route::get('/health', HealthController::class)->name('health');

@@ -32,7 +32,7 @@
                 </div>
 
                 <span class="app-badge bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 text-xs px-2.5 py-1" id="liveIndicator">
-                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                    <i class="ri-checkbox-circle-fill text-xs"></i>
                     Stream Active
                 </span>
 

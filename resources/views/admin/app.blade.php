@@ -28,7 +28,7 @@
     @include('admin.partials.styles')
     @stack('custom-style')
 </head>
-<body class="bg-light-canvas text-light-text dark:bg-dark-canvas dark:text-dark-text antialiased h-screen max-h-screen overflow-hidden flex flex-col font-sans selection:bg-brand-500 selection:text-white">
+<body class="admin-body bg-light-canvas text-light-text dark:bg-dark-canvas dark:text-dark-text antialiased h-screen max-h-screen overflow-hidden flex flex-col font-sans selection:bg-brand-500 selection:text-white">
     {{-- Top Navigation Header --}}
     @include('admin.partials.header')
 

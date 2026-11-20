@@ -45,7 +45,7 @@
                 </span>
 
                 @if ($conversation->unread_count)
-                    <span class="w-2 h-2 rounded-full bg-brand-500 shrink-0"></span>
+                    <span class="px-1.5 py-0.5 rounded text-3xs font-bold bg-brand-500 text-white leading-none shrink-0">{{ $conversation->unread_count }}</span>
                 @endif
             </div>
         </div>

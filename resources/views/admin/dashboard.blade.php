@@ -226,7 +226,7 @@
                         @endphp
                         <div class="flex items-center justify-between py-1">
                             <span class="flex items-center gap-2 text-light-text dark:text-dark-text">
-                                <span class="w-2 h-2 rounded-full" style="background-color: {{ $col }};"></span>
+                                <span class="w-2.5 h-1.5 rounded-xs inline-block" style="background-color: {{ $col }};"></span>
                                 <span>{{ $label }}</span>
                             </span>
                             <div class="flex items-center gap-2">

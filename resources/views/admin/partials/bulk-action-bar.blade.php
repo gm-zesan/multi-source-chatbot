@@ -1,7 +1,7 @@
 {{-- Floating Bulk Action Bar (Linear / Vercel style) --}}
 <div id="appBulkActionBar" class="app-bulk-bar" role="region" aria-label="Bulk actions">
     <div class="flex items-center gap-2">
-        <span class="w-2 h-2 rounded-full bg-brand-500"></span>
+        <i class="ri-checkbox-multiple-line text-brand-500 text-xs"></i>
         <span class="app-badge app-badge-primary font-mono !text-3xs" id="bulkSelectedCount">0 selected</span>
     </div>
     <div class="h-4 w-px bg-light-border dark:bg-dark-border"></div>

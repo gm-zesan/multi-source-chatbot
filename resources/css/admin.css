@@ -1283,9 +1283,10 @@ html[data-theme="dark"] .unread-divider span {
     background: var(--color-text-muted);
 }
 
-/* Sidebar Collapse, Mobile Drawer & Independent Dual Scrolling */
-html,
-body {
+/* Sidebar Collapse, Mobile Drawer & Independent Dual Scrolling for Admin */
+html:has(#main-wrapper),
+body:has(#main-wrapper),
+body.admin-body {
     height: 100vh !important;
     max-height: 100vh !important;
     overflow: hidden !important;

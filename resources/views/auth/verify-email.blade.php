@@ -1,47 +1,44 @@
 @section('title', 'Verify Email')
 
 <x-guest-layout>
-    <div class="card auth-card">
-        <div class="auth-header">
-            <div class="auth-logo-wrapper">
-                @if(file_exists(public_path('images/logo.png')))
-                    <img src="{{ asset('images/logo.png') }}" alt="Entrepreneurs Automation" class="auth-logo">
-                @else
-                    <div class="auth-logo-fallback">
-                        <i class="ri-mail-check-line"></i>
-                    </div>
-                @endif
+    <div class="rounded-2xl border border-light-border dark:border-dark-border bg-light-surface/90 dark:bg-dark-surface/90 backdrop-blur-xl shadow-card p-6 sm:p-8 transition-colors duration-200">
+        
+        {{-- Header & Icon --}}
+        <div class="text-center mb-7">
+            <div class="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-brand-500/10 text-brand-500 border border-brand-500/20 mb-3 shadow-xs">
+                <i class="ri-mail-check-line text-2xl"></i>
             </div>
-            <h1 class="auth-title">Verify Your Email</h1>
-            <p class="auth-subtitle">Please verify your email address by clicking on the link we sent you.</p>
+            <h1 class="text-xl sm:text-2xl font-bold tracking-tight text-light-text dark:text-dark-text">
+                Verify Your Email
+            </h1>
+            <p class="text-xs sm:text-sm text-light-muted dark:text-dark-muted mt-1 leading-relaxed">
+                Thanks for signing up! Please verify your email address by clicking on the link we just sent to your inbox.
+            </p>
         </div>
 
+        {{-- Verification Status --}}
         @if (session('status') == 'verification-link-sent')
-            <div class="alert alert-success d-flex align-items-center py-2 px-3 mb-3 border-0" role="alert" style="background-color: #ecfdf5; color: #065f46; border-radius: 6px; font-size: 13px;">
-                <i class="ri-checkbox-circle-fill me-2 text-success"></i>
-                <div>A new verification link has been sent to your email address.</div>
+            <div class="mb-5 p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-xs flex items-center gap-2">
+                <i class="ri-checkbox-circle-fill text-sm flex-shrink-0"></i>
+                <span>A new verification link has been sent to your email address.</span>
             </div>
         @endif
 
-        <div class="d-flex flex-column gap-2 mt-3">
+        <div class="space-y-3">
             <form method="POST" action="{{ route('verification.send') }}">
                 @csrf
-                <button type="submit" class="btn submit-button auth-submit-btn w-100">
+                <button type="submit" class="w-full py-2.5 px-4 rounded-xl text-xs sm:text-sm font-semibold bg-brand-600 hover:bg-brand-500 text-white shadow-sm hover:shadow transition-all duration-150 flex items-center justify-center gap-2 group cursor-pointer">
                     <span>Resend Verification Email</span>
-                    <i class="ri-mail-send-line ms-1"></i>
+                    <i class="ri-mail-send-line text-sm group-hover:translate-x-0.5 transition-transform"></i>
                 </button>
             </form>
 
-            <form method="POST" action="{{ route('logout') }}" class="text-center mt-2">
+            <form method="POST" action="{{ route('logout') }}" class="text-center">
                 @csrf
-                <button type="submit" class="btn btn-link auth-link small">
+                <button type="submit" class="text-xs text-light-muted dark:text-dark-muted hover:text-rose-500 transition-colors">
                     Log Out
                 </button>
             </form>
         </div>
-    </div>
-
-    <div class="auth-page-footer">
-        <p>&copy; {{ date('Y') }} Entrepreneurs Automation. All rights reserved.</p>
     </div>
 </x-guest-layout>
