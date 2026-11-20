@@ -27,10 +27,16 @@ class SubscriptionQuotaService
     }
 
     /**
-     * Determine if a workspace has quota to start a new conversation.
+     * Determine if a workspace has quota and prepaid balance to process an AI message.
      */
     public function canCreateConversation(int $workspaceId): bool
     {
+        // 1. Check prepaid wallet balance (৳0.40 per message)
+        $canAfford = app(\App\Services\Billing\WorkspaceWalletService::class)->canAffordMessage($workspaceId);
+        if (! $canAfford) {
+            return false;
+        }
+
         $sub = $this->getActiveSubscription($workspaceId);
 
         // If no active subscription, check if free tier plan exists or fall back to default limit (100)
@@ -52,12 +58,15 @@ class SubscriptionQuotaService
     }
 
     /**
-     * Record a new conversation for quota tracking.
+     * Record a new conversation for quota tracking and deduct ৳0.40 per-message fee.
      */
     public function recordConversationUsage(int $workspaceId): void
     {
         $quota = WorkspaceUsageQuota::currentForWorkspace($workspaceId);
         $quota->increment('conversation_count');
+
+        // Automatically deduct metered usage fee (৳0.40 per AI message)
+        app(\App\Services\Billing\WorkspaceWalletService::class)->deductMessageUsage($workspaceId);
     }
 
     /**

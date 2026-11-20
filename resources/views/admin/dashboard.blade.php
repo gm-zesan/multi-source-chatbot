@@ -25,6 +25,10 @@
             </p>
         </div>
         <div class="flex items-center gap-2 flex-wrap">
+            <a href="{{ route('billing.index') }}" class="app-btn app-btn-secondary !border-brand-500/30 !bg-brand-500/5 hover:!bg-brand-500/10">
+                <i class="ri-wallet-3-line text-xs text-brand-500"></i>
+                <span>Wallet: <strong>৳{{ number_format($walletBalance ?? 50, 2) }}</strong></span>
+            </a>
             <a href="{{ route('analytics.index') }}" class="app-btn app-btn-secondary">
                 <i class="ri-bar-chart-2-line text-xs"></i>
                 <span>BI Analytics</span>
@@ -52,7 +56,7 @@
                     </h2>
                 </div>
                 <p class="text-2xs text-light-text-secondary dark:text-dark-text-secondary mt-0.5">
-                    Follow these 5 recommended setup steps to prime your AI assistant for customer deployment.
+                    Follow these {{ $onboarding['total'] ?? 6 }} recommended setup steps to prime your AI assistant for customer deployment.
                 </p>
             </div>
             <div class="flex items-center gap-3">

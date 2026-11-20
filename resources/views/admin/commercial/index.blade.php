@@ -273,5 +273,190 @@
             </div>
         </div>
     </div>
+
+    {{-- Tenant Prepaid Wallets (৳0.40 Metered Usage Model) --}}
+    <div class="app-card overflow-hidden">
+        <div class="p-3.5 border-b border-light-border dark:border-dark-border flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div>
+                <h3 class="text-xs font-bold text-light-text dark:text-dark-text flex items-center gap-2">
+                    <i class="ri-wallet-3-line text-brand-500"></i>
+                    <span>Tenant Prepaid Wallets & Metered Balances (৳0.40/msg)</span>
+                </h3>
+                <p class="text-3xs text-light-muted dark:text-dark-muted mt-0.5">
+                    Prepaid wallet balances deducted in real-time per AI response across omnichannels.
+                </p>
+            </div>
+            <span class="app-badge app-badge-primary text-3xs uppercase">Option 1 Active</span>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs">
+                <thead class="bg-light-canvas/70 dark:bg-dark-canvas/70 border-b border-light-border dark:border-dark-border text-2xs uppercase tracking-wider text-light-muted dark:text-dark-muted font-semibold">
+                    <tr>
+                        <th class="py-2.5 px-4">Workspace</th>
+                        <th class="py-2.5 px-3">Prepaid Balance</th>
+                        <th class="py-2.5 px-3">Est. Messages Left</th>
+                        <th class="py-2.5 px-3">Rate</th>
+                        <th class="py-2.5 px-3">Status</th>
+                        <th class="py-2.5 px-4 text-right">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-light-border dark:divide-dark-border text-light-text dark:text-dark-text">
+                    @forelse($tenantsWithWallets as $ws)
+                        @php
+                            $w = $ws->wallet;
+                            $balance = $w ? (float)$w->balance : 50.00;
+                            $rate = $w ? (float)$w->rate_per_message : 0.40;
+                            $remaining = (int) floor($balance / max($rate, 0.01));
+                            $isFrozen = $w ? $w->is_frozen : false;
+                        @endphp
+                        <tr class="hover:bg-light-canvas/40 dark:hover:bg-dark-canvas/40 transition">
+                            <td class="py-3 px-4 font-semibold text-light-text dark:text-dark-text whitespace-nowrap">
+                                <div class="flex items-center gap-2">
+                                    <div class="w-6 h-6 rounded bg-brand-500/10 text-brand-500 flex items-center justify-center text-xs">
+                                        <i class="ri-building-line"></i>
+                                    </div>
+                                    <span>{{ $ws->name }}</span>
+                                </div>
+                            </td>
+                            <td class="py-3 px-3 font-mono font-bold text-light-text dark:text-dark-text whitespace-nowrap">
+                                ৳ {{ number_format($balance, 2) }}
+                            </td>
+                            <td class="py-3 px-3 font-semibold text-emerald-500 whitespace-nowrap">
+                                {{ number_format($remaining) }} msgs
+                            </td>
+                            <td class="py-3 px-3 text-2xs text-light-muted dark:text-dark-muted font-mono whitespace-nowrap">
+                                ৳{{ number_format($rate, 2) }}/msg
+                            </td>
+                            <td class="py-3 px-3 whitespace-nowrap">
+                                @if($isFrozen)
+                                    <span class="app-badge app-badge-danger text-3xs font-bold uppercase">Frozen</span>
+                                @elseif($balance < 20.00)
+                                    <span class="app-badge app-badge-warning text-3xs font-bold uppercase">Low</span>
+                                @else
+                                    <span class="app-badge app-badge-success text-3xs font-bold uppercase">Active</span>
+                                @endif
+                            </td>
+                            <td class="py-3 px-4 text-right whitespace-nowrap">
+                                <button 
+                                    type="button" 
+                                    class="app-btn app-btn-secondary !h-7 !px-2.5 text-2xs inline-flex items-center gap-1"
+                                    onclick="openWalletAdjustModal('{{ $ws->id }}', '{{ addslashes($ws->name) }}', '{{ $balance }}')"
+                                >
+                                    <i class="ri-money-dollar-circle-line text-brand-500"></i>
+                                    <span>Adjust Balance</span>
+                                </button>
+                            </td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="6" class="py-6 text-center text-light-muted dark:text-dark-muted text-xs">
+                                No tenants found.
+                            </td>
+                        </tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+
+        @if($tenantsWithWallets->hasPages())
+            <div class="p-3 border-t border-light-border dark:border-dark-border">
+                {{ $tenantsWithWallets->links() }}
+            </div>
+        @endif
+    </div>
 </div>
+
+{{-- Modal: SuperAdmin Wallet Adjustment --}}
+<div class="modal fade" id="adjustWalletModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content rounded-2xl border border-light-border dark:border-dark-border bg-light-surface dark:bg-dark-surface shadow-2xl p-5">
+            <div class="flex items-center justify-between pb-3 border-b border-light-border dark:border-dark-border mb-4">
+                <h3 class="text-sm font-bold text-light-text dark:text-dark-text flex items-center gap-2">
+                    <i class="ri-money-dollar-circle-line text-brand-500"></i>
+                    <span>Adjust Tenant Prepaid Balance</span>
+                </h3>
+                <button type="button" class="text-light-muted hover:text-light-text dark:text-dark-muted dark:hover:text-dark-text" data-bs-dismiss="modal">
+                    <i class="ri-close-line text-lg"></i>
+                </button>
+            </div>
+
+            <form id="adjustWalletForm" method="POST" action="">
+                @csrf
+                <div class="space-y-4">
+                    <div class="p-3 rounded-lg bg-light-canvas dark:bg-dark-canvas border border-light-border dark:border-dark-border text-2xs">
+                        <div class="text-light-muted dark:text-dark-muted">Selected Workspace:</div>
+                        <strong id="modalWorkspaceName" class="text-xs text-light-text dark:text-dark-text block mt-0.5"></strong>
+                        <div class="text-light-muted dark:text-dark-muted mt-1">
+                            Current Balance: <span id="modalCurrentBalance" class="font-mono font-bold text-brand-500"></span>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label for="adj_amount" class="block text-xs font-semibold text-light-text dark:text-dark-text mb-1">
+                            Adjustment Amount (BDT) <span class="text-rose-500">*</span>
+                        </label>
+                        <div class="relative">
+                            <span class="absolute left-3 top-1/2 -translate-y-1/2 font-bold text-light-muted dark:text-dark-muted text-xs">৳</span>
+                            <input 
+                                type="number" 
+                                id="adj_amount" 
+                                name="amount" 
+                                step="0.01" 
+                                required 
+                                placeholder="e.g. 500.00 for credit, or -50.00 for debit"
+                                class="app-input w-full pl-8 font-bold text-sm"
+                            >
+                        </div>
+                        <p class="text-3xs text-light-muted dark:text-dark-muted mt-1">
+                            Positive numbers credit/top-up the wallet. Negative numbers debit/deduct from the wallet.
+                        </p>
+                    </div>
+
+                    <div>
+                        <label for="adj_reason" class="block text-xs font-semibold text-light-text dark:text-dark-text mb-1">
+                            Reason / Audit Note <span class="text-rose-500">*</span>
+                        </label>
+                        <input 
+                            type="text" 
+                            id="adj_reason" 
+                            name="reason" 
+                            required 
+                            placeholder="e.g. Promotional credit, offline bKash payment verification, or billing correction"
+                            class="app-input w-full text-xs"
+                        >
+                    </div>
+                </div>
+
+                <div class="mt-5 pt-3 border-t border-light-border dark:border-dark-border flex justify-end gap-2">
+                    <button type="button" class="app-btn app-btn-secondary text-xs" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="app-btn app-btn-primary text-xs flex items-center gap-1.5 shadow-md">
+                        <i class="ri-check-line"></i>
+                        <span>Apply Adjustment</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+function openWalletAdjustModal(workspaceId, workspaceName, currentBalance) {
+    const form = document.getElementById('adjustWalletForm');
+    const nameEl = document.getElementById('modalWorkspaceName');
+    const balEl = document.getElementById('modalCurrentBalance');
+
+    if (form) {
+        form.action = '/admin/commercial/wallets/' + workspaceId + '/adjust';
+    }
+    if (nameEl) nameEl.innerText = workspaceName;
+    if (balEl) balEl.innerText = '৳ ' + parseFloat(currentBalance).toFixed(2);
+
+    const modalEl = document.getElementById('adjustWalletModal');
+    if (modalEl && window.bootstrap) {
+        const modal = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
+        modal.show();
+    }
+}
+</script>
 @endsection

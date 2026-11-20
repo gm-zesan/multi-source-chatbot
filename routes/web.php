@@ -247,6 +247,14 @@ Route::middleware('auth')->prefix('dashboard')->group(function () {
     Route::delete('/channels/{channelAccount}', [\App\Http\Controllers\ChannelIntegrationController::class, 'destroy'])
         ->name('channels.destroy');
 
+    // ── Prepaid Wallet & Metered Billing (Option 1: ৳0.40/msg) ─────────
+    Route::get('/billing', [\App\Http\Controllers\BillingController::class, 'index'])
+        ->name('billing.index');
+    Route::post('/billing/recharge', [\App\Http\Controllers\BillingController::class, 'recharge'])
+        ->name('billing.recharge');
+    Route::post('/admin/commercial/wallets/{workspace}/adjust', [\App\Http\Controllers\SuperAdminCommercialController::class, 'adjustWallet'])
+        ->name('admin.commercial.wallets.adjust');
+
     // ── Developer REST API Key Management ──────────────────────────────
     Route::get('/developer/api-keys', [\App\Http\Controllers\ApiKeyController::class, 'index'])
         ->name('api-keys.index');

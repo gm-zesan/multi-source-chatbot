@@ -107,12 +107,16 @@
             </div>
             @endif
 
-            {{-- 5. WORKSPACE SETTINGS --}}
+            {{-- 5. WORKSPACE SETTINGS & BILLING --}}
             <div>
                 <div class="sidebar-section-title px-2 pb-1 text-2xs font-semibold uppercase tracking-wider text-light-muted dark:text-dark-muted">
-                    Settings
+                    Workspace & Billing
                 </div>
                 <div class="space-y-0.5">
+                    <a href="{{ route('billing.index') }}" title="Billing & Wallet" class="sidebar-nav-item flex items-center gap-2 px-2.5 py-1.5 rounded text-xs font-medium transition-colors {{ Route::is('billing.*') ? 'text-brand-600 dark:text-brand-400 bg-brand-500/10 font-semibold border-l-2 border-brand-500 rounded-l-none' : 'text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text dark:hover:text-dark-text hover:bg-light-elevated dark:hover:bg-dark-elevated' }}">
+                        <i class="ri-wallet-3-line text-sm {{ Route::is('billing.*') ? 'text-brand-500' : 'text-light-muted dark:text-dark-muted' }}"></i>
+                        <span class="sidebar-text-label">Billing & Wallet</span>
+                    </a>
                     <a href="{{ route('workspace.settings.edit') }}" title="Workspace Settings" class="sidebar-nav-item flex items-center gap-2 px-2.5 py-1.5 rounded text-xs font-medium transition-colors {{ Route::is('workspace.settings.*') ? 'text-brand-600 dark:text-brand-400 bg-brand-500/10 font-semibold border-l-2 border-brand-500 rounded-l-none' : 'text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text dark:hover:text-dark-text hover:bg-light-elevated dark:hover:bg-dark-elevated' }}">
                         <i class="ri-settings-4-line text-sm {{ Route::is('workspace.settings.*') ? 'text-brand-500' : 'text-light-muted dark:text-dark-muted' }}"></i>
                         <span class="sidebar-text-label">Workspace Settings</span>

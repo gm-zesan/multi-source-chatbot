@@ -71,10 +71,13 @@ class WorkspaceProvisioningService
             // 5. Provision SaaS Starter / Trial Subscription & Usage Quota
             $this->provisionSubscription($workspace);
 
-            // 6. Provision Default Web Widget Channel Account
+            // 6. Initialize Prepaid Wallet with ৳50.00 Starter Bonus (125 Messages)
+            app(\App\Services\Billing\WorkspaceWalletService::class)->getOrCreateWallet($workspace);
+
+            // 7. Provision Default Web Widget Channel Account
             $this->provisionWebWidget($workspace);
 
-            // 7. Provision Starter Template FAQs
+            // 8. Provision Starter Template FAQs
             $this->provisionStarterKnowledge($workspace, $user);
 
             return $user;
@@ -120,6 +123,7 @@ class WorkspaceProvisioningService
             }
 
             $this->provisionSubscription($workspace);
+            app(\App\Services\Billing\WorkspaceWalletService::class)->getOrCreateWallet($workspace);
             $this->provisionWebWidget($workspace);
             $this->provisionStarterKnowledge($workspace, $user);
 

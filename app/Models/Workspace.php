@@ -69,4 +69,14 @@ class Workspace extends Model
     {
         return $this->hasMany(ApiKey::class);
     }
+
+    public function wallet(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(WorkspaceWallet::class);
+    }
+
+    public function walletTransactions(): HasMany
+    {
+        return $this->hasMany(WorkspaceWalletTransaction::class);
+    }
 }

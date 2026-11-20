@@ -314,6 +314,61 @@
             </div>
         </div>
 
+        {{-- 6. TikTok Direct Messages Card --}}
+        @php
+            $ttAccounts = $connectedAccounts->get('tiktok', collect());
+        @endphp
+        <div class="app-card overflow-hidden flex flex-col justify-between border-t-4 border-t-pink-500">
+            <div class="p-4">
+                <div class="flex items-start justify-between mb-3">
+                    <div class="w-10 h-10 rounded-xl bg-pink-500/10 text-pink-500 flex items-center justify-center text-xl flex-shrink-0">
+                        <i class="ri-tiktok-fill"></i>
+                    </div>
+                    @if($ttAccounts->count() > 0)
+                        <span class="app-badge app-badge-success text-3xs uppercase">{{ $ttAccounts->count() }} Connected</span>
+                    @else
+                        <span class="app-badge app-badge-secondary text-3xs uppercase">Not Connected</span>
+                    @endif
+                </div>
+
+                <h3 class="text-sm font-bold text-light-text dark:text-dark-text">TikTok Direct Messages</h3>
+                <p class="text-2xs text-light-muted dark:text-dark-muted mt-1 leading-relaxed">
+                    Auto-respond to viral TikTok direct messages and business inquiries using your central knowledge base.
+                </p>
+
+                @if($ttAccounts->count() > 0)
+                    <div class="mt-4 space-y-2">
+                        @foreach($ttAccounts as $acc)
+                            <div class="p-2.5 rounded-lg bg-light-canvas dark:bg-dark-canvas border border-light-border dark:border-dark-border flex items-center justify-between text-2xs">
+                                <div class="truncate pr-2 font-semibold text-light-text dark:text-dark-text">{{ $acc->display_name }}</div>
+                                <div class="flex items-center gap-1 flex-shrink-0">
+                                    <form method="POST" action="{{ route('channels.toggle', $acc) }}">
+                                        @csrf
+                                        <button type="submit" class="app-action-btn" title="{{ $acc->is_active ? 'Pause Channel' : 'Activate Channel' }}">
+                                            <i class="{{ $acc->is_active ? 'ri-pause-circle-line text-amber-500' : 'ri-play-circle-line text-emerald-500' }}"></i>
+                                        </button>
+                                    </form>
+                                    <form method="POST" action="{{ route('channels.destroy', $acc) }}" onsubmit="return confirm('Disconnect TikTok account?')">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" class="app-action-btn hover:text-rose-500"><i class="ri-delete-bin-line"></i></button>
+                                    </form>
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+                @endif
+            </div>
+
+            <div class="p-3 bg-light-canvas/50 dark:bg-dark-canvas/50 border-t border-light-border dark:border-dark-border flex items-center justify-between">
+                <span class="text-3xs text-light-muted dark:text-dark-muted">TikTok for Business</span>
+                <button type="button" class="app-btn app-btn-primary !h-7 !px-2.5 text-2xs flex items-center gap-1.5" data-bs-toggle="modal" data-bs-target="#connectTikTokModal">
+                    <i class="ri-add-line"></i>
+                    <span>Connect TikTok</span>
+                </button>
+            </div>
+        </div>
+
     </div>
 </div>
 
@@ -475,6 +530,60 @@
                     <button type="submit" class="app-btn app-btn-primary text-xs flex items-center gap-1.5">
                         <i class="ri-checkbox-circle-line"></i>
                         <span>Save & Connect Telegram</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{{-- Modal: Connect TikTok --}}
+<div class="modal fade" id="connectTikTokModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content rounded-2xl border border-light-border dark:border-dark-border bg-light-surface dark:bg-dark-surface shadow-2xl p-5">
+            <div class="flex items-center justify-between pb-3 border-b border-light-border dark:border-dark-border mb-4">
+                <h3 class="text-sm font-bold text-light-text dark:text-dark-text flex items-center gap-2">
+                    <i class="ri-tiktok-fill text-pink-500"></i>
+                    <span>Connect TikTok for Business</span>
+                </h3>
+                <button type="button" class="text-light-muted hover:text-light-text dark:text-dark-muted dark:hover:text-dark-text" data-bs-dismiss="modal">
+                    <i class="ri-close-line text-lg"></i>
+                </button>
+            </div>
+
+            <form action="{{ route('channels.store') }}" method="POST">
+                @csrf
+                <input type="hidden" name="channel_slug" value="tiktok">
+                <input type="hidden" name="workspace_id" value="{{ $workspace->id }}">
+
+                <div class="space-y-3.5">
+                    <div>
+                        <label for="tt_display_name" class="block text-xs font-semibold text-light-text dark:text-dark-text mb-1">
+                            TikTok Account Handle / Title <span class="text-rose-500">*</span>
+                        </label>
+                        <input type="text" id="tt_display_name" name="display_name" required placeholder="@YourBrandOfficial" class="app-input w-full text-xs">
+                    </div>
+
+                    <div>
+                        <label for="tt_external_id" class="block text-xs font-semibold text-light-text dark:text-dark-text mb-1">
+                            TikTok Open ID / Business ID <span class="text-rose-500">*</span>
+                        </label>
+                        <input type="text" id="tt_external_id" name="external_id" required placeholder="tt_open_id_12345" class="app-input w-full text-xs font-mono">
+                    </div>
+
+                    <div>
+                        <label for="tt_access_token" class="block text-xs font-semibold text-light-text dark:text-dark-text mb-1">
+                            Access Token <span class="text-rose-500">*</span>
+                        </label>
+                        <input type="password" id="tt_access_token" name="access_token" required placeholder="act.tiktok_access_token_..." class="app-input w-full text-xs font-mono">
+                    </div>
+                </div>
+
+                <div class="mt-5 pt-3 border-t border-light-border dark:border-dark-border flex justify-end gap-2">
+                    <button type="button" class="app-btn app-btn-secondary text-xs" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="app-btn app-btn-primary text-xs flex items-center gap-1.5">
+                        <i class="ri-checkbox-circle-line"></i>
+                        <span>Save & Connect TikTok</span>
                     </button>
                 </div>
             </form>

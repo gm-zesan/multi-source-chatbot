@@ -53,6 +53,20 @@ class DashboardController extends Controller
             $hasApiKey = false;
         }
 
+        $walletBalance = 50.00;
+        $hasWallet = true;
+        try {
+            if (\Illuminate\Support\Facades\Schema::hasTable('workspace_wallets')) {
+                $wallet = $workspace?->wallet;
+                if ($wallet) {
+                    $walletBalance = (float) $wallet->balance;
+                    $hasWallet = $walletBalance > 0;
+                }
+            }
+        } catch (\Throwable) {
+            $hasWallet = true;
+        }
+
         $checklist = [
             [
                 'id'          => 'profile',
@@ -99,6 +113,15 @@ class DashboardController extends Controller
                 'action_text' => 'API Credentials',
                 'icon'        => 'ri-terminal-box-line',
             ],
+            [
+                'id'          => 'wallet',
+                'title'       => 'Prepaid Wallet & Starter Bonus',
+                'description' => 'Your workspace is preloaded with ৳50.00 BDT (125 free AI messages).',
+                'completed'   => $hasWallet,
+                'action_url'  => route('billing.index'),
+                'action_text' => 'Manage Wallet',
+                'icon'        => 'ri-wallet-3-line',
+            ],
         ];
 
         $completedCount = count(array_filter($checklist, fn($item) => $item['completed']));
@@ -107,10 +130,11 @@ class DashboardController extends Controller
         $allCompleted = $completedCount === $totalSteps;
 
         return view('admin.dashboard', [
-            'metrics'      => $metrics,
-            'currentRange' => $range,
-            'workspace'    => $workspace,
-            'onboarding'   => [
+            'metrics'       => $metrics,
+            'currentRange'  => $range,
+            'workspace'     => $workspace,
+            'walletBalance' => $walletBalance,
+            'onboarding'    => [
                 'steps'         => $checklist,
                 'completed'     => $completedCount,
                 'total'         => $totalSteps,

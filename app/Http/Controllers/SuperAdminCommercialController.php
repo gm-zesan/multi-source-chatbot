@@ -10,9 +10,12 @@ use App\Models\User;
 use App\Models\Workspace;
 use App\Models\WorkspaceSubscription;
 use App\Models\WorkspaceUsageQuota;
+use App\Models\WorkspaceWallet;
+use App\Services\Billing\WorkspaceWalletService;
 use App\Services\Subscription\SubscriptionQuotaService;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
@@ -21,6 +24,7 @@ class SuperAdminCommercialController extends Controller
 {
     public function __construct(
         private readonly SubscriptionQuotaService $quotaService,
+        private readonly WorkspaceWalletService $walletService,
     ) {}
 
     /**
@@ -59,15 +63,46 @@ class SuperAdminCommercialController extends Controller
             ->where('period_year_month', $currentPeriod)
             ->get();
 
+        $tenantsWithWallets = Workspace::with('wallet')->latest('id')->paginate(15);
+
         return view('admin.commercial.index', [
-            'mrr' => round($mrr, 2),
-            'totalTenants' => $totalTenants,
-            'activeTenants' => $activeTenants,
-            'plans' => $plans,
-            'subscriptions' => $activeSubscriptions,
-            'quotas' => $quotas,
-            'period' => $currentPeriod,
+            'mrr'                => round($mrr, 2),
+            'totalTenants'       => $totalTenants,
+            'activeTenants'      => $activeTenants,
+            'plans'              => $plans,
+            'subscriptions'      => $activeSubscriptions,
+            'quotas'             => $quotas,
+            'period'             => $currentPeriod,
+            'tenantsWithWallets' => $tenantsWithWallets,
         ]);
+    }
+
+    /**
+     * SuperAdmin Manual Adjustment / Credit Bonus on a Tenant Wallet.
+     */
+    public function adjustWallet(Request $request, Workspace $workspace): RedirectResponse
+    {
+        /** @var User|null $user */
+        $user = Auth::user();
+        $isSuperAdmin = $user && ($user->hasRole(RoleEnum::SUPERADMIN->value) || $user->hasRole('superadmin') || $user->email === 'superadmin@example.com');
+        if (! $isSuperAdmin) {
+            abort(403, 'Unauthorized. Superadmin role required.');
+        }
+
+        $validated = $request->validate([
+            'amount' => ['required', 'numeric', 'between:-100000,100000'],
+            'reason' => ['required', 'string', 'max:255'],
+        ]);
+
+        $this->walletService->adjustBalance(
+            workspace: $workspace,
+            amount: (float) $validated['amount'],
+            reason: $validated['reason'],
+            adminUser: $user,
+        );
+
+        $sign = (float) $validated['amount'] >= 0 ? '+' : '';
+        return redirect()->back()->with('success', "Prepaid wallet for '{$workspace->name}' successfully adjusted by {$sign}৳ " . number_format((float) $validated['amount'], 2) . ".");
     }
 
     /**

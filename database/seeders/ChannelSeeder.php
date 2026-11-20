@@ -39,6 +39,16 @@ class ChannelSeeder extends Seeder
                 'name' => 'Website Chat',
                 'icon' => 'fas fa-globe'
             ],
+            [
+                'slug' => 'tiktok',
+                'name' => 'TikTok',
+                'icon' => 'ri-tiktok-fill'
+            ],
+            [
+                'slug' => 'api',
+                'name' => 'Developer API',
+                'icon' => 'ri-terminal-box-line'
+            ],
         ];
 
         foreach ($channels as $channel) {

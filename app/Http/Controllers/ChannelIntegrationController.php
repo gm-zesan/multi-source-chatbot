@@ -50,6 +50,7 @@ class ChannelIntegrationController extends Controller
                 'facebook' => url('/webhook/facebook'),
                 'whatsapp' => url('/webhook/whatsapp'),
                 'telegram' => url('/webhook/telegram'),
+                'tiktok'   => url('/webhook/tiktok'),
             ],
             'verifyToken'       => $verifyToken,
         ]);
@@ -146,6 +147,7 @@ class ChannelIntegrationController extends Controller
             ['slug' => 'website',  'name' => 'Storefront Widget',   'icon' => 'ri-global-line'],
             ['slug' => 'api',      'name' => 'Developer REST API',  'icon' => 'ri-terminal-box-line'],
             ['slug' => 'telegram', 'name' => 'Telegram Bot',        'icon' => 'ri-telegram-fill'],
+            ['slug' => 'tiktok',   'name' => 'TikTok Direct Messages', 'icon' => 'ri-tiktok-fill'],
         ];
 
         foreach ($defaultChannels as $ch) {
