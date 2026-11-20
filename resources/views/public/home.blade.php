@@ -14,23 +14,22 @@
             <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-light-border dark:border-white/[0.1] bg-light-surface/90 dark:bg-dark-surface/90 backdrop-blur-md text-brand-600 dark:text-brand-400 text-xs font-semibold shadow-[inset_0_1px_0_0_rgba(255,255,255,0.08)] hover:border-brand-500/50 transition-colors">
                 <i class="ri-sparkling-fill text-brand-500 text-xs"></i>
                 <span>Enterprise Platform 2.0</span>
-                <span class="text-light-border dark:text-dark-border">/</span>
-                <span class="text-light-text dark:text-dark-text font-normal">Autonomous Multi-Source AI</span>
+                <span class="hidden sm:inline text-light-border dark:text-dark-border">/</span>
+                <span class="hidden sm:inline text-light-text dark:text-dark-text font-normal">Autonomous Multi-Source AI</span>
                 <i class="ri-arrow-right-line text-xs"></i>
             </div>
 
             {{-- Main Hero Headline (Metallic Minted Typography) --}}
             <div class="max-w-4xl mx-auto space-y-4">
-                <h1 class="text-3xl sm:text-5xl lg:text-6xl font-extrabold tracking-[-0.035em] leading-[1.12]">
-                    <span class="bg-gradient-to-b from-slate-900 via-slate-800 to-slate-600 dark:from-white dark:via-slate-100 dark:to-slate-400/80 bg-clip-text text-transparent drop-shadow-sm dark:drop-shadow-[0_2px_14px_rgba(255,255,255,0.08)]">
+                <h1 class="text-[1.35rem] xs:text-2xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight leading-[1.18] sm:leading-[1.12]">
+                    <span class="block sm:inline bg-gradient-to-b from-slate-900 via-slate-800 to-slate-600 dark:from-white dark:via-slate-100 dark:to-slate-400/80 bg-clip-text text-transparent drop-shadow-sm dark:drop-shadow-[0_2px_14px_rgba(255,255,255,0.08)]">
                         Your Business. Connected.
                     </span>
-                    <br class="hidden sm:inline">
-                    <span class="bg-gradient-to-r from-brand-500 via-sky-400 to-teal-400 bg-clip-text text-transparent drop-shadow-sm">
+                    <span class="block sm:inline bg-gradient-to-r from-brand-500 via-sky-400 to-teal-400 bg-clip-text text-transparent drop-shadow-sm">
                         Intelligent. Automated.
                     </span>
                 </h1>
-                <p class="text-base sm:text-lg text-light-text-secondary dark:text-dark-text-secondary max-w-2xl mx-auto leading-relaxed">
+                <p class="text-xs sm:text-base text-light-text-secondary dark:text-dark-text-secondary max-w-2xl mx-auto leading-relaxed">
                     Bring customer conversations, multi-source business knowledge, and intelligent analytics together in one unified ecosystem.
                 </p>
             </div>
@@ -285,7 +284,7 @@
                             <p class="text-3xs text-light-muted dark:text-dark-muted">Hybrid lexical and vector index delivers answers in under 0.25s.</p>
                         </div>
                         <div class="chamfer-card p-4 rounded-xl border border-light-border dark:border-white/[0.08] bg-light-canvas dark:bg-dark-canvas space-y-2">
-                            <div class="text-3xs uppercase font-mono text-light-muted dark:text-dark-muted">Zero Hallucination Barrier</div>
+                            <div class="text-3xs uppercase font-mono text-light-muted dark:text-dark-muted">Deterministic Boundary</div>
                             <div class="text-2xl font-bold font-mono text-sky-500">100% Gated</div>
                             <p class="text-3xs text-light-muted dark:text-dark-muted">Unverified inquiries are routed to fallback or human agents.</p>
                         </div>
@@ -358,7 +357,7 @@
                 Four Pillars. One Unified Business Engine.
             </p>
             <p class="text-xs sm:text-sm text-light-text-secondary dark:text-dark-text-secondary">
-                Designed from the ground up for high-volume commerce operators requiring zero hallucinations and full operational visibility.
+                Designed from the ground up for high-volume commerce operators requiring verified factual grounding and full operational visibility.
             </p>
         </div>
 
@@ -554,7 +553,7 @@
                             <i class="ri-checkbox-circle-fill"></i>
                             <span>Semantic Match: Inbound query resolved against Row #148 (Score 0.984)</span>
                         </span>
-                        <span class="font-bold">Zero Hallucinations</span>
+                        <span class="font-bold">Grounded Match</span>
                     </div>
 
                 </div>
@@ -645,7 +644,7 @@
                 <i class="ri-building-4-line text-brand-500 text-2xl"></i>
                 <h3 class="font-bold text-sm text-light-text dark:text-dark-text">Workspace Isolation</h3>
                 <p class="text-2xs text-light-muted dark:text-dark-muted leading-relaxed">
-                    Database-level tenant separation guarantees that catalogs, dialogues, and credentials remain private.
+                    Database-level tenant separation ensures that catalogs, dialogues, and credentials remain private.
                 </p>
             </div>
 
@@ -659,17 +658,17 @@
 
             <div class="chamfer-card spotlight-card p-5 rounded-2xl border border-light-border dark:border-white/[0.08] bg-light-surface dark:bg-dark-surface space-y-3">
                 <i class="ri-lock-password-line text-emerald-500 text-2xl"></i>
-                <h3 class="font-bold text-sm text-light-text dark:text-dark-text">AES-256 Storage</h3>
+                <h3 class="font-bold text-sm text-light-text dark:text-dark-text">Encrypted Credentials</h3>
                 <p class="text-2xs text-light-muted dark:text-dark-muted leading-relaxed">
-                    Channel tokens, webhook secrets, and binary spreadsheets are encrypted at rest with industry standard keys.
+                    Channel tokens, webhook secrets, and binary spreadsheets are encrypted and protected with application key cryptography.
                 </p>
             </div>
 
             <div class="chamfer-card spotlight-card p-5 rounded-2xl border border-light-border dark:border-white/[0.08] bg-light-surface dark:bg-dark-surface space-y-3">
                 <i class="ri-forbid-2-line text-purple-500 text-2xl"></i>
-                <h3 class="font-bold text-sm text-light-text dark:text-dark-text">Zero Model Training</h3>
+                <h3 class="font-bold text-sm text-light-text dark:text-dark-text">Private Workspace Boundary</h3>
                 <p class="text-2xs text-light-muted dark:text-dark-muted leading-relaxed">
-                    Enterprise ZDR endpoints ensure your proprietary customer inquiries are never retained or used for public training.
+                    Multi-tenant workspace partitioning ensures your catalog data, customer inquiries, and conversations are never shared across tenants.
                 </p>
             </div>
         </div>
@@ -689,7 +688,7 @@
                     <i class="ri-arrow-down-s-line text-sm transition-transform"></i>
                 </button>
                 <div class="pt-2 text-2xs text-light-muted dark:text-dark-muted leading-relaxed">
-                    Our spreadsheet ingestion pipeline parses your columns (SKU, title, stock quantity, price, hub location). When customer inquiries arrive, semantic search pinpoints the exact row in real-time, delivering grounded, accurate answers without hallucination.
+                    Our spreadsheet ingestion pipeline parses your columns (SKU, title, stock quantity, price, hub location). When customer inquiries arrive, semantic search pinpoints the exact row in real-time, delivering grounded, accurate answers based strictly on your verified catalog records.
                 </div>
             </div>
 

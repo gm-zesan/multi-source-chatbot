@@ -1,2 +1,7 @@
 User-agent: *
-Disallow:
+Disallow: /dashboard/
+Disallow: /admin/
+Disallow: /api/
+Allow: /
+
+Sitemap: https://entrepreneurs.app/sitemap.xml

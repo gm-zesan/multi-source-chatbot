@@ -46,6 +46,13 @@ Route::controller(PublicPageController::class)->group(function () {
 // Public Contact Form Submission (Reuses ContactFormController & Model)
 Route::post('/contact', [ContactFormController::class, 'store'])->name('contact.store');
 
+// Public Sitemap
+Route::get('/sitemap.xml', function () {
+    return response(file_get_contents(public_path('sitemap.xml')), 200, [
+        'Content-Type' => 'application/xml',
+    ]);
+})->name('sitemap');
+
 // Health check — no auth, used by load balancers / uptime monitors
 Route::get('/health', HealthController::class)->name('health');
 

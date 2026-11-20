@@ -1,7 +1,7 @@
 @extends('layouts.public')
 
 @section('title', 'Privacy Policy — Entrepreneurs Automation')
-@section('meta_description', 'Learn how Entrepreneurs Automation safeguards enterprise data, ensures multi-tenant isolation, and protects customer conversations with zero model training retention.')
+@section('meta_description', 'Learn how Entrepreneurs Automation safeguards enterprise data, ensures multi-tenant isolation, and protects customer conversations with workspace-level security.')
 
 @section('content')
 <div class="py-20 lg:py-28">
@@ -43,26 +43,26 @@
             </section>
 
             <section class="space-y-4">
-                <h2 class="text-xl font-bold text-light-text dark:text-dark-text">3. Multi-Tenant Isolation & Zero Model Training</h2>
+                <h2 class="text-xl font-bold text-light-text dark:text-dark-text">3. Multi-Tenant Isolation & Workspace Governance</h2>
                 <p>
                     Every organization on Entrepreneurs Automation operates within an isolated tenant partition. Vector embeddings, document chunks, and conversation histories are indexed with immutable organizational identifiers, preventing cross-tenant information leakage at both the database and cache layers.
                 </p>
                 <div class="p-5 rounded-xl border border-emerald-500/20 bg-emerald-500/5 dark:bg-emerald-500/10 text-emerald-800 dark:text-emerald-300">
                     <p class="font-semibold mb-1 flex items-center gap-2">
-                        <i class="ri-shield-keyhole-line"></i> Zero-Data-Retention Inference Guarantees
+                        <i class="ri-shield-keyhole-line"></i> Tenant Boundary & Inference Privacy
                     </p>
                     <p class="text-xs text-emerald-700 dark:text-emerald-400">
-                        When grounding queries through foundation model APIs (e.g., OpenAI, Google Gemini, Anthropic), our requests are dispatched exclusively via enterprise tiers governed by strict Zero-Data-Retention (ZDR) agreements. Your prompts, retrieved document chunks, and completions are processed in transient memory and are never persisted by third-party model providers.
+                        Model inference and semantic grounding are executed solely to fulfill customer service dialogues. Your prompts, retrieved document chunks, and completions are scoped strictly to your workspace and never shared across tenant accounts or used to train models across organizations.
                     </p>
                 </div>
             </section>
 
             <section class="space-y-4">
-                <h2 class="text-xl font-bold text-light-text dark:text-dark-text">4. Information Security & Cryptography</h2>
+                <h2 class="text-xl font-bold text-light-text dark:text-dark-text">4. Information Security & Access Controls</h2>
                 <p>We deploy defense-in-depth security controls across the platform lifecycle:</p>
                 <ul class="list-disc pl-6 space-y-2">
-                    <li><strong class="text-light-text dark:text-dark-text">Encryption in Transit:</strong> All HTTP communications and WebSocket channels are enforced with TLS 1.3 encryption.</li>
-                    <li><strong class="text-light-text dark:text-dark-text">Encryption at Rest:</strong> Database tables, document caches, and uploaded binaries are encrypted utilizing AES-256 standard encryption keys.</li>
+                    <li><strong class="text-light-text dark:text-dark-text">Encryption in Transit:</strong> All HTTP communications and widget endpoints are enforced with modern HTTPS encryption.</li>
+                    <li><strong class="text-light-text dark:text-dark-text">Encryption at Rest:</strong> Sensitive channel credentials, webhook secrets, and access tokens are encrypted using application-level cryptographic keys.</li>
                     <li><strong class="text-light-text dark:text-dark-text">Role-Based Access Control (RBAC):</strong> Granular capability gates regulate which team members can view customer messages, modify indexing sources, or manage webhook endpoints.</li>
                     <li><strong class="text-light-text dark:text-dark-text">Audit Logging:</strong> Administrative actions, document uploads, and human agent interventions are recorded in tamper-resistant observability logs.</li>
                 </ul>

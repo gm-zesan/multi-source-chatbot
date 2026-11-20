@@ -110,7 +110,7 @@
                 <a href="{{ route('login') }}" class="hidden sm:inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-medium text-light-text dark:text-dark-text hover:bg-light-elevated dark:hover:bg-dark-elevated transition-colors">
                     Sign In
                 </a>
-                <a href="{{ route('register') }}" class="btn-shimmer inline-flex items-center gap-1 px-3.5 py-1.5 rounded-lg bg-brand-600 hover:bg-brand-500 text-white text-xs font-semibold shadow-xs transition-all">
+                <a href="{{ route('register') }}" class="btn-shimmer hidden sm:inline-flex items-center gap-1 px-3.5 py-1.5 rounded-lg bg-brand-600 hover:bg-brand-500 text-white text-xs font-semibold shadow-xs transition-all">
                     <span>Get Started</span>
                     <i class="ri-arrow-right-line text-xs"></i>
                 </a>

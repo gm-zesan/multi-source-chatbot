@@ -4,8 +4,11 @@ declare(strict_types=1);
 
 namespace Tests\Feature;
 
+use App\Enums\Permissions\MessagePermission;
 use App\Models\ContactForm;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Spatie\Permission\Models\Permission;
 use Tests\TestCase;
 
 class PublicMarketingWebsiteTest extends TestCase
@@ -84,5 +87,135 @@ class PublicMarketingWebsiteTest extends TestCase
 
         $response->assertSessionHasErrors(['name', 'email', 'message']);
         $this->assertEquals(0, ContactForm::count());
+    }
+
+    /**
+     * Test contact form validation failure when email format is invalid.
+     */
+    public function test_public_contact_form_rejects_invalid_email_format(): void
+    {
+        $response = $this->post(route('contact.store'), [
+            'name' => 'John Doe',
+            'email' => 'invalid-email-address',
+            'message' => 'Test inquiry message',
+        ]);
+
+        $response->assertSessionHasErrors(['email']);
+        $this->assertEquals(0, ContactForm::count());
+    }
+
+    /**
+     * Test contact form AJAX JSON submission returns JSON payload.
+     */
+    public function test_public_contact_form_ajax_submission_returns_json(): void
+    {
+        $payload = [
+            'name' => 'Michael Scott',
+            'email' => 'michael@dundermifflin.com',
+            'phone' => '+15559876543',
+            'subject' => 'Paper and Chatbot Automation',
+            'message' => 'Can we automate inquiry triage for branch orders?',
+        ];
+
+        $response = $this->postJson(route('contact.store'), $payload);
+
+        $response->assertOk()
+            ->assertJson([
+                'success' => true,
+            ])
+            ->assertJsonStructure(['success', 'message', 'id']);
+
+        $this->assertDatabaseHas('contact_forms', [
+            'name' => 'Michael Scott',
+            'email' => 'michael@dundermifflin.com',
+            'read_status' => false,
+        ]);
+    }
+
+    /**
+     * Test that public contact submissions appear in the existing Admin Panel and can be managed.
+     */
+    public function test_public_contact_form_submission_appears_in_admin_panel_and_can_be_managed(): void
+    {
+        Permission::firstOrCreate([
+            'name' => MessagePermission::VIEW->value,
+            'guard_name' => 'web',
+        ], [
+            'display_name' => 'View Messages',
+            'module' => 'Message',
+        ]);
+
+        $admin = User::factory()->create([
+            'email' => 'admin@entrepreneurs.app',
+        ]);
+        $admin->givePermissionTo(MessagePermission::VIEW->value);
+
+        // 1. Visitor submits contact form
+        $this->post(route('contact.store'), [
+            'name' => 'Enterprise Prospect',
+            'email' => 'prospect@enterprise.com',
+            'subject' => 'High Volume Deployment',
+            'message' => 'We need 50,000 monthly inquiries handled across Messenger and Web Widget.',
+        ]);
+
+        $messageRecord = ContactForm::where('email', 'prospect@enterprise.com')->firstOrFail();
+        $this->assertEquals(0, $messageRecord->read_status);
+        $this->assertEquals(0, $messageRecord->important_status);
+
+        // 2. Admin views messages index view
+        $viewResponse = $this->actingAs($admin)->get(route('message'));
+        $viewResponse->assertOk();
+        $viewResponse->assertViewIs('admin.contact-messages.index');
+
+        // 3. Admin fetches DataTables AJAX feed
+        $ajaxResponse = $this->actingAs($admin)->getJson(route('message'), [
+            'HTTP_X_REQUESTED_WITH' => 'XMLHttpRequest',
+        ]);
+        $ajaxResponse->assertOk();
+        $ajaxResponse->assertJsonFragment([
+            'email' => 'prospect@enterprise.com',
+        ]);
+
+        // 4. Admin marks message as read
+        $readResponse = $this->actingAs($admin)->getJson(route('message.read', ['id' => $messageRecord->id]));
+        $readResponse->assertOk();
+        $this->assertEquals(1, $messageRecord->fresh()->read_status);
+
+        // 5. Admin marks message as important
+        $importantResponse = $this->actingAs($admin)->getJson(route('message.important', [
+            'id' => $messageRecord->id,
+            'important_status' => 1,
+        ]));
+        $importantResponse->assertOk();
+        $this->assertEquals(1, $messageRecord->fresh()->important_status);
+    }
+
+    /**
+     * Test sitemap.xml route returns 200 OK and valid XML.
+     */
+    public function test_public_sitemap_returns_valid_xml(): void
+    {
+        $response = $this->get(route('sitemap'));
+
+        $response->assertOk();
+        $response->assertSee('<urlset', false);
+        $response->assertSee('https://entrepreneurs.app/platform', false);
+        $response->assertSee('https://entrepreneurs.app/contact', false);
+    }
+
+    /**
+     * Test public pages include valid SEO metadata, canonical links, and OpenGraph tags.
+     */
+    public function test_public_pages_include_seo_and_opengraph_metadata(): void
+    {
+        $response = $this->get(route('home'));
+
+        $response->assertOk();
+        $response->assertSee('<title>Entrepreneurs Automation', false);
+        $response->assertSee('<meta name="description"', false);
+        $response->assertSee('<link rel="canonical"', false);
+        $response->assertSee('<meta property="og:title"', false);
+        $response->assertSee('<meta property="og:description"', false);
+        $response->assertSee('<meta name="twitter:card"', false);
     }
 }

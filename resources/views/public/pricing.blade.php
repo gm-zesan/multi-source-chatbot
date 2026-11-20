@@ -99,7 +99,7 @@
                     <li class="flex items-center gap-2"><i class="ri-checkbox-circle-fill text-brand-500"></i> Custom LLM Model Integration & Routing</li>
                     <li class="flex items-center gap-2"><i class="ri-checkbox-circle-fill text-brand-500"></i> Granular Spatie RBAC Role Delegation</li>
                     <li class="flex items-center gap-2"><i class="ri-checkbox-circle-fill text-brand-500"></i> Dedicated REST API Quota & Custom Webhooks</li>
-                    <li class="flex items-center gap-2"><i class="ri-checkbox-circle-fill text-brand-500"></i> 99.9% Uptime SLA Guarantee</li>
+                    <li class="flex items-center gap-2"><i class="ri-checkbox-circle-fill text-brand-500"></i> High-Availability Production Architecture</li>
                     <li class="flex items-center gap-2"><i class="ri-checkbox-circle-fill text-brand-500"></i> Dedicated Solutions Architect</li>
                 </ul>
             </div>

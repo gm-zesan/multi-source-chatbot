@@ -38,7 +38,7 @@
             @endif
 
             {{-- Error Summary --}}
-            @if($errors->any())
+            @if(isset($errors) && $errors->any())
                 <div class="p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-600 dark:text-rose-400 text-xs space-y-1">
                     <div class="font-bold flex items-center gap-1.5">
                         <i class="ri-error-warning-fill"></i> Please review the following errors:
@@ -152,7 +152,7 @@
                             <i class="ri-shield-check-line"></i>
                         </div>
                         <div>
-                            <div class="font-semibold text-light-text dark:text-dark-text">Data Privacy Guarantee</div>
+                            <div class="font-semibold text-light-text dark:text-dark-text">Data Privacy & Workspace Isolation</div>
                             <div class="text-2xs text-light-muted dark:text-dark-muted">Inquiries and catalog schemas are held under strict non-disclosure and tenant isolation protocols.</div>
                         </div>
                     </div>

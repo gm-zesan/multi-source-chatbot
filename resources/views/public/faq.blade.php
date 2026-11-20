@@ -151,7 +151,7 @@
                     <i class="ri-arrow-down-s-line text-lg text-light-muted dark:text-dark-muted transition-transform duration-200 faq-icon"></i>
                 </button>
                 <div class="faq-content hidden px-6 pb-6 text-sm text-light-muted dark:text-dark-muted leading-relaxed border-t border-light-border/40 dark:border-dark-border/40 pt-4">
-                    Never. All proprietary company documents, catalog records, and conversational logs remain strictly isolated within your organization's tenant boundary. Model inference is executed via zero-data-retention enterprise API endpoints with contractual guarantees ensuring your data is never utilized for LLM pre-training or fine-tuning.
+                    All proprietary company documents, catalog records, and conversational logs remain strictly isolated within your organization's tenant boundary and database workspace. Multi-tenant partitioning ensures customer inquiries and confidential catalog files are never accessible to other organizations.
                 </div>
             </div>
 
