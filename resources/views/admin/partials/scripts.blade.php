@@ -561,8 +561,19 @@
             }
         });
 
-        // Reset and update on DataTables redraw
+        // Reset and update on DataTables redraw & loading states
         if (typeof $ !== 'undefined') {
+            $(document).on('processing.dt', function(e, settings, processing) {
+                var container = settings && settings.nTable ? $(settings.nTable).closest('.dataTables_wrapper') : null;
+                if (container && container.length) {
+                    if (processing) {
+                        container.addClass('dt-is-loading');
+                    } else {
+                        container.removeClass('dt-is-loading');
+                    }
+                }
+            });
+
             $(document).on('draw.dt', function(e, settings) {
                 var container = settings && settings.nTable ? $(settings.nTable).closest('.dataTables_wrapper')[0] : document;
                 if (container) {

@@ -403,10 +403,22 @@
     color: var(--color-text-primary) !important;
     background-color: var(--color-surface) !important;
     vertical-align: middle !important;
+    transition: background-color 0.15s ease;
 }
 
 .dataTables_wrapper table.dataTable tbody tr:hover td {
     background-color: var(--color-surface-elevated) !important;
+}
+
+/* Checked / Selected Row Highlight */
+.dataTables_wrapper table.dataTable tbody tr.bg-brand-500\/10 td,
+.dataTables_wrapper table.dataTable tbody tr.selected td {
+    background-color: rgba(2, 132, 199, 0.08) !important;
+}
+
+.dataTables_wrapper table.dataTable tbody tr.bg-brand-500\/10 td:first-child,
+.dataTables_wrapper table.dataTable tbody tr.selected td:first-child {
+    box-shadow: inset 3px 0 0 0 #0284C7 !important;
 }
 
 .dataTables_wrapper .dataTables_length,
@@ -418,6 +430,14 @@
     color: var(--color-text-secondary) !important;
 }
 
+.dataTables_wrapper .dataTables_filter label {
+    display: inline-flex;
+    align-items: center;
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--color-text-secondary);
+}
+
 .dataTables_wrapper .dataTables_filter input {
     height: 32px !important;
     font-size: 0.8125rem !important;
@@ -425,42 +445,76 @@
     border: 1px solid var(--color-border) !important;
     background-color: var(--color-surface) !important;
     color: var(--color-text-primary) !important;
-    padding: 0 0.65rem !important;
+    padding: 0 0.75rem 0 2rem !important;
     margin-left: 0.5rem !important;
     outline: none !important;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' width='14' height='14' fill='%2364748B'%3E%3Cpath d='M18.031 16.6168L22.3137 20.8995L20.8995 22.3137L16.6168 18.031C15.0769 19.263 13.124 20 11 20C6.032 20 2 15.968 2 11C2 6.032 6.032 2 11 2C15.968 2 20 6.032 20 11C20 13.124 19.263 15.0769 18.031 16.6168ZM16.0247 15.8748C17.2475 14.6146 18 12.8956 18 11C18 7.1325 14.8675 4 11 4C7.1325 4 4 7.1325 4 11C4 14.8675 7.1325 18 11 18C12.8956 18 14.6146 17.2475 15.8748 16.0247L16.0247 15.8748Z'%3E%3C/path%3E%3C/svg%3E") !important;
+    background-repeat: no-repeat !important;
+    background-position: 8px center !important;
+    transition: all 0.15s ease !important;
 }
 
 .dataTables_wrapper .dataTables_filter input:focus {
     border-color: #0284C7 !important;
-    box-shadow: 0 0 0 2px rgba(2, 132, 199, 0.2) !important;
+    box-shadow: 0 0 0 2px rgba(2, 132, 199, 0.25) !important;
+    background-color: var(--color-surface-elevated) !important;
 }
 
 .dataTables_wrapper .dataTables_length select {
     height: 32px !important;
     font-size: 0.75rem !important;
+    font-weight: 500 !important;
     border-radius: 6px !important;
     border: 1px solid var(--color-border) !important;
     background-color: var(--color-surface) !important;
     color: var(--color-text-primary) !important;
-    padding: 0 1.75rem 0 0.5rem !important;
+    padding: 0 1.75rem 0 0.65rem !important;
     margin: 0 0.35rem !important;
+    cursor: pointer !important;
+    appearance: none !important;
+    -webkit-appearance: none !important;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' width='14' height='14' fill='%2364748B'%3E%3Cpath d='M12 16L6 10H18L12 16Z'%3E%3C/path%3E%3C/svg%3E") !important;
+    background-repeat: no-repeat !important;
+    background-position: right 6px center !important;
+    transition: all 0.15s ease !important;
+}
+
+.dataTables_wrapper .dataTables_length select:focus {
+    border-color: #0284C7 !important;
+    box-shadow: 0 0 0 2px rgba(2, 132, 199, 0.2) !important;
+}
+
+.dataTables_wrapper .dataTables_paginate {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 0.25rem !important;
+    padding: 0.65rem 0.75rem !important;
 }
 
 .dataTables_wrapper .dataTables_paginate .paginate_button {
-    padding: 0.25rem 0.6rem !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    min-width: 28px !important;
+    height: 28px !important;
+    padding: 0 0.55rem !important;
     font-size: 0.75rem !important;
-    border-radius: 5px !important;
+    font-weight: 500 !important;
+    border-radius: 6px !important;
     border: 1px solid var(--color-border) !important;
     background: var(--color-surface) !important;
     color: var(--color-text-secondary) !important;
-    margin: 0 0.15rem !important;
+    margin: 0 !important;
     cursor: pointer !important;
+    user-select: none !important;
+    transition: all 0.15s ease !important;
 }
 
 .dataTables_wrapper .dataTables_paginate .paginate_button:hover {
     background: var(--color-surface-elevated) !important;
     color: var(--color-text-primary) !important;
     border-color: var(--color-border-strong) !important;
+    transform: translateY(-0.5px);
 }
 
 .dataTables_wrapper .dataTables_paginate .paginate_button.current,
@@ -468,15 +522,18 @@
     background: #0284C7 !important;
     color: #FFFFFF !important;
     border-color: #0284C7 !important;
+    font-weight: 600 !important;
+    box-shadow: 0 2px 8px rgba(2, 132, 199, 0.35) !important;
 }
 
 .dataTables_wrapper .dataTables_paginate .paginate_button.disabled,
 .dataTables_wrapper .dataTables_paginate .paginate_button.disabled:hover {
-    opacity: 0.4 !important;
+    opacity: 0.35 !important;
     cursor: not-allowed !important;
     background: transparent !important;
     border-color: var(--color-border) !important;
     color: var(--color-text-muted) !important;
+    transform: none !important;
 }
 
 .dataTables_wrapper .dataTables_empty {
@@ -602,11 +659,56 @@ table.dataTable thead th.sorting_desc,
     background-color: var(--color-surface-elevated) !important;
 }
 
-/* 4d. Premium DataTables Preloader / Processing Indicator */
+/* 4d. World-Class Enterprise DataTables Preloader / Processing Indicator */
 .dataTables_wrapper {
-    position: relative;
+    position: relative !important;
 }
 
+/* Linear/Vercel-style Indeterminate Top Accent Beam */
+.dataTables_wrapper::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, #0284C7 30%, #38BDF8 70%, transparent);
+    background-size: 200% 100%;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.25s ease, visibility 0.25s;
+    z-index: 30;
+    border-top-left-radius: 6px;
+    border-top-right-radius: 6px;
+}
+
+.dataTables_wrapper.dt-is-loading::before,
+.dataTables_wrapper:has(.dataTables_processing[style*="display: block"])::before,
+.dataTables_wrapper:has(.dataTables_processing[style*="display:block"])::before {
+    opacity: 1;
+    visibility: visible;
+    animation: dt-beam-slide 1.2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+@keyframes dt-beam-slide {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
+
+/* Table rows smooth soft-dim during processing */
+.dataTables_wrapper.dt-is-loading table.dataTable tbody,
+.dataTables_wrapper:has(.dataTables_processing[style*="display: block"]) table.dataTable tbody,
+.dataTables_wrapper:has(.dataTables_processing[style*="display:block"]) table.dataTable tbody {
+    opacity: 0.35;
+    pointer-events: none;
+    transition: opacity 0.2s ease;
+}
+
+.dataTables_wrapper table.dataTable tbody {
+    transition: opacity 0.2s ease;
+}
+
+/* Central Floating Frosted Glass Indicator Pill */
 .dataTables_wrapper .dataTables_processing {
     display: none;
     position: absolute;
@@ -615,28 +717,37 @@ table.dataTable thead th.sorting_desc,
     transform: translate(-50%, -50%);
     margin: 0;
     width: auto;
-    min-width: 140px;
-    height: 38px;
+    min-width: 155px;
+    height: 40px;
     padding: 0 1.25rem;
     align-items: center;
     justify-content: center;
-    gap: 0.625rem;
-    border-radius: 0.5rem;
-    border: 1px solid var(--color-border);
-    background: var(--color-surface);
-    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3), 0 8px 10px -6px rgba(0, 0, 0, 0.3);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    color: var(--color-text-main);
-    font-size: 0.75rem;
-    font-weight: 600;
-    letter-spacing: 0.02em;
-    z-index: 50;
+    gap: 0.65rem;
+    border-radius: 9999px; /* Floating Pill */
+    border: 1px solid rgba(2, 132, 199, 0.35);
+    background: rgba(15, 23, 42, 0.92); /* Deep Midnight Slate */
+    box-shadow: 0 16px 36px -4px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.08), 0 0 24px -2px rgba(2, 132, 199, 0.3);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    color: #F8FAFC;
+    font-size: 0 !important; /* Hides any raw unstyled DataTables text node */
+    z-index: 60;
     pointer-events: none;
-    transition: opacity 0.2s ease;
+    user-select: none;
+    transition: opacity 0.2s ease, transform 0.2s ease;
 }
 
-/* When DataTables shows the processing indicator (inline display: block) */
+/* Light Theme Variant */
+[data-theme="light"] .dataTables_wrapper .dataTables_processing,
+html:not(.dark) .dataTables_wrapper .dataTables_processing {
+    background: rgba(255, 255, 255, 0.96);
+    border-color: rgba(2, 132, 199, 0.35);
+    color: #0F172A;
+    box-shadow: 0 16px 36px -4px rgba(0, 0, 0, 0.12), 0 0 0 1px rgba(2, 132, 199, 0.15), 0 0 24px -2px rgba(2, 132, 199, 0.2);
+}
+
+/* When DataTables shows the processing indicator */
+.dataTables_wrapper.dt-is-loading .dataTables_processing,
 .dataTables_wrapper .dataTables_processing[style*="display: block"],
 .dataTables_wrapper .dataTables_processing[style*="display:block"] {
     display: flex !important;
@@ -649,20 +760,38 @@ table.dataTable thead th.sorting_desc,
     display: none !important;
 }
 
+/* Completely suppress DataTables default inner bouncing dots and nested divs */
+.dataTables_wrapper .dataTables_processing > div {
+    display: none !important;
+}
+
+/* Dual-Arc Precision Orbit Spinner */
 .dataTables_wrapper .dataTables_processing::before {
     content: "";
     display: inline-block;
-    width: 15px;
-    height: 15px;
-    border: 2px solid rgba(2, 132, 199, 0.25);
-    border-top-color: #0284c7;
+    width: 16px;
+    height: 16px;
     border-radius: 50%;
-    animation: dt-spin 0.7s linear infinite;
+    border: 2px solid rgba(2, 132, 199, 0.2);
+    border-top-color: #0284C7;
+    border-right-color: #38BDF8;
+    animation: dt-orbit-spin 0.75s cubic-bezier(0.4, 0, 0.2, 1) infinite;
     flex-shrink: 0;
 }
 
-@keyframes dt-spin {
-    to { transform: rotate(360deg); }
+@keyframes dt-orbit-spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Modern Typography Label */
+.dataTables_wrapper .dataTables_processing::after {
+    content: "Loading records...";
+    font-size: 0.75rem !important;
+    font-weight: 600;
+    color: inherit;
+    letter-spacing: 0.025em;
+    white-space: nowrap;
 }
 
 @media (max-width: 640px) {
