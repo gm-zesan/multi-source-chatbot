@@ -33,7 +33,7 @@
                 <table class="app-table w-full" id="data-table">
                     <thead>
                         <tr>
-                            <th style="width: 70px;">
+                            <th style="width: 70px;" class="no-sort">
                                 <div class="flex items-center gap-2">
                                     <input type="checkbox" class="app-checkbox app-select-all-checkbox" title="Select All">
                                     <span>#</span>
@@ -45,7 +45,7 @@
                             <th>Subject</th>
                             <th>Message</th>
                             <th style="width: 70px;" class="text-center">Priority</th>
-                            <th style="width: 80px;" class="text-right">Action</th>
+                            <th style="width: 80px;" class="no-sort text-right">Action</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -100,6 +100,7 @@
                 processing: true,
                 responsive: true,
                 serverSide: true,
+                order: [[1, 'desc']],
                 pageLength: 20,
                 lengthMenu: [20, 50, 100],
                 ajax: {

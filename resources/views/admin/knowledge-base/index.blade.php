@@ -115,7 +115,7 @@
                     <table class="app-table w-full" id="faq-data-table">
                         <thead>
                             <tr>
-                                <th style="width: 70px;">
+                                <th style="width: 70px;" class="no-sort">
                                     <div class="flex items-center gap-2">
                                         <input type="checkbox" class="app-checkbox app-select-all-checkbox" title="Select All">
                                         <span>#</span>
@@ -126,7 +126,7 @@
                                 <th style="width: 70px;">Priority</th>
                                 <th style="width: 60px;">Hits</th>
                                 <th style="width: 130px;">Status</th>
-                                <th style="width: 90px;" class="text-right">Action</th>
+                                <th style="width: 90px;" class="no-sort text-right">Action</th>
                             </tr>
                         </thead>
                         <tbody></tbody>
@@ -168,7 +168,7 @@
                     <table class="app-table w-full" id="doc-data-table">
                         <thead>
                             <tr>
-                                <th style="width: 70px;">
+                                <th style="width: 70px;" class="no-sort">
                                     <div class="flex items-center gap-2">
                                         <input type="checkbox" class="app-checkbox app-select-all-checkbox" title="Select All">
                                         <span>#</span>
@@ -180,7 +180,7 @@
                                 <th style="width: 70px;">Sheets</th>
                                 <th style="width: 100px;">Uploaded At</th>
                                 <th style="width: 120px;">Status</th>
-                                <th style="width: 120px;" class="text-right">Action</th>
+                                <th style="width: 120px;" class="no-sort text-right">Action</th>
                             </tr>
                         </thead>
                         <tbody></tbody>
@@ -663,6 +663,7 @@
                 faqDataTable = $('#faq-data-table').DataTable({
                     processing: true,
                     serverSide: true,
+                    order: [[1, 'asc']],
                     ajax: {
                         url: '{{ route("knowledge-base.index") }}',
                         data: function (d) {
@@ -771,6 +772,7 @@
                 docDataTable = $('#doc-data-table').DataTable({
                     processing: true,
                     serverSide: true,
+                    order: [[1, 'asc']],
                     ajax: {
                         url: '{{ route("knowledge-base.index") }}',
                         data: function (d) {

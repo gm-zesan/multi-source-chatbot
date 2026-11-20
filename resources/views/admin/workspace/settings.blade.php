@@ -170,9 +170,9 @@
                         <div class="pb-2 border-b border-light-border dark:border-dark-border flex items-center justify-between">
                             <span class="text-light-muted dark:text-dark-muted">System Status:</span>
                             @if($workspace->is_active)
-                                <span class="app-badge app-badge-success">● Active</span>
+                                <span class="app-badge app-badge-success"><i class="ri-checkbox-circle-fill text-xs mr-1"></i> Active</span>
                             @else
-                                <span class="app-badge app-badge-danger">● Inactive</span>
+                                <span class="app-badge app-badge-danger"><i class="ri-close-circle-fill text-xs mr-1"></i> Inactive</span>
                             @endif
                         </div>
                         <div class="flex items-center justify-between">

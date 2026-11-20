@@ -76,10 +76,11 @@ export default {
                 mono: ['JetBrains Mono', 'ui-monospace', 'SFMono-Regular', 'Menlo', 'monospace'],
             },
             fontSize: {
-                '2xs': ['0.6875rem', { lineHeight: '0.95rem' }], // 11px
-                'xs': ['0.75rem', { lineHeight: '1.05rem' }],     // 12px
-                'sm': ['0.8125rem', { lineHeight: '1.15rem' }],   // 13px
-                'base': ['0.875rem', { lineHeight: '1.25rem' }],  // 14px
+                '3xs': ['0.6875rem', { lineHeight: '0.95rem' }], // 11px
+                '2xs': ['0.75rem', { lineHeight: '1.05rem' }],   // 12px (strictly +1px from original 11px)
+                'xs': ['0.8125rem', { lineHeight: '1.15rem' }],   // 13px (strictly +1px from original 12px: sidebar nav & compact text)
+                'sm': ['0.875rem', { lineHeight: '1.25rem' }],    // 14px (strictly +1px from original 13px)
+                'base': ['0.875rem', { lineHeight: '1.25rem' }],  // 14px (balanced standard base, prevents page bloating)
                 'md': ['0.9375rem', { lineHeight: '1.35rem' }],   // 15px
                 'lg': ['1.0625rem', { lineHeight: '1.5rem' }],    // 17px
                 'xl': ['1.25rem', { lineHeight: '1.75rem' }],     // 20px

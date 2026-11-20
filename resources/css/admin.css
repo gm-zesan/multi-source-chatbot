@@ -491,28 +491,25 @@
 }
 
 /* 4c. Active Column Sorting Indicators */
-/* Suppress all default DataTables pseudo-elements and background sorting icons */
-.dataTables_wrapper table.dataTable thead > tr > th.sorting:before,
-.dataTables_wrapper table.dataTable thead > tr > th.sorting_asc:before,
-.dataTables_wrapper table.dataTable thead > tr > th.sorting_desc:before,
-table.dataTable thead > tr > th.sorting:before,
-table.dataTable thead > tr > th.sorting_asc:before,
-table.dataTable thead > tr > th.sorting_desc:before,
-.dataTables_wrapper table.dataTable thead th.sorting:before,
-.dataTables_wrapper table.dataTable thead th.sorting_asc:before,
-.dataTables_wrapper table.dataTable thead th.sorting_desc:before,
-table.dataTable thead th.sorting:before,
-table.dataTable thead th.sorting_asc:before,
-table.dataTable thead th.sorting_desc:before {
+/* Suppress ALL default DataTables pseudo-elements and background sorting icons */
+.dataTables_wrapper table.dataTable thead th:before,
+.dataTables_wrapper table.dataTable thead th:after,
+.dataTables_wrapper table.dataTable thead > tr > th:before,
+.dataTables_wrapper table.dataTable thead > tr > th:after,
+table.dataTable thead th:before,
+table.dataTable thead th:after,
+table.dataTable thead > tr > th:before,
+table.dataTable thead > tr > th:after {
     display: none !important;
     content: "" !important;
     opacity: 0 !important;
     visibility: hidden !important;
 }
 
-table.dataTable thead .sorting,
-table.dataTable thead .sorting_asc,
-table.dataTable thead .sorting_desc {
+table.dataTable thead th.sorting,
+table.dataTable thead th.sorting_asc,
+table.dataTable thead th.sorting_desc,
+.dataTables_wrapper table.dataTable thead th {
     background-image: none !important;
 }
 
@@ -528,22 +525,43 @@ table.dataTable thead .sorting_desc {
     user-select: none !important;
 }
 
-.dataTables_wrapper table.dataTable thead th.sorting::after,
-.app-table thead th.sorting::after {
-    content: "↕";
+/* No-sort column headers (e.g. checkbox column, action column) */
+.dataTables_wrapper table.dataTable thead th.no-sort,
+.app-table thead th.no-sort {
+    cursor: default !important;
+    padding-right: 0.75rem !important;
+}
+
+.dataTables_wrapper table.dataTable thead th.no-sort::before,
+.dataTables_wrapper table.dataTable thead th.no-sort::after,
+.app-table thead th.no-sort::before,
+.app-table thead th.no-sort::after {
+    display: none !important;
+    content: "" !important;
+}
+
+/* Neutral state */
+.dataTables_wrapper table.dataTable thead th.sorting:not(.no-sort)::after,
+.app-table thead th.sorting:not(.no-sort)::after {
+    display: block !important;
+    visibility: visible !important;
+    content: "↕" !important;
     position: absolute;
     right: 0.5rem;
     top: 50%;
     transform: translateY(-50%);
     font-size: 0.75rem;
     color: var(--color-text-muted);
-    opacity: 0.35;
+    opacity: 0.4 !important;
     transition: opacity 0.15s ease, color 0.15s ease;
 }
 
-.dataTables_wrapper table.dataTable thead th.sorting_asc::after,
-.app-table thead th.sorting_asc::after {
-    content: "↑";
+/* Ascending */
+.dataTables_wrapper table.dataTable thead th.sorting_asc:not(.no-sort)::after,
+.app-table thead th.sorting_asc:not(.no-sort)::after {
+    display: block !important;
+    visibility: visible !important;
+    content: "↑" !important;
     position: absolute;
     right: 0.5rem;
     top: 50%;
@@ -554,9 +572,12 @@ table.dataTable thead .sorting_desc {
     opacity: 1 !important;
 }
 
-.dataTables_wrapper table.dataTable thead th.sorting_desc::after,
-.app-table thead th.sorting_desc::after {
-    content: "↓";
+/* Descending */
+.dataTables_wrapper table.dataTable thead th.sorting_desc:not(.no-sort)::after,
+.app-table thead th.sorting_desc:not(.no-sort)::after {
+    display: block !important;
+    visibility: visible !important;
+    content: "↓" !important;
     position: absolute;
     right: 0.5rem;
     top: 50%;
@@ -569,8 +590,8 @@ table.dataTable thead .sorting_desc {
 
 .dataTables_wrapper table.dataTable thead th.sorting:hover::after,
 .app-table thead th.sorting:hover::after {
-    opacity: 0.85;
-    color: var(--color-accent);
+    opacity: 0.85 !important;
+    color: var(--color-accent) !important;
 }
 
 .dataTables_wrapper table.dataTable thead th.sorting_asc,
@@ -587,6 +608,7 @@ table.dataTable thead .sorting_desc {
 }
 
 .dataTables_wrapper .dataTables_processing {
+    display: none;
     position: absolute;
     top: 50%;
     left: 50%;
@@ -610,18 +632,21 @@ table.dataTable thead .sorting_desc {
     font-weight: 600;
     letter-spacing: 0.02em;
     z-index: 50;
+    pointer-events: none;
     transition: opacity 0.2s ease;
+}
+
+/* When DataTables shows the processing indicator (inline display: block) */
+.dataTables_wrapper .dataTables_processing[style*="display: block"],
+.dataTables_wrapper .dataTables_processing[style*="display:block"] {
+    display: flex !important;
 }
 
 /* Strictly hide when DataTables sets display: none or hidden */
 .dataTables_wrapper .dataTables_processing[style*="display: none"],
+.dataTables_wrapper .dataTables_processing[style*="display:none"],
 .dataTables_wrapper .dataTables_processing.hidden {
     display: none !important;
-}
-
-/* Only display as flex when active / not hidden */
-.dataTables_wrapper .dataTables_processing:not([style*="display: none"]) {
-    display: flex !important;
 }
 
 .dataTables_wrapper .dataTables_processing::before {
@@ -638,6 +663,25 @@ table.dataTable thead .sorting_desc {
 
 @keyframes dt-spin {
     to { transform: rotate(360deg); }
+}
+
+@media (max-width: 640px) {
+    .dataTables_wrapper .dataTables_length,
+    .dataTables_wrapper .dataTables_filter,
+    .dataTables_wrapper .dataTables_info,
+    .dataTables_wrapper .dataTables_paginate {
+        float: none !important;
+        text-align: left !important;
+        padding: 0.4rem 0.5rem !important;
+    }
+    .dataTables_wrapper .dataTables_filter input {
+        width: 100% !important;
+        margin-left: 0 !important;
+        margin-top: 0.25rem !important;
+    }
+    .dataTables_wrapper .dataTables_paginate {
+        text-align: center !important;
+    }
 }
 
 /* 4d. Quick Facet Filter Chips */
@@ -753,14 +797,19 @@ table.dataTable thead .sorting_desc {
     justify-content: center !important;
 }
 
-.tailwind-modal-backdrop {
+.tailwind-modal-backdrop,
+.modal-backdrop {
     position: fixed;
     inset: 0;
     z-index: 1040;
-    background-color: rgba(0, 0, 0, 0.75);
+    background-color: rgba(2, 6, 23, 0.75) !important;
     backdrop-filter: blur(4px);
     -webkit-backdrop-filter: blur(4px);
     transition: opacity 0.2s ease-out;
+}
+
+.modal-backdrop.show {
+    opacity: 1 !important;
 }
 
 /* ==================== INBOX & SIMULATOR DARK THEME ADAPTER ==================== */

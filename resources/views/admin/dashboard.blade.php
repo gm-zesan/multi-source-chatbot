@@ -81,9 +81,6 @@
                     </div>
                 </div>
                 <div class="flex items-center gap-1.5">
-                    <span class="app-badge app-badge-success !text-2xs">
-                        Self-Service
-                    </span>
                     <div class="w-7 h-7 rounded bg-emerald-500/15 text-emerald-500 flex items-center justify-center text-xs">
                         <i class="ri-robot-line"></i>
                     </div>

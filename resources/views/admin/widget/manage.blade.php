@@ -127,7 +127,7 @@
                             <div
                                 class="p-2.5 rounded border border-light-border dark:border-dark-border bg-light-canvas dark:bg-dark-canvas">
                                 <div class="text-2xs text-light-muted dark:text-dark-muted">Connection Status</div>
-                                <span class="app-badge app-badge-success">● Connected & Live</span>
+                                <span class="app-badge app-badge-success"><i class="ri-checkbox-circle-fill text-xs mr-1"></i> Connected & Live</span>
                             </div>
                         </div>
                     </div>

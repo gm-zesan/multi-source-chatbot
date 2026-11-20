@@ -210,7 +210,7 @@
                 <table class="app-table w-full" id="data-table">
                     <thead>
                         <tr>
-                            <th style="width: 70px;">
+                            <th style="width: 70px;" class="no-sort">
                                 <div class="flex items-center gap-2">
                                     <input type="checkbox" class="app-checkbox app-select-all-checkbox" title="Select All">
                                     <span>#</span>
@@ -222,7 +222,7 @@
                             <th style="width: 100px;">Route</th>
                             <th style="width: 120px;">Gate Decision</th>
                             <th style="width: 90px;">Latency</th>
-                            <th style="width: 60px;" class="text-right">Action</th>
+                            <th style="width: 60px;" class="no-sort text-right">Action</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -406,11 +406,12 @@
 @endsection
 
 @push('custom-scripts')
-    <script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js" defer></script>
+    <script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
     <script>
         let currentReplyText = '';
         let currentJsonText = '';
         let autoRefreshTimer = null;
+        let obsTable = null;
 
         function handleAutoRefreshChange(intervalSeconds) {
             if (autoRefreshTimer) {
@@ -428,8 +429,6 @@
             }
         }
 
-        let obsTable = null;
-
         function filterObservability(el, term) {
             document.querySelectorAll('[data-obs-chip]').forEach(function(chip) {
                 chip.classList.remove('active');
@@ -440,23 +439,32 @@
             }
         }
 
-        document.addEventListener('DOMContentLoaded', function () {
-            if (typeof $.fn.DataTable !== 'undefined') {
-                obsTable = $('#data-table').DataTable({
-                    pageLength: 20,
-                    order: [[1, 'desc']],
-                    columns: [
-                        { orderable: false },
-                        null,
-                        null,
-                        null,
-                        null,
-                        null,
-                        null,
-                        { orderable: false }
-                    ]
-                });
-            }
+        $(document).ready(function () {
+            obsTable = $('#data-table').DataTable({
+                processing: true,
+                responsive: true,
+                autoWidth: false,
+                pageLength: 20,
+                lengthMenu: [10, 20, 50, 100, 200],
+                order: [[1, 'desc']],
+                columns: [
+                    { orderable: false, searchable: false, width: '70px' },
+                    { width: '90px' },
+                    { width: '170px' },
+                    null,
+                    { width: '100px' },
+                    { width: '120px' },
+                    { width: '90px' },
+                    { orderable: false, searchable: false, width: '60px' }
+                ],
+                language: {
+                    lengthMenu: "Show _MENU_ entries",
+                    search: "Search:",
+                    info: "Showing _START_ to _END_ of _TOTAL_ entries",
+                    infoEmpty: "Showing 0 to 0 of 0 entries",
+                    emptyTable: "No diagnostic traces found"
+                }
+            });
 
             // Restore auto-refresh preference
             const savedInterval = localStorage.getItem('obs_auto_refresh');
