@@ -28,20 +28,20 @@
     @include('admin.partials.styles')
     @stack('custom-style')
 </head>
-<body class="bg-light-canvas text-light-text dark:bg-dark-canvas dark:text-dark-text antialiased min-h-screen flex flex-col font-sans selection:bg-brand-500 selection:text-white">
+<body class="bg-light-canvas text-light-text dark:bg-dark-canvas dark:text-dark-text antialiased h-screen max-h-screen overflow-hidden flex flex-col font-sans selection:bg-brand-500 selection:text-white">
     {{-- Top Navigation Header --}}
     @include('admin.partials.header')
 
-    {{-- Main Shell --}}
-    <div id="main-wrapper" class="flex flex-1 overflow-hidden h-[calc(100vh-48px)]">
+    {{-- Main Shell with Independent Dual-Column Scroll --}}
+    <div id="main-wrapper" class="flex flex-1 overflow-hidden h-[calc(100vh-48px)] max-h-[calc(100vh-48px)] min-h-0">
         {{-- Mobile Sidebar Backdrop --}}
         <div id="sidebarBackdrop" class="fixed inset-0 top-12 bg-black/50 backdrop-blur-[2px] z-40 hidden lg:hidden transition-opacity" onclick="toggleSidebar(false)"></div>
 
-        {{-- Linear-Style Compact Sidebar --}}
+        {{-- Linear-Style Compact Sidebar (Independently Scrollable) --}}
         @include('admin.partials.sidebar')
 
-        {{-- Content Area --}}
-        <div class="content-wrapper flex-1 overflow-y-auto scrollbar {{ Route::is('conversations.*') ? '!p-0 !overflow-hidden h-full flex flex-col' : 'p-3 sm:p-4 lg:p-5' }}" id="fullpage">
+        {{-- Content Area (Independently Scrollable) --}}
+        <div class="content-wrapper flex-1 h-full overflow-y-auto scrollbar min-h-0 min-w-0 {{ Route::is('conversations.*') ? '!p-0 !overflow-hidden flex flex-col' : 'p-3 sm:p-4 lg:p-5' }}" id="fullpage">
             <main class="content-body {{ Route::is('conversations.*') ? 'w-full h-full flex-1 flex flex-col overflow-hidden' : 'max-w-7xl mx-auto w-full' }}">
                 @yield('content')
             </main>

@@ -1,4 +1,4 @@
-<header class="h-12 border-b border-light-border dark:border-dark-border bg-light-surface dark:bg-dark-surface sticky top-0 z-40 transition-colors">
+<header class="h-12 border-b border-light-border dark:border-dark-border bg-light-surface dark:bg-dark-surface sticky top-0 z-40 transition-colors flex-shrink-0">
     <div class="h-full px-3 sm:px-4 flex items-center justify-between gap-3">
         {{-- Left Section --}}
         <div class="flex items-center gap-2 sm:gap-3 flex-shrink-0">

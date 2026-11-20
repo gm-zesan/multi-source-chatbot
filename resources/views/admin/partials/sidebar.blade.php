@@ -1,4 +1,4 @@
-<aside id="adminSidebar" class="w-56 border-r border-light-border dark:border-dark-border bg-light-surface dark:bg-dark-surface flex-shrink-0 flex flex-col justify-between overflow-y-auto scrollbar transition-all duration-200">
+<aside id="adminSidebar" class="w-56 h-full max-h-full min-h-0 border-r border-light-border dark:border-dark-border bg-light-surface dark:bg-dark-surface flex-shrink-0 flex flex-col justify-between overflow-y-auto scrollbar transition-all duration-200">
     <div class="p-2 space-y-4">
         {{-- Brand / Workspace Identity --}}
         <div class="p-2 flex items-center gap-2 border-b border-light-border dark:border-dark-border pb-2.5">

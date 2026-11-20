@@ -213,6 +213,42 @@ class AnalyticsDashboardController extends Controller
             ];
         }
 
+        // 7. Payment Methods Distribution
+        $paymentsRaw = DB::table('analytics_payments')
+            ->where('workspace_id', $workspaceId)
+            ->whereBetween('collected_at', [$startDateTime, $endDateTime])
+            ->groupBy('payment_method')
+            ->select('payment_method', DB::raw('SUM(amount) as total_amount'), DB::raw('COUNT(*) as count'))
+            ->get();
+
+        $pmLabels = [];
+        $pmAmounts = [];
+        $pmCounts = [];
+        foreach ($paymentsRaw as $p) {
+            $pmLabels[] = strtoupper((string) $p->payment_method);
+            $pmAmounts[] = round((float) $p->total_amount, 2);
+            $pmCounts[] = (int) $p->count;
+        }
+
+        // 8. Due & Collection Status
+        $dueQuery = DB::table('analytics_due_assignments')->where('workspace_id', $workspaceId);
+        $totalDueCases = (clone $dueQuery)->count();
+        $settledCount = (clone $dueQuery)->where('status', 'settled')->count();
+        $inProgressCount = (clone $dueQuery)->whereIn('status', ['assigned', 'in_progress'])->count();
+        $defaultedCount = (clone $dueQuery)->where('status', 'defaulted')->count();
+
+        // 9. Prior Period Growth Comparison
+        $periodDays = max(1, $startDate->diffInDays($endDate) + 1);
+        $prevStartDate = $startDate->copy()->subDays((int) $periodDays)->startOfDay()->toDateTimeString();
+        $prevEndDate = $startDate->copy()->subSecond()->toDateTimeString();
+
+        $prevNetSales = round((float) AnalyticsOrder::where('workspace_id', $workspaceId)
+            ->where('status', 'completed')
+            ->whereBetween('order_date', [$prevStartDate, $prevEndDate])
+            ->sum('net_amount'), 2);
+
+        $salesGrowth = $prevNetSales > 0 ? round((($netSales - $prevNetSales) / $prevNetSales) * 100, 1) : ($netSales > 0 ? 100.0 : 0.0);
+
         return [
             'date_range' => [
                 'start' => $startDate->toDateString(),
@@ -224,6 +260,7 @@ class AnalyticsDashboardController extends Controller
                 'gross_sales' => $grossSales,
                 'total_discount' => $totalDiscount,
                 'net_sales' => $netSales,
+                'net_sales_growth' => $salesGrowth,
                 'total_orders' => $totalOrders,
                 'avg_order_value' => $avgOrderValue,
             ],
@@ -231,6 +268,18 @@ class AnalyticsDashboardController extends Controller
                 'dates' => $trendDates,
                 'revenues' => $trendRevenues,
                 'orders' => $trendOrders,
+            ],
+            'payment_methods' => [
+                'labels' => !empty($pmLabels) ? $pmLabels : ['COD', 'BKASH', 'NAGAD', 'CARD'],
+                'amounts' => !empty($pmAmounts) ? $pmAmounts : [max(1, $netSales), 0, 0, 0],
+                'counts' => !empty($pmCounts) ? $pmCounts : [$totalOrders, 0, 0, 0],
+            ],
+            'due_collection' => [
+                'total_cases' => $totalDueCases,
+                'settled' => $settledCount,
+                'in_progress' => $inProgressCount,
+                'defaulted' => $defaultedCount,
+                'recovery_rate' => $totalDueCases > 0 ? round(($settledCount / $totalDueCases) * 100, 1) : 100.0,
             ],
             'top_products' => $topProducts,
             'inventory' => [
