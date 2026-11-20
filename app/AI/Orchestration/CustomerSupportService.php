@@ -2125,7 +2125,7 @@ PROMPT;
             // Tier 3: Deterministic Grounded Fallback
             if (!empty($businessContext)) {
                 if (str_contains($businessContext, 'UNAVAILABLE / NOT FOUND')) {
-                    return "দুঃখিত, আমাদের স্টোরে বর্তমানে মোবাইল ফোন বা এই পণ্যটি উপলব্ধ নেই। আমাদের কাছে ল্যাপটপ (Laptop Pro 15), ওয়্যারলেস হেডফোন, মেকানিক্যাল কীবোর্ড এবং অফিস চেয়ার পাওয়া যাচ্ছে।";
+                    return "দুঃখিত, আপনার কাঙ্ক্ষিত পণ্যটি বর্তমানে আমাদের স্টোরে উপলব্ধ নেই। তবে আমাদের কাছে ল্যাপটপ (Laptop Pro 15), ওয়্যারলেস হেডফোন, মেকানিক্যাল কীবোর্ড এবং অফিস চেয়ার পাওয়া যাচ্ছে।";
                 }
                 if (str_contains($businessContext, 'Central Product Catalog') || str_contains($businessContext, 'Available Products in Store')) {
                     return "আমাদের স্টোরে ইলেকট্রনিক্স ও আইটি সামগ্রী (যেমন Laptop Pro 15, ওয়্যারলেস হেডফোন, মেকানিক্যাল কীবোর্ড, ইউএসবি মাল্টি-হাব) এবং অফিস ফার্নিচার (এরগনোমিক চেয়ার) পাওয়া যায়। আপনি কোন পণ্যটি সম্পর্কে জানতে চান?";

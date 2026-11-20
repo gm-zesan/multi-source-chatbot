@@ -13,7 +13,7 @@ use Illuminate\Support\Facades\Auth;
 class WorkspaceSettingController extends Controller
 {
     /**
-     * Show workspace settings page.
+     * Show workspace settings directory (for superadmin) or workspace settings edit form (for owner/admin).
      */
     public function edit(Request $request)
     {
@@ -24,14 +24,23 @@ class WorkspaceSettingController extends Controller
             abort(403, 'Unauthorized. Only workspace owners and administrators can manage workspace settings.');
         }
 
-        $workspaceId = ($user->hasRole(RoleEnum::SUPERADMIN->value) && $request->filled('workspace_id'))
+        $isSuperAdmin = $user->hasRole(RoleEnum::SUPERADMIN->value);
+
+        // If Superadmin and no specific workspace_id is selected, redirect to the single canonical Workspaces directory
+        if ($isSuperAdmin && ! $request->filled('workspace_id')) {
+            return redirect()->route('workspaces.index');
+        }
+
+        // Specific workspace edit page (for Superadmin with workspace_id or Tenant Owner)
+        $workspaceId = ($isSuperAdmin && $request->filled('workspace_id'))
             ? (int) $request->input('workspace_id')
             : (int) ($user->workspace_id ?: Workspace::first()?->id ?: 1);
 
         $workspace = Workspace::findOrFail($workspaceId);
 
         return view('admin.workspace.settings', [
-            'workspace' => $workspace,
+            'workspace'    => $workspace,
+            'isSuperAdmin' => $isSuperAdmin,
         ]);
     }
 
@@ -48,27 +57,31 @@ class WorkspaceSettingController extends Controller
         }
 
         $validated = $request->validate([
-            'name' => 'required|string|max:128',
-            'currency' => 'required|string|max:8',
-            'support_phone' => 'nullable|string|max:32',
-            'support_email' => 'nullable|email|max:128',
-            'business_address' => 'nullable|string|max:500',
-            'operating_hours' => 'nullable|array',
-            'operating_hours.weekdays' => 'nullable|string|max:64',
-            'operating_hours.weekend' => 'nullable|string|max:64',
-            'settings' => 'nullable|array',
-            'settings.*' => 'nullable',
+            'workspace_id'              => 'nullable|integer|exists:workspaces,id',
+            'name'                      => 'required|string|max:128',
+            'currency'                  => 'required|string|max:8',
+            'support_phone'             => 'nullable|string|max:32',
+            'support_email'             => 'nullable|email|max:128',
+            'business_address'          => 'nullable|string|max:500',
+            'operating_hours'           => 'nullable|array',
+            'operating_hours.weekdays'  => 'nullable|string|max:64',
+            'operating_hours.weekend'   => 'nullable|string|max:64',
+            'settings'                  => 'nullable|array',
+            'settings.*'                => 'nullable',
         ]);
 
-        $workspaceId = ($user->hasRole(RoleEnum::SUPERADMIN->value) && $request->filled('workspace_id'))
+        $isSuperAdmin = $user->hasRole(RoleEnum::SUPERADMIN->value);
+        $workspaceId = ($isSuperAdmin && $request->filled('workspace_id'))
             ? (int) $request->input('workspace_id')
             : (int) ($user->workspace_id ?: Workspace::first()?->id ?: 1);
 
         $workspace = Workspace::findOrFail($workspaceId);
         $workspace->update($validated);
 
-        return redirect()->route('workspace.settings.edit', $user->hasRole(RoleEnum::SUPERADMIN->value) && $request->filled('workspace_id') ? ['workspace_id' => $workspaceId] : [])
-            ->with('success', 'Workspace settings updated successfully.');
+        $redirectParams = $isSuperAdmin ? ['workspace_id' => $workspaceId] : [];
+
+        return redirect()->route('workspace.settings.edit', $redirectParams)
+            ->with('success', "Settings for business '{$workspace->name}' updated successfully.");
     }
 
     private function canManageWorkspace(?User $user): bool

@@ -33,12 +33,12 @@
     <div class="row g-3 mb-4">
         <div class="col-xl-3 col-md-6 col-12">
             <div class="card border-0 shadow-sm rounded-3 h-100">
-                <div class="card-body d-flex align-items-center gap-3">
-                    <div class="p-3 bg-primary bg-opacity-10 text-primary rounded-3">
-                        <i class="ri-building-line fs-2"></i>
+                <div class="card-body d-flex align-items-center gap-3 p-3">
+                    <div class="icon-box-primary fs-3" style="width: 52px; height: 52px; border-radius: 12px;">
+                        <i class="ri-building-line"></i>
                     </div>
                     <div>
-                        <span class="text-muted text-uppercase small d-block">Total Workspaces</span>
+                        <span class="text-muted text-uppercase small d-block fw-semibold">Total Workspaces</span>
                         <h3 class="fw-bold mb-0 text-dark">{{ $totalWorkspaces }}</h3>
                         <small class="text-muted">Registered tenant organizations</small>
                     </div>
@@ -48,12 +48,12 @@
 
         <div class="col-xl-3 col-md-6 col-12">
             <div class="card border-0 shadow-sm rounded-3 h-100">
-                <div class="card-body d-flex align-items-center gap-3">
-                    <div class="p-3 bg-success bg-opacity-10 text-success rounded-3">
-                        <i class="ri-checkbox-circle-line fs-2"></i>
+                <div class="card-body d-flex align-items-center gap-3 p-3">
+                    <div class="icon-box-success fs-3" style="width: 52px; height: 52px; border-radius: 12px;">
+                        <i class="ri-checkbox-circle-line"></i>
                     </div>
                     <div>
-                        <span class="text-muted text-uppercase small d-block">Active Tenants</span>
+                        <span class="text-muted text-uppercase small d-block fw-semibold">Active Tenants</span>
                         <h3 class="fw-bold mb-0 text-success">{{ $activeWorkspaces }} <span class="fs-6 text-muted fw-normal">/ {{ $totalWorkspaces }}</span></h3>
                         <small class="text-muted">{{ $inactiveWorkspaces }} suspended / inactive</small>
                     </div>
@@ -63,12 +63,12 @@
 
         <div class="col-xl-3 col-md-6 col-12">
             <div class="card border-0 shadow-sm rounded-3 h-100">
-                <div class="card-body d-flex align-items-center gap-3">
-                    <div class="p-3 bg-info bg-opacity-10 text-info rounded-3">
-                        <i class="ri-team-line fs-2"></i>
+                <div class="card-body d-flex align-items-center gap-3 p-3">
+                    <div class="icon-box-info fs-3" style="width: 52px; height: 52px; border-radius: 12px;">
+                        <i class="ri-team-line"></i>
                     </div>
                     <div>
-                        <span class="text-muted text-uppercase small d-block">Multi-Tenant Users</span>
+                        <span class="text-muted text-uppercase small d-block fw-semibold">Multi-Tenant Users</span>
                         <h3 class="fw-bold mb-0 text-dark">{{ $totalUsers }}</h3>
                         <small class="text-muted">Admins, agents & staff</small>
                     </div>
@@ -78,12 +78,12 @@
 
         <div class="col-xl-3 col-md-6 col-12">
             <div class="card border-0 shadow-sm rounded-3 h-100">
-                <div class="card-body d-flex align-items-center gap-3">
-                    <div class="p-3 bg-warning bg-opacity-10 text-warning rounded-3">
-                        <i class="ri-message-3-line fs-2"></i>
+                <div class="card-body d-flex align-items-center gap-3 p-3">
+                    <div class="icon-box-warning fs-3" style="width: 52px; height: 52px; border-radius: 12px;">
+                        <i class="ri-message-3-line"></i>
                     </div>
                     <div>
-                        <span class="text-muted text-uppercase small d-block">Total Conversations</span>
+                        <span class="text-muted text-uppercase small d-block fw-semibold">Total Conversations</span>
                         <h3 class="fw-bold mb-0 text-dark">{{ $totalConversations }}</h3>
                         <small class="text-muted">Across all channels</small>
                     </div>
@@ -98,26 +98,28 @@
             <form method="GET" action="{{ route('workspaces.index') }}" class="row g-2 align-items-center">
                 <div class="col-md-5 col-12">
                     <div class="input-group">
-                        <span class="input-group-text bg-light border-end-0"><i class="ri-search-line text-muted"></i></span>
-                        <input type="text" name="search" class="form-control bg-light border-start-0" placeholder="Search workspace by name or slug..." value="{{ request('search') }}">
+                        <span class="input-group-text"><i class="ri-search-line"></i></span>
+                        <input type="text" name="search" class="form-control" placeholder="Search workspace by name or slug..." value="{{ request('search') }}">
                     </div>
                 </div>
                 <div class="col-md-3 col-6">
-                    <select name="status" class="form-select bg-light" onchange="this.form.submit()">
+                    <select name="status" class="form-select" onchange="this.form.submit()">
                         <option value="">All Statuses</option>
                         <option value="active" {{ request('status') === 'active' ? 'selected' : '' }}>Active Only</option>
                         <option value="inactive" {{ request('status') === 'inactive' ? 'selected' : '' }}>Suspended / Inactive Only</option>
                     </select>
                 </div>
                 <div class="col-md-2 col-6">
-                    <button type="submit" class="btn btn-secondary w-100">Filter</button>
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="ri-filter-3-line"></i> Filter
+                    </button>
                 </div>
                 <div class="col-md-2 col-12 text-md-end">
-                    <div class="btn-group" role="group">
-                        <button type="button" class="btn btn-outline-secondary active" id="btnViewGrid" onclick="setViewMode('grid')">
+                    <div class="btn-group w-100" role="group">
+                        <button type="button" class="btn btn-outline-secondary active w-50" id="btnViewGrid" onclick="setViewMode('grid')">
                             <i class="ri-grid-fill"></i> Grid
                         </button>
-                        <button type="button" class="btn btn-outline-secondary" id="btnViewTable" onclick="setViewMode('table')">
+                        <button type="button" class="btn btn-outline-secondary w-50" id="btnViewTable" onclick="setViewMode('table')">
                             <i class="ri-table-line"></i> Table
                         </button>
                     </div>
@@ -142,7 +144,7 @@
                 <div class="card border-0 shadow-sm rounded-3 h-100 {{ $isCurrentActive ? 'border-primary border-2' : '' }}">
                     <div class="card-header bg-white border-0 pt-4 pb-2 px-4 d-flex justify-content-between align-items-start">
                         <div class="d-flex align-items-center gap-3">
-                            <div class="rounded-circle d-flex align-items-center justify-content-center bg-primary bg-opacity-10 text-primary fw-bold fs-4" style="width: 50px; height: 50px;">
+                            <div class="rounded-circle d-flex align-items-center justify-content-center fw-bold fs-4" style="width: 50px; height: 50px; background-color: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe;">
                                 {{ strtoupper(substr($ws->name, 0, 2)) }}
                             </div>
                             <div>
@@ -154,12 +156,12 @@
                         </div>
                         <div class="d-flex flex-column align-items-end gap-1">
                             @if($ws->is_active)
-                                <span class="badge bg-success bg-opacity-10 text-success px-2 py-1 small rounded-pill">Active</span>
+                                <span class="badge badge-soft-success">Active</span>
                             @else
-                                <span class="badge bg-danger bg-opacity-10 text-danger px-2 py-1 small rounded-pill">Suspended</span>
+                                <span class="badge badge-soft-danger">Suspended</span>
                             @endif
                             @if($isCurrentActive)
-                                <span class="badge bg-primary px-2 py-1 small rounded-pill">Active Session</span>
+                                <span class="badge bg-primary text-white px-2 py-1 small rounded-pill shadow-sm">Active Session</span>
                             @endif
                         </div>
                     </div>
@@ -210,6 +212,22 @@
                             </div>
                         </div>
 
+                        {{-- Business Profile Details --}}
+                        <div class="py-2 border-top border-bottom my-2 small text-muted">
+                            <div class="d-flex justify-content-between mb-1">
+                                <span>Currency:</span>
+                                <strong class="badge badge-soft-primary px-2 py-0.5">{{ $ws->currency }}</strong>
+                            </div>
+                            <div class="d-flex justify-content-between mb-1 text-truncate">
+                                <span>Support:</span>
+                                <span class="fw-semibold text-dark">{{ $ws->support_phone ?: ($ws->support_email ?: 'Not configured') }}</span>
+                            </div>
+                            <div class="d-flex justify-content-between">
+                                <span>Hours:</span>
+                                <span class="text-dark">{{ $ws->operating_hours['weekdays'] ?? '09:00 AM - 08:00 PM' }}</span>
+                            </div>
+                        </div>
+
                         <div class="small text-muted mb-1">
                             <i class="ri-calendar-line me-1"></i> Created: {{ $ws->created_at ? $ws->created_at->format('M d, Y') : 'N/A' }}
                         </div>
@@ -230,7 +248,7 @@
                             </button>
                         </form>
 
-                        <a href="{{ route('workspace.settings.edit') }}" class="btn btn-outline-secondary btn-sm" title="Workspace Settings">
+                        <a href="{{ route('workspace.settings.edit', ['workspace_id' => $ws->id]) }}" class="btn btn-outline-secondary btn-sm" title="Edit Business Profile & Settings">
                             <i class="ri-settings-4-line fs-6"></i>
                         </a>
                     </div>
@@ -279,7 +297,7 @@
                             <tr class="{{ $isCurrentActive ? 'table-primary' : '' }}">
                                 <td>
                                     <div class="d-flex align-items-center gap-2">
-                                        <div class="rounded-circle d-flex align-items-center justify-content-center bg-primary bg-opacity-10 text-primary fw-bold" style="width: 36px; height: 36px;">
+                                        <div class="rounded-circle d-flex align-items-center justify-content-center icon-box-primary fw-bold" style="width: 36px; height: 36px; font-size: 0.95rem;">
                                             {{ strtoupper(substr($ws->name, 0, 2)) }}
                                         </div>
                                         <div>
@@ -290,9 +308,9 @@
                                 </td>
                                 <td>
                                     @if($ws->is_active)
-                                        <span class="badge bg-success bg-opacity-10 text-success">Active</span>
+                                        <span class="badge badge-soft-success">Active</span>
                                     @else
-                                        <span class="badge bg-danger bg-opacity-10 text-danger">Suspended</span>
+                                        <span class="badge badge-soft-danger">Suspended</span>
                                     @endif
                                 </td>
                                 <td><span class="badge bg-dark">{{ $planName }}</span></td>
@@ -315,6 +333,9 @@
                                                 <i class="{{ $ws->is_active ? 'ri-pause-circle-line' : 'ri-play-circle-line' }}"></i>
                                             </button>
                                         </form>
+                                        <a href="{{ route('workspace.settings.edit', ['workspace_id' => $ws->id]) }}" class="btn btn-outline-secondary btn-sm" title="Edit Business Profile & Settings">
+                                            <i class="ri-settings-4-line"></i>
+                                        </a>
                                     </div>
                                 </td>
                             </tr>

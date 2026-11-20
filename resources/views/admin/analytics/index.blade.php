@@ -6,38 +6,58 @@
 
 @push('custom-style')
 <style>
-    .analytics-card {
-        border-radius: 10px;
-        transition: transform 0.15s ease, box-shadow 0.15s ease;
-        border: 1px solid #eef2f6;
+    .analytics-card-modern {
+        border-radius: 12px;
+        border: 1px solid #e2e8f0;
+        background: #ffffff;
+        transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1);
     }
-    .analytics-card:hover {
+    .analytics-card-modern:hover {
         transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        box-shadow: 0 10px 20px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -4px rgba(0, 0, 0, 0.03);
+        border-color: #cbd5e1;
     }
-    .kpi-value {
+    .kpi-num {
         font-size: 1.85rem;
         font-weight: 700;
         line-height: 1.2;
+        color: #0f172a;
     }
-    .kpi-label {
-        font-size: 0.82rem;
-        color: #6c757d;
+    .kpi-title {
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: #64748b;
         text-transform: uppercase;
         letter-spacing: 0.5px;
     }
-    .btn-range.active {
-        background-color: #0d6efd;
-        color: #fff;
-        border-color: #0d6efd;
+    .btn-range-filter {
+        padding: 5px 14px;
+        font-size: 0.82rem;
+        font-weight: 500;
+        border-radius: 8px;
+        border: 1px solid #e2e8f0;
+        background: #ffffff;
+        color: #475569;
+        transition: all 0.15s ease;
+    }
+    .btn-range-filter:hover {
+        background: #f8fafc;
+        color: #0f172a;
+        border-color: #cbd5e1;
+    }
+    .btn-range-filter.active {
+        background: #3b82f6;
+        color: #ffffff;
+        border-color: #3b82f6;
+        box-shadow: 0 2px 6px rgba(59, 130, 246, 0.3);
     }
     .bar-chart-container {
         display: flex;
         align-items: flex-end;
-        height: 180px;
-        gap: 6px;
-        padding-top: 20px;
-        border-bottom: 1px solid #e2e8f0;
+        height: 190px;
+        gap: 8px;
+        padding-top: 24px;
+        border-bottom: 1px solid #f1f5f9;
     }
     .bar-col {
         flex: 1;
@@ -50,126 +70,169 @@
     .bar-fill {
         width: 100%;
         background: linear-gradient(180deg, #3b82f6 0%, #1d4ed8 100%);
-        border-radius: 4px 4px 0 0;
-        min-height: 4px;
-        transition: height 0.3s ease;
+        border-radius: 5px 5px 0 0;
+        min-height: 5px;
+        transition: height 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+        cursor: pointer;
+    }
+    .bar-fill:hover {
+        background: linear-gradient(180deg, #60a5fa 0%, #2563eb 100%);
     }
     .bar-label {
-        font-size: 0.65rem;
+        font-size: 0.68rem;
         color: #64748b;
-        margin-top: 6px;
+        margin-top: 8px;
         text-align: center;
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
         max-width: 100%;
+        font-weight: 500;
+    }
+    .metric-icon-box {
+        width: 44px;
+        height: 44px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.25rem;
     }
 </style>
 @endpush
 
 @section('content')
-<div class="container-fluid">
-    {{-- Header & Range Filters --}}
-    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4">
+<div class="container-fluid py-2">
+    {{-- Top Header & Time Filter Bar --}}
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
         <div>
-            <h4 class="mb-1 text-dark fw-bold">Business Intelligence & Analytics</h4>
-            <p class="text-muted mb-0 small">Workspace: <strong>{{ $workspace->name }}</strong> · Currency: <span class="badge bg-light text-dark border">{{ $initialData['currency'] }}</span></p>
+            <div class="d-flex align-items-center gap-2 mb-1">
+                <h4 class="mb-0 text-dark fw-bold">Business Intelligence & Analytics</h4>
+                <span class="badge badge-soft-primary px-3 py-1.5 rounded-pill small fw-semibold">
+                    {{ $workspace->name }}
+                </span>
+            </div>
+            <p class="text-muted mb-0 small">
+                Real-time commerce telemetry, sales velocity, catalog inventory status, and sales rep performance.
+            </p>
         </div>
-        <div class="btn-group mt-2 mt-md-0" role="group" id="rangeFilterGroup">
-            <button type="button" class="btn btn-outline-primary btn-sm btn-range" data-range="today">Today</button>
-            <button type="button" class="btn btn-outline-primary btn-sm btn-range" data-range="7d">7 Days</button>
-            <button type="button" class="btn btn-outline-primary btn-sm btn-range active" data-range="30d">30 Days</button>
-            <button type="button" class="btn btn-outline-primary btn-sm btn-range" data-range="90d">90 Days</button>
+        <div class="d-flex flex-wrap align-items-center gap-2">
+            <div class="d-inline-flex p-1 bg-light rounded-3 border" id="rangeFilterGroup">
+                <button type="button" class="btn btn-range-filter" data-range="today">Today</button>
+                <button type="button" class="btn btn-range-filter" data-range="7d">7 Days</button>
+                <button type="button" class="btn btn-range-filter active" data-range="30d">30 Days</button>
+                <button type="button" class="btn btn-range-filter" data-range="90d">90 Days</button>
+            </div>
+            <a href="{{ route('workspace.settings.edit', ['workspace_id' => $workspace->id]) }}" class="btn btn-outline-secondary btn-sm d-flex align-items-center gap-1 shadow-sm">
+                <i class="ri-settings-4-line"></i> Business Settings
+            </a>
         </div>
     </div>
 
-    {{-- Top KPI Cards --}}
+    {{-- Top 4 KPI Metrics --}}
     <div class="row g-3 mb-4">
+        {{-- Net Sales --}}
         <div class="col-xl-3 col-md-6 col-12">
-            <div class="card analytics-card h-100">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center mb-2">
-                        <span class="kpi-label">Net Sales</span>
-                        <div class="p-2 bg-primary bg-opacity-10 rounded text-primary">
-                            <i class="ri-money-dollar-circle-line fs-4"></i>
+            <div class="analytics-card-modern p-4 h-100">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <div>
+                        <div class="kpi-title">Net Revenue</div>
+                        <div class="kpi-num mt-1 text-primary" id="kpiNetSales">
+                            {{ $initialData['currency'] }} {{ number_format($initialData['summary']['net_sales'], 2) }}
                         </div>
                     </div>
-                    <div class="kpi-value text-primary" id="kpiNetSales">
-                        {{ $initialData['currency'] }} {{ number_format($initialData['summary']['net_sales'], 2) }}
+                    <div class="icon-box-primary">
+                        <i class="ri-money-dollar-circle-line"></i>
                     </div>
-                    <small class="text-muted d-block mt-1">
-                        Gross: {{ $initialData['currency'] }} <span id="kpiGrossSales">{{ number_format($initialData['summary']['gross_sales'], 2) }}</span>
-                    </small>
+                </div>
+                <div class="d-flex justify-content-between align-items-center mt-3 pt-2 border-top small text-muted">
+                    <span>Gross: {{ $initialData['currency'] }} <strong id="kpiGrossSales">{{ number_format($initialData['summary']['gross_sales'], 2) }}</strong></span>
+                    <span class="badge badge-soft-primary">{{ $initialData['currency'] }}</span>
                 </div>
             </div>
         </div>
 
+        {{-- Total Orders --}}
         <div class="col-xl-3 col-md-6 col-12">
-            <div class="card analytics-card h-100">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center mb-2">
-                        <span class="kpi-label">Total Orders</span>
-                        <div class="p-2 bg-success bg-opacity-10 rounded text-success">
-                            <i class="ri-shopping-cart-line fs-4"></i>
+            <div class="analytics-card-modern p-4 h-100">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <div>
+                        <div class="kpi-title">Completed Orders</div>
+                        <div class="kpi-num mt-1 text-success" id="kpiTotalOrders">
+                            {{ number_format($initialData['summary']['total_orders']) }}
                         </div>
                     </div>
-                    <div class="kpi-value text-success" id="kpiTotalOrders">
-                        {{ number_format($initialData['summary']['total_orders']) }}
+                    <div class="icon-box-success">
+                        <i class="ri-shopping-cart-2-line"></i>
                     </div>
-                    <small class="text-muted d-block mt-1">
-                        Avg Order: {{ $initialData['currency'] }} <span id="kpiAvgOrder">{{ number_format($initialData['summary']['avg_order_value'], 2) }}</span>
-                    </small>
+                </div>
+                <div class="d-flex justify-content-between align-items-center mt-3 pt-2 border-top small text-muted">
+                    <span>Avg Order Value (AOV):</span>
+                    <strong class="text-dark">{{ $initialData['currency'] }} <span id="kpiAvgOrder">{{ number_format($initialData['summary']['avg_order_value'], 2) }}</span></strong>
                 </div>
             </div>
         </div>
 
+        {{-- Total Discounts --}}
         <div class="col-xl-3 col-md-6 col-12">
-            <div class="card analytics-card h-100">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center mb-2">
-                        <span class="kpi-label">Discounts Given</span>
-                        <div class="p-2 bg-warning bg-opacity-10 rounded text-warning">
-                            <i class="ri-percent-line fs-4"></i>
+            <div class="analytics-card-modern p-4 h-100">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <div>
+                        <div class="kpi-title">Discounts Applied</div>
+                        <div class="kpi-num mt-1 text-warning" id="kpiDiscounts">
+                            {{ $initialData['currency'] }} {{ number_format($initialData['summary']['total_discount'], 2) }}
                         </div>
                     </div>
-                    <div class="kpi-value text-warning" id="kpiDiscounts">
-                        {{ $initialData['currency'] }} {{ number_format($initialData['summary']['total_discount'], 2) }}
+                    <div class="icon-box-warning">
+                        <i class="ri-percent-line"></i>
                     </div>
-                    <small class="text-muted d-block mt-1">Total promotional deductions</small>
+                </div>
+                <div class="d-flex justify-content-between align-items-center mt-3 pt-2 border-top small text-muted">
+                    <span>Promotional deductions</span>
+                    <span class="badge badge-soft-warning">Promos</span>
                 </div>
             </div>
         </div>
 
+        {{-- Customer Loyalty / Repeat Rate --}}
         <div class="col-xl-3 col-md-6 col-12">
-            <div class="card analytics-card h-100">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center mb-2">
-                        <span class="kpi-label">Customer Base</span>
-                        <div class="p-2 bg-info bg-opacity-10 rounded text-info">
-                            <i class="ri-user-heart-line fs-4"></i>
+            <div class="analytics-card-modern p-4 h-100">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <div>
+                        <div class="kpi-title">Customer Base</div>
+                        <div class="kpi-num mt-1 text-info" id="kpiCustomers">
+                            {{ number_format($initialData['customers']['total']) }}
                         </div>
                     </div>
-                    <div class="kpi-value text-info" id="kpiCustomers">
-                        {{ number_format($initialData['customers']['total']) }}
+                    <div class="icon-box-info">
+                        <i class="ri-user-heart-line"></i>
                     </div>
-                    <small class="text-muted d-block mt-1">
-                        Repeat Rate: <span id="kpiRepeatRate">{{ $initialData['customers']['repeat_rate'] }}</span>%
-                    </small>
+                </div>
+                <div class="d-flex justify-content-between align-items-center mt-3 pt-2 border-top small text-muted">
+                    <span>Repeat Order Rate:</span>
+                    <span class="badge badge-soft-info fw-bold">
+                        <span id="kpiRepeatRate">{{ $initialData['customers']['repeat_rate'] }}</span>%
+                    </span>
                 </div>
             </div>
         </div>
     </div>
 
-    {{-- Main Visual Trends & Inventory Health Row --}}
+    {{-- Main Visual Chart & Inventory Health Row --}}
     <div class="row g-3 mb-4">
-        {{-- Revenue Trend Chart --}}
+        {{-- Revenue Velocity Trend Chart --}}
         <div class="col-lg-8 col-12">
-            <div class="card table-card h-100">
-                <div class="card-header table-header d-flex justify-content-between align-items-center">
-                    <div class="table-title">Revenue Trend</div>
-                    <small class="text-muted" id="chartDateRange">{{ $initialData['date_range']['start'] }} to {{ $initialData['date_range']['end'] }}</small>
+            <div class="card border-0 shadow-sm rounded-3 h-100">
+                <div class="card-header bg-white border-bottom py-3 px-4 d-flex justify-content-between align-items-center">
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="ri-line-chart-line text-primary fs-5"></i>
+                        <h6 class="fw-bold mb-0 text-dark">Revenue Velocity Trend</h6>
+                    </div>
+                    <span class="badge bg-light text-muted border small" id="chartDateRange">
+                        {{ $initialData['date_range']['start'] }} to {{ $initialData['date_range']['end'] }}
+                    </span>
                 </div>
-                <div class="card-body">
+                <div class="card-body p-4">
                     <div class="bar-chart-container" id="barChartContainer">
                         @php
                             $maxRevenue = !empty($initialData['sales_trend']['revenues']) ? max($initialData['sales_trend']['revenues']) : 1;
@@ -181,75 +244,99 @@
                                 $pct = round(($rev / $maxRevenue) * 100);
                             @endphp
                             <div class="bar-col" title="{{ $date }}: {{ $initialData['currency'] }} {{ number_format($rev, 2) }}">
-                                <div class="bar-fill" style="height: {{ max(4, $pct) }}%;"></div>
+                                <div class="bar-fill" style="height: {{ max(5, $pct) }}%;"></div>
                                 <span class="bar-label">{{ date('d M', strtotime($date)) }}</span>
                             </div>
                         @empty
-                            <div class="w-100 text-center text-muted my-auto">No transaction data recorded in this period.</div>
+                            <div class="w-100 text-center text-muted my-auto py-5">
+                                <i class="ri-bar-chart-box-line fs-2 opacity-50 d-block mb-2"></i>
+                                No transaction data recorded in this period.
+                            </div>
                         @endforelse
                     </div>
                 </div>
             </div>
         </div>
 
-        {{-- Inventory Breakdown --}}
+        {{-- Inventory Health & SKU Status --}}
         <div class="col-lg-4 col-12">
-            <div class="card table-card h-100">
-                <div class="card-header table-header">
-                    <div class="table-title">Inventory Health</div>
+            <div class="card border-0 shadow-sm rounded-3 h-100">
+                <div class="card-header bg-white border-bottom py-3 px-4 d-flex justify-content-between align-items-center">
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="ri-archive-2-line text-primary fs-5"></i>
+                        <h6 class="fw-bold mb-0 text-dark">Catalog Inventory Health</h6>
+                    </div>
                 </div>
-                <div class="card-body">
-                    <div class="mb-3 d-flex justify-content-between align-items-center border-bottom pb-2">
-                        <span class="text-muted"><i class="ri-archive-line me-1 text-primary"></i> Total Catalog SKUs</span>
-                        <strong id="invTotal">{{ $initialData['inventory']['total_skus'] }}</strong>
+                <div class="card-body p-4">
+                    <div class="py-2 border-bottom d-flex justify-content-between align-items-center">
+                        <span class="text-muted small"><i class="ri-stack-line me-1.5 text-primary"></i> Total Catalog SKUs</span>
+                        <strong class="text-dark fs-6" id="invTotal">{{ $initialData['inventory']['total_skus'] }}</strong>
                     </div>
-                    <div class="mb-3 d-flex justify-content-between align-items-center border-bottom pb-2">
-                        <span class="text-muted"><i class="ri-checkbox-circle-line me-1 text-success"></i> In Stock</span>
-                        <span class="badge bg-success" id="invInStock">{{ $initialData['inventory']['in_stock'] }}</span>
+                    <div class="py-2 border-bottom d-flex justify-content-between align-items-center">
+                        <span class="text-muted small"><i class="ri-checkbox-circle-line me-1.5 text-success"></i> Fully In Stock</span>
+                        <span class="badge badge-soft-success" id="invInStock">
+                            {{ $initialData['inventory']['in_stock'] }}
+                        </span>
                     </div>
-                    <div class="mb-3 d-flex justify-content-between align-items-center border-bottom pb-2">
-                        <span class="text-muted"><i class="ri-alert-line me-1 text-warning"></i> Low Stock Alert</span>
-                        <span class="badge bg-warning text-dark" id="invLowStock">{{ $initialData['inventory']['low_stock'] }}</span>
+                    <div class="py-2 border-bottom d-flex justify-content-between align-items-center">
+                        <span class="text-muted small"><i class="ri-alert-line me-1.5 text-warning"></i> Low Stock Threshold</span>
+                        <span class="badge badge-soft-warning" id="invLowStock">
+                            {{ $initialData['inventory']['low_stock'] }}
+                        </span>
                     </div>
-                    <div class="d-flex justify-content-between align-items-center">
-                        <span class="text-muted"><i class="ri-close-circle-line me-1 text-danger"></i> Out of Stock</span>
-                        <span class="badge bg-danger" id="invOutOfStock">{{ $initialData['inventory']['out_of_stock'] }}</span>
+                    <div class="py-2 d-flex justify-content-between align-items-center">
+                        <span class="text-muted small"><i class="ri-close-circle-line me-1.5 text-danger"></i> Out of Stock</span>
+                        <span class="badge badge-soft-danger" id="invOutOfStock">
+                            {{ $initialData['inventory']['out_of_stock'] }}
+                        </span>
+                    </div>
+
+                    <div class="mt-4 p-3 bg-light rounded-3">
+                        <small class="text-muted d-block mb-1"><i class="ri-shield-check-line text-primary me-1"></i> Grounded Bot Inventory</small>
+                        <p class="small text-muted mb-0">
+                            The AI chatbot verifies these stock levels before proposing order confirmations to prevent overselling.
+                        </p>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
-    {{-- Bottom Row: Top Products & Sales Reps --}}
+    {{-- Bottom Row: Top Performing Products & Sales Reps Leaderboard --}}
     <div class="row g-3">
-        {{-- Top Products --}}
+        {{-- Top Products Table --}}
         <div class="col-lg-6 col-12">
-            <div class="card table-card">
-                <div class="card-header table-header">
-                    <div class="table-title">Top Performing Products</div>
+            <div class="card border-0 shadow-sm rounded-3 h-100">
+                <div class="card-header bg-white border-bottom py-3 px-4 d-flex justify-content-between align-items-center">
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="ri-trophy-line text-warning fs-5"></i>
+                        <h6 class="fw-bold mb-0 text-dark">Top-Selling Products</h6>
+                    </div>
                 </div>
                 <div class="card-body p-0">
                     <div class="table-responsive">
-                        <table class="table table-hover mb-0" id="topProductsTable">
+                        <table class="table table-hover align-middle mb-0" id="topProductsTable">
                             <thead class="table-light">
                                 <tr>
-                                    <th>Product</th>
+                                    <th class="ps-4">Product Name</th>
                                     <th>SKU</th>
                                     <th class="text-end">Units Sold</th>
-                                    <th class="text-end">Revenue</th>
+                                    <th class="text-end pe-4">Total Revenue</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 @forelse($initialData['top_products'] as $prod)
                                     <tr>
-                                        <td><strong>{{ $prod['name'] }}</strong></td>
-                                        <td><code>{{ $prod['sku'] }}</code></td>
-                                        <td class="text-end">{{ number_format($prod['units_sold']) }}</td>
-                                        <td class="text-end text-success fw-bold">{{ $initialData['currency'] }} {{ number_format($prod['total_revenue'], 2) }}</td>
+                                        <td class="ps-4">
+                                            <div class="fw-semibold text-dark">{{ $prod['name'] }}</div>
+                                        </td>
+                                        <td><code class="small text-muted">{{ $prod['sku'] }}</code></td>
+                                        <td class="text-end fw-semibold text-dark">{{ number_format($prod['units_sold']) }}</td>
+                                        <td class="text-end pe-4 text-primary fw-bold">{{ $initialData['currency'] }} {{ number_format($prod['total_revenue'], 2) }}</td>
                                     </tr>
                                 @empty
                                     <tr>
-                                        <td colspan="4" class="text-center text-muted py-3">No sales recorded for products in this date range.</td>
+                                        <td colspan="4" class="text-center text-muted py-4">No product sales recorded in this period.</td>
                                     </tr>
                                 @endforelse
                             </tbody>
@@ -259,34 +346,39 @@
             </div>
         </div>
 
-        {{-- Workforce / Sales Reps --}}
+        {{-- Sales Rep Leaderboard --}}
         <div class="col-lg-6 col-12">
-            <div class="card table-card">
-                <div class="card-header table-header">
-                    <div class="table-title">Sales Representatives Leaderboard</div>
+            <div class="card border-0 shadow-sm rounded-3 h-100">
+                <div class="card-header bg-white border-bottom py-3 px-4 d-flex justify-content-between align-items-center">
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="ri-user-star-line text-primary fs-5"></i>
+                        <h6 class="fw-bold mb-0 text-dark">Sales Representatives Leaderboard</h6>
+                    </div>
                 </div>
                 <div class="card-body p-0">
                     <div class="table-responsive">
-                        <table class="table table-hover mb-0" id="salesRepsTable">
+                        <table class="table table-hover align-middle mb-0" id="salesRepsTable">
                             <thead class="table-light">
                                 <tr>
-                                    <th>Staff Member</th>
-                                    <th>Code</th>
-                                    <th class="text-end">Orders</th>
-                                    <th class="text-end">Total Achieved</th>
+                                    <th class="ps-4">Representative</th>
+                                    <th>Employee Code</th>
+                                    <th class="text-end">Orders Closed</th>
+                                    <th class="text-end pe-4">Revenue Generated</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 @forelse($initialData['sales_reps'] as $rep)
                                     <tr>
-                                        <td><strong>{{ $rep['name'] }}</strong></td>
-                                        <td><code>{{ $rep['employee_code'] }}</code></td>
-                                        <td class="text-end">{{ number_format($rep['order_count']) }}</td>
-                                        <td class="text-end text-primary fw-bold">{{ $initialData['currency'] }} {{ number_format($rep['sales'], 2) }}</td>
+                                        <td class="ps-4">
+                                            <div class="fw-semibold text-dark">{{ $rep['name'] }}</div>
+                                        </td>
+                                        <td><code class="small text-muted">{{ $rep['employee_code'] }}</code></td>
+                                        <td class="text-end fw-semibold text-dark">{{ number_format($rep['order_count']) }}</td>
+                                        <td class="text-end pe-4 text-success fw-bold">{{ $initialData['currency'] }} {{ number_format($rep['sales'], 2) }}</td>
                                     </tr>
                                 @empty
                                     <tr>
-                                        <td colspan="4" class="text-center text-muted py-3">No sales representative attribution recorded in this period.</td>
+                                        <td colspan="4" class="text-center text-muted py-4">No representative attribution recorded in this period.</td>
                                     </tr>
                                 @endforelse
                             </tbody>
@@ -301,9 +393,11 @@
 
 @push('custom-scripts')
 <script>
-    document.querySelectorAll('.btn-range').forEach(function(btn) {
+    const currentWorkspaceId = '{{ $workspace->id }}';
+
+    document.querySelectorAll('.btn-range-filter').forEach(function(btn) {
         btn.addEventListener('click', function() {
-            document.querySelectorAll('.btn-range').forEach(function(b) { b.classList.remove('active'); });
+            document.querySelectorAll('.btn-range-filter').forEach(function(b) { b.classList.remove('active'); });
             this.classList.add('active');
             var range = this.getAttribute('data-range');
             fetchAnalyticsData(range);
@@ -311,7 +405,8 @@
     });
 
     function fetchAnalyticsData(range) {
-        fetch('{{ route('analytics.data') }}?range=' + encodeURIComponent(range), {
+        const url = '{{ route('analytics.data') }}?range=' + encodeURIComponent(range) + '&workspace_id=' + encodeURIComponent(currentWorkspaceId);
+        fetch(url, {
             headers: {
                 'X-Requested-With': 'XMLHttpRequest',
                 'Accept': 'application/json'
@@ -336,6 +431,10 @@
         document.getElementById('kpiAvgOrder').textContent = Number(data.summary.avg_order_value).toLocaleString(undefined, {minimumFractionDigits: 2});
         document.getElementById('kpiDiscounts').textContent = curr + ' ' + Number(data.summary.total_discount).toLocaleString(undefined, {minimumFractionDigits: 2});
         document.getElementById('chartDateRange').textContent = data.date_range.start + ' to ' + data.date_range.end;
+        if (data.customers) {
+            document.getElementById('kpiCustomers').textContent = Number(data.customers.total).toLocaleString();
+            document.getElementById('kpiRepeatRate').textContent = data.customers.repeat_rate;
+        }
 
         // Render bar chart
         var container = document.getElementById('barChartContainer');
@@ -346,11 +445,11 @@
         if (maxRev <= 0) maxRev = 1;
 
         if (dates.length === 0) {
-            container.innerHTML = '<div class="w-100 text-center text-muted my-auto">No transaction data recorded in this period.</div>';
+            container.innerHTML = '<div class="w-100 text-center text-muted my-auto py-5"><i class="ri-bar-chart-box-line fs-2 opacity-50 d-block mb-2"></i>No transaction data recorded in this period.</div>';
         } else {
             dates.forEach(function(d, i) {
                 var rev = revenues[i] || 0;
-                var pct = Math.max(4, Math.round((rev / maxRev) * 100));
+                var pct = Math.max(5, Math.round((rev / maxRev) * 100));
                 var col = document.createElement('div');
                 col.className = 'bar-col';
                 col.title = d + ': ' + curr + ' ' + Number(rev).toLocaleString(undefined, {minimumFractionDigits: 2});

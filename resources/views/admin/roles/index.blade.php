@@ -32,12 +32,12 @@
                         @endrole
                     </div>
                     <div class="card-body" style="overflow-x: auto">
-                        <table class="table dataTable w-100" id="data-table" style="min-width: 800px;">
+                        <table class="table dataTable w-100" id="data-table" style="width: 100% !important;">
                             <thead>
                                 <tr>
-                                    <th scope="col">SL NO</th>
-                                    <th scope="col">Role Name</th>
-                                    <th scope="col">Action</th>
+                                    <th scope="col" style="width: 12%;">SL NO</th>
+                                    <th scope="col" style="width: 68%;">Role Name</th>
+                                    <th scope="col" style="width: 20%;">Action</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -64,6 +64,7 @@
                 responsive: true,
                 serverSide: true,
                 fixedHeader: true,
+                autoWidth: false,
                 "pageLength": 20,
                 "lengthMenu": [20, 50, 100, 500],
                 ajax: {
@@ -73,16 +74,19 @@
                 columns: [{
                         data: 'id',
                         name: 'id',
-                        orderable: true
+                        orderable: true,
+                        width: '12%'
                     },
                     {
                         data: 'name',
                         name: 'name',
-                        orderable: true
+                        orderable: true,
+                        width: '68%'
                     },
                     {
                         data: 'action-btn',
                         orderable: false,
+                        width: '20%',
                         render: function(data) {
                             var btns = '';
                             btns += '<div class="action-btn">';

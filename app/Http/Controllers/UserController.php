@@ -17,14 +17,16 @@ class UserController extends Controller
 {
     public function index(Request $request)
     {
+        /** @var User|null $authUser */
+        $authUser = Auth::user();
+
         if ($request->ajax()) {
-            /** @var User|null $authUser */
-            $authUser = Auth::user();
             if ($authUser && $authUser->hasRole(RoleEnum::SUPERADMIN->value)) {
-                $users = User::all();
+                $users = User::with('roles')->get();
             } else {
                 $workspaceId = $authUser?->workspace_id;
-                $users = User::where('workspace_id', $workspaceId)
+                $users = User::with('roles')
+                    ->where('workspace_id', $workspaceId)
                     ->whereHas('roles', function ($query) {
                         return $query->where('name', '!=', RoleEnum::SUPERADMIN->value);
                     })
@@ -34,17 +36,65 @@ class UserController extends Controller
 
             return DataTables::of($users)
                 ->addIndexColumn()
-                ->addColumn('email', function ($row) {
-                    return $row->email;
+                ->addColumn('role', function ($row) {
+                    $role = $row->roles->first();
+                    if (! $role) {
+                        return '<span class="badge bg-secondary">No Role</span>';
+                    }
+                    $badgeClass = match($role->name) {
+                        'superadmin' => 'bg-danger',
+                        'admin'      => 'bg-primary',
+                        'manager'    => 'bg-info',
+                        default      => 'bg-success',
+                    };
+                    return '<span class="badge ' . $badgeClass . '">' . htmlspecialchars((string) $role->name) . '</span>';
                 })
                 ->addColumn('action-btn', function ($row) {
-                    return $row->id;
+                    return [
+                        'id'    => $row->id,
+                        'name'  => $row->name,
+                        'email' => $row->email,
+                        'role'  => $row->roles->first()?->name ?? '',
+                    ];
                 })
-                ->rawColumns(['action-btn'])
+                ->rawColumns(['role', 'action-btn'])
                 ->make(true);
         }
 
-        return view('admin.users.index');
+        $rolesQuery = Role::query();
+        if (! $authUser || ! $authUser->hasRole(RoleEnum::SUPERADMIN->value)) {
+            $rolesQuery->where('name', '!=', RoleEnum::SUPERADMIN->value);
+        }
+        $roles = $rolesQuery->pluck('name')->all();
+
+        return view('admin.users.index', compact('roles'));
+    }
+
+    /**
+     * Assign or update role for user.
+     */
+    public function assignRole(Request $request, User $user)
+    {
+        $request->validate([
+            'role' => 'required|string|exists:roles,name',
+        ]);
+
+        /** @var User|null $authUser */
+        $authUser = Auth::user();
+        if (! $authUser?->hasRole(RoleEnum::SUPERADMIN->value) && $request->role === RoleEnum::SUPERADMIN->value) {
+            abort(403, 'Unauthorized. Cannot assign superadmin role.');
+        }
+
+        $user->syncRoles($request->role);
+
+        if ($request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'message' => "Role '{$request->role}' assigned successfully to {$user->name}.",
+            ]);
+        }
+
+        return back()->with('success', "Role '{$request->role}' assigned successfully to {$user->name}.");
     }
 
     public function create()

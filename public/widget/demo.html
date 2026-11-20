@@ -3,100 +3,511 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Web Chat Widget Preview | Entrepreneurs Automation</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <title>Apex Commerce Storefront | Live AI Chatbot Simulator</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
     <style>
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: #f8fafc;
-            color: #1e293b;
+        :root {
+            --primary: #2563eb;
+            --primary-dark: #1d4ed8;
+            --bg-light: #f8fafc;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --border-color: #e2e8f0;
+        }
+        * {
+            box-sizing: border-box;
             margin: 0;
-            padding: 40px 20px;
-            display: flex;
-            justify-content: center;
+            padding: 0;
         }
-        .container {
-            max-width: 800px;
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background-color: var(--bg-light);
+            color: var(--text-main);
+            line-height: 1.5;
+            padding-bottom: 80px;
+        }
+        /* Top Announcement */
+        .announcement-bar {
+            background: #0f172a;
+            color: #94a3b8;
+            font-size: 12px;
+            font-weight: 500;
+            text-align: center;
+            padding: 8px 16px;
+        }
+        .announcement-bar strong {
+            color: #38bdf8;
+        }
+        /* Navbar */
+        .navbar {
             background: #ffffff;
-            border-radius: 16px;
-            padding: 36px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.06);
-            border: 1px solid #e2e8f0;
+            border-bottom: 1px solid var(--border-color);
+            padding: 12px 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 50;
         }
-        h1 {
-            color: #0f172a;
-            font-size: 26px;
-            margin-top: 0;
+        .brand {
             display: flex;
             align-items: center;
             gap: 10px;
+            text-decoration: none;
+            color: var(--text-main);
+            font-weight: 800;
+            font-size: 18px;
+            letter-spacing: -0.5px;
         }
-        .badge {
+        .brand-badge {
             background: #2563eb;
-            color: white;
-            padding: 4px 10px;
-            font-size: 13px;
-            border-radius: 999px;
-            font-weight: 500;
+            color: #ffffff;
+            padding: 6px 9px;
+            border-radius: 8px;
+            font-size: 16px;
         }
-        p {
-            color: #475569;
-            line-height: 1.6;
-        }
-        .code-box {
-            background: #0f172a;
-            color: #38bdf8;
-            padding: 18px;
-            border-radius: 10px;
-            font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-            font-size: 14px;
-            overflow-x: auto;
-            margin: 20px 0;
+        .search-box {
+            flex: 1;
+            max-width: 380px;
+            margin: 0 20px;
             position: relative;
         }
-        .instruction-box {
-            background: #eff6ff;
-            border-left: 4px solid #2563eb;
-            padding: 16px 20px;
-            border-radius: 0 8px 8px 0;
-            margin-top: 24px;
+        .search-box input {
+            width: 100%;
+            height: 38px;
+            padding: 0 16px 0 38px;
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            font-size: 13px;
+            outline: none;
+            background: #f8fafc;
+            transition: all 0.2s ease;
         }
-        .feature-list {
-            margin: 20px 0;
-            padding-left: 20px;
-            color: #334155;
-            line-height: 1.8;
+        .search-box input:focus {
+            background: #ffffff;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+        }
+        .search-box i {
+            position: absolute;
+            left: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-muted);
+            font-size: 14px;
+        }
+        .nav-actions {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+        .nav-btn {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            font-size: 18px;
+            cursor: pointer;
+            position: relative;
+            padding: 4px;
+        }
+        .nav-btn .count {
+            position: absolute;
+            top: -2px;
+            right: -4px;
+            background: #ef4444;
+            color: #ffffff;
+            font-size: 10px;
+            font-weight: 700;
+            padding: 1px 5px;
+            border-radius: 10px;
+        }
+        /* Categories Nav */
+        .categories-bar {
+            background: #ffffff;
+            border-bottom: 1px solid var(--border-color);
+            padding: 8px 24px;
+            display: flex;
+            gap: 20px;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-muted);
+            overflow-x: auto;
+        }
+        .cat-link {
+            color: var(--text-muted);
+            text-decoration: none;
+            white-space: nowrap;
+            padding: 4px 0;
+            transition: color 0.15s ease;
+        }
+        .cat-link:hover, .cat-link.active {
+            color: var(--primary);
+            font-weight: 600;
+            border-bottom: 2px solid var(--primary);
+        }
+        /* Container */
+        .main-container {
+            max-width: 1080px;
+            margin: 0 auto;
+            padding: 24px 20px;
+        }
+        /* Hero Banner */
+        .hero-banner {
+            background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 55%, #3b82f6 100%);
+            color: #ffffff;
+            border-radius: 16px;
+            padding: 32px 36px;
+            margin-bottom: 28px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 10px 25px -5px rgba(37, 99, 235, 0.25);
+        }
+        .hero-banner::after {
+            content: '';
+            position: absolute;
+            right: -40px;
+            bottom: -40px;
+            width: 220px;
+            height: 220px;
+            background: radial-gradient(circle, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0) 70%);
+            border-radius: 50%;
+        }
+        .hero-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: rgba(255,255,255,0.2);
+            backdrop-filter: blur(8px);
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-bottom: 12px;
+        }
+        .hero-title {
+            font-size: 26px;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            margin-bottom: 8px;
+            line-height: 1.25;
+        }
+        .hero-desc {
+            font-size: 14px;
+            opacity: 0.9;
+            max-width: 600px;
+            margin-bottom: 20px;
+        }
+        .hero-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: #ffffff;
+            color: #1e3a8a;
+            font-weight: 700;
+            font-size: 13px;
+            padding: 10px 20px;
+            border-radius: 8px;
+            text-decoration: none;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        /* Simulation Notice */
+        .simulator-notice {
+            background: #eff6ff;
+            border: 1px solid #bfdbfe;
+            border-radius: 10px;
+            padding: 12px 18px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 24px;
+            font-size: 13px;
+            color: #1e40af;
+        }
+        .simulator-notice strong {
+            color: #1d4ed8;
+        }
+        /* Product Grid */
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 18px;
+        }
+        .section-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--text-main);
+        }
+        .products-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+            gap: 18px;
+        }
+        .product-card {
+            background: #ffffff;
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            overflow: hidden;
+            transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+        .product-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 20px -3px rgba(0,0,0,0.06);
+            border-color: #cbd5e1;
+        }
+        .product-media {
+            height: 140px;
+            background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 42px;
+            color: var(--primary);
+            position: relative;
+        }
+        .product-badge {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: #ffffff;
+            color: #047857;
+            font-size: 11px;
+            font-weight: 700;
+            padding: 2px 8px;
+            border-radius: 4px;
+            border: 1px solid #a7f3d0;
+        }
+        .product-body {
+            padding: 16px;
+            flex-grow: 1;
+        }
+        .product-cat {
+            font-size: 11px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            margin-bottom: 4px;
+        }
+        .product-title {
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--text-main);
+            margin-bottom: 8px;
+            line-height: 1.35;
+        }
+        .product-price {
+            font-size: 16px;
+            font-weight: 800;
+            color: var(--primary);
+            margin-bottom: 12px;
+        }
+        .btn-add-cart {
+            width: 100%;
+            height: 36px;
+            background: #f8fafc;
+            color: var(--text-main);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+        .btn-add-cart:hover {
+            background: var(--primary);
+            color: #ffffff;
+            border-color: var(--primary);
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>
-            <span>💬 Live Web Chat Widget Preview</span>
-            <span class="badge">Active & Ready</span>
-        </h1>
-        <p>
-            এটি আপনার প্ল্যাটফর্মের লাইভ কাস্টমার সাপোর্ট চ্যাট উইজেটের প্রিভিউ পেজ। স্ক্রিনের <strong>নিচের ডান কোনায় (Bottom Right)</strong> নীল রঙের ভাসমান চ্যাট বাটনটি লক্ষ্য করুন। সেখানে ক্লিক করে আপনি সরাসরি চ্যাটবটের সাথে লাইভ টেস্ট করতে পারবেন।
-        </p>
-
-        <div class="instruction-box">
-            <h3 style="margin-top:0; color:#1d4ed8;">📌 কীভাবে যে-কোনো ওয়েবসাইটে এই উইজেট যুক্ত করবেন:</h3>
-            <p style="margin-bottom:0;">যেকোনো ওয়েবসাইট বা ল্যান্ডিং পেজের <code>&lt;/body&gt;</code> ট্যাগের ঠিক আগে নিচের স্ক্রিপ্টটি বসিয়ে দিলেই উইজেটটি স্বয়ংক্রিয়ভাবে চালু হয়ে যাবে:</p>
-        </div>
-
-        <div class="code-box">
-&lt;!-- Entrepreneurs Automation Live Chat Widget --&gt;
-&lt;script src="http://127.0.0.1:8000/widget/chat.js" data-account-id="1"&gt;&lt;/script&gt;
-        </div>
-
-        <h3>✨ উইজেটের প্রধান সুবিধাসমূহ:</h3>
-        <ul class="feature-list">
-            <li><strong>Synchronous AI Response:</strong> মেসেজ পাঠানো মাত্র কোনো বিলম্ব ছাড়া সরাসরি উত্তর প্রদর্শিত হয়।</li>
-            <li><strong>Auto Visitor Session:</strong> প্রতিটি ভিজিটরের জন্য স্বয়ংক্রিয় ব্রাউজার সেশন আইডি এবং হিস্টোরি তৈরি হয়।</li>
-            <li><strong>Multi-turn Context:</strong> ভিজিটর পূর্ববর্তী প্রশ্নের রেশ ধরে ফলো-আপ প্রশ্ন করতে পারেন।</li>
-            <li><strong>Admin Inbox Sync:</strong> ভিজিটরের প্রতিটি চ্যাট অ্যাডমিন ড্যাশবোর্ডের <a href="/dashboard/conversations" style="color:#2563eb; font-weight:600;">Conversations Inbox</a>-এ জমা হয়।</li>
-        </ul>
+    <!-- Top Announcement -->
+    <div class="announcement-bar">
+        <span>⚡ <strong>Free Express Delivery</strong> on all orders over ৳ 2,500 · 24/7 AI Shopping Assistant Online</span>
     </div>
+
+    <!-- Store Navigation -->
+    <header class="navbar">
+        <a href="#" class="brand">
+            <span class="brand-badge"><i class="ri-store-2-line"></i></span>
+            <span>Apex Commerce</span>
+        </a>
+        <div class="search-box">
+            <i class="ri-search-line"></i>
+            <input type="text" placeholder="Search laptops, audio, ergonomic chairs..." autocomplete="off">
+        </div>
+        <div class="nav-actions">
+            <button class="nav-btn" title="Favorites"><i class="ri-heart-line"></i></button>
+            <button class="nav-btn" title="Shopping Cart">
+                <i class="ri-shopping-bag-line"></i>
+                <span class="count">2</span>
+            </button>
+            <button class="nav-btn" title="Account"><i class="ri-user-line"></i></button>
+        </div>
+    </header>
+
+    <!-- Categories Ribbon -->
+    <nav class="categories-bar">
+        <a href="#" class="cat-link active">All Products</a>
+        <a href="#" class="cat-link">Laptops & Computers</a>
+        <a href="#" class="cat-link">Studio Audio & Headphones</a>
+        <a href="#" class="cat-link">Keyboards & Accessories</a>
+        <a href="#" class="cat-link">Ergonomic Chairs & Desks</a>
+        <a href="#" class="cat-link">Smart Watches</a>
+    </nav>
+
+    <!-- Store Container -->
+    <main class="main-container">
+        <!-- Hero Promotion -->
+        <div class="hero-banner">
+            <div class="hero-tag">
+                <i class="ri-sparkling-fill"></i> Official Online Flagship
+            </div>
+            <h1 class="hero-title">Next-Gen Tech & Ergonomic Workspace Gear</h1>
+            <p class="hero-desc">Experience blazing performance with UltraBook Pro 14, mechanical precision, and studio acoustics with instant AI customer support.</p>
+            <a href="#products" class="hero-btn">
+                <span>Explore Catalog</span>
+                <i class="ri-arrow-right-line"></i>
+            </a>
+        </div>
+
+        <!-- Simulation Callout -->
+        <div class="simulator-notice">
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <i class="ri-information-line fs-5"></i>
+                <span><strong>Live Storefront Simulator:</strong> Click the floating blue chat bubble on the bottom right to talk with the AI Assistant!</span>
+            </div>
+            <span class="badge" style="background:#2563eb; color:white; padding:3px 8px; border-radius:12px; font-size:11px; font-weight:600;">Active Driver</span>
+        </div>
+
+        <!-- Product Showcase -->
+        <div class="section-header" id="products">
+            <h2 class="section-title">Featured Products & Catalog</h2>
+            <span style="font-size: 13px; color: var(--text-muted);">6 Products Available</span>
+        </div>
+
+        <div class="products-grid">
+            <!-- Product 1 -->
+            <div class="product-card">
+                <div>
+                    <div class="product-media">
+                        <span class="product-badge">In Stock</span>
+                        <i class="ri-laptop-line"></i>
+                    </div>
+                    <div class="product-body">
+                        <div class="product-cat">Laptops</div>
+                        <h3 class="product-title">UltraBook Pro 14" M3</h3>
+                        <div class="product-price">৳ 85,000</div>
+                    </div>
+                </div>
+                <div style="padding: 0 16px 16px;">
+                    <button class="btn-add-cart"><i class="ri-shopping-cart-line"></i> Add to Cart</button>
+                </div>
+            </div>
+
+            <!-- Product 2 -->
+            <div class="product-card">
+                <div>
+                    <div class="product-media">
+                        <span class="product-badge" style="color:#d97706; border-color:#fde68a;">Gaming Flagship</span>
+                        <i class="ri-gamepad-line"></i>
+                    </div>
+                    <div class="product-body">
+                        <div class="product-cat">Laptops</div>
+                        <h3 class="product-title">Predator Gaming Laptop X16</h3>
+                        <div class="product-price">৳ 145,000</div>
+                    </div>
+                </div>
+                <div style="padding: 0 16px 16px;">
+                    <button class="btn-add-cart"><i class="ri-shopping-cart-line"></i> Add to Cart</button>
+                </div>
+            </div>
+
+            <!-- Product 3 -->
+            <div class="product-card">
+                <div>
+                    <div class="product-media">
+                        <span class="product-badge">ANC Studio</span>
+                        <i class="ri-headphone-line"></i>
+                    </div>
+                    <div class="product-body">
+                        <div class="product-cat">Audio</div>
+                        <h3 class="product-title">SonicPro Wireless Headphones</h3>
+                        <div class="product-price">৳ 4,500</div>
+                    </div>
+                </div>
+                <div style="padding: 0 16px 16px;">
+                    <button class="btn-add-cart"><i class="ri-shopping-cart-line"></i> Add to Cart</button>
+                </div>
+            </div>
+
+            <!-- Product 4 -->
+            <div class="product-card">
+                <div>
+                    <div class="product-media">
+                        <span class="product-badge">RGB Mechanical</span>
+                        <i class="ri-keyboard-line"></i>
+                    </div>
+                    <div class="product-body">
+                        <div class="product-cat">Accessories</div>
+                        <h3 class="product-title">Apex Mechanical Keyboard RGB</h3>
+                        <div class="product-price">৳ 3,200</div>
+                    </div>
+                </div>
+                <div style="padding: 0 16px 16px;">
+                    <button class="btn-add-cart"><i class="ri-shopping-cart-line"></i> Add to Cart</button>
+                </div>
+            </div>
+
+            <!-- Product 5 -->
+            <div class="product-card">
+                <div>
+                    <div class="product-media">
+                        <span class="product-badge" style="color:#7c3aed; border-color:#ddd6fe;">Ergonomic</span>
+                        <i class="ri-armchair-line"></i>
+                    </div>
+                    <div class="product-body">
+                        <div class="product-cat">Office Furniture</div>
+                        <h3 class="product-title">ErgoPro Executive Mesh Chair</h3>
+                        <div class="product-price">৳ 18,500</div>
+                    </div>
+                </div>
+                <div style="padding: 0 16px 16px;">
+                    <button class="btn-add-cart"><i class="ri-shopping-cart-line"></i> Add to Cart</button>
+                </div>
+            </div>
+
+            <!-- Product 6 -->
+            <div class="product-card">
+                <div>
+                    <div class="product-media">
+                        <span class="product-badge">Multi-Port</span>
+                        <i class="ri-usb-line"></i>
+                    </div>
+                    <div class="product-body">
+                        <div class="product-cat">Accessories</div>
+                        <h3 class="product-title">MultiPort 6-in-1 USB-C Hub</h3>
+                        <div class="product-price">৳ 2,800</div>
+                    </div>
+                </div>
+                <div style="padding: 0 16px 16px;">
+                    <button class="btn-add-cart"><i class="ri-shopping-cart-line"></i> Add to Cart</button>
+                </div>
+            </div>
+        </div>
+    </main>
 
     <!-- Live Widget Script -->
     <script src="/widget/chat.js" data-account-id="1"></script>

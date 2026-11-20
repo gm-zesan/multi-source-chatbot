@@ -6,7 +6,7 @@
     "isEntry": true
   },
   "resources/scss/admin/style.scss": {
-    "file": "assets/style-Bh0k6HV8.css",
+    "file": "assets/style-BU0zqeXz.css",
     "src": "resources/scss/admin/style.scss",
     "isEntry": true,
     "name": "style",
@@ -15,7 +15,7 @@
     ]
   },
   "resources/scss/app.scss": {
-    "file": "assets/app-M0nYK1xU.css",
+    "file": "assets/app-BlDe2HLm.css",
     "src": "resources/scss/app.scss",
     "isEntry": true,
     "name": "app",

@@ -86,6 +86,10 @@ Route::middleware('auth')->prefix('dashboard')->group(function () {
         ->middleware('permission:' . ConversationPermission::UPDATE->value);
 
     // Users
+    Route::post('/users/{user}/assign-role', [UserController::class, 'assignRole'])
+        ->name('users.assign-role')
+        ->middleware('permission:' . UserPermission::UPDATE->value);
+
     Route::resource('/users', UserController::class)->except(['show'])
         ->middleware('permission:' . implode('|', [
             UserPermission::VIEW->value,

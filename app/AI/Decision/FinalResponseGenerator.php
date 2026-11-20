@@ -178,12 +178,12 @@ class FinalResponseGenerator
                                         $bContext
                                     );
 
-                                    $reports[] = $cleanReply;
+                                    $reports[] = $this->formatAgentReply($cleanReply);
                                 } catch (Throwable $e) {
                                     if (str_contains($bContext, 'UNAVAILABLE / NOT FOUND')) {
-                                        $reports[] = "দুঃখিত, আমাদের স্টোরে বর্তমানে মোবাইল ফোন বা এই পণ্যটি উপলব্ধ নেই। আমাদের কাছে ল্যাপটপ (Laptop Pro 15), ওয়্যারলেস হেডফোন, মেকানিক্যাল কীবোর্ড এবং অফিস চেয়ার পাওয়া যাচ্ছে।";
+                                        $reports[] = "দুঃখিত, আপনার কাঙ্ক্ষিত পণ্যটি বর্তমানে আমাদের স্টোরে উপলব্ধ নেই। তবে আমাদের কাছে ল্যাপটপ (Laptop Pro 15), ওয়্যারলেস হেডফোন, মেকানিক্যাল কীবোর্ড এবং অফিস চেয়ার পাওয়া যাচ্ছে।";
                                     } else {
-                                        $reports[] = "আমাদের স্টোরে ইলেকট্রনিক্স ও আইটি সামগ্রী (যেমন Laptop Pro 15, হেডফোন, মেকানিক্যাল কীবোর্ড) এবং অফিস ফার্নিচার পাওয়া যায়।";
+                                        $reports[] = "আমাদের স্টোরে প্রযুক্তি ও ইলেকট্রনিক্স সামগ্রী (যেমন Laptop Pro 15, হেডফোন, মেকানিক্যাল কীবোর্ড, স্মার্টওয়াচ) এবং অফিস ফার্নিচার পাওয়া যায়।";
                                     }
                                 }
                             } else {
@@ -205,7 +205,7 @@ class FinalResponseGenerator
                                     $bContext
                                 );
 
-                                $reports[] = $cleanReply;
+                                $reports[] = $this->formatAgentReply($cleanReply);
                             } catch (Throwable $agentError) {
                                 Log::warning('[FinalResponseGenerator] KnowledgeSupportAgent generation failed: ' . $agentError->getMessage());
                                 $topAnswer = $topHit?->faq?->answer
@@ -475,5 +475,25 @@ class FinalResponseGenerator
         ];
 
         return array_merge($base, $overrides);
+    }
+
+    /**
+     * Unpack and format raw agent reply (which may be JSON or Markdown JSON)
+     * into clean, human-friendly text with optional polite follow-up.
+     */
+    protected function formatAgentReply(string $reply): string
+    {
+        try {
+            /** @var \App\AI\Orchestration\CustomerSupportService $supportService */
+            $supportService = app(\App\AI\Orchestration\CustomerSupportService::class);
+            $parsed = $supportService->parseAgentOutput($reply);
+            $cleanText = trim((string) ($parsed['answer'] ?? $reply));
+            if (!empty($parsed['proposed_follow_up'])) {
+                $cleanText .= "\n\n" . trim((string) $parsed['proposed_follow_up']);
+            }
+            return $cleanText !== '' ? $cleanText : $reply;
+        } catch (\Throwable) {
+            return $reply;
+        }
     }
 }

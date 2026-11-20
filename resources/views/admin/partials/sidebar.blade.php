@@ -64,15 +64,26 @@
                 <span class="nav-section-title">Platform Governance</span>
             </li>
             <li class="nav-item">
-                <a href="{{ route('workspaces.index') }}" class="nav-link {{ Route::is('workspaces.*') ? 'active' : '' }}">
+                <a href="{{ route('workspaces.index') }}" class="nav-link {{ Route::is('workspaces.*') || Route::is('workspace.settings.*') ? 'active' : '' }}">
                     <i class="ri-building-line nav-icon"></i>
-                    <span class="nav-label">Workspaces Directory</span>
+                    <span class="nav-label">Workspaces & Settings</span>
                 </a>
             </li>
             <li class="nav-item">
-                <a href="{{ route('commercial.index') }}" class="nav-link {{ Route::is('commercial.*') ? 'active' : '' }}">
+                <a href="{{ route('admin.commercial.index') }}" class="nav-link {{ (Route::is('commercial.*') || Route::is('admin.commercial.*')) ? 'active' : '' }}">
                     <i class="ri-money-dollar-circle-line nav-icon"></i>
                     <span class="nav-label">Commercial & Billing</span>
+                </a>
+            </li>
+            @else
+            <!-- Tenant Settings Section for Non-Superadmin -->
+            <li class="nav-section">
+                <span class="nav-section-title">Settings</span>
+            </li>
+            <li class="nav-item">
+                <a href="{{ route('workspace.settings.edit') }}" class="nav-link {{ Route::is('workspace.settings.*') ? 'active' : '' }}">
+                    <i class="ri-settings-4-line nav-icon"></i>
+                    <span class="nav-label">Workspace Settings</span>
                 </a>
             </li>
             @endif
@@ -104,23 +115,6 @@
                 <a href="{{ route('roles.index') }}" class="nav-link {{ in_array(Route::currentRouteName(), ['roles.index', 'roles.create', 'roles.edit']) ? 'active' : '' }}">
                     <i class="ri-shield-user-line nav-icon"></i>
                     <span class="nav-label">Roles</span>
-                </a>
-            </li>
-            <li class="nav-item">
-                <a href="{{ route('assign-roles.index') }}" class="nav-link {{ Route::is('assign-roles.index') ? 'active' : '' }}">
-                    <i class="ri-user-settings-line nav-icon"></i>
-                    <span class="nav-label">Assign Roles</span>
-                </a>
-            </li>
-
-            <!-- Settings Section -->
-            <li class="nav-section">
-                <span class="nav-section-title">Settings</span>
-            </li>
-            <li class="nav-item">
-                <a href="{{ route('workspace.settings.edit') }}" class="nav-link {{ Route::is('workspace.settings.*') ? 'active' : '' }}">
-                    <i class="ri-settings-4-line nav-icon"></i>
-                    <span class="nav-label">Workspace Settings</span>
                 </a>
             </li>
         </ul>
