@@ -163,11 +163,11 @@ class SuperAdminWorkspaceController extends Controller
         // Assign plan if selected
         if (!empty($validated['plan_id'])) {
             WorkspaceSubscription::create([
-                'workspace_id'         => $workspace->id,
-                'subscription_plan_id' => (int) $validated['plan_id'],
-                'status'               => 'active',
-                'billing_cycle'        => 'monthly',
-                'starts_at'            => now(),
+                'workspace_id'  => $workspace->id,
+                'plan_id'       => (int) $validated['plan_id'],
+                'status'        => 'active',
+                'billing_cycle' => 'monthly',
+                'starts_at'     => now(),
             ]);
         }
 

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Models\Workspace;
+use App\Services\Workspace\WorkspaceProvisioningService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -24,6 +25,10 @@ class SocialAuthController extends Controller
      * @var list<string>
      */
     protected array $allowedProviders = ['google', 'facebook'];
+
+    public function __construct(
+        protected WorkspaceProvisioningService $provisioningService,
+    ) {}
 
     /**
      * Redirect the user to the provider authentication page.
@@ -131,31 +136,34 @@ class SocialAuthController extends Controller
                 $user->avatar = $socialUser->getAvatar();
             }
 
+            // Ensure user belongs to a workspace (unless SuperAdmin)
+            if (empty($user->workspace_id) && ! $user->isSuperAdmin()) {
+                $businessName = ($user->name ?: ucfirst($provider) . ' Business') . ' Workspace';
+                $this->provisioningService->provisionForExistingUser($user, $businessName);
+            }
+
             $user->last_login_at = now();
             $user->last_login_ip = $request->ip();
             $user->save();
         } else {
-            // 3. Create a new user record
-            $workspaceId = Workspace::first()?->id;
+            // 3. Create a new user record and dedicated tenant workspace
+            $businessName = ($socialUser->getName() ?: ucfirst($provider) . ' Business') . ' Workspace';
 
-            $user = User::create([
-                'workspace_id'      => $workspaceId,
-                'name'              => $socialUser->getName() ?: ($socialUser->getNickname() ?: ucfirst($provider) . ' User'),
-                'email'             => $email,
-                'password'          => Hash::make(Str::random(32)),
-                'avatar'            => $socialUser->getAvatar(),
-                $providerIdColumn   => $socialUser->getId(),
-                'password_set'      => false,
-                'email_verified_at' => now(),
-                'is_active'         => true,
-                'last_login_at'     => now(),
-                'last_login_ip'     => $request->ip(),
-            ]);
-
-            // Assign default role if roles exist
-            if (class_exists(Role::class) && Role::where('name', 'user')->exists()) {
-                $user->assignRole('user');
-            }
+            $user = $this->provisioningService->provisionNewTenant(
+                businessName: $businessName,
+                userData: [
+                    'name'              => $socialUser->getName() ?: ($socialUser->getNickname() ?: ucfirst($provider) . ' User'),
+                    'email'             => $email,
+                    'password'          => Hash::make(Str::random(32)),
+                    'avatar'            => $socialUser->getAvatar(),
+                    $providerIdColumn   => $socialUser->getId(),
+                    'password_set'      => false,
+                    'email_verified_at' => now(),
+                    'is_active'         => true,
+                    'last_login_at'     => now(),
+                    'last_login_ip'     => $request->ip(),
+                ]
+            );
         }
 
         Auth::login($user, true);

@@ -57,6 +57,33 @@
                 @enderror
             </div>
 
+            {{-- Business / Company Name --}}
+            <div>
+                <label for="business_name" class="block text-xs font-semibold text-light-text dark:text-dark-text mb-1.5">
+                    Business / Company Name <span class="text-rose-500">*</span>
+                </label>
+                <div class="relative">
+                    <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-light-muted dark:text-dark-muted">
+                        <i class="ri-building-line text-sm"></i>
+                    </div>
+                    <input 
+                        id="business_name" 
+                        type="text" 
+                        name="business_name" 
+                        value="{{ old('business_name') }}" 
+                        required 
+                        placeholder="Apex Electronics / Rahim Fashion" 
+                        class="w-full pl-10 pr-3.5 py-2.5 rounded-xl text-xs sm:text-sm bg-light-canvas dark:bg-dark-canvas border @error('business_name') border-rose-500 focus:border-rose-500 focus:ring-rose-500/20 @else border-light-border dark:border-dark-border focus:border-brand-500 focus:ring-brand-500/20 @enderror text-light-text dark:text-dark-text placeholder:text-light-muted/60 dark:placeholder:text-dark-muted/60 focus:outline-none focus:ring-2 transition-colors duration-150"
+                    >
+                </div>
+                @error('business_name')
+                    <div class="flex items-center gap-1 text-3xs text-rose-500 mt-1.5 font-medium">
+                        <i class="ri-error-warning-line"></i>
+                        <span>{{ $message }}</span>
+                    </div>
+                @enderror
+            </div>
+
             {{-- Work Email --}}
             <div>
                 <label for="email" class="block text-xs font-semibold text-light-text dark:text-dark-text mb-1.5">

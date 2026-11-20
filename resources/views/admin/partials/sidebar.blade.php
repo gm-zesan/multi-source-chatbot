@@ -63,16 +63,16 @@
                 </div>
             </div>
 
-            {{-- Platform Governance (Superadmin) or Workspace Settings --}}
-            @if(Auth::user() && (Auth::user()->hasRole('superadmin') || Auth::user()->hasRole('admin') || Auth::user()->email === 'superadmin@example.com' || (int) Auth::user()->id === 1))
+            {{-- Platform Governance (Superadmin Only) --}}
+            @if(Auth::user() && (Auth::user()->isSuperAdmin() || Auth::user()->hasRole('superadmin') || Auth::user()->email === 'superadmin@example.com'))
             <div>
                 <div class="sidebar-section-title px-2 pb-1 text-2xs font-semibold uppercase tracking-wider text-light-muted dark:text-dark-muted">
-                    Governance
+                    Platform Governance
                 </div>
                 <div class="space-y-0.5">
-                    <a href="{{ route('workspaces.index') }}" title="Workspaces & Settings" class="sidebar-nav-item flex items-center gap-2 px-2.5 py-1.5 rounded text-xs font-medium transition-colors {{ Route::is('workspaces.*') || Route::is('workspace.settings.*') ? 'text-brand-600 dark:text-brand-400 bg-brand-500/10 font-semibold border-l-2 border-brand-500 rounded-l-none' : 'text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text dark:hover:text-dark-text hover:bg-light-elevated dark:hover:bg-dark-elevated' }}">
+                    <a href="{{ route('workspaces.index') }}" title="Workspaces Directory" class="sidebar-nav-item flex items-center gap-2 px-2.5 py-1.5 rounded text-xs font-medium transition-colors {{ Route::is('workspaces.*') ? 'text-brand-600 dark:text-brand-400 bg-brand-500/10 font-semibold border-l-2 border-brand-500 rounded-l-none' : 'text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text dark:hover:text-dark-text hover:bg-light-elevated dark:hover:bg-dark-elevated' }}">
                         <i class="ri-building-line text-sm {{ Route::is('workspaces.*') ? 'text-brand-500' : 'text-light-muted dark:text-dark-muted' }}"></i>
-                        <span class="sidebar-text-label">Workspaces & Settings</span>
+                        <span class="sidebar-text-label">All Workspaces</span>
                     </a>
                     <a href="{{ route('admin.commercial.index') }}" title="Commercial & Billing" class="sidebar-nav-item flex items-center gap-2 px-2.5 py-1.5 rounded text-xs font-medium transition-colors {{ Route::is('commercial.*') || Route::is('admin.commercial.*') ? 'text-brand-600 dark:text-brand-400 bg-brand-500/10 font-semibold border-l-2 border-brand-500 rounded-l-none' : 'text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text dark:hover:text-dark-text hover:bg-light-elevated dark:hover:bg-dark-elevated' }}">
                         <i class="ri-money-dollar-circle-line text-sm {{ Route::is('commercial.*') ? 'text-brand-500' : 'text-light-muted dark:text-dark-muted' }}"></i>
@@ -80,7 +80,9 @@
                     </a>
                 </div>
             </div>
-            @else
+            @endif
+
+            {{-- Workspace Settings --}}
             <div>
                 <div class="sidebar-section-title px-2 pb-1 text-2xs font-semibold uppercase tracking-wider text-light-muted dark:text-dark-muted">
                     Settings
@@ -92,7 +94,6 @@
                     </a>
                 </div>
             </div>
-            @endif
 
             {{-- Knowledge Base --}}
             @canany([\App\Enums\Permissions\FAQPermission::VIEW->value, \App\Enums\Permissions\KnowledgeDocumentPermission::VIEW->value])

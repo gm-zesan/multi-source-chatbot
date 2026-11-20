@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Services\Workspace\WorkspaceProvisioningService;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -15,6 +16,10 @@ use Illuminate\View\View;
 
 class RegisteredUserController extends Controller
 {
+    public function __construct(
+        protected WorkspaceProvisioningService $provisioningService,
+    ) {}
+
     /**
      * Display the registration view.
      */
@@ -31,16 +36,21 @@ class RegisteredUserController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:'.User::class],
-            'password' => ['required', 'confirmed', Rules\Password::defaults()],
+            'name'          => ['required', 'string', 'max:255'],
+            'business_name' => ['required', 'string', 'max:150'],
+            'email'         => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:'.User::class],
+            'password'      => ['required', 'confirmed', Rules\Password::defaults()],
         ]);
 
-        $user = User::create([
-            'name' => $request->name,
-            'email' => $request->email,
-            'password' => Hash::make($request->password),
-        ]);
+        $user = $this->provisioningService->provisionNewTenant(
+            businessName: (string) $request->input('business_name'),
+            userData: [
+                'name'              => (string) $request->input('name'),
+                'email'             => (string) $request->input('email'),
+                'password'          => Hash::make((string) $request->input('password')),
+                'email_verified_at' => now(),
+            ]
+        );
 
         event(new Registered($user));
 
