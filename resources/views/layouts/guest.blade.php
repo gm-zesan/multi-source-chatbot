@@ -61,21 +61,6 @@
         <div class="absolute inset-0 bg-[linear-gradient(to_right,#e2e8f00a_1px,transparent_1px),linear-gradient(to_bottom,#e2e8f00a_1px,transparent_1px)] dark:bg-[linear-gradient(to_right,#1e293b1f_1px,transparent_1px),linear-gradient(to_bottom,#1e293b1f_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_50%,#000_70%,transparent_100%)]"></div>
     </div>
 
-    {{-- Minimal Top Navigation Bar --}}
-    <header class="relative z-10 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 flex items-center justify-between">
-        <a href="{{ route('home') }}" class="inline-flex items-center gap-2 text-xs font-semibold text-light-muted dark:text-dark-muted hover:text-brand-500 dark:hover:text-brand-400 transition-colors">
-            <i class="ri-arrow-left-line text-sm"></i>
-            <span>Back to Homepage</span>
-        </a>
-
-        <div class="flex items-center gap-3">
-            {{-- Theme Toggle --}}
-            <button type="button" onclick="toggleAuthTheme()" class="w-8 h-8 rounded-lg flex items-center justify-center border border-light-border dark:border-dark-border bg-light-surface/80 dark:bg-dark-surface/80 hover:bg-light-elevated dark:hover:bg-dark-elevated transition-colors shadow-xs" title="Toggle Dark/Light Mode">
-                <i class="ri-sun-line text-amber-400 auth-theme-icon"></i>
-            </button>
-        </div>
-    </header>
-
     {{-- Main Auth Slot --}}
     <main class="relative z-10 flex-1 flex items-center justify-center px-4 py-8 sm:px-6">
         <div class="w-full max-w-md">

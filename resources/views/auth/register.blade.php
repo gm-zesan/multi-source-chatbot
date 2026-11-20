@@ -6,7 +6,7 @@
         {{-- Header & Brand Icon --}}
         <div class="text-center mb-7">
             <a href="{{ route('home') }}" class="inline-block group mb-3">
-                <img src="{{ asset('images/logo/ea-app-icon.png') }}" alt="Entrepreneurs Automation" class="w-14 h-14 rounded-2xl shadow-md group-hover:scale-105 transition-transform duration-200 object-contain mx-auto">
+                <img src="{{ asset('images/logo/ea-app-icon.png') }}" alt="Entrepreneurs Automation" class="w-14 h-14 object-contain mx-auto">
             </a>
             <h1 class="text-xl sm:text-2xl font-bold tracking-tight text-light-text dark:text-dark-text">
                 Create an account
