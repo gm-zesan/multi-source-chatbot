@@ -64,4 +64,9 @@ class Workspace extends Model
     {
         return $this->hasMany(StructuredRecord::class);
     }
+
+    public function apiKeys(): HasMany
+    {
+        return $this->hasMany(ApiKey::class);
+    }
 }

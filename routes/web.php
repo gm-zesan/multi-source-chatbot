@@ -237,6 +237,24 @@ Route::middleware('auth')->prefix('dashboard')->group(function () {
     Route::get('/widget', [\App\Http\Controllers\WidgetChatController::class, 'manage'])
         ->name('widget.manage');
 
+    // ── Omnichannel Social & Messaging Integrations ───────────────────
+    Route::get('/channels', [\App\Http\Controllers\ChannelIntegrationController::class, 'index'])
+        ->name('channels.index');
+    Route::post('/channels', [\App\Http\Controllers\ChannelIntegrationController::class, 'store'])
+        ->name('channels.store');
+    Route::post('/channels/{channelAccount}/toggle', [\App\Http\Controllers\ChannelIntegrationController::class, 'toggle'])
+        ->name('channels.toggle');
+    Route::delete('/channels/{channelAccount}', [\App\Http\Controllers\ChannelIntegrationController::class, 'destroy'])
+        ->name('channels.destroy');
+
+    // ── Developer REST API Key Management ──────────────────────────────
+    Route::get('/developer/api-keys', [\App\Http\Controllers\ApiKeyController::class, 'index'])
+        ->name('api-keys.index');
+    Route::post('/developer/api-keys', [\App\Http\Controllers\ApiKeyController::class, 'store'])
+        ->name('api-keys.store');
+    Route::delete('/developer/api-keys/{apiKey}', [\App\Http\Controllers\ApiKeyController::class, 'destroy'])
+        ->name('api-keys.destroy');
+
     // ── Dynamic Spreadsheet Ingestion & Mapping (Phase 2) ───────────────
     Route::prefix('/documents/{document}/spreadsheet')->name('documents.spreadsheet.')->group(function () {
         Route::get('/inspect', [\App\Http\Controllers\SpreadsheetImportController::class, 'inspect'])

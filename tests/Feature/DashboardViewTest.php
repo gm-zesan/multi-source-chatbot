@@ -36,6 +36,9 @@ class DashboardViewTest extends TestCase
         $response->assertOk();
         $response->assertSee('Executive Overview');
         $response->assertSee('Aura Lifestyle');
+        $response->assertSee('Tenant Launchpad');
+        $response->assertSee('Configure Business Profile');
+        $response->assertSee('Deploy Storefront Web Widget');
         $response->assertSee('chartConversationActivity');
         $response->assertSee('chartChannelDistribution');
         $response->assertDontSee('ParseError');

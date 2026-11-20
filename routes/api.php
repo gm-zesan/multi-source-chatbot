@@ -1,18 +1,32 @@
 <?php
 
+declare(strict_types=1);
+
+use App\Http\Controllers\Api\v1\ChatApiController;
+use App\Http\Controllers\Api\v1\KnowledgeApiController;
+use App\Http\Controllers\Api\v1\WorkspaceApiController;
+use App\Http\Controllers\WidgetChatController;
 use Illuminate\Support\Facades\Route;
 
 /*
 |--------------------------------------------------------------------------
 | API Routes
 |--------------------------------------------------------------------------
-|
-| Here is where you can register API routes for your application. These
-| routes are loaded by the RouteServiceProvider within a group which
-| is assigned the "api" middleware group.
-|
 */
 
-// Web Chat Widget Synchronous Interaction Route
-Route::post('/v1/widget/chat', [\App\Http\Controllers\WidgetChatController::class, 'chat'])->name('api.v1.widget.chat');
-Route::post('/widget/chat', [\App\Http\Controllers\WidgetChatController::class, 'chat'])->name('api.widget.chat.v1');
+// Web Chat Widget Synchronous Interaction Route (Public)
+Route::post('/v1/widget/chat', [WidgetChatController::class, 'chat'])->name('api.v1.widget.chat');
+Route::post('/widget/chat', [WidgetChatController::class, 'chat'])->name('api.widget.chat.v1');
+
+// External Developer REST API v1 (Secured via API Key & Rate Limiting)
+Route::prefix('v1')->middleware(['auth.api_key', 'throttle:60,1'])->group(function () {
+    // 1. Programmatic AI Chat Completion
+    Route::post('/chat', [ChatApiController::class, 'send'])->name('api.v1.chat');
+
+    // 2. Knowledge Retrieval Endpoints
+    Route::get('/knowledge/faqs', [KnowledgeApiController::class, 'faqs'])->name('api.v1.knowledge.faqs');
+    Route::get('/knowledge/documents', [KnowledgeApiController::class, 'documents'])->name('api.v1.knowledge.documents');
+
+    // 3. Workspace Metadata & Usage Quota
+    Route::get('/workspace', [WorkspaceApiController::class, 'info'])->name('api.v1.workspace.info');
+});
