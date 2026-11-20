@@ -2,12 +2,10 @@
     <div class="p-2 space-y-4">
         {{-- Brand / Workspace Identity --}}
         <div class="sidebar-brand p-2 flex items-center gap-2 border-b border-light-border dark:border-dark-border pb-2.5 transition-all">
-            <div class="w-7 h-7 rounded bg-brand-500/15 text-brand-500 flex items-center justify-center text-sm font-bold flex-shrink-0">
-                <i class="ri-sparkling-fill"></i>
-            </div>
+            <img src="{{ asset('images/logo/ea-app-icon.png') }}" alt="Entrepreneurs Automation" class="w-7 h-7 rounded object-contain flex-shrink-0 shadow-xs">
             <div class="sidebar-text-label overflow-hidden">
                 <div class="text-xs font-semibold text-light-text dark:text-dark-text truncate">
-                    {{ Auth::user()->workspace->name ?? 'Entrepreneurs AI' }}
+                    {{ Auth::user()->workspace->name ?? 'Entrepreneurs Automation' }}
                 </div>
                 <div class="text-2xs text-light-muted dark:text-dark-muted truncate">
                     Enterprise Platform

@@ -7,6 +7,8 @@
 
     <title>@yield('title', 'Sign In') — Entrepreneurs Automation</title>
     <meta name="description" content="Sign in or register for Entrepreneurs Automation, the enterprise platform for customer conversations, multi-source knowledge grounding, and commerce intelligence.">
+    <meta property="og:image" content="{{ asset('images/logo/ea-logo-full-dark.png') }}">
+    <meta name="twitter:image" content="{{ asset('images/logo/ea-logo-full-dark.png') }}">
 
     {{-- Zero-Flicker Tailwind Theme Engine --}}
     <script>

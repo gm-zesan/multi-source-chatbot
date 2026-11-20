@@ -5,9 +5,9 @@
         
         {{-- Header & Brand Icon --}}
         <div class="text-center mb-7">
-            <div class="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-brand-500/10 text-brand-500 border border-brand-500/20 mb-3 shadow-xs">
-                <i class="ri-user-add-line text-2xl"></i>
-            </div>
+            <a href="{{ route('home') }}" class="inline-block group mb-3">
+                <img src="{{ asset('images/logo/ea-app-icon.png') }}" alt="Entrepreneurs Automation" class="w-14 h-14 rounded-2xl shadow-md group-hover:scale-105 transition-transform duration-200 object-contain mx-auto">
+            </a>
             <h1 class="text-xl sm:text-2xl font-bold tracking-tight text-light-text dark:text-dark-text">
                 Create an account
             </h1>

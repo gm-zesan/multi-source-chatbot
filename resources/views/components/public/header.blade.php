@@ -5,9 +5,7 @@
         {{-- Brand Logo --}}
         <div class="flex items-center gap-3 flex-shrink-0">
             <a href="{{ route('home') }}" class="flex items-center gap-2.5 group">
-                <div class="w-8 h-8 rounded-lg bg-brand-500/15 border border-brand-500/30 text-brand-500 flex items-center justify-center text-sm font-bold shadow-xs group-hover:scale-105 transition-transform duration-200">
-                    <i class="ri-sparkling-fill"></i>
-                </div>
+                <img src="{{ asset('images/logo/ea-app-icon.png') }}" alt="Entrepreneurs Automation" class="w-8 h-8 rounded-lg object-contain shadow-xs group-hover:scale-105 transition-transform duration-200">
                 <div class="flex flex-col">
                     <span class="font-bold text-sm tracking-tight text-light-text dark:text-dark-text group-hover:text-brand-500 transition-colors">
                         Entrepreneurs Automation

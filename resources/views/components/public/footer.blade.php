@@ -7,9 +7,7 @@
             {{-- Column 1: Brand Info (Spans 2 on mobile, 1 on desktop) --}}
             <div class="col-span-2 space-y-4">
                 <a href="{{ route('home') }}" class="flex items-center gap-2.5">
-                    <div class="w-7 h-7 rounded-lg bg-brand-500/15 border border-brand-500/30 text-brand-500 flex items-center justify-center text-xs font-bold shadow-xs">
-                        <i class="ri-sparkling-fill"></i>
-                    </div>
+                    <img src="{{ asset('images/logo/ea-app-icon.png') }}" alt="Entrepreneurs Automation" class="w-7 h-7 rounded-md object-contain shadow-xs">
                     <span class="font-bold text-sm tracking-tight text-light-text dark:text-dark-text">
                         Entrepreneurs Automation
                     </span>

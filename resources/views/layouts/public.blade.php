@@ -16,10 +16,12 @@
     <meta property="og:url" content="{{ url()->current() }}">
     <meta property="og:title" content="@yield('title', 'Entrepreneurs Automation — Enterprise Commerce & Intelligence Platform')">
     <meta property="og:description" content="@yield('meta_description', 'Your Business. Connected. Intelligent. Automated. Grounded business knowledge and customer engagement.')">
+    <meta property="og:image" content="{{ asset('images/logo/ea-logo-full-dark.png') }}">
     <meta property="og:site_name" content="Entrepreneurs Automation">
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="@yield('title', 'Entrepreneurs Automation')">
     <meta name="twitter:description" content="@yield('meta_description', 'Your Business. Connected. Intelligent. Automated.')">
+    <meta name="twitter:image" content="{{ asset('images/logo/ea-logo-full-dark.png') }}">
 
     {{-- Zero-Flicker Dark/Light Theme Engine --}}
     <script>
