@@ -891,12 +891,12 @@
         warranty: {
             q: "What is your official return and replacement warranty policy?",
             a: "We offer a 7-day replacement warranty for manufacturing defects and 1-year official brand service warranty across all verified branch locations.",
-            src: "Official_Warranty_Policy.pdf",
-            row: "Chunk #4 matched",
-            rowText: "Policy Doc Section 2.1 | Coverage: 7-day replacement, 1-yr service warranty",
+            src: "Official_Warranty_Policy.csv",
+            row: "Row #4 matched",
+            rowText: "Coverage: 7-day replacement, 1-yr service warranty",
             latency: "195ms",
             score: "Score: 0.991",
-            route: "Document Vector Search"
+            route: "Semantic Knowledge Search"
         },
         delivery: {
             q: "Can I receive express home delivery in Chittagong within 24 hours?",

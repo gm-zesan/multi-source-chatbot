@@ -38,6 +38,7 @@ class TypesensePublicProjectionSyncService
         $indexedCount = 0;
         $skippedCount = 0;
         $documentsToIndex = [];
+        $projectedItems = [];
 
         foreach ($records as $record) {
             // Unconfirmed or private records are skipped immediately
@@ -56,17 +57,44 @@ class TypesensePublicProjectionSyncService
 
             $searchDoc = $projected->toSearchDocument();
             $documentsToIndex[] = $searchDoc;
+            $projectedItems[] = [
+                'record'    => $record,
+                'projected' => $projected,
+            ];
             $indexedCount++;
         }
 
         // If a retrieval client is configured, index public records
-        if ($this->retrievalClient !== null && ! empty($documentsToIndex)) {
+        if ($this->retrievalClient !== null && ! empty($projectedItems)) {
             try {
-                // Batch index or upsert public search documents
                 Log::info('[TypesensePublicProjectionSyncService] Syncing public records to Typesense', [
                     'workspace_id'  => $workspaceId,
-                    'records_count' => count($documentsToIndex),
+                    'records_count' => count($projectedItems),
                 ]);
+
+                foreach ($projectedItems as $item) {
+                    $record = $item['record'];
+                    $projected = $item['projected'];
+                    $title = (string) ($record->canonical_entity_name ?: ("Catalog Record #{$record->id}"));
+                    $content = $projected->toPromptString();
+
+                    if (method_exists($this->retrievalClient, 'syncDocumentChunk')) {
+                        $this->retrievalClient->syncDocumentChunk(
+                            id: "rec_{$record->id}",
+                            workspaceId: $workspaceId,
+                            title: $title,
+                            content: $content,
+                            documentType: 'catalog',
+                            priority: 50,
+                            isActive: true,
+                            lexiconTerms: array_values(array_filter([
+                                (string) ($record->canonical_category ?? ''),
+                                (string) ($record->canonical_entity_name ?? ''),
+                            ])),
+                            sourceId: (string) ($record->document_id ?? $record->id),
+                        );
+                    }
+                }
             } catch (\Throwable $e) {
                 Log::warning('[TypesensePublicProjectionSyncService] Typesense public sync warning: ' . $e->getMessage());
             }

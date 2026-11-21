@@ -10,6 +10,7 @@ use App\AI\Decision\DTOs\DecisionResult;
 use App\AI\Decision\DTOs\ExecutionResponse;
 use App\Models\Conversation;
 use App\Models\User;
+use App\Services\Memory\ConversationMemoryService;
 use Illuminate\Support\Facades\Log;
 
 /**
@@ -24,6 +25,7 @@ class UnifiedOrchestrator
         private readonly DecisionEngineInterface $decisionEngine,
         private readonly DeterministicExecutionController $executionController,
         private readonly FinalResponseGenerator $responseGenerator,
+        private readonly ?ConversationMemoryService $memoryService = null,
     ) {}
 
     /**
@@ -49,7 +51,7 @@ class UnifiedOrchestrator
 
         // ── Layer 1: Preflight & Security Context ────────────────────────────
         $isCustomerChannel = $isCustomer ?? $this->resolveCustomerChannel($user, $channelSlug, $conversation);
-        $compactContext = $this->buildCompactContext($conversation);
+        $compactContext = $this->buildCompactContext($conversation, $query, $workspaceId);
 
         $request = new DecisionRequest(
             query: $query,
@@ -119,36 +121,57 @@ class UnifiedOrchestrator
     }
 
     /**
-     * Extract compact conversation context (max 3 substantive turns).
+     * Extract compact conversation context (short-term dialogue turns + long-term graph memory).
      */
-    protected function buildCompactContext(?Conversation $conversation): ?string
+    protected function buildCompactContext(?Conversation $conversation, ?string $query = null, ?int $workspaceId = null): ?string
     {
         if ($conversation === null || !$conversation->exists) {
             return null;
         }
 
+        $lines = [];
+
+        // 1. Long-Term Graph Memory (Neo4j: Past preferences, orders, issues)
+        if ($query !== null && $workspaceId !== null) {
+            try {
+                $memSvc = $this->memoryService ?? app(ConversationMemoryService::class);
+                $graphMemory = $memSvc->retrieveContext(
+                    conversation: $conversation,
+                    query: $query,
+                    workspaceId: $workspaceId,
+                );
+                if (!empty($graphMemory)) {
+                    $lines[] = "[Customer Profile & Past Preferences]\n" . trim((string) $graphMemory);
+                }
+            } catch (\Throwable $e) {
+                Log::debug('[UnifiedOrchestrator] Graph memory retrieval bypassed: ' . $e->getMessage());
+            }
+        }
+
+        // 2. Short-Term Dialogue Context (recent substantive turns)
         $messages = $conversation->messages()
             ->latest('id')
             ->take(3)
             ->get()
             ->reverse();
 
-        if ($messages->isEmpty()) {
-            return null;
+        if (!$messages->isEmpty()) {
+            $dialogueLines = [];
+            foreach ($messages as $msg) {
+                $speaker = $msg->is_from_user ? 'User' : 'Assistant';
+                $text = trim(strip_tags((string) ($msg->body ?? '')));
+                if (mb_strlen($text) > 140) {
+                    $text = mb_substr($text, 0, 140) . '...';
+                }
+                if ($text !== '') {
+                    $dialogueLines[] = "{$speaker}: {$text}";
+                }
+            }
+            if (!empty($dialogueLines)) {
+                $lines[] = "[Recent Dialogue Turns]\n" . implode("\n", $dialogueLines);
+            }
         }
 
-        $lines = [];
-        foreach ($messages as $msg) {
-            $speaker = $msg->is_from_user ? 'User' : 'Assistant';
-            $text = trim(strip_tags((string) ($msg->body ?? '')));
-            if (mb_strlen($text) > 140) {
-                $text = mb_substr($text, 0, 140) . '...';
-            }
-            if ($text !== '') {
-                $lines[] = "{$speaker}: {$text}";
-            }
-        }
-
-        return !empty($lines) ? implode("\n", $lines) : null;
+        return !empty($lines) ? implode("\n\n", $lines) : null;
     }
 }

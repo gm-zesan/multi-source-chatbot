@@ -32,6 +32,7 @@ class FAQSearch
         ?int $workspaceId = null,
         ?Conversation $conversation = null,
         ?string $contextualSignal = null,
+        ?string $documentType = null,
     ): Collection {
         $trimmed = trim($query);
         if ($trimmed === '') {
@@ -48,6 +49,7 @@ class FAQSearch
             workspaceId: $workspaceId,
             topK: $perPage,
             contextualSignal: $contextualSignal,
+            documentType: $documentType,
         );
     }
 

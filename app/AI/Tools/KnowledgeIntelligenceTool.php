@@ -79,6 +79,7 @@ class KnowledgeIntelligenceTool extends AbstractGovernedTool
         }
 
         $topK = min(max(1, (int) ($arguments['top_k'] ?? 5)), 10);
+        $docType = !empty($arguments['document_type']) ? (string) $arguments['document_type'] : null;
 
         // 2. Resolve Retrieval Client or Bound FAQSearch
         $client = $this->retrievalClient ?? app(RetrievalClient::class);
@@ -89,7 +90,7 @@ class KnowledgeIntelligenceTool extends AbstractGovernedTool
             if (app()->bound(\App\Services\FAQ\FAQSearch::class)) {
                 try {
                     $faqSearch = app(\App\Services\FAQ\FAQSearch::class);
-                    $hits = $faqSearch->search($query, $topK, $workspaceId, $context->conversation, null);
+                    $hits = $faqSearch->search($query, $topK, $workspaceId, $context->conversation, null, $docType);
                 } catch (Throwable) {
                     $hits = null;
                 }
@@ -100,6 +101,7 @@ class KnowledgeIntelligenceTool extends AbstractGovernedTool
                     query: $query,
                     workspaceId: $workspaceId,
                     topK: $topK,
+                    documentType: $docType,
                 );
             }
         } catch (\Illuminate\Http\Client\ConnectionException $e) {

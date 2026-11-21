@@ -916,10 +916,10 @@ class KnowledgeDocumentService
             return $content ?? '';
         }
 
-        // Unsupported binary formats (PDF, Word, Excel, PowerPoint)
-        if (in_array($extension, ['pdf', 'doc', 'docx', 'xlsx', 'xls', 'ppt', 'pptx'], true)) {
+        // Non-plain-text formats
+        if (! in_array($extension, ['txt', 'md', 'json', 'log', 'csv'], true)) {
             throw new \RuntimeException(
-                "Unsupported file format for text extraction (.{$extension}). Text extraction requires plain text (.txt, .md) or direct text entries."
+                "Unsupported file format for text extraction (.{$extension}). Spreadsheets (.xlsx, .csv) are processed via Analytics Data Sources, while knowledge articles accept plain text (.txt, .md) or direct text entries."
             );
         }
 
@@ -932,7 +932,9 @@ class KnowledgeDocumentService
     }
 
     /**
-     * Deterministically split text into overlapping chunks.
+     * Deterministically split text into natural, sentence-boundary-aware chunks.
+     * Respects Bengali dari (।), question marks (?), exclamation marks (!), periods (.),
+     * newlines (\n), and word boundaries while bounding chunks to $chunkSize.
      *
      * @return array<int, string>
      */
@@ -950,14 +952,39 @@ class KnowledgeDocumentService
 
         $chunks = [];
         $start = 0;
-        $step = max(1, $chunkSize - $overlap);
 
         while ($start < $length) {
-            $chunk = mb_substr($text, $start, $chunkSize);
-            $trimmed = trim($chunk);
-            if ($trimmed !== '') {
-                $chunks[] = $trimmed;
+            $remaining = $length - $start;
+            if ($remaining <= $chunkSize) {
+                $tail = trim(mb_substr($text, $start));
+                if ($tail !== '') {
+                    $chunks[] = $tail;
+                }
+                break;
             }
+
+            // Candidate window of max size $chunkSize
+            $candidate = mb_substr($text, $start, $chunkSize);
+
+            // Look for natural boundary (paragraph, Dari, ?, !, period, newline, or whitespace) in the 60%-100% window
+            $searchZoneStart = max(0, (int) ($chunkSize * 0.6));
+            $searchSubstr = mb_substr($candidate, $searchZoneStart);
+
+            $bestCut = null;
+            if (preg_match_all('/(\n\n|\n|[।\?\!\.]\s*|\s+)/u', $searchSubstr, $matches, PREG_OFFSET_CAPTURE)) {
+                $lastMatch = end($matches[0]);
+                $delimOffset = $lastMatch[1] + mb_strlen($lastMatch[0]);
+                $bestCut = $searchZoneStart + $delimOffset;
+            }
+
+            $actualChunkLength = ($bestCut !== null && $bestCut > 0) ? $bestCut : $chunkSize;
+            $chunk = trim(mb_substr($text, $start, $actualChunkLength));
+
+            if ($chunk !== '') {
+                $chunks[] = $chunk;
+            }
+
+            $step = max(1, $actualChunkLength - $overlap);
             $start += $step;
         }
 

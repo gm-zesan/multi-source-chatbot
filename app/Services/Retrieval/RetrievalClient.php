@@ -145,6 +145,7 @@ class RetrievalClient
         ?int $workspaceId = null,
         ?int $topK = null,
         ?string $contextualSignal = null,
+        ?string $documentType = null,
     ): Collection
     {
         $trimmed = trim($query);
@@ -160,6 +161,10 @@ class RetrievalClient
             'top_k'             => $topK,
             'contextual_signal' => $contextualSignal,
         ];
+
+        if ($documentType !== null && trim($documentType) !== '') {
+            $payload['document_type'] = trim($documentType);
+        }
 
         try {
             $timeout = $this->effectiveTimeout();
