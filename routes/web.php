@@ -272,6 +272,18 @@ Route::middleware('auth')->prefix('dashboard')->group(function () {
     Route::get('/orders/export', [\App\Http\Controllers\WorkspaceOrderController::class, 'exportCsv'])
         ->name('orders.export');
 
+    // ── Courier Logistics & Fulfillment Hub (Steadfast, Pathao, RedX) ─
+    Route::get('/workspace/courier', [\App\Http\Controllers\WorkspaceCourierController::class, 'settings'])
+        ->name('workspace.courier.settings');
+    Route::post('/workspace/courier', [\App\Http\Controllers\WorkspaceCourierController::class, 'updateSettings'])
+        ->name('workspace.courier.update');
+    Route::post('/workspace/courier/ping', [\App\Http\Controllers\WorkspaceCourierController::class, 'ping'])
+        ->name('workspace.courier.ping');
+    Route::post('/orders/{order}/send-courier', [\App\Http\Controllers\WorkspaceCourierController::class, 'sendSingle'])
+        ->name('orders.send-courier');
+    Route::post('/orders/bulk-send-courier', [\App\Http\Controllers\WorkspaceCourierController::class, 'bulkSend'])
+        ->name('orders.bulk-send-courier');
+
     // ── Developer REST API Key Management ──────────────────────────────
     Route::get('/developer/api-keys', [\App\Http\Controllers\ApiKeyController::class, 'index'])
         ->name('api-keys.index');
