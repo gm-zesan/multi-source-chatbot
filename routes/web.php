@@ -83,10 +83,16 @@ Route::get('/health', HealthController::class)->name('health');
 Route::match(['GET', 'POST'], '/webhook/{channel?}', [WebhookController::class, 'handle'])->name('webhook.handle');
 Route::post('/webhooks/billing/{gateway}', [SuperAdminCommercialController::class, 'handleWebhook'])->name('webhooks.billing');
 
-// Storefront Web Chat Widget
-Route::post('/widget/chat', [WidgetChatController::class, 'chat'])->name('widget.chat');
+// Storefront Web Chat Widget (Rate-limited to protect merchant tokens and prevent abuse)
+Route::get('/widget/chat.js', function () {
+    return response()->file(public_path('widget/chat.js'), [
+        'Content-Type'  => 'application/javascript; charset=utf-8',
+        'Cache-Control' => 'public, max-age=3600',
+    ]);
+})->name('widget.js');
+Route::post('/widget/chat', [WidgetChatController::class, 'chat'])->middleware('throttle:60,1')->name('widget.chat');
 Route::get('/widget/chat', fn () => redirect()->route('widget.demo'));
-Route::post('/api/v1/widget/chat', [WidgetChatController::class, 'chat'])->name('api.widget.chat');
+Route::post('/api/v1/widget/chat', [WidgetChatController::class, 'chat'])->middleware('throttle:60,1')->name('api.widget.chat');
 Route::get('/widget/demo', fn () => response()->file(public_path('widget/demo.html')))->name('widget.demo');
 
 /*

@@ -14,9 +14,9 @@ use Illuminate\Support\Facades\Route;
 |--------------------------------------------------------------------------
 */
 
-// Web Chat Widget Synchronous Interaction Route (Public)
-Route::post('/v1/widget/chat', [WidgetChatController::class, 'chat'])->name('api.v1.widget.chat');
-Route::post('/widget/chat', [WidgetChatController::class, 'chat'])->name('api.widget.chat.v1');
+// Web Chat Widget Synchronous Interaction Route (Public, rate-limited to 60 req/min)
+Route::post('/v1/widget/chat', [WidgetChatController::class, 'chat'])->middleware('throttle:60,1')->name('api.v1.widget.chat');
+Route::post('/widget/chat', [WidgetChatController::class, 'chat'])->middleware('throttle:60,1')->name('api.widget.chat.v1');
 
 // External Developer REST API v1 (Secured via API Key & Rate Limiting)
 Route::prefix('v1')->middleware(['auth.api_key', 'throttle:60,1'])->group(function () {

@@ -70,7 +70,7 @@
                         {{-- Snippet Box --}}
                         <div class="relative p-3 rounded bg-dark-canvas border border-dark-border text-slate-200">
                             <pre class="text-2xs font-mono whitespace-pre-wrap break-all pr-16 text-slate-300"
-                                id="widgetEmbedCode">&lt;script src="{{ $widgetUrl }}" data-endpoint="{{ $chatEndpoint }}" data-account-id="{{ $channelAccount->id ?? 1 }}" async&gt;&lt;/script&gt;</pre>
+                                id="widgetEmbedCode">&lt;script src="{{ $widgetUrl }}" data-endpoint="{{ $chatEndpoint }}" data-account-id="{{ $channelAccount->id ?? 1 }}" data-title="{{ $workspace->name ?? 'Customer Support' }}" data-greeting="আসসালামু আলাইকুম! আপনাকে কীভাবে সাহায্য করতে পারি?" async&gt;&lt;/script&gt;</pre>
                             <button type="button" class="absolute top-2 right-2 app-btn app-btn-primary !h-6 !px-2 text-2xs"
                                 onclick="copyEmbedCode(this)">
                                 <i class="ri-file-copy-line"></i> Copy
@@ -221,10 +221,10 @@
 @push('custom-scripts')
     <script>
         const snippets = {
-            html: '<script src="{{ $widgetUrl }}" data-endpoint="{{ $chatEndpoint }}" data-account-id="{{ $channelAccount->id ?? 1 }}" async><\/script>',
-            wordpress: '<!-- Add to footer.php before </body> -->\n<script src="{{ $widgetUrl }}" data-endpoint="{{ $chatEndpoint }}" data-account-id="{{ $channelAccount->id ?? 1 }}" async><\/script>',
-            shopify: '<!-- In theme.liquid before </body> -->\n<script src="{{ $widgetUrl }}" data-endpoint="{{ $chatEndpoint }}" data-account-id="{{ $channelAccount->id ?? 1 }}" async><\/script>',
-            nextjs: '// In pages/_app.js or app/layout.jsx\nimport Script from "next/script";\n\n<Script\n  src="{{ $widgetUrl }}"\n  data-endpoint="{{ $chatEndpoint }}"\n  data-account-id="{{ $channelAccount->id ?? 1 }}"\n  strategy="afterInteractive"\n/>'
+            html: '<script src="{{ $widgetUrl }}" data-endpoint="{{ $chatEndpoint }}" data-account-id="{{ $channelAccount->id ?? 1 }}" data-title="{{ $workspace->name ?? 'Customer Support' }}" data-greeting="আসসালামু আলাইকুম! আপনাকে কীভাবে সাহায্য করতে পারি?" async><\/script>',
+            wordpress: '<!-- Add to footer.php before </body> -->\n<script src="{{ $widgetUrl }}" data-endpoint="{{ $chatEndpoint }}" data-account-id="{{ $channelAccount->id ?? 1 }}" data-title="{{ $workspace->name ?? 'Customer Support' }}" data-greeting="আসসালামু আলাইকুম! আপনাকে কীভাবে সাহায্য করতে পারি?" async><\/script>',
+            shopify: '<!-- In theme.liquid before </body> -->\n<script src="{{ $widgetUrl }}" data-endpoint="{{ $chatEndpoint }}" data-account-id="{{ $channelAccount->id ?? 1 }}" data-title="{{ $workspace->name ?? 'Customer Support' }}" data-greeting="আসসালামু আলাইকুম! আপনাকে কীভাবে সাহায্য করতে পারি?" async><\/script>',
+            nextjs: '// In pages/_app.js or app/layout.jsx\nimport Script from "next/script";\n\n<Script\n  src="{{ $widgetUrl }}"\n  data-endpoint="{{ $chatEndpoint }}"\n  data-account-id="{{ $channelAccount->id ?? 1 }}"\n  data-title="{{ $workspace->name ?? 'Customer Support' }}"\n  data-greeting="আসসালামু আলাইকুম! আপনাকে কীভাবে সাহায্য করতে পারি?"\n  strategy="afterInteractive"\n/>'
         };
 
         const instructions = {

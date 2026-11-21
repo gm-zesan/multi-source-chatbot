@@ -4,6 +4,9 @@
     var scriptTag = document.currentScript || document.querySelector('script[data-account-id]');
     var accountId = scriptTag ? scriptTag.getAttribute('data-account-id') : null;
     var apiEndpoint = scriptTag && scriptTag.getAttribute('data-endpoint') ? scriptTag.getAttribute('data-endpoint') : '/widget/chat';
+    var widgetTitle = scriptTag && scriptTag.getAttribute('data-title') ? scriptTag.getAttribute('data-title') : 'Customer Support';
+    var defaultGreeting = '\u0986\u09b8\u09b8\u09be\u09b2\u09be\u09ae\u09c1 \u0986\u09b2\u09be\u0987\u0995\u09c1\u09ae! \u0986\u09aa\u09a8\u09be\u0995\u09c7 \u0995\u09c0\u09ad\u09be\u09ac\u09c7 \u09b8\u09be\u09b9\u09be\u09af\u09cd\u09af \u0995\u09b0\u09a4\u09c7 \u09aa\u09be\u09b0\u09bf?';
+    var greetingText = scriptTag && scriptTag.getAttribute('data-greeting') ? scriptTag.getAttribute('data-greeting') : defaultGreeting;
 
     var visitorId = localStorage.getItem('agy_widget_visitor_id');
     if (!visitorId) {
@@ -125,11 +128,11 @@
     win.id = 'agy-chat-window';
     win.innerHTML = `
         <div id="agy-chat-header">
-            <span>Customer Support</span>
+            <span>${widgetTitle}</span>
             <span id="agy-chat-close" style="cursor: pointer; font-size: 18px;">&times;</span>
         </div>
         <div id="agy-chat-messages">
-            <div class="agy-msg agy-msg-outbound">আসসালামু আলাইকুম! আপনাকে কীভাবে সাহায্য করতে পারি?</div>
+            <div class="agy-msg agy-msg-outbound">${greetingText}</div>
         </div>
         <div id="agy-chat-input-bar">
             <input type="text" id="agy-chat-input" placeholder="Type a message..." autocomplete="off" />
@@ -192,14 +195,14 @@
             if (data && data.reply) {
                 appendMessage(data.reply, false);
             } else {
-                appendMessage('ধন্যবাদ! আপনার বার্তাটি আমরা পেয়েছি।', false);
+                appendMessage('\u09a7\u09a8\u09cd\u09af\u09ac\u09be\u09a6! \u0986\u09aa\u09a8\u09be\u09b0 \u09ac\u09be\u09b0\u09cd\u09a4\u09be\u099f\u09bf \u0986\u09ae\u09b0\u09be \u09aa\u09c7\u09df\u09c7\u099b\u09bf\u0964', false);
             }
         })
         .catch(function (err) {
             console.error('Widget send error:', err);
             var typing = document.getElementById('agy-typing-indicator');
             if (typing) typing.remove();
-            appendMessage('সংযোগ স্থাপন করতে সমস্যা হচ্ছে। কিছুক্ষণ পর আবার চেষ্টা করুন।', false);
+            appendMessage('\u09b8\u0982\u09af\u09cb\u0997 \u09b8\u09cd\u09a5\u09be\u09aa\u09a8 \u0995\u09b0\u09a4\u09c7 \u09b8\u09ae\u09b8\u09cd\u09af\u09be \u09b9\u099a\u09cd\u099b\u09c7\u0964 \u0995\u09bf\u099b\u09c1\u0995\u09cd\u09b7\u09a3 \u09aa\u09b0 \u0986\u09ac\u09be\u09b0 \u099a\u09c7\u09b7\u09cd\u099f\u09be \u0995\u09b0\u09c1\u09a8\u0964', false);
         });
     }
 

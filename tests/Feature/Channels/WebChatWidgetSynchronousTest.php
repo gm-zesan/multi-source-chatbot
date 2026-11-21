@@ -161,4 +161,19 @@ class WebChatWidgetSynchronousTest extends TestCase
         $this->assertSame($convId1, $convId2);
         $this->assertEquals(2, Message::where('conversation_id', $convId1)->where('direction', 'inbound')->count());
     }
+
+    public function test_widget_js_script_is_served_with_correct_utf8_headers(): void
+    {
+        $response = $this->get('/widget/chat.js');
+        $response->assertOk();
+        $this->assertStringContainsString('application/javascript', $response->headers->get('Content-Type') ?? '');
+        $this->assertStringContainsString('charset=utf-8', strtolower($response->headers->get('Content-Type') ?? ''));
+
+        ob_start();
+        $response->sendContent();
+        $content = (string) ob_get_clean();
+
+        $this->assertStringContainsString('agy-chat-bubble', $content);
+        $this->assertStringContainsString('\u0986\u09b8\u09b8\u09be\u09b2\u09be\u09ae\u09c1', $content);
+    }
 }
