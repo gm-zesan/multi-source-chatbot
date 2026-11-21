@@ -170,7 +170,10 @@ class FinalResponseGenerator
                             str_contains($bContext, 'UNAVAILABLE / NOT FOUND')
                         );
 
-                        if ($agentHits->isEmpty()) {
+                        $topScore = $topHit?->finalScore ?? 0.0;
+                        $preferProductContext = $hasDirectProductOrOrder && ($agentHits->isEmpty() || $topScore < 0.65 || str_contains($bContext, 'UNAVAILABLE / NOT FOUND'));
+
+                        if ($agentHits->isEmpty() || $preferProductContext) {
                             if ($hasDirectProductOrOrder) {
                                 try {
                                     $agent = new KnowledgeSupportAgent(
@@ -196,7 +199,24 @@ class FinalResponseGenerator
                                             $reports[] = "দুঃখিত, আপনার কাঙ্ক্ষিত পণ্যটি বর্তমানে আমাদের স্টোরে উপলব্ধ নেই।";
                                         }
                                     } else {
-                                        $reports[] = "আমাদের স্টোরে আপনার কাঙ্ক্ষিত পণ্যটি সম্পর্কিত বিস্তারিত তথ্যের জন্য আমাদের প্রোডাক্ট ক্যাটালগ দেখতে পারেন অথবা কাস্টমার কেয়ারে যোগাযোগ করতে পারেন।";
+                                        $fallbackDetails = [];
+                                        if (preg_match('/\*\s*Product:\s*([^\n]+)/u', $bContext, $mProd)) {
+                                            $fallbackDetails[] = "পণ্য: " . trim($mProd[1]);
+                                        }
+                                        if (preg_match('/\*\s*Price:\s*([^\n]+)/u', $bContext, $mPrice)) {
+                                            $fallbackDetails[] = "মূল্য: " . trim($mPrice[1]);
+                                        }
+                                        if (preg_match('/\*\s*Stock\/Qty:\s*([^\n]+)/u', $bContext, $mStock)) {
+                                            $fallbackDetails[] = "স্টক: " . trim($mStock[1]);
+                                        }
+                                        if (preg_match('/\*\s*Configuration & Specs:\s*([^\n]+)/u', $bContext, $mSpecs)) {
+                                            $fallbackDetails[] = "স্পেসিফিকেশন: " . trim($mSpecs[1]);
+                                        }
+                                        if (!empty($fallbackDetails)) {
+                                            $reports[] = implode(" | ", $fallbackDetails);
+                                        } else {
+                                            $reports[] = "আমাদের স্টোরে আপনার কাঙ্ক্ষিত পণ্যটি সম্পর্কিত বিস্তারিত তথ্যের জন্য আমাদের প্রোডাক্ট ক্যাটালগ দেখতে পারেন অথবা কাস্টমার কেয়ারে যোগাযোগ করতে পারেন।";
+                                        }
                                     }
                                 }
                             } else {
@@ -238,10 +258,42 @@ class FinalResponseGenerator
                                 }
                             } catch (Throwable $agentError) {
                                 Log::warning('[FinalResponseGenerator] KnowledgeSupportAgent generation failed: ' . $agentError->getMessage());
-                                $topAnswer = $topHit?->faq?->answer
-                                    ?? $topHit?->answer
-                                    ?? ($result->data['evidence_items'][0]['content'] ?? null);
-                                $reports[] = $topAnswer ?? 'আমি আপনার প্রশ্নের উত্তর আমাদের নলেজ বেসে খুঁজে পাইনি।';
+                                if ($hasDirectProductOrOrder) {
+                                    if (str_contains($bContext, 'UNAVAILABLE / NOT FOUND')) {
+                                        if (preg_match('/Available Categories:\s*([^\n]+)/u', $bContext, $mCats)) {
+                                            $reports[] = "দুঃখিত, আপনার কাঙ্ক্ষিত পণ্যটি বর্তমানে আমাদের স্টোরে উপলব্ধ নেই। আমাদের স্টোরে " . trim($mCats[1]) . " পাওয়া যাচ্ছে।";
+                                        } else {
+                                            $reports[] = "দুঃখিত, আপনার কাঙ্ক্ষিত পণ্যটি বর্তমানে আমাদের স্টোরে উপলব্ধ নেই।";
+                                        }
+                                    } elseif (str_contains($bContext, 'Live Product Catalog Record')) {
+                                        $fallbackDetails = [];
+                                        if (preg_match('/\*\s*Product:\s*([^\n]+)/u', $bContext, $mProd)) {
+                                            $fallbackDetails[] = "পণ্য: " . trim($mProd[1]);
+                                        }
+                                        if (preg_match('/\*\s*Price:\s*([^\n]+)/u', $bContext, $mPrice)) {
+                                            $fallbackDetails[] = "মূল্য: " . trim($mPrice[1]);
+                                        }
+                                        if (preg_match('/\*\s*Stock\/Qty:\s*([^\n]+)/u', $bContext, $mStock)) {
+                                            $fallbackDetails[] = "স্টক: " . trim($mStock[1]);
+                                        }
+                                        if (preg_match('/\*\s*Configuration & Specs:\s*([^\n]+)/u', $bContext, $mSpecs)) {
+                                            $fallbackDetails[] = "স্পেসিফিকেশন: " . trim($mSpecs[1]);
+                                        }
+                                        $reports[] = !empty($fallbackDetails)
+                                            ? implode(" | ", $fallbackDetails)
+                                            : "আমাদের স্টোরে আপনার কাঙ্ক্ষিত পণ্যটি সম্পর্কিত বিস্তারিত তথ্যের জন্য আমাদের প্রোডাক্ট ক্যাটালগ দেখতে পারেন।";
+                                    } else {
+                                        $topAnswer = $topHit?->faq?->answer
+                                            ?? $topHit?->answer
+                                            ?? ($result->data['evidence_items'][0]['content'] ?? null);
+                                        $reports[] = $topAnswer ?? 'আমি আপনার প্রশ্নের উত্তর আমাদের নলেজ বেসে খুঁজে পাইনি।';
+                                    }
+                                } else {
+                                    $topAnswer = $topHit?->faq?->answer
+                                        ?? $topHit?->answer
+                                        ?? ($result->data['evidence_items'][0]['content'] ?? null);
+                                    $reports[] = $topAnswer ?? 'আমি আপনার প্রশ্নের উত্তর আমাদের নলেজ বেসে খুঁজে পাইনি।';
+                                }
                             }
                         }
                     } else {

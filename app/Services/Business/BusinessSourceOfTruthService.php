@@ -436,26 +436,37 @@ class BusinessSourceOfTruthService
                     }
                 }
             }
+            // On-Demand SQLite Search: ensure large catalogs (e.g. 10k rows) have query-matching products injected
+            try {
+                $onDemandProds = $this->searchWorkspaceProductsOnDemand($workspaceId, $query);
+                foreach ($onDemandProds as $dp) {
+                    $k = mb_strtolower(trim($dp['name']));
+                    if (!isset($mergedProducts[$k])) {
+                        $mergedProducts[$k] = $dp;
+                    }
+                }
+            } catch (\Throwable) {}
+
             $allProducts = array_values($mergedProducts);
 
             $qLower = mb_strtolower($query);
             $matchedAny = false;
             $matchedProduct = null;
 
-            // Direct name and category/keyword match across all sources
+            $matchedCatalogItems = [];
             foreach ($allProducts as $product) {
                 $pNameLower = mb_strtolower($product['name']);
                 $pCatLower = mb_strtolower($product['category'] ?? '');
 
                 $isDirectMatch = str_contains($qLower, $pNameLower) || (strlen($pNameLower) > 3 && str_contains($qLower, str_replace(' ', '', $pNameLower)));
 
-                // Also check substantive product noun/keyword and category dynamically
+                // Also check substantive product noun/keyword and category dynamically with Bengali noun inflections
                 $isKeywordMatch = false;
+                $prodKeywords = $this->extractProductKeywords($product['name'], $product['category'] ?? null);
                 if (!$isDirectMatch) {
-                    $prodKeywords = $this->extractProductKeywords($product['name'], $product['category'] ?? null);
-
+                    $stemPattern = '(?:গুলোর|গুলোতে|গুলো|গুলা|টির|টার|টিতে|টাতে|য়ের|ের|য়ে|তে|ে|য়|র|কে|টা|টি)?';
                     foreach ($prodKeywords as $kw) {
-                        if (preg_match('/(?:^|[^\p{L}\p{N}])' . preg_quote($kw, '/') . '(?:$|[^\p{L}\p{N}])/ui', $qLower)) {
+                        if (preg_match('/(?:^|[^\p{L}\p{M}\p{N}])' . preg_quote($kw, '/') . $stemPattern . '(?:$|[^\p{L}\p{M}\p{N}])/ui', $qLower)) {
                             $isKeywordMatch = true;
                             break;
                         }
@@ -463,6 +474,51 @@ class BusinessSourceOfTruthService
                 }
 
                 if ($isDirectMatch || $isKeywordMatch) {
+                    $matchScore = $isDirectMatch ? 10 : 5;
+                    $pFullText = mb_strtolower($product['name'] . ' ' . ($product['specs'] ?? '') . ' ' . ($product['category'] ?? ''));
+                    foreach (preg_split('/[\s\-_,\/]+/u', $qLower, -1, PREG_SPLIT_NO_EMPTY) ?: [] as $tok) {
+                        if (mb_strlen($tok) >= 2) {
+                            if (str_contains($pFullText, $tok)) {
+                                $matchScore += 2;
+                            } else {
+                                foreach ($prodKeywords as $pkw) {
+                                    if (str_contains($tok, $pkw) || str_contains($pkw, $tok)) {
+                                        $matchScore += 1;
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    if (($product['category'] ?? '') === 'Variant' && !empty($product['specs'])) {
+                        $specLower = mb_strtolower($product['specs']);
+                        if (preg_match('/size:\s*([^,\|]+)/i', $specLower, $mSz)) {
+                            $szVal = trim($mSz[1]);
+                            if ($szVal !== '' && (bool) preg_match('/(?:^|[^\p{L}\p{N}])' . preg_quote($szVal, '/') . '(?:$|[^\p{L}\p{N}])/ui', $qLower)) {
+                                $matchScore += 15;
+                            }
+                        }
+                        if (preg_match('/color:\s*([^,\|]+)/i', $specLower, $mCol)) {
+                            $colVal = trim($mCol[1]);
+                            if ($colVal !== '' && (bool) preg_match('/(?:^|[^\p{L}\p{N}])' . preg_quote($colVal, '/') . '(?:$|[^\p{L}\p{N}])/ui', $qLower)) {
+                                $matchScore += 15;
+                            }
+                        }
+                    }
+                    $matchedCatalogItems[] = ['product' => $product, 'score' => $matchScore, 'isDirect' => $isDirectMatch];
+                }
+            }
+
+            if (!empty($matchedCatalogItems)) {
+                usort($matchedCatalogItems, function ($a, $b) {
+                    if ($a['score'] !== $b['score']) {
+                        return $b['score'] <=> $a['score'];
+                    }
+                    return ($b['isDirect'] ? 1 : 0) <=> ($a['isDirect'] ? 1 : 0);
+                });
+
+                foreach ($matchedCatalogItems as $item) {
+                    $product = $item['product'];
                     $formattedPrice = isset($product['price']) && (float) $product['price'] > 0
                         ? '৳' . number_format((float) $product['price'], 2)
                         : 'Price on inquiry';
@@ -480,7 +536,7 @@ class BusinessSourceOfTruthService
                         "  * Source: {$product['source']}\n" .
                         "  * Catalog Status: Active in catalog";
                     $matchedAny = true;
-                    if ($matchedProduct === null || $isDirectMatch) {
+                    if ($matchedProduct === null) {
                         $matchedProduct = $product;
                     }
                 }
@@ -509,6 +565,9 @@ class BusinessSourceOfTruthService
             // Check if query is an order placement or purchasing inquiry
             $isOrderPlacement = (bool) preg_match('/(kivabe\s*order|order\s*kivabe|order\s*korte\s*chai|kivabe\s*kinbo|kivabe\s*pabo|order\s*korbo|কিভাবে\s*অর্ডার|অর্ডার\s*করব|অর্ডার\s*করবো|অর্ডার\s*কীভাবে|অর্ডার\s*করতে\s*চাই|অর্ডার\s*দিতে\s*চাই|কিনতে\s*চাই|নিতে\s*চাই|অর্ডার\s*প্রক্রিয়া|অর্ডার\s*করার\s*নিয়ম|how\s*(to|can\s*i)\s*(order|buy|purchase)|order\s*process)/ui', $query);
 
+            $inquiredItem = $this->detectInquiredItemOrCategory($query);
+            $isSameProductAsActive = $activeProduct && $inquiredItem !== null && (mb_stripos($activeProduct['name'], $inquiredItem) !== false || mb_stripos($inquiredItem, $activeProduct['name']) !== false);
+
             if ($isOrderPlacement) {
                 if ($activeProduct && !empty($activeProduct['name'])) {
                     $formattedPrice = number_format((float) ($activeProduct['unit_price'] ?? 0), 2);
@@ -524,7 +583,7 @@ class BusinessSourceOfTruthService
                     $sections[] = "- Authoritative Order Placement Process:\n" .
                         "  * To place an order, instruct the customer to provide the name of the desired product, their Name, Mobile Phone Number, and complete Delivery Address in the chat.";
                 }
-            } elseif (!$matchedAny && $activeProduct && !empty($activeProduct['name'])) {
+            } elseif (!$matchedAny && $activeProduct && !empty($activeProduct['name']) && ($inquiredItem === null || $isSameProductAsActive)) {
                 if (preg_match('/(দাম\s*কত|কত\s*দাম|dam\s*koto|price\s*koto|how\s*much|স্টকে\s*আছে|available\s*ache|stock\s*ache|details|বিস্তারিত|বিবরণ|জানাও|বলো|বলুন|bolo|bolen|tell\s*me|specification|specs?|configuration|features?|বৈশিষ্ট্য|তথ্য|info)/ui', $query)) {
                     $formattedPrice = number_format((float) ($activeProduct['unit_price'] ?? 0), 2);
                     $stockLine = isset($activeProduct['stock']) && $activeProduct['stock'] !== null ? "  * Stock/Qty: {$activeProduct['stock']} units\n" : '';
@@ -583,7 +642,7 @@ class BusinessSourceOfTruthService
 
             // Negative Product/Category Verification: If customer asks about an item or category NOT present in our store or files
             // Dynamically detects the inquired item/category from the inquiry sentence
-            $inquiredItem = !$matchedAny ? $this->detectInquiredItemOrCategory($query) : null;
+            $inquiredItem = !$matchedAny ? ($inquiredItem ?? $this->detectInquiredItemOrCategory($query)) : null;
             if ($inquiredItem !== null) {
                 $targetTerm = $inquiredItem;
                 $docsChecked = !empty($allDocNames) ? implode(', ', $allDocNames) : 'uploaded documents and product catalog';
@@ -738,16 +797,19 @@ class BusinessSourceOfTruthService
                     foreach ($dbs as $db) {
                         try {
                             $base = basename($db);
-                            // Only load databases that belong to active KnowledgeDocuments in this workspace
-                            $isActive = false;
-                            foreach ($activeDocIds as $docId) {
-                                if (str_contains($base, (string) $docId)) {
-                                    $isActive = true;
-                                    break;
+                            // Databases located in the workspace-isolated directory belong to this workspace
+                            $isLocalWorkspaceDir = str_contains($db, "/app/analytics/{$workspaceId}/") || str_contains($db, "/app/spreadsheets/{$workspaceId}/");
+                            if (!$isLocalWorkspaceDir && !empty($activeDocIds)) {
+                                $isActive = false;
+                                foreach ($activeDocIds as $docId) {
+                                    if (str_contains($base, (string) $docId)) {
+                                        $isActive = true;
+                                        break;
+                                    }
                                 }
-                            }
-                            if (!$isActive && !empty($activeDocIds)) {
-                                continue;
+                                if (!$isActive) {
+                                    continue;
+                                }
                             }
 
                             $pdo = new PDO("sqlite:" . $db);
@@ -840,25 +902,6 @@ class BusinessSourceOfTruthService
                                     }
                                 }
 
-                                $variantCols = [];
-                                foreach (['size', 'sizes', 'color', 'colors', 'variant', 'variants', 'সাইজ', 'রং', 'কালার', 'ভেরিয়েন্ট', 'ভেরিয়েন্ট'] as $candVar) {
-                                    if (in_array($candVar, $cols, true)) {
-                                        $variantCols[] = "\"{$candVar}\"";
-                                    }
-                                }
-
-                                if ($specsCol && !empty($variantCols)) {
-                                    $varParts = implode(" || ', ' || ", array_map(fn ($c) => "COALESCE({$c}, '')", $variantCols));
-                                    $specsSql = "TRIM(COALESCE(\"{$specsCol}\", '') || ' | ' || {$varParts})";
-                                } elseif ($specsCol) {
-                                    $specsSql = "\"{$specsCol}\"";
-                                } elseif (!empty($variantCols)) {
-                                    $varParts = implode(" || ', ' || ", array_map(fn ($c) => "COALESCE({$c}, '')", $variantCols));
-                                    $specsSql = "TRIM({$varParts})";
-                                } else {
-                                    $specsSql = "NULL";
-                                }
-
                                 $descCol = null;
                                 foreach (['description', 'desc', 'details', 'product_description', 'বিবরণ', 'বর্ণনা', 'বিস্তারিত'] as $candDesc) {
                                     if (in_array($candDesc, $cols, true)) {
@@ -868,7 +911,32 @@ class BusinessSourceOfTruthService
                                 }
                                 $descSql = $descCol ? "\"{$descCol}\"" : "NULL";
 
-                                $stmt = $pdo->query("SELECT DISTINCT \"{$prodCol}\" as p_name, {$catCol} as p_cat, {$priceSql} as p_price, {$stockSql} as p_stock, {$specsSql} as p_specs, {$descSql} as p_desc FROM \"{$tbl}\" WHERE \"{$prodCol}\" IS NOT NULL AND TRIM(\"{$prodCol}\") != '' LIMIT 500");
+                                // Discover all remaining non-standard custom columns (Fabric, Warranty, Origin, Brand, etc.)
+                                $handledCols = array_filter([$prodCol, $priceCol, $stockCol, $descCol, $specsCol]);
+                                if ($catCol !== 'NULL') {
+                                    $handledCols[] = trim($catCol, '"');
+                                }
+                                $ignoreCols = ['id', 'created_at', 'updated_at', 'deleted_at', 'row_id', '_row', 'workspace_id', 'sheet', 'file', 'source_id'];
+
+                                $extraCols = [];
+                                foreach ($cols as $colName) {
+                                    if (!in_array($colName, $handledCols, true) && !in_array($colName, $ignoreCols, true)) {
+                                        $extraCols[] = $colName;
+                                    }
+                                }
+
+                                if (!empty($extraCols)) {
+                                    $extraParts = implode(" || ' | ' || ", array_map(fn ($c) => "'{$c}: ' || COALESCE(\"{$c}\", '')", $extraCols));
+                                    $specsSql = $specsCol
+                                        ? "TRIM(COALESCE(\"{$specsCol}\", '') || ' | ' || {$extraParts})"
+                                        : "TRIM({$extraParts})";
+                                } elseif ($specsCol) {
+                                    $specsSql = "\"{$specsCol}\"";
+                                } else {
+                                    $specsSql = "NULL";
+                                }
+
+                                $stmt = $pdo->query("SELECT DISTINCT \"{$prodCol}\" as p_name, {$catCol} as p_cat, {$priceSql} as p_price, {$stockSql} as p_stock, {$specsSql} as p_specs, {$descSql} as p_desc FROM \"{$tbl}\" WHERE \"{$prodCol}\" IS NOT NULL AND TRIM(\"{$prodCol}\") != '' LIMIT 2000");
                                 if ($stmt) {
                                     while ($r = $stmt->fetch(PDO::FETCH_ASSOC)) {
                                         $nm = trim((string) $r['p_name']);
@@ -935,7 +1003,7 @@ class BusinessSourceOfTruthService
 
                                         if ($fkCol && !empty($vCols)) {
                                             $vParts = implode(" || ', ' || ", array_map(fn ($c) => "'{$c}: ' || COALESCE(C.\"{$c}\", '')", $vCols));
-                                            $joinSql = "SELECT P.\"{$parentNameCol}\" as p_name, {$vParts} as p_specs FROM \"{$parentTable}\" P JOIN \"{$childTable}\" C ON P.\"{$parentIdCol}\" = C.\"{$fkCol}\" LIMIT 500";
+                                            $joinSql = "SELECT P.\"{$parentNameCol}\" as p_name, {$vParts} as p_specs FROM \"{$parentTable}\" P JOIN \"{$childTable}\" C ON P.\"{$parentIdCol}\" = C.\"{$fkCol}\" LIMIT 2000";
                                             $jStmt = $pdo->query($joinSql);
                                             if ($jStmt) {
                                                 while ($jr = $jStmt->fetch(PDO::FETCH_ASSOC)) {
@@ -998,7 +1066,7 @@ class BusinessSourceOfTruthService
         $q = trim($query);
 
         // Pattern 1: Inquiries with "ki ki" or "kono" e.g., "ki ki phone ache?", "kono sharee ache kina?"
-        if (preg_match('/(?:^|[^\p{L}\p{N}])(?:ki\s*ki|কি\s*কি|kono|কোনো|কোন)\s+([\p{L}\p{N}\-_]+(?:\s+[\p{L}\p{N}\-_]+){0,2})\s*(?:ache|pawa\s*jabe|available|আছে|পাওয়া\s*যাবে|পাব)/ui', $q, $m)) {
+        if (preg_match('/(?:^|[^\p{L}\p{M}\p{N}])(?:ki\s*ki|কি\s*কি|kono|কোনো|কোন)\s+([\p{L}\p{M}\p{N}\-_]+(?:\s+[\p{L}\p{M}\p{N}\-_]+){0,3})\s*(?:ache|pawa\s*jabe|available|আছে|পাওয়া\s*যাবে|পাব)/ui', $q, $m)) {
             $term = trim($m[1]);
             if (!$this->isGenericFillerTerm($term)) {
                 return $term;
@@ -1006,7 +1074,7 @@ class BusinessSourceOfTruthService
         }
 
         // Pattern 2: Availability suffixes: "<item> ache?", "<item> ache kina?", "<item> pawa jabe?", "<item> কি পাওয়া যায়?"
-        if (preg_match('/(?:^|[^\p{L}\p{N}])([\p{L}\p{N}\-_]+(?:\s+[\p{L}\p{N}\-_]+){0,2})\s+(?:ache\s*kina|pawa\s*jabe|pawa\s*jay|available\s*ache|ache|আছে\s*কিনা|পাওয়া\s*যাবে|পাওয়া\s*যায়|আছে\s*কি|আছে)(?:$|[^\p{L}\p{N}])/ui', $q, $m)) {
+        if (preg_match('/(?:^|[^\p{L}\p{M}\p{N}])([\p{L}\p{M}\p{N}\-_]+(?:\s+[\p{L}\p{M}\p{N}\-_]+){0,3})\s+(?:ache\s*kina|pawa\s*jabe|pawa\s*jay|available\s*ache|ache|আছে\s*কিনা|পাওয়া\s*যাবে|পাওয়া\s*যায়|আছে\s*কি|আছে)(?:$|[^\p{L}\p{M}\p{N}])/ui', $q, $m)) {
             $term = trim($m[1]);
             if (!$this->isGenericFillerTerm($term)) {
                 return $term;
@@ -1014,7 +1082,7 @@ class BusinessSourceOfTruthService
         }
 
         // Pattern 3: English availability inquiries: "do you have (any)? <item>?", "is <item> available?", "tell me about <item>"
-        if (preg_match('/(?:do\s+you\s+have|is\s+there\s+any|are\s+there\s+any|tell\s+me\s+about)\s+(?:a|an|any)?\s*([\p{L}\p{N}\-_]+(?:\s+[\p{L}\p{N}\-_]+){0,2})/ui', $q, $m)) {
+        if (preg_match('/(?:do\s+you\s+have|is\s+there\s+any|are\s+there\s+any|tell\s+me\s+about)\s+(?:a|an|any)?\s*([\p{L}\p{M}\p{N}\-_]+(?:\s+[\p{L}\p{M}\p{N}\-_]+){0,3})/ui', $q, $m)) {
             $term = trim($m[1]);
             if (!$this->isGenericFillerTerm($term)) {
                 return $term;
@@ -1022,7 +1090,17 @@ class BusinessSourceOfTruthService
         }
 
         // Pattern 4: Purchase desire: "ami ekta <item> kinte cai/chai", "want to buy <item>", "looking for <item>", "একটি <আইটেম> কিনতে চাই"
-        if (preg_match('/(?:ami\s+(?:ekta\s+|akta\s+)?|i\s+(?:want\s+to\s+buy|am\s+looking\s+for|need)\s+(?:a|an)?\s*|আমি\s+(?:একটি\s+|একটা\s+)?)([\p{L}\p{N}\-_]+(?:\s+[\p{L}\p{N}\-_]+){0,2})\s*(?:kinte\s*cai|kinte\s*chai|kinbo|kinte\s*cassi|kinte\s*chassi|কিনতে\s*চাই|কিনবো|কিনব)?(?:$|[^\p{L}\p{N}])/ui', $q, $m)) {
+        if (preg_match('/(?:ami\s+(?:ekta\s+|akta\s+)?|i\s+(?:want\s+to\s+buy|am\s+looking\s+for|need)\s+(?:a|an)?\s*|আমি\s+(?:একটি\s+|একটা\s+)?)([\p{L}\p{M}\p{N}\-_]+(?:\s+[\p{L}\p{M}\p{N}\-_]+){0,3})\s*(?:kinte\s*cai|kinte\s*chai|kinbo|kinte\s*cassi|kinte\s*chassi|কিনতে\s*চাই|কিনবো|কিনব)?(?:$|[^\p{L}\p{M}\p{N}])/ui', $q, $m)) {
+            $term = trim($m[1]);
+            if (!$this->isGenericFillerTerm($term)) {
+                return $term;
+            }
+        }
+
+        // Pattern 5: Price inquiry for specific item: "<item> er (dam|price) koto?", "<item> কত দাম?", "<item> এর দাম কত?"
+        if (preg_match('/(?:^|[^\p{L}\p{M}\p{N}])([\p{L}\p{M}\p{N}\-_]+(?:\s+[\p{L}\p{M}\p{N}\-_]+){0,4})\s*(?:er|এর)?\s*(?:dam|daam|price|দাম|মূল্য)\s*(?:koto|কত|how\s*much)(?:$|[^\p{L}\p{M}\p{N}])/ui', $q, $m) ||
+            preg_match('/(?:^|[^\p{L}\p{M}\p{N}])([\p{L}\p{M}\p{N}\-_]+(?:\s+[\p{L}\p{M}\p{N}\-_]+){0,4})\s+(?:কত|koto)\s+(?:দাম|dam|price)(?:$|[^\p{L}\p{M}\p{N}])/ui', $q, $m) ||
+            preg_match('/(?:how\s+much\s+(?:is|for))\s+(?:the\s+)?([\p{L}\p{M}\p{N}\-_]+(?:\s+[\p{L}\p{M}\p{N}\-_]+){0,4})/ui', $q, $m)) {
             $term = trim($m[1]);
             if (!$this->isGenericFillerTerm($term)) {
                 return $term;
@@ -1038,15 +1116,41 @@ class BusinessSourceOfTruthService
     private function isGenericFillerTerm(string $term): bool
     {
         $lower = mb_strtolower(trim($term));
+        if (mb_strlen($lower) < 2) {
+            return true;
+        }
+
+        $policyServiceSubstrings = [
+            'ওয়ারেন্টি', 'ওয়ারেন্টি', 'warranty', 'guarantee', 'গ্যারান্টি',
+            'রিফান্ড', 'refund', 'রিটার্ন', 'return', 'ferot',
+            'এক্সচেঞ্জ', 'exchange', 'রিপ্লেসমেন্ট', 'replacement',
+            'ডেলিভারি', 'ডেলিভারী', 'delivery', 'শিপিং', 'shipping', 'কুরিয়ার', 'courier',
+            'চার্জ', 'charge', 'ফি', 'fee', 'খরচ', 'cost',
+            'ক্যাশ অন ডেলিভারি', 'cod', 'পেমেন্ট', 'payment', 'বিকাশ', 'bkash', 'নগদ', 'nagad',
+            'ডিসকাউন্ট', 'discount', 'অফার', 'offer', 'ছাড়', 'ভাউচার', 'কুপন',
+            'ইনভয়েস', 'invoice', 'রসিদ', 'receipt', 'সার্ভিস', 'service',
+            'পানি', 'পানিতে', 'water', 'আগুন', 'fire', 'ড্যামেজ', 'damage', 'ক্ষতিগ্রস্ত', 'ত্রুটি', 'defective',
+            'সাহায্য', 'help', 'সাপোর্ট', 'support', 'কাস্টমার কেয়ার', 'helpline', 'হেল্পলাইন',
+            'শোরুম', 'showroom', 'আউটলেট', 'outlet', 'ঠিকানা', 'address', 'সময়', 'time', 'hours', 'খোলা', 'বন্ধ',
+        ];
+        foreach ($policyServiceSubstrings as $pss) {
+            if (str_contains($lower, $pss)) {
+                return true;
+            }
+        }
+
         $genericTerms = [
             'product', 'products', 'item', 'items', 'file', 'files', 'sheet', 'sheets',
             'store', 'shop', 'kono', 'kichu', 'shob', 'eta', 'ota', 'ei', 'oi',
             'apnader', 'amader', 'amar', 'tomar', 'kache', 'details', 'info',
+            'delivery charge', 'shipping charge', 'courier charge', 'delivery fee', 'shipping fee',
+            'delivery', 'shipping', 'courier', 'charge', 'fee',
             'দাম', 'প্রোডাক্ট', 'পণ্য', 'আইটেম', 'ফাইল', 'নথি', 'দোকান', 'স্টোর',
             'কিছু', 'সব', 'আমাদের', 'আপনার', 'কাছে', 'তথ্য',
+            'ডেলিভারি চার্জ', 'কুরিয়ার চার্জ', 'ডেলিভারি', 'ডেলিভারী', 'চার্জ', 'কুরিয়ার', 'খরচ', 'ফি',
         ];
 
-        return mb_strlen($lower) < 2 || in_array($lower, $genericTerms, true);
+        return in_array($lower, $genericTerms, true);
     }
 
     /**
@@ -1063,25 +1167,39 @@ class BusinessSourceOfTruthService
         static $crossLingualMap = [
             'laptop'     => ['ল্যাপটপ'],
             'headphone'  => ['হেডফোন', 'ইয়ারফোন'],
+            'headphones' => ['হেডফোন', 'ইয়ারফোন'],
             'earphone'   => ['ইয়ারফোন', 'হেডফোন'],
+            'earphones'  => ['ইয়ারফোন', 'হেডফোন'],
             'keyboard'   => ['কীবোর্ড', 'কিবোর্ড'],
+            'keyboards'  => ['কীবোর্ড', 'কিবোর্ড'],
             'mouse'      => ['মাউস'],
             'chair'      => ['চেয়ার', 'চেয়ার'],
             'furniture'  => ['আসবাবপত্র', 'ফার্নিচার'],
             'watch'      => ['ঘড়ি', 'ঘড়ি', 'স্মার্টওয়াচ'],
             'smartwatch' => ['স্মার্টওয়াচ', 'ঘড়ি', 'ঘড়ি'],
             'shirt'      => ['শার্ট'],
+            'shirts'     => ['শার্ট'],
+            'panjabi'    => ['পাঞ্জাবি', 'পাঞ্জাবী'],
+            'panjabis'   => ['পাঞ্জাবি', 'পাঞ্জাবী'],
+            'sharee'     => ['শাড়ি', 'শাড়ী'],
+            'sharees'    => ['শাড়ি', 'শাড়ী'],
+            'saree'      => ['শাড়ি', 'শাড়ী'],
+            'saris'      => ['শাড়ি', 'শাড়ী'],
             'pant'       => ['প্যান্ট'],
+            'pants'      => ['প্যান্ট'],
             'jeans'      => ['জিন্স'],
             'shoe'       => ['জুতো', 'জুতা'],
             'shoes'      => ['জুতো', 'জুতা'],
             'bag'        => ['ব্যাগ'],
+            'bags'       => ['ব্যাগ'],
             'food'       => ['খাবার'],
             'burger'     => ['বার্গার'],
             'medicine'   => ['ওষুধ', 'ঔষধ'],
             'tablet'     => ['ট্যাবলেট'],
+            'tablets'    => ['ট্যাবলেট'],
             'hub'        => ['হাব'],
             'phone'      => ['ফোন', 'মোবাইল'],
+            'phones'     => ['ফোন', 'মোবাইল'],
             'mobile'     => ['মোবাইল', 'ফোন'],
         ];
 
@@ -1232,7 +1350,7 @@ class BusinessSourceOfTruthService
 
                             $joinSql = "SELECT DISTINCT A.\"{$nameColA}\" as p_name, {$priceSql} as p_price, {$stockSql} as p_stock, {$vParts} as p_specs "
                                 . "FROM \"{$tblA}\" A JOIN ext_b.\"{$tblB}\" B ON A.\"{$idColA}\" = B.\"{$fkColB}\" "
-                                . "WHERE A.\"{$nameColA}\" IS NOT NULL AND TRIM(A.\"{$nameColA}\") != '' LIMIT 500";
+                                . "WHERE A.\"{$nameColA}\" IS NOT NULL AND TRIM(A.\"{$nameColA}\") != '' LIMIT 2000";
 
                             $jStmt = $pdoA->query($joinSql);
                             if ($jStmt) {
@@ -1304,5 +1422,169 @@ class BusinessSourceOfTruthService
                 }
             }
         }
+    }
+
+    /**
+     * Dynamically search workspace product catalogs on-demand directly in SQLite files (GAP-XLS-01 / Row Limit Fix).
+     * Bypasses in-memory cache limits (e.g. 2000+ items) to find specific products, brands, or attributes directly via SQL.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public function searchWorkspaceProductsOnDemand(int $workspaceId, string $query, int $limit = 25): array
+    {
+        $cleanQuery = trim($query);
+        if ($cleanQuery === '' || mb_strlen($cleanQuery) < 2) {
+            return [];
+        }
+
+        $rawTokens = array_values(array_filter(preg_split('/\s+/u', mb_strtolower($cleanQuery)), fn ($t) => mb_strlen($t) >= 2));
+        if (empty($rawTokens)) {
+            return [];
+        }
+
+        $suffixes = ['গুলোতে', 'গুলোর', 'টিতে', 'টাতে', 'টার', 'টির', 'গুলো', 'গুলা', 'য়ের', 'ের', 'য়ে', 'তে', 'ে', 'য়', 'র', 'কে', 'টা', 'টি'];
+        $crossMap = [
+            'মাউস' => ['mouse'],
+            'মাউসের' => ['mouse'],
+            'মাউসটির' => ['mouse'],
+            'কীবোর্ড' => ['keyboard'],
+            'কিবোর্ড' => ['keyboard'],
+            'কীবোর্ডের' => ['keyboard'],
+            'মেকানিক্যাল' => ['mechanical'],
+            'গেমিং' => ['gaming'],
+            'হেডফোন' => ['headphone', 'earphone'],
+            'হেডফোনের' => ['headphone', 'earphone'],
+            'হেডফোনটি' => ['headphone', 'earphone'],
+            'পাঞ্জাবি' => ['panjabi', 'punjabi'],
+            'পাঞ্জাবির' => ['panjabi'],
+            'পাঞ্জাবী' => ['panjabi'],
+            'শাড়ি' => ['sharee', 'saree'],
+            'শাড়ী' => ['sharee', 'saree'],
+            'শাড়ির' => ['sharee', 'saree'],
+            'জামদানি' => ['jamdani'],
+            'লিনেন' => ['linen'],
+            'সিল্ক' => ['silk'],
+            'কটন' => ['cotton'],
+            'শার্ট' => ['shirt'],
+            'ল্যাপটপ' => ['laptop'],
+        ];
+
+        $tokens = $rawTokens;
+        foreach ($rawTokens as $tok) {
+            foreach ($suffixes as $suf) {
+                if (str_ends_with($tok, $suf)) {
+                    $stem = mb_substr($tok, 0, mb_strlen($tok) - mb_strlen($suf));
+                    if (mb_strlen($stem) >= 3) {
+                        $tokens[] = $stem;
+                    }
+                }
+            }
+            if (isset($crossMap[$tok])) {
+                $tokens = array_merge($tokens, $crossMap[$tok]);
+            }
+        }
+        $tokens = array_values(array_unique($tokens));
+
+        $dbs = [];
+        $sharedDir = realpath(base_path('../python-ai-service/storage/excel_databases'));
+        if ($sharedDir && is_dir($sharedDir)) {
+            $dbs = array_merge($dbs, glob("{$sharedDir}/ws_{$workspaceId}_*.sqlite") ?: []);
+        }
+        $localDirs = [
+            storage_path("app/analytics/{$workspaceId}"),
+            storage_path("app/spreadsheets/{$workspaceId}"),
+        ];
+        foreach ($localDirs as $lDir) {
+            if (is_dir($lDir)) {
+                $dbs = array_merge($dbs, glob("{$lDir}/*.sqlite") ?: []);
+            }
+        }
+        $dbs = array_unique($dbs);
+        if (empty($dbs)) {
+            return [];
+        }
+
+        $results = [];
+        $seen = [];
+
+        foreach ($dbs as $db) {
+            try {
+                $pdo = new PDO("sqlite:" . $db);
+                $tablesStmt = $pdo->query("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'");
+                $tables = $tablesStmt ? $tablesStmt->fetchAll(PDO::FETCH_COLUMN) : [];
+
+                foreach ($tables as $tbl) {
+                    $colsStmt = $pdo->query("PRAGMA table_info(\"{$tbl}\")");
+                    $cols = $colsStmt ? array_map(fn ($c) => mb_strtolower((string) $c), array_column($colsStmt->fetchAll(PDO::FETCH_ASSOC), 'name')) : [];
+
+                    $prodCol = null;
+                    foreach (['product_name', 'product', 'item_name', 'item', 'title', 'name', 'model', 'পণ্যের_নাম', 'পণ্য', 'আইটেম'] as $c) {
+                        if (in_array($c, $cols, true)) { $prodCol = $c; break; }
+                    }
+                    if (!$prodCol) continue;
+
+                    $whereClauses = [];
+                    $params = [];
+                    foreach ($tokens as $idx => $token) {
+                        $pName = ":tok_{$idx}";
+                        $whereClauses[] = "\"{$prodCol}\" LIKE {$pName}";
+                        $params[$pName] = "%{$token}%";
+                    }
+
+                    $sql = "SELECT * FROM \"{$tbl}\" WHERE (" . implode(" OR ", $whereClauses) . ") LIMIT " . (int) $limit;
+                    $stmt = $pdo->prepare($sql);
+                    $stmt->execute($params);
+
+                    while ($r = $stmt->fetch(PDO::FETCH_ASSOC)) {
+                        $pName = trim((string) ($r[$prodCol] ?? ''));
+                        $k = mb_strtolower($pName);
+                        if ($pName === '' || isset($seen[$k])) continue;
+                        $seen[$k] = true;
+
+                        // Find price
+                        $price = null;
+                        foreach (['unit_price_bdt', 'price_bdt', 'unit_price', 'price', 'মূল্য', 'দাম', 'টাকা'] as $pc) {
+                            if (isset($r[$pc]) && is_numeric($r[$pc])) { $price = (float) $r[$pc]; break; }
+                        }
+
+                        // Find stock
+                        $stock = null;
+                        foreach (['stock_qty', 'stock_quantity', 'stock', 'quantity', 'qty', 'স্টক', 'পরিমাণ'] as $sc) {
+                            if (isset($r[$sc]) && is_numeric($r[$sc])) { $stock = (int) $r[$sc]; break; }
+                        }
+
+                        // Find category
+                        $category = 'General';
+                        foreach (['category', 'cat', 'type', 'ক্যাটাগরি', 'ধরন'] as $cc) {
+                            if (!empty($r[$cc])) { $category = (string) $r[$cc]; break; }
+                        }
+
+                        // All remaining columns into specs
+                        $extraSpecs = [];
+                        foreach ($r as $colName => $colVal) {
+                            $cLower = mb_strtolower($colName);
+                            if (in_array($cLower, [$prodCol, 'id', 'created_at', 'updated_at', 'deleted_at'], true)) continue;
+                            if ($colVal !== null && trim((string) $colVal) !== '') {
+                                $extraSpecs[] = "{$colName}: {$colVal}";
+                            }
+                        }
+
+                        $results[] = [
+                            'name'        => $pName,
+                            'category'    => $category,
+                            'price'       => $price,
+                            'stock'       => $stock,
+                            'specs'       => !empty($extraSpecs) ? implode(' | ', $extraSpecs) : null,
+                            'description' => null,
+                            'source'      => "On-Demand SQLite Search: " . basename($db) . " ({$tbl})",
+                            'source_file' => basename($db),
+                            'source_type' => 'uploaded_file',
+                        ];
+                    }
+                }
+            } catch (\Throwable) {}
+        }
+
+        return $results;
     }
 }

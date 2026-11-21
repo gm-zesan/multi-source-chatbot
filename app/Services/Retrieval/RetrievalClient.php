@@ -34,7 +34,7 @@ class RetrievalClient
         'কি', 'কী', 'কে', 'কেন', 'কখন', 'কোথায়', 'কীভাবে', 'কিভাবে', 'হবে', 'হবেকি', 'আছে', 'আছেকি',
         'করা', 'যায়', 'যায়কি', 'পারি', 'পারব', 'পারা', 'জন্য', 'এর', 'তে', 'এ', 'দেওয়া', 'দেয়া',
         'দেবেন', 'দিবেন', 'নাকি', 'বলুন', 'আমাকে', 'একটু', 'ভাই', 'মামা', 'আমাদের', 'আপনার', 'আপনাদের', 'আমার', 'আমি', 'বা', 'বাকি', 'পাওয়া', 'গেলে', 'হলে', 'হওয়া',
-        'লাগবে', 'কাটবেন', 'বলবেন', 'নিতে', 'পাব', 'পাবো', 'পৌঁছাইতে', 'পৌঁছাতে', 'করতে', 'অপেক্ষা', 'স্পষ্ট', 'লেখা', 'বলছেন', 'কোনো',
+        'লাগবে', 'কাটবেন', 'বলবেন', 'নিতে', 'পাব', 'পাবো', 'পৌঁছাইতে', 'পৌঁছাতে', 'করতে', 'অপেক্ষা', 'স্পষ্ট', 'লেখা', 'বলছেন', 'কোনো', 'চাইলে', 'চাই', 'চান', 'চায়', 'কেমন',
     ];
 
     /**
@@ -54,9 +54,89 @@ class RetrievalClient
         'দাম' => ['মূল্য', 'price', 'rate', 'টাকা'],
         'মূল্য' => ['দাম', 'price', 'rate', 'টাকা'],
         'price' => ['দাম', 'মূল্য', 'টাকা'],
-        'খরচ' => ['ফি', 'fee', 'charge', 'cost'],
-        'charge' => ['ফি', 'খরচ', 'cost'],
-        'fee' => ['ফি', 'খরচ', 'charge'],
+        'খরচ' => ['ফি', 'fee', 'charge', 'cost', 'কুরিয়ার'],
+        'charge' => ['ফি', 'খরচ', 'cost', 'fee', 'কুরিয়ার'],
+        'fee' => ['ফি', 'খরচ', 'charge', 'cost'],
+        'ফি' => ['fee', 'খরচ', 'charge', 'cost'],
+        'courier' => ['কুরিয়ার', 'শিপিং', 'ডেলিভারি', 'খরচ'],
+        'shipping' => ['কুরিয়ার', 'শিপিং', 'ডেলিভারি', 'খরচ'],
+        'কুরিয়ার' => ['courier', 'শিপিং', 'ডেলিভারি', 'খরচ', 'চার্জ'],
+        'শিপিং' => ['shipping', 'কুরিয়ার', 'ডেলিভারি'],
+        'hardware' => ['হার্ডওয়্যার', 'হার্ডওয়্যার', 'যন্ত্রাংশ', 'পার্টস'],
+        'হার্ডওয়্যার' => ['hardware', 'হার্ডওয়্যার', 'পার্টস'],
+        'হার্ডওয়্যার' => ['hardware', 'হার্ডওয়্যার', 'পার্টস'],
+        'covered' => ['কভারেজ', 'আওতাভুক্ত', 'পাবে'],
+        'coverage' => ['কভারেজ', 'আওতাভুক্ত', 'ওয়ারেন্টি'],
+        'কভারেজ' => ['coverage', 'covered', 'আওতাভুক্ত'],
+        'আওতাভুক্ত' => ['covered', 'coverage', 'কভারেজ'],
+        'water' => ['পানি', 'পানিতে', 'জল'],
+        'পানি' => ['water', 'পানিতে'],
+        'পানিতে' => ['water', 'পানি'],
+        'damage' => ['ক্ষতিগ্রস্ত', 'ভাঙা', 'নষ্ট', 'ক্ষতি', 'damaged'],
+        'damaged' => ['ক্ষতিগ্রস্ত', 'ভাঙা', 'নষ্ট', 'ক্ষতি', 'damage'],
+        'ক্ষতিগ্রস্ত' => ['damaged', 'damage', 'ভাঙা', 'নষ্ট', 'ত্রুটি'],
+        'ভাঙা' => ['damaged', 'damage', 'ক্ষতিগ্রস্ত', 'ভাঙা'],
+        'নষ্ট' => ['damaged', 'damage', 'ক্ষতিগ্রস্ত', 'ত্রুটিপূর্ণ'],
+        'defective' => ['ত্রুটিপূর্ণ', 'ত্রুটি', 'নষ্ট', 'ভুল', 'ভাঙা'],
+        'ত্রুটিপূর্ণ' => ['defective', 'ত্রুটি', 'নষ্ট', 'faulty'],
+        'ত্রুটি' => ['defective', 'ত্রুটিপূর্ণ', 'নষ্ট', 'সমস্যা'],
+        'timeline' => ['সময়সীমা', 'সময়', 'timeframe', 'duration'],
+        'সময়সীমা' => ['timeline', 'সময়', 'মেয়াদ'],
+        'original' => ['মূল', 'আসল', 'অরিজিনাল'],
+        'মূল' => ['original', 'আসল', 'ট্যাগ'],
+        'report' => ['রিপোর্ট', 'জানাতে', 'ক্লেইম'],
+        'reporting' => ['রিপোর্ট', 'জানাতে', 'ক্লেইম'],
+        'রিপোর্ট' => ['report', 'reporting', 'জানাতে'],
+        'জানাতে' => ['report', 'reporting', 'যোগাযোগ'],
+        'transit' => ['ট্রানজিট', 'ডেলিভারি', 'কুরিয়ার'],
+        'ট্রানজিট' => ['transit', 'কুরিয়ার', 'ডেলিভারি'],
+        'unboxing' => ['আনবক্সিং', 'ভিডিও'],
+        'আনবক্সিং' => ['unboxing', 'ভিডিও'],
+        'video' => ['ভিডিও', 'রেকর্ডিং'],
+        'ভিডিও' => ['video', 'রেকর্ডিং'],
+        'restocking' => ['রিস্টকিং', 'ফি', 'কাটা'],
+        'রিস্টকিং' => ['restocking', 'ফি'],
+        'tag' => ['ট্যাগ', 'ট্যাগসহ', 'মূল'],
+        'ট্যাগ' => ['tag', 'ট্যাগসহ', 'মূল'],
+        'tags' => ['ট্যাগ', 'tag', 'ট্যাগসহ'],
+        'chire' => ['ছিঁড়ে', 'ছেঁড়া', 'ট্যাগ'],
+        'ছিঁড়ে' => ['chire', 'ট্যাগ', 'ছেঁড়া'],
+        'exchange' => ['এক্সচেঞ্জ', 'রিপ্লেসমেন্ট', 'পরিবর্তন', 'বিনিময়'],
+        'এক্সচেঞ্জ' => ['exchange', 'রিপ্লেসমেন্ট', 'পরিবর্তন'],
+        'replace' => ['রিপ্লেসমেন্ট', 'এক্সচেঞ্জ', 'পরিবর্তন'],
+        'replacement' => ['রিপ্লেসমেন্ট', 'এক্সচেঞ্জ', 'পরিবর্তন'],
+        'রিপ্লেসমেন্ট' => ['replacement', 'replace', 'এক্সচেঞ্জ', 'পরিবর্তন'],
+        'goods' => ['পণ্য', 'আইটেম', 'জিনিস'],
+        'item' => ['পণ্য', 'আইটেম', 'জিনিস'],
+        'items' => ['পণ্য', 'আইটেম', 'জিনিস'],
+        'product' => ['পণ্য', 'প্রোডাক্ট', 'জিনিস'],
+        'products' => ['পণ্য', 'প্রোডাক্ট', 'জিনিস'],
+        'পণ্য' => ['product', 'item', 'goods', 'জিনিস', 'প্রোডাক্ট'],
+        'জিনিস' => ['পণ্য', 'item', 'product'],
+        'jinish' => ['জিনিস', 'পণ্য', 'item', 'product'],
+        'mouse' => ['মাউস', 'মাউসের', 'মাউসটির'],
+        'মাউস' => ['mouse', 'মাউসের', 'মাউসটির'],
+        'keyboard' => ['কীবোর্ড', 'কিবোর্ড'],
+        'কীবোর্ড' => ['keyboard', 'কিবোর্ড', 'কীবোর্ডের'],
+        'mechanical' => ['মেকানিক্যাল', 'মেকানিকাল'],
+        'মেকানিক্যাল' => ['mechanical', 'মেকানিকাল'],
+        'gaming' => ['গেমিং'],
+        'গেমিং' => ['gaming'],
+        'jamdani' => ['জামদানি', 'জামদানী'],
+        'জামদানি' => ['jamdani', 'শাড়ি'],
+        'sharee' => ['শাড়ি', 'শাড়ী', 'saree', 'sari'],
+        'saree' => ['শাড়ি', 'শাড়ী', 'sharee'],
+        'শাড়ি' => ['sharee', 'saree', 'শাড়ী', 'শাড়ির'],
+        'শাড়ী' => ['sharee', 'saree', 'শাড়ি'],
+        'panjabi' => ['পাঞ্জাবি', 'পাঞ্জাবী'],
+        'পাঞ্জাবি' => ['panjabi', 'পাঞ্জাবী', 'পাঞ্জাবির'],
+        'linen' => ['লিনেন'],
+        'লিনেন' => ['linen'],
+        'silk' => ['সিল্ক'],
+        'সিল্ক' => ['silk'],
+        'cotton' => ['কটন', 'সুতি'],
+        'কটন' => ['cotton', 'সুতি'],
+        'সুতি' => ['cotton', 'কটন'],
     ];
 
     public const BANGLISH_TO_BANGLA = [
@@ -79,7 +159,12 @@ class RetrievalClient
         'ferot' => 'ফেরত',
         'feroth' => 'ফেরত',
         'dekhte' => 'দেখতে',
+        'dekhaw' => 'দেখাও',
+        'dekhan' => 'দেখান',
+        'dekhbo' => 'দেখবো',
         'kinte' => 'কিনতে',
+        'kinbo' => 'কিনব',
+        'kena' => 'কেনা',
         'chara' => 'ছাড়া',
         'bade' => 'বাদে',
         'notun' => 'নতুন',
@@ -96,6 +181,154 @@ class RetrievalClient
         'sahajjo' => 'সাহায্য',
         'bhalo' => 'ভালো',
         'shob' => 'সব',
+        'sob' => 'সব',
+        'apnader' => 'আপনাদের',
+        'apnara' => 'আপনারা',
+        'apnar' => 'আপনার',
+        'apni' => 'আপনি',
+        'amader' => 'আমাদের',
+        'amar' => 'আমার',
+        'ami' => 'আমি',
+        'kisu' => 'কিছু',
+        'kichu' => 'কিছু',
+        'pathan' => 'পাঠান',
+        'pathaben' => 'পাঠাবেন',
+        'pathano' => 'পাঠানো',
+        'kotodin' => 'কতদিন',
+        'koidin' => 'কয়দিন',
+        'din' => 'দিন',
+        'taka' => 'টাকা',
+        'tk' => 'টাকা',
+        'shundor' => 'সুন্দর',
+        'rong' => 'রং',
+        'colour' => 'রং',
+        'color' => 'রং',
+        'bhabe' => 'ভাবে',
+        'hobe' => 'হবে',
+        'lagbe' => 'লাগবে',
+        'chai' => 'চাই',
+        'cai' => 'চাই',
+        'chay' => 'চায়',
+        'nibo' => 'নেব',
+        'nebo' => 'নেব',
+        'nibona' => 'নেবনা',
+        'nebona' => 'নেবনা',
+        'shari' => 'শাড়ি',
+        'sari' => 'শাড়ি',
+        'panjabi' => 'পাঞ্জাবি',
+        'punjabi' => 'পাঞ্জাবি',
+        'jama' => 'জামা',
+        'kapor' => 'কাপড়',
+        'dhaka' => 'ঢাকা',
+        'dhakar' => 'ঢাকার',
+        'baire' => 'বাইরে',
+        'bairer' => 'বাইরের',
+        'vetore' => 'ভেতরে',
+        'ashbe' => 'আসবে',
+        'asbe' => 'আসবে',
+        'pelam' => 'পেলাম',
+        'paini' => 'পাইনি',
+        'painai' => 'পাইনি',
+        'khuje' => 'খুঁজে',
+        'thakle' => 'থাকলে',
+        'thakbe' => 'থাকবে',
+        'sathe' => 'সাথে',
+        'shathe' => 'সাথে',
+        'bistarito' => 'বিস্তারিত',
+        'janan' => 'জানান',
+        'jante' => 'জানতে',
+        'sothik' => 'সঠিক',
+        'shothik' => 'সঠিক',
+        'vul' => 'ভুল',
+        'bhul' => 'ভুল',
+        'thik' => 'ঠিক',
+        'dhonnobad' => 'ধন্যবাদ',
+        'thanks' => 'ধন্যবাদ',
+        'shomossha' => 'সমস্যা',
+        'somossa' => 'সমস্যা',
+        'bhanga' => 'ভাঙা',
+        'vanga' => 'ভাঙা',
+        'bhenge' => 'ভেঙে',
+        'vange' => 'ভেঙে',
+        'noshto' => 'নষ্ট',
+        'nosto' => 'নষ্ট',
+        'chira' => 'ছিঁড়া',
+        'chire' => 'ছিঁড়ে',
+        'jinish' => 'জিনিস',
+        'jinis' => 'জিনিস',
+        'pani' => 'পানি',
+        'panite' => 'পানিতে',
+        'porle' => 'পড়লে',
+        'porbe' => 'পড়বে',
+        'khotigrostho' => 'ক্ষতিগ্রস্ত',
+        'khoti' => 'ক্ষতি',
+        'truti' => 'ত্রুটি',
+        'trutipurno' => 'ত্রুটিপূর্ণ',
+        'video' => 'ভিডিও',
+        'unboxing' => 'আনবক্সিং',
+        'transit' => 'ট্রানজিট',
+        'damage' => 'ক্ষতিগ্রস্ত',
+        'exchange' => 'এক্সচেঞ্জ',
+        'replace' => 'রিপ্লেসমেন্ট',
+        'replacement' => 'রিপ্লেসমেন্ট',
+        'restocking' => 'রিস্টকিং',
+        'free' => 'ফ্রি',
+        'fee' => 'ফি',
+        'warranty' => 'ওয়ারেন্টি',
+        'waranty' => 'ওয়ারেন্টি',
+        'guarantee' => 'গ্যারান্টি',
+        'cancel' => 'বাতিল',
+        'cancle' => 'বাতিল',
+        'helpline' => 'হেল্পলাইন',
+        'support' => 'সাপোর্ট',
+        'care' => 'কেয়ার',
+        'hotline' => 'হটলাইন',
+        'number' => 'নম্বর',
+        'nombor' => 'নম্বর',
+        'outlet' => 'আউটলেট',
+        'branch' => 'শাখা',
+        'dokan' => 'দোকান',
+        'store' => 'স্টোর',
+        'shop' => 'শপ',
+        'open' => 'খোলা',
+        'close' => 'বন্ধ',
+        'time' => 'সময়',
+        'timing' => 'সময়',
+        'koy' => 'কয়',
+        'koyta' => 'কয়টি',
+        'koita' => 'কয়টি',
+        'bochor' => 'বছর',
+        'mas' => 'মাস',
+        'mash' => 'মাস',
+        'ghonta' => 'ঘণ্টা',
+        'ghanta' => 'ঘণ্টা',
+        'fabric' => 'ফেব্রিক',
+        'origin' => 'উৎপত্তি',
+        'made' => 'তৈরি',
+        'bodlano' => 'বদলানো',
+        'poriborton' => 'পরিবর্তন',
+        'eita' => 'এইটা',
+        'oita' => 'ওইটা',
+        'eta' => 'এটা',
+        'ota' => 'ওটা',
+        'kom' => 'কম',
+        'beshi' => 'বেশি',
+        'courier' => 'কুরিয়ার',
+        'curier' => 'কুরিয়ার',
+        'shipping' => 'কুরিয়ার',
+        'defective' => 'ত্রুটিপূর্ণ',
+        'hardware' => 'হার্ডওয়্যার',
+        'coverage' => 'কভারেজ',
+        'covered' => 'কভারেজ',
+        'goods' => 'পণ্য',
+        'timeline' => 'সময়সীমা',
+        'hours' => 'ঘণ্টা',
+        'hour' => 'ঘণ্টা',
+        'days' => 'দিন',
+        'tag' => 'ট্যাগ',
+        'torn' => 'ছিঁড়ে',
+        'fellam' => 'ফেলেছি',
+        'ekhon' => 'এখন',
     ];
 
     public const BENGALI_SPELLING_VARIANTS = [
@@ -109,6 +342,12 @@ class RetrievalClient
         '/ডিসকাওন্ট/u' => 'ডিসকাউন্ট',
         '/ষ্টোর/u' => 'স্টোর',
         '/অরডার/u' => 'অর্ডার',
+        '/পাওয়া/u' => 'পাওয়া',
+        '/প্যাকেজিং/u' => 'প্যাকেজিং',
+        '/গ্যারান্টী/u' => 'গ্যারান্টি',
+        '/রিফান্ড/u' => 'রিফান্ড',
+        '/বিকাশ/u' => 'বিকাশ',
+        '/ইনভয়েস/u' => 'ইনভয়েস',
     ];
 
     /**
@@ -748,7 +987,7 @@ class RetrievalClient
 
         // Expand candidate filtering keywords using generic morphological stemming, language synonyms, banglish, and spelling variants
         $expandedSearchWords = $searchWords;
-        $stemSuffixes = ['গুলোতে', 'গুলোর', 'টিতে', 'টাতে', 'টার', 'টির', 'গুলো', 'গুলা', 'য়ের', 'ের', 'তে', 'এ', 'র', 'কে', 'টা', 'টি'];
+        $stemSuffixes = ['গুলোতে', 'গুলোর', 'টিতে', 'টাতে', 'টার', 'টির', 'গুলো', 'গুলা', 'য়ের', 'ের', 'য়ে', 'তে', 'ে', 'য়', 'এ', 'র', 'কে', 'টা', 'টি'];
         foreach ($searchWords as $w) {
             $wClean = mb_strtolower(trim($w));
             $wSpelling = $this->normalizeSpellingOnly($wClean);
@@ -868,7 +1107,7 @@ class RetrievalClient
                 }
             }
 
-            if ($score > 0.0) {
+            if ($score >= 0.35) {
                 $mapped[] = new FAQSearchResult(
                     faq: $faq,
                     keywordScore: $score,
@@ -880,33 +1119,11 @@ class RetrievalClient
         }
 
         // 2. Also search active knowledge documents in database fallback mode
-        $docQuery = KnowledgeDocument::where('is_active', true)
+        $docs = KnowledgeDocument::where('is_active', true)
             ->where('lifecycle_status', DocumentLifecycleStatus::ACTIVE)
-            ->where('workspace_id', $workspaceId);
-
-        $docQuery->where(function ($q) use ($expandedSearchWords) {
-            foreach ($expandedSearchWords as $word) {
-                $q->orWhere('title', 'LIKE', '%' . $word . '%')
-                  ->orWhere('metadata', 'LIKE', '%' . $word . '%');
-            }
-        });
-
-        $docs = $docQuery->limit(max(50, $topK * 5))->get();
-
-        if ($docs->isEmpty()) {
-            $docQuery = KnowledgeDocument::where('is_active', true)
-                ->where('lifecycle_status', DocumentLifecycleStatus::ACTIVE)
-                ->where('workspace_id', $workspaceId);
-
-            $docQuery->where(function ($q) use ($allWords) {
-                foreach ($allWords as $word) {
-                    $q->orWhere('title', 'LIKE', '%' . $word . '%')
-                      ->orWhere('metadata', 'LIKE', '%' . $word . '%');
-                }
-            });
-
-            $docs = $docQuery->limit(max(50, $topK * 5))->get();
-        }
+            ->where('workspace_id', $workspaceId)
+            ->limit(max(50, $topK * 5))
+            ->get();
         foreach ($docs as $doc) {
             $rawText = $doc->metadata['raw_text'] ?? null;
             if (empty($rawText)) {
@@ -940,7 +1157,7 @@ class RetrievalClient
 
                 $score = max($rawScore, $ctxScore);
 
-                if ($score > 0.0) {
+                if ($score >= 0.35) {
                     $transientFaq = new FAQ([
                         'id'            => $doc->id,
                         'question'      => $doc->title,
@@ -1074,11 +1291,15 @@ class RetrievalClient
             }
         }
 
-        if ($titleRatio === 1.0) {
+        if ($docRatio >= 1.0) {
+            return round(min(0.92, 0.82 + 0.10 * $titleRatio + $phraseBonus + $numBonus), 4);
+        }
+
+        if ($titleRatio >= 1.0) {
             return round(min(0.92, 0.82 + 0.02 * count($effectiveSubWords) + $phraseBonus + $numBonus), 4);
         }
 
-        if ($titleRatio >= 0.5) {
+        if ($titleRatio >= 0.5 && $docRatio >= 0.6) {
             return round(min(0.88, 0.62 + 0.20 * $titleRatio + $phraseBonus + $numBonus), 4);
         }
 
@@ -1086,15 +1307,17 @@ class RetrievalClient
             return round(min(0.85, 0.58 + 0.15 * $docRatio + $phraseBonus + $numBonus), 4);
         }
 
-        if ($docRatio === 1.0) {
-            return round(min(0.85, 0.65 + 0.10 * $titleRatio + $phraseBonus + $numBonus), 4);
-        }
-
         if ($docRatio >= 0.5) {
             return round(min(0.70, 0.40 + 0.25 * $docRatio + $phraseBonus + $numBonus), 4);
         }
 
         if ($docRatio > 0.0) {
+            if ($titleRatio === 0.0 && $matchedInDoc <= 1 && count($effectiveSubWords) >= 2) {
+                return 0.15; // 1 isolated token match in document with zero title match is noise
+            }
+            if ($matchedInDoc >= 2) {
+                return round(min(0.65, 0.35 + 0.25 * $docRatio + $phraseBonus + $numBonus), 4);
+            }
             return round(min(0.40, 0.60 * $docRatio + $phraseBonus + $numBonus), 4);
         }
 
@@ -1109,7 +1332,7 @@ class RetrievalClient
         $haystackClean = $this->normalizeSpellingOnly(mb_strtolower($haystack));
         $needleClean = $this->normalizeSpellingOnly(mb_strtolower(trim($needle)));
 
-        $suffixes = ['গুলোতে', 'গুলোর', 'টিতে', 'টাতে', 'টার', 'টির', 'গুলো', 'গুলা', 'য়ের', 'ের', 'তে', 'এ', 'র', 'কে', 'টা', 'টি'];
+        $suffixes = ['গুলোতে', 'গুলোর', 'টিতে', 'টাতে', 'টার', 'টির', 'গুলো', 'গুলা', 'য়ের', 'ের', 'য়ে', 'তে', 'ে', 'য়', 'এ', 'র', 'কে', 'টা', 'টি'];
         $variants = [$needleClean];
 
         if (isset(self::BANGLISH_TO_BANGLA[$needleClean])) {
@@ -1129,6 +1352,9 @@ class RetrievalClient
                         $variants[] = $stem;
                     }
                 }
+            }
+            if (str_ends_with($v, 's') && mb_strlen($v) >= 4) {
+                $variants[] = mb_substr($v, 0, -1);
             }
         }
         $variants = array_values(array_unique($variants));
