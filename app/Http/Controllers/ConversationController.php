@@ -251,4 +251,28 @@ class ConversationController extends Controller
 
         return redirect()->back()->with('status', 'Conversation updated successfully.');
     }
+
+    /**
+     * Toggle AI Assistant Pause / Resume for Human Staff Takeover.
+     */
+    public function toggleAi(\Illuminate\Http\Request $request, Conversation $conversation): RedirectResponse
+    {
+        $this->authorizeConversation($conversation);
+
+        if ($conversation->isAiPaused()) {
+            $conversation->resumeAi();
+            $msg = 'AI Chatbot has been resumed for this customer conversation.';
+        } else {
+            $duration = $request->input('duration', '1_hour');
+            $until = match ($duration) {
+                '24_hours'   => now()->addHours(24),
+                'indefinite' => null,
+                default      => now()->addHour(),
+            };
+            $conversation->pauseAi($until);
+            $msg = 'AI Chatbot is now paused. Human staff can communicate directly with the customer without bot interruptions.';
+        }
+
+        return redirect()->back()->with('status', $msg);
+    }
 }

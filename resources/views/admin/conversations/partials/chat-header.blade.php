@@ -68,6 +68,24 @@
             </select>
         </form>
 
+        {{-- AI Takeover / Pause Toggle Button --}}
+        <form action="{{ route('conversations.toggle-ai', $conversation->id) }}" method="POST" class="inline">
+            @csrf
+            @if($conversation->isAiPaused())
+                <button type="submit" class="app-btn !h-7 !px-2.5 !text-2xs whitespace-nowrap !bg-amber-500 hover:!bg-amber-600 !text-white flex items-center gap-1 shadow-xs" title="Resume automated AI responses for this conversation">
+                    <i class="ri-play-circle-line text-xs"></i>
+                    <span class="hidden md:inline">AI Paused (Resume)</span>
+                    <span class="md:hidden">Resume AI</span>
+                </button>
+            @else
+                <button type="submit" class="app-btn app-btn-secondary !h-7 !px-2.5 !text-2xs whitespace-nowrap flex items-center gap-1 hover:!border-amber-500 hover:!text-amber-500" title="Takeover chat and pause AI auto-replies">
+                    <i class="ri-pause-circle-line text-xs text-amber-500"></i>
+                    <span class="hidden md:inline">Pause AI</span>
+                    <span class="md:hidden">Pause</span>
+                </button>
+            @endif
+        </form>
+
         {{-- AI Reply Button --}}
         <form action="{{ route('conversations.ai-reply', $conversation->id) }}" method="POST" class="inline">
             @csrf

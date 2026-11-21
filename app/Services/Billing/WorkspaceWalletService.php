@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Billing;
 
+use App\Models\SubscriptionPlan;
 use App\Models\User;
 use App\Models\Workspace;
 use App\Models\WorkspaceWallet;
@@ -22,11 +23,20 @@ class WorkspaceWalletService
 
         if (! $wallet) {
             $wallet = DB::transaction(function () use ($workspace) {
+                $meteredPlan = SubscriptionPlan::where('slug', 'metered-billing')->first();
+                $starterPlan = SubscriptionPlan::where('slug', 'starter-bonus')->first();
+
+                $defaultRate = $meteredPlan ? (float) $meteredPlan->price_monthly : 0.40;
+                $starterBonus = $starterPlan ? (float) $starterPlan->price_monthly : 50.00;
+                $starterMsgs = $starterPlan && $starterPlan->max_conversations_monthly > 0
+                    ? (int) $starterPlan->max_conversations_monthly
+                    : (int) floor($starterBonus / max(0.01, $defaultRate));
+
                 $newWallet = WorkspaceWallet::create([
                     'workspace_id'          => $workspace->id,
-                    'balance'               => 50.00, // ৳50 starter bonus (125 messages @ ৳0.40)
+                    'balance'               => $starterBonus,
                     'currency'              => 'BDT',
-                    'rate_per_message'      => 0.40,
+                    'rate_per_message'      => $defaultRate,
                     'is_frozen'             => false,
                     'low_balance_threshold' => 20.00,
                 ]);
@@ -36,10 +46,10 @@ class WorkspaceWalletService
                     'workspace_id'  => $workspace->id,
                     'type'          => 'credit',
                     'category'      => 'bonus',
-                    'amount'        => 50.00,
-                    'balance_after' => 50.00,
+                    'amount'        => $starterBonus,
+                    'balance_after' => $starterBonus,
                     'reference_id'  => 'starter_bonus_' . Str::random(8),
-                    'description'   => 'Welcome Starter Bonus (125 Free AI Messages)',
+                    'description'   => "Welcome Starter Bonus ({$starterMsgs} Free AI Messages)",
                 ]);
 
                 return $newWallet;

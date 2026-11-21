@@ -84,7 +84,7 @@
         @php
             $fbAccounts = $connectedAccounts->get('facebook', collect());
         @endphp
-        <div class="app-card overflow-hidden flex flex-col justify-between border-t-4 border-t-blue-600">
+        <div class="app-card overflow-hidden flex flex-col justify-between">
             <div class="p-4">
                 <div class="flex items-start justify-between mb-3">
                     <div class="w-10 h-10 rounded-xl bg-blue-600/10 text-blue-600 flex items-center justify-center text-xl flex-shrink-0">
@@ -112,6 +112,12 @@
                                     <div class="text-3xs font-mono text-light-muted dark:text-dark-muted truncate">Page ID: {{ $acc->external_id }}</div>
                                 </div>
                                 <div class="flex items-center gap-1 flex-shrink-0">
+                                    <form method="POST" action="{{ route('channels.ping', $acc) }}">
+                                        @csrf
+                                        <button type="submit" class="app-action-btn hover:text-brand-500" title="Test Connection / Live Ping">
+                                            <i class="ri-pulse-line"></i>
+                                        </button>
+                                    </form>
                                     <form method="POST" action="{{ route('channels.toggle', $acc) }}">
                                         @csrf
                                         <button type="submit" class="app-action-btn" title="{{ $acc->is_active ? 'Pause Channel' : 'Activate Channel' }}">
@@ -145,7 +151,7 @@
         @php
             $waAccounts = $connectedAccounts->get('whatsapp', collect());
         @endphp
-        <div class="app-card overflow-hidden flex flex-col justify-between border-t-4 border-t-emerald-500">
+        <div class="app-card overflow-hidden flex flex-col justify-between">
             <div class="p-4">
                 <div class="flex items-start justify-between mb-3">
                     <div class="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center text-xl flex-shrink-0">
@@ -173,6 +179,12 @@
                                     <div class="text-3xs font-mono text-light-muted dark:text-dark-muted truncate">Phone ID: {{ $acc->external_id }}</div>
                                 </div>
                                 <div class="flex items-center gap-1 flex-shrink-0">
+                                    <form method="POST" action="{{ route('channels.ping', $acc) }}">
+                                        @csrf
+                                        <button type="submit" class="app-action-btn hover:text-brand-500" title="Test Connection / Live Ping">
+                                            <i class="ri-pulse-line"></i>
+                                        </button>
+                                    </form>
                                     <form method="POST" action="{{ route('channels.toggle', $acc) }}">
                                         @csrf
                                         <button type="submit" class="app-action-btn" title="{{ $acc->is_active ? 'Pause Channel' : 'Activate Channel' }}">
@@ -206,7 +218,7 @@
         @php
             $webAccounts = $connectedAccounts->get('website', collect());
         @endphp
-        <div class="app-card overflow-hidden flex flex-col justify-between border-t-4 border-t-brand-500">
+        <div class="app-card overflow-hidden flex flex-col justify-between">
             <div class="p-4">
                 <div class="flex items-start justify-between mb-3">
                     <div class="w-10 h-10 rounded-xl bg-brand-500/10 text-brand-500 flex items-center justify-center text-xl flex-shrink-0">
@@ -238,7 +250,7 @@
         </div>
 
         {{-- 4. Developer REST API Card --}}
-        <div class="app-card overflow-hidden flex flex-col justify-between border-t-4 border-t-indigo-500">
+        <div class="app-card overflow-hidden flex flex-col justify-between">
             <div class="p-4">
                 <div class="flex items-start justify-between mb-3">
                     <div class="w-10 h-10 rounded-xl bg-indigo-500/10 text-indigo-500 flex items-center justify-center text-xl flex-shrink-0">
@@ -271,7 +283,7 @@
         @php
             $tgAccounts = $connectedAccounts->get('telegram', collect());
         @endphp
-        <div class="app-card overflow-hidden flex flex-col justify-between border-t-4 border-t-sky-400">
+        <div class="app-card overflow-hidden flex flex-col justify-between">
             <div class="p-4">
                 <div class="flex items-start justify-between mb-3">
                     <div class="w-10 h-10 rounded-xl bg-sky-400/10 text-sky-400 flex items-center justify-center text-xl flex-shrink-0">
@@ -294,11 +306,19 @@
                         @foreach($tgAccounts as $acc)
                             <div class="p-2.5 rounded-lg bg-light-canvas dark:bg-dark-canvas border border-light-border dark:border-dark-border flex items-center justify-between text-2xs">
                                 <div class="truncate pr-2 font-semibold text-light-text dark:text-dark-text">{{ $acc->display_name }}</div>
-                                <form method="POST" action="{{ route('channels.destroy', $acc) }}" onsubmit="return confirm('Disconnect Telegram bot?')">
-                                    @csrf
-                                    @method('DELETE')
-                                    <button type="submit" class="app-action-btn hover:text-rose-500"><i class="ri-delete-bin-line"></i></button>
-                                </form>
+                                <div class="flex items-center gap-1 flex-shrink-0">
+                                    <form method="POST" action="{{ route('channels.ping', $acc) }}">
+                                        @csrf
+                                        <button type="submit" class="app-action-btn hover:text-brand-500" title="Test Connection / Live Ping">
+                                            <i class="ri-pulse-line"></i>
+                                        </button>
+                                    </form>
+                                    <form method="POST" action="{{ route('channels.destroy', $acc) }}" onsubmit="return confirm('Disconnect Telegram bot?')">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" class="app-action-btn hover:text-rose-500"><i class="ri-delete-bin-line"></i></button>
+                                    </form>
+                                </div>
                             </div>
                         @endforeach
                     </div>
@@ -318,7 +338,7 @@
         @php
             $ttAccounts = $connectedAccounts->get('tiktok', collect());
         @endphp
-        <div class="app-card overflow-hidden flex flex-col justify-between border-t-4 border-t-pink-500">
+        <div class="app-card overflow-hidden flex flex-col justify-between">
             <div class="p-4">
                 <div class="flex items-start justify-between mb-3">
                     <div class="w-10 h-10 rounded-xl bg-pink-500/10 text-pink-500 flex items-center justify-center text-xl flex-shrink-0">
@@ -342,6 +362,12 @@
                             <div class="p-2.5 rounded-lg bg-light-canvas dark:bg-dark-canvas border border-light-border dark:border-dark-border flex items-center justify-between text-2xs">
                                 <div class="truncate pr-2 font-semibold text-light-text dark:text-dark-text">{{ $acc->display_name }}</div>
                                 <div class="flex items-center gap-1 flex-shrink-0">
+                                    <form method="POST" action="{{ route('channels.ping', $acc) }}">
+                                        @csrf
+                                        <button type="submit" class="app-action-btn hover:text-brand-500" title="Test Connection / Live Ping">
+                                            <i class="ri-pulse-line"></i>
+                                        </button>
+                                    </form>
                                     <form method="POST" action="{{ route('channels.toggle', $acc) }}">
                                         @csrf
                                         <button type="submit" class="app-action-btn" title="{{ $acc->is_active ? 'Pause Channel' : 'Activate Channel' }}">

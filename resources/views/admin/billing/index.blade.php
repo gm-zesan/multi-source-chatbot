@@ -13,7 +13,7 @@
                 <span class="app-badge app-badge-primary">{{ $workspace->name }}</span>
             </h1>
             <p class="text-xs text-light-text-secondary dark:text-dark-text-secondary mt-0.5">
-                Pay only for what you use. Real-time ৳0.40 BDT per AI message deduction across all connected channels.
+                Pay only for what you use. Real-time ৳{{ number_format((float)$wallet->rate_per_message, 2) }} BDT per AI message deduction across all connected channels.
             </p>
         </div>
         <div class="flex items-center gap-2">
@@ -59,7 +59,7 @@
                 <div>
                     <strong class="text-xs font-bold block">Prepaid Balance Depleted — AI Messaging Paused</strong>
                     <p class="text-2xs text-rose-700 dark:text-rose-300 mt-0.5">
-                        Your wallet balance is ৳{{ number_format($wallet->balance, 2) }}, which is below the minimum message cost (৳0.40). Automated AI replies on Facebook, WhatsApp, Web Widget, and API are temporarily paused until recharged.
+                        Your wallet balance is ৳{{ number_format($wallet->balance, 2) }}, which is below the minimum message cost (৳{{ number_format((float)$wallet->rate_per_message, 2) }}). Automated AI replies on Facebook, WhatsApp, Web Widget, and API are temporarily paused until recharged.
                     </p>
                 </div>
             </div>
@@ -84,7 +84,7 @@
     {{-- Key Balance & Usage KPI Cards --}}
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {{-- 1. Current Available Balance --}}
-        <div class="app-card p-4 flex flex-col justify-between border-t-4 border-t-brand-500">
+        <div class="app-card p-4 flex flex-col justify-between">
             <div class="flex items-start justify-between">
                 <div>
                     <div class="text-2xs font-semibold uppercase tracking-wider text-light-muted dark:text-dark-muted">Prepaid Balance</div>
@@ -109,7 +109,7 @@
         </div>
 
         {{-- 2. Estimated Messages Left --}}
-        <div class="app-card p-4 flex flex-col justify-between border-t-4 border-t-emerald-500">
+        <div class="app-card p-4 flex flex-col justify-between">
             <div class="flex items-start justify-between">
                 <div>
                     <div class="text-2xs font-semibold uppercase tracking-wider text-light-muted dark:text-dark-muted">Remaining AI Messages</div>
@@ -123,12 +123,12 @@
             </div>
             <div class="flex items-center justify-between pt-3 mt-3 border-t border-light-border dark:border-dark-border text-2xs">
                 <span class="text-light-muted dark:text-dark-muted">Metered Rate:</span>
-                <span class="font-mono font-semibold text-light-text dark:text-dark-text">৳0.40 / msg</span>
+                <span class="font-mono font-semibold text-light-text dark:text-dark-text">৳{{ number_format((float)$wallet->rate_per_message, 2) }} / msg</span>
             </div>
         </div>
 
         {{-- 3. Messages Processed This Month --}}
-        <div class="app-card p-4 flex flex-col justify-between border-t-4 border-t-blue-500">
+        <div class="app-card p-4 flex flex-col justify-between">
             <div class="flex items-start justify-between">
                 <div>
                     <div class="text-2xs font-semibold uppercase tracking-wider text-light-muted dark:text-dark-muted">Messages This Month</div>
@@ -147,7 +147,7 @@
         </div>
 
         {{-- 4. Spend This Month --}}
-        <div class="app-card p-4 flex flex-col justify-between border-t-4 border-t-purple-500">
+        <div class="app-card p-4 flex flex-col justify-between">
             <div class="flex items-start justify-between">
                 <div>
                     <div class="text-2xs font-semibold uppercase tracking-wider text-light-muted dark:text-dark-muted">Usage Spend (MTD)</div>
@@ -175,17 +175,21 @@
                     <span class="text-2xs text-light-muted dark:text-dark-muted">Transparent Metered Billing</span>
                 </div>
                 <h3 class="text-xs font-bold text-light-text dark:text-dark-text">
-                    Fixed ৳0.40 BDT per AI Message Response
+                    Fixed ৳{{ number_format((float)$wallet->rate_per_message, 2) }} BDT per AI Message Response
                 </h3>
                 <p class="text-2xs text-light-text-secondary dark:text-dark-text-secondary max-w-3xl leading-relaxed">
-                    No costly recurring commitments. You only pay <strong>৳0.40</strong> whenever the AI agent formulates an intelligent answer for your customers on Facebook Messenger, WhatsApp Business, TikTok, Website Live Widget, or via Developer API.
+                    No costly recurring commitments. You only pay <strong>৳{{ number_format((float)$wallet->rate_per_message, 2) }}</strong> whenever the AI agent formulates an intelligent answer for your customers on Facebook Messenger, WhatsApp Business, TikTok, Website Live Widget, or via Developer API.
                 </p>
             </div>
             <div class="flex items-center gap-2 flex-shrink-0">
+                @php
+                    $starterBonus = \App\Models\SubscriptionPlan::where('slug', 'starter-bonus')->value('price_monthly') ?? 50.00;
+                    $bonusMsgs = floor($starterBonus / max(0.01, (float)$wallet->rate_per_message));
+                @endphp
                 <div class="p-2.5 px-3 rounded-xl bg-light-canvas dark:bg-dark-canvas border border-light-border dark:border-dark-border text-center">
                     <span class="text-3xs uppercase tracking-wider text-light-muted dark:text-dark-muted block">Starter Bonus</span>
-                    <strong class="text-xs font-bold text-emerald-500">৳50.00 Free</strong>
-                    <span class="text-3xs text-light-muted dark:text-dark-muted block">(125 Messages)</span>
+                    <strong class="text-xs font-bold text-emerald-500">৳{{ number_format((float)$starterBonus, 2) }} Free</strong>
+                    <span class="text-3xs text-light-muted dark:text-dark-muted block">({{ number_format($bonusMsgs) }} Messages)</span>
                 </div>
             </div>
         </div>

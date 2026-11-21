@@ -17,13 +17,21 @@ class SubscriptionPlan extends Model
     protected $fillable = [
         'name',
         'slug',
+        'badge',
+        'tagline',
         'price_monthly',
         'price_yearly',
         'currency',
+        'billing_period_text',
+        'price_note',
         'max_conversations_monthly',
         'max_knowledge_docs',
         'max_staff_seats',
         'features',
+        'is_featured',
+        'sort_order',
+        'cta_text',
+        'cta_url',
         'is_active',
     ];
 
@@ -34,6 +42,8 @@ class SubscriptionPlan extends Model
         'max_knowledge_docs' => 'integer',
         'max_staff_seats' => 'integer',
         'features' => 'array',
+        'is_featured' => 'boolean',
+        'sort_order' => 'integer',
         'is_active' => 'boolean',
     ];
 

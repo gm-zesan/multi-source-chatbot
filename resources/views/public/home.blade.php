@@ -325,25 +325,25 @@
                     <span class="px-1.5 py-0.2 rounded text-3xs font-mono font-bold bg-emerald-500/15 text-emerald-500">Available</span>
                 </div>
 
-                {{-- 4. WhatsApp Business (In Development) --}}
-                <div class="chamfer-card p-3 rounded-xl border border-light-border dark:border-white/[0.08] bg-light-surface dark:bg-dark-surface flex flex-col items-center gap-1.5 opacity-85">
+                {{-- 4. WhatsApp Business (Available) --}}
+                <div class="chamfer-card p-3 rounded-xl border border-light-border dark:border-white/[0.08] bg-light-surface dark:bg-dark-surface flex flex-col items-center gap-1.5">
                     <i class="ri-whatsapp-fill text-emerald-500 text-xl"></i>
                     <span class="text-xs font-semibold">WhatsApp</span>
-                    <span class="px-1.5 py-0.2 rounded text-3xs font-mono font-bold bg-amber-500/15 text-amber-500">In Progress</span>
+                    <span class="px-1.5 py-0.2 rounded text-3xs font-mono font-bold bg-emerald-500/15 text-emerald-500">Available</span>
                 </div>
 
-                {{-- 5. Shopify / WooCommerce (Planned) --}}
-                <div class="chamfer-card p-3 rounded-xl border border-light-border dark:border-white/[0.08] bg-light-surface dark:bg-dark-surface flex flex-col items-center gap-1.5 opacity-70">
-                    <i class="ri-shopping-bag-3-line text-orange-500 text-xl"></i>
-                    <span class="text-xs font-semibold">Shopify</span>
-                    <span class="px-1.5 py-0.2 rounded text-3xs font-mono font-bold bg-light-muted/20 text-light-muted dark:text-dark-muted">Planned</span>
-                </div>
-
-                {{-- 6. Telegram (Planned) --}}
-                <div class="chamfer-card p-3 rounded-xl border border-light-border dark:border-white/[0.08] bg-light-surface dark:bg-dark-surface flex flex-col items-center gap-1.5 opacity-70">
+                {{-- 5. Telegram Bot (Available) --}}
+                <div class="chamfer-card p-3 rounded-xl border border-light-border dark:border-white/[0.08] bg-light-surface dark:bg-dark-surface flex flex-col items-center gap-1.5">
                     <i class="ri-telegram-fill text-sky-400 text-xl"></i>
                     <span class="text-xs font-semibold">Telegram</span>
-                    <span class="px-1.5 py-0.2 rounded text-3xs font-mono font-bold bg-light-muted/20 text-light-muted dark:text-dark-muted">Planned</span>
+                    <span class="px-1.5 py-0.2 rounded text-3xs font-mono font-bold bg-emerald-500/15 text-emerald-500">Available</span>
+                </div>
+
+                {{-- 6. TikTok DMs (Available) --}}
+                <div class="chamfer-card p-3 rounded-xl border border-light-border dark:border-white/[0.08] bg-light-surface dark:bg-dark-surface flex flex-col items-center gap-1.5">
+                    <i class="ri-tiktok-fill text-pink-500 text-xl"></i>
+                    <span class="text-xs font-semibold">TikTok</span>
+                    <span class="px-1.5 py-0.2 rounded text-3xs font-mono font-bold bg-emerald-500/15 text-emerald-500">Available</span>
                 </div>
             </div>
         </div>
@@ -671,6 +671,95 @@
                     Multi-tenant workspace partitioning ensures your catalog data, customer inquiries, and conversations are never shared across tenants.
                 </p>
             </div>
+        </div>
+    </section>
+
+    {{-- ==================== 6.5 PREPAID METERED PRICING ==================== --}}
+    @php
+        $mRate = isset($meteredPlan) ? (float)$meteredPlan->price_monthly : 0.40;
+        $sBonus = isset($starterPlan) ? (float)$starterPlan->price_monthly : 50.00;
+        $sMsgs = isset($starterPlan) && $starterPlan->max_conversations_monthly > 0 
+            ? (int)$starterPlan->max_conversations_monthly 
+            : (int)floor($sBonus / max(0.01, $mRate));
+    @endphp
+    <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-10">
+        <div class="text-center space-y-3 max-w-2xl mx-auto">
+            <span class="text-3xs font-mono font-bold uppercase tracking-wider text-brand-500">Simple & Fair Pricing</span>
+            <h2 class="text-2xl sm:text-3xl font-bold text-light-text dark:text-dark-text tracking-tight">
+                Pay Only For What You Use. ৳ {{ number_format($mRate, 2) }} / Message.
+            </h2>
+            <p class="text-xs sm:text-sm text-light-text-secondary dark:text-dark-text-secondary">
+                No expensive recurring commitments or hidden fees. Start with <strong>৳{{ number_format($sBonus, 2) }} free starter balance</strong> ({{ number_format($sMsgs) }} complimentary AI messages) today.
+            </p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {{-- Feature 1: Metered Rate --}}
+            <div class="chamfer-card spotlight-card p-6 rounded-2xl border border-light-border dark:border-white/[0.08] bg-light-surface dark:bg-dark-surface space-y-4">
+                <div class="w-10 h-10 rounded-xl bg-brand-500/10 text-brand-500 flex items-center justify-center text-xl">
+                    <i class="ri-wallet-3-line"></i>
+                </div>
+                <div>
+                    <div class="text-2xs uppercase tracking-wider font-semibold text-brand-500 font-mono">Usage-Based</div>
+                    <h3 class="text-xl font-black text-light-text dark:text-dark-text mt-0.5">৳ {{ number_format($mRate, 2) }} <span class="text-xs font-normal text-light-muted dark:text-dark-muted">/ AI reply</span></h3>
+                </div>
+                <p class="text-2xs text-light-muted dark:text-dark-muted leading-relaxed">
+                    Balance is only deducted when the AI successfully formulates a verified response to your customer. Zero cost for silent or idle hours.
+                </p>
+                <ul class="text-2xs space-y-1.5 text-light-text dark:text-dark-text pt-2 border-t border-light-border dark:border-white/[0.08]">
+                    <li class="flex items-center gap-1.5"><i class="ri-check-line text-emerald-500"></i> Fixed ৳{{ number_format($mRate, 2) }} BDT per response</li>
+                    <li class="flex items-center gap-1.5"><i class="ri-check-line text-emerald-500"></i> Real-time wallet balance deduction</li>
+                    <li class="flex items-center gap-1.5"><i class="ri-check-line text-emerald-500"></i> No minimum monthly spend</li>
+                </ul>
+            </div>
+
+            {{-- Feature 2: Starter Trial --}}
+            <div class="chamfer-card spotlight-card p-6 rounded-2xl border-2 border-brand-500 bg-brand-500/5 dark:bg-brand-500/10 space-y-4 relative shadow-sm">
+                <div class="absolute -top-3 right-4 px-2.5 py-0.5 rounded-full bg-brand-500 text-white text-3xs font-bold uppercase tracking-wider">
+                    Instant Bonus
+                </div>
+                <div class="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center text-xl">
+                    <i class="ri-gift-line"></i>
+                </div>
+                <div>
+                    <div class="text-2xs uppercase tracking-wider font-semibold text-emerald-500 font-mono">Free Starter Credit</div>
+                    <h3 class="text-xl font-black text-light-text dark:text-dark-text mt-0.5">৳ {{ number_format($sBonus, 2) }} <span class="text-xs font-normal text-light-muted dark:text-dark-muted">Free</span></h3>
+                </div>
+                <p class="text-2xs text-light-muted dark:text-dark-muted leading-relaxed">
+                    Every newly registered business workspace automatically receives ৳{{ number_format($sBonus, 2) }} starter balance to test {{ number_format($sMsgs) }} real customer conversations instantly.
+                </p>
+                <ul class="text-2xs space-y-1.5 text-light-text dark:text-dark-text pt-2 border-t border-light-border dark:border-white/[0.08]">
+                    <li class="flex items-center gap-1.5"><i class="ri-check-line text-emerald-500"></i> {{ number_format($sMsgs) }} Free AI responses</li>
+                    <li class="flex items-center gap-1.5"><i class="ri-check-line text-emerald-500"></i> No credit card required to sign up</li>
+                    <li class="flex items-center gap-1.5"><i class="ri-check-line text-emerald-500"></i> Immediate workspace activation</li>
+                </ul>
+            </div>
+
+            {{-- Feature 3: Recharge Options --}}
+            <div class="chamfer-card spotlight-card p-6 rounded-2xl border border-light-border dark:border-white/[0.08] bg-light-surface dark:bg-dark-surface space-y-4">
+                <div class="w-10 h-10 rounded-xl bg-pink-500/10 text-pink-500 flex items-center justify-center text-xl">
+                    <i class="ri-smartphone-line"></i>
+                </div>
+                <div>
+                    <div class="text-2xs uppercase tracking-wider font-semibold text-pink-500 font-mono">Local Payments</div>
+                    <h3 class="text-xl font-black text-light-text dark:text-dark-text mt-0.5">bKash & Nagad</h3>
+                </div>
+                <p class="text-2xs text-light-muted dark:text-dark-muted leading-relaxed">
+                    Recharge wallet balance anytime with flexible local options including bKash, Nagad, and Cards with instant ledger confirmation.
+                </p>
+                <ul class="text-2xs space-y-1.5 text-light-text dark:text-dark-text pt-2 border-t border-light-border dark:border-white/[0.08]">
+                    <li class="flex items-center gap-1.5"><i class="ri-check-line text-emerald-500"></i> bKash & Nagad support</li>
+                    <li class="flex items-center gap-1.5"><i class="ri-check-line text-emerald-500"></i> Quick top-up from ৳500 to ৳5,000</li>
+                    <li class="flex items-center gap-1.5"><i class="ri-check-line text-emerald-500"></i> Automated Order & Lead capture included</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="text-center pt-2">
+            <a href="{{ route('register') }}" class="btn-shimmer inline-flex items-center gap-2 px-8 py-3.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-bold text-xs shadow-sm hover:shadow transition-all">
+                <span>Start Free With ৳50 Bonus Credit</span>
+                <i class="ri-arrow-right-line"></i>
+            </a>
         </div>
     </section>
 

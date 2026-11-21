@@ -21,15 +21,18 @@
                 </h1>
             </div>
             <p class="text-xs text-light-text-secondary dark:text-dark-text-secondary">
-                Configure your business identity, customer support helpline, and store operating hours used by the AI chatbot.
+                Configure your business identity, AI chatbot persona, custom sales rules, and customer support channels.
             </p>
         </div>
         <div class="flex items-center gap-2">
-            <a href="{{ route('analytics.index', ['workspace_id' => $workspace->id]) }}" class="app-btn app-btn-secondary">
-                <i class="ri-bar-chart-2-line text-xs"></i> BI Analytics
+            <a href="{{ route('billing.index') }}" class="app-btn app-btn-secondary">
+                <i class="ri-wallet-3-line text-xs"></i> Billing & Wallet
             </a>
-            <a href="{{ route('widget.manage', ['workspace_id' => $workspace->id]) }}" class="app-btn app-btn-primary">
-                <i class="ri-message-3-line text-xs"></i> Chat Widget
+            <a href="{{ route('channels.index') }}" class="app-btn app-btn-secondary">
+                <i class="ri-share-line text-xs"></i> Channels
+            </a>
+            <a href="{{ route('simulator.index') }}" class="app-btn app-btn-primary">
+                <i class="ri-robot-2-line text-xs"></i> Test in Simulator
             </a>
         </div>
     </div>
@@ -55,7 +58,7 @@
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
             {{-- Left Form Column (2 Cols) --}}
             <div class="lg:col-span-2 space-y-4">
-                {{-- Business Identity Card --}}
+                {{-- 1. Business Identity Card --}}
                 <div class="app-card overflow-hidden">
                     <div class="app-card-header">
                         <div class="flex items-center gap-2 text-xs font-semibold text-light-text dark:text-dark-text">
@@ -91,7 +94,7 @@
                             <div class="space-y-1">
                                 <label for="support_phone" class="text-2xs font-semibold text-light-text dark:text-dark-text">Support Helpline Phone</label>
                                 <input type="text" class="app-input w-full @error('support_phone') border-red-500 @enderror" name="support_phone" id="support_phone" value="{{ old('support_phone', $workspace->support_phone) }}" placeholder="+8801XXXXXXXXX">
-                                <span class="text-2xs text-light-muted dark:text-dark-muted block">Referenced by bot when asked for customer support phone.</span>
+                                <span class="text-2xs text-light-muted dark:text-dark-muted block">Referenced by bot when customer asks for your customer support phone.</span>
                                 @error('support_phone')
                                     <div class="text-2xs text-red-500">{{ $message }}</div>
                                 @enderror
@@ -117,7 +120,124 @@
                     </div>
                 </div>
 
-                {{-- Operating Hours Card --}}
+                {{-- 2. AI Chatbot Personality & Custom Sales Rules --}}
+                <div class="app-card overflow-hidden">
+                    <div class="app-card-header">
+                        <div class="flex items-center gap-2 text-xs font-semibold text-light-text dark:text-dark-text">
+                            <i class="ri-robot-2-line text-brand-500"></i>
+                            <span>AI Chatbot Personality & Custom Sales Rules</span>
+                            <span class="app-badge app-badge-primary text-3xs uppercase">Omnichannel AI</span>
+                        </div>
+                    </div>
+                    <div class="app-card-body space-y-3.5">
+                        <p class="text-2xs text-light-muted dark:text-dark-muted">
+                            Customize how your AI interacts with customers on Facebook Messenger, WhatsApp, TikTok, and your Storefront Web Widget.
+                        </p>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            {{-- Bot Name --}}
+                            <div class="space-y-1">
+                                <label for="ai_bot_name" class="text-2xs font-semibold text-light-text dark:text-dark-text">
+                                    AI Bot Persona Name
+                                </label>
+                                <input 
+                                    type="text" 
+                                    class="app-input w-full" 
+                                    name="settings[ai_bot_name]" 
+                                    id="ai_bot_name" 
+                                    value="{{ old('settings.ai_bot_name', $workspace->getAiBotName()) }}" 
+                                    placeholder="e.g. {{ $workspace->name }} AI Assistant"
+                                >
+                                <span class="text-3xs text-light-muted dark:text-dark-muted block">The name the bot introduces itself with.</span>
+                            </div>
+
+                            {{-- Tone & Persona --}}
+                            <div class="space-y-1">
+                                <label for="ai_persona_tone" class="text-2xs font-semibold text-light-text dark:text-dark-text">
+                                    Conversational Tone & Language Style
+                                </label>
+                                <select class="app-select w-full" name="settings[ai_persona_tone]" id="ai_persona_tone">
+                                    <option value="friendly_banglish" {{ old('settings.ai_persona_tone', $workspace->getAiPersonaTone()) === 'friendly_banglish' ? 'selected' : '' }}>
+                                        Friendly E-commerce (বাংলা ও বাংলিশ — "জি ভাইয়া/আপু")
+                                    </option>
+                                    <option value="formal_bengali" {{ old('settings.ai_persona_tone', $workspace->getAiPersonaTone()) === 'formal_bengali' ? 'selected' : '' }}>
+                                        Formal Standard Bengali (প্রমিত বাংলা — "সম্মানিত গ্রাহক")
+                                    </option>
+                                    <option value="balanced" {{ old('settings.ai_persona_tone', $workspace->getAiPersonaTone()) === 'balanced' ? 'selected' : '' }}>
+                                        Balanced & Adaptable (ম্যাচিং ল্যাঙ্গুয়েজ ও মার্জিত ভাষা)
+                                    </option>
+                                    <option value="professional_english" {{ old('settings.ai_persona_tone', $workspace->getAiPersonaTone()) === 'professional_english' ? 'selected' : '' }}>
+                                        Professional English (Corporate & International)
+                                    </option>
+                                </select>
+                                <span class="text-3xs text-light-muted dark:text-dark-muted block">Dictates greetings, empathy, and phrasing style.</span>
+                            </div>
+                        </div>
+
+                        {{-- Custom Sales Rules / System Prompt --}}
+                        <div class="space-y-1">
+                            <label for="custom_sales_prompt" class="text-2xs font-semibold text-light-text dark:text-dark-text flex items-center justify-between">
+                                <span>Custom Business & Delivery Rules (Prompt Directives)</span>
+                                <span class="text-brand-500 text-3xs font-mono">Injected into LLM</span>
+                            </label>
+                            <textarea 
+                                class="app-textarea w-full !h-24 py-2 text-xs" 
+                                name="settings[custom_sales_prompt]" 
+                                id="custom_sales_prompt" 
+                                rows="3" 
+                                placeholder="যেমন:
+• ডেলিভারি চার্জ: ঢাকার ভিতরে ৳৮০, ঢাকার বাইরে ৳১৫০।
+• ডেলিভারি সময়: ২-৩ কার্যদিবস। ক্যাশ অন ডেলিভারি প্রযোজ্য।
+• কোনো পোশাকে সাইজ বা কালার সমস্যা হলে ৩ দিনের মধ্যে এক্সচেঞ্জ সুবিধা রয়েছে।
+• কাস্টমার অর্ডার করতে চাইলে তাদের নাম, ফোন নম্বর ও ডেলিভারি ঠিকানা চেয়ে নাও।"
+                            >{{ old('settings.custom_sales_prompt', $workspace->getCustomSalesPrompt()) }}</textarea>
+                            <span class="text-3xs text-light-muted dark:text-dark-muted block">
+                                Add delivery charges, return policies, warranty terms, and discounts that the AI must follow.
+                            </span>
+                        </div>
+
+                        {{-- Fallback Message --}}
+                        <div class="space-y-1">
+                            <label for="fallback_message" class="text-2xs font-semibold text-light-text dark:text-dark-text">
+                                Fallback Response (When Information is Unknown)
+                            </label>
+                            <input 
+                                type="text" 
+                                class="app-input w-full text-xs" 
+                                name="settings[fallback_message]" 
+                                id="fallback_message" 
+                                value="{{ old('settings.fallback_message', $workspace->getFallbackMessage()) }}" 
+                                placeholder="দুঃখিত, এই বিষয়টি সম্পর্কে আমার কাছে সঠিক তথ্য নেই। আমাদের সাপোর্ট টিম দ্রুত আপনার সাথে যোগাযোগ করবে।"
+                            >
+                            <span class="text-3xs text-light-muted dark:text-dark-muted block">Sent when a customer asks a question outside your knowledge base.</span>
+                        </div>
+
+                        {{-- Auto Lead Capture Switch --}}
+                        <div class="pt-2 border-t border-light-border dark:border-dark-border flex items-center justify-between">
+                            <div>
+                                <strong class="text-xs font-semibold text-light-text dark:text-dark-text block">
+                                    Automated Order & Lead Extraction
+                                </strong>
+                                <span class="text-3xs text-light-muted dark:text-dark-muted">
+                                    When customers provide their Name, Phone & Address in chat, automatically parse and save to your Orders Hub.
+                                </span>
+                            </div>
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="hidden" name="settings[order_auto_capture_enabled]" value="0">
+                                <input 
+                                    type="checkbox" 
+                                    name="settings[order_auto_capture_enabled]" 
+                                    value="1" 
+                                    class="sr-only peer"
+                                    {{ old('settings.order_auto_capture_enabled', $workspace->isOrderAutoCaptureEnabled()) ? 'checked' : '' }}
+                                >
+                                <div class="w-9 h-5 bg-slate-300 dark:bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-brand-500"></div>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                {{-- 3. Operating Hours Card --}}
                 <div class="app-card overflow-hidden">
                     <div class="app-card-header">
                         <div class="flex items-center gap-2 text-xs font-semibold text-light-text dark:text-dark-text">
@@ -168,16 +288,16 @@
                             <code class="text-2xs text-brand-500 font-mono">{{ $workspace->slug }}</code>
                         </div>
                         <div class="pb-2 border-b border-light-border dark:border-dark-border flex items-center justify-between">
-                            <span class="text-light-muted dark:text-dark-muted">System Status:</span>
-                            @if($workspace->is_active)
-                                <span class="app-badge app-badge-success"><i class="ri-checkbox-circle-fill text-xs mr-1"></i> Active</span>
-                            @else
-                                <span class="app-badge app-badge-danger"><i class="ri-close-circle-fill text-xs mr-1"></i> Inactive</span>
-                            @endif
+                            <span class="text-light-muted dark:text-dark-muted">Prepaid Metered Rate:</span>
+                            <span class="font-mono font-semibold text-light-text dark:text-dark-text">৳{{ number_format((float)($workspace->wallet?->rate_per_message ?? 0.40), 2) }} / msg</span>
                         </div>
                         <div class="flex items-center justify-between">
-                            <span class="text-light-muted dark:text-dark-muted">Created:</span>
-                            <span class="text-light-text dark:text-dark-text text-2xs">{{ $workspace->created_at?->format('d M, Y') }}</span>
+                            <span class="text-light-muted dark:text-dark-muted">Tenant Status:</span>
+                            @if($workspace->is_active)
+                                <span class="app-badge app-badge-success uppercase">Active</span>
+                            @else
+                                <span class="app-badge app-badge-danger uppercase">Suspended</span>
+                            @endif
                         </div>
                     </div>
                 </div>
@@ -185,10 +305,11 @@
                 {{-- AI Grounding Notice --}}
                 <div class="p-3 rounded border border-brand-500/20 bg-brand-500/10 text-2xs space-y-1">
                     <div class="font-semibold text-brand-500 flex items-center gap-1">
-                        <i class="ri-robot-2-line"></i> Grounded AI Assistant
+                        <i class="ri-information-line"></i>
+                        <span>AI Grounding & Context</span>
                     </div>
-                    <p class="text-light-muted dark:text-dark-muted">
-                        All values configured here serve as immutable source-of-truth context injected into the Unified Decision Engine (UDE) to prevent hallucinations.
+                    <p class="text-light-text-secondary dark:text-dark-text-secondary">
+                        The AI chatbot seamlessly combines these business rules with your FAQs, uploaded documents, spreadsheets, and live store catalogue to formulate precise responses.
                     </p>
                 </div>
             </div>

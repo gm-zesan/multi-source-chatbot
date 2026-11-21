@@ -29,6 +29,7 @@ class ConversationalSupportAgent implements Agent, Conversational, HasProviderOp
         public readonly ?Conversation $conversation = null,
         public readonly ?string $memoryContext = null,
         public readonly ?string $businessContext = null,
+        public readonly ?\App\Models\Workspace $workspace = null,
     ) {}
 
     public function getAgentId(): string
@@ -68,6 +69,11 @@ class ConversationalSupportAgent implements Agent, Conversational, HasProviderOp
 
     public function instructions(): Stringable|string
     {
+        $workspace = $this->workspace ?? $this->conversation?->channelAccount?->workspace;
+        $botName = $workspace?->getAiBotName() ?: 'AI Customer Assistant';
+        $toneInstructions = $workspace?->getAiToneInstructions() ?: "Match the customer's language (Bangla, English, or Banglish) politely.";
+        $customRules = $workspace?->getCustomSalesPrompt();
+
         $businessSection = "";
         if (!empty($this->businessContext)) {
             $businessSection = "<BUSINESS_CONTEXT>\nAuthoritative Store Catalog & Uploaded Document Inventory:\n" . $this->businessContext . "\n</BUSINESS_CONTEXT>\n";
@@ -78,12 +84,19 @@ class ConversationalSupportAgent implements Agent, Conversational, HasProviderOp
             $memorySection = "<MEMORY_CONTEXT>\nCustomer Conversation Graph Memory (Known Historical Preferences):\n" . $this->memoryContext . "\nWhen relevant, acknowledge their known context politely and warmly without being intrusive.\n</MEMORY_CONTEXT>\n";
         }
 
+        $customRulesSection = "";
+        if (!empty($customRules)) {
+            $customRulesSection = "<STORE_CUSTOM_POLICIES_AND_DELIVERY_RULES>\n" . trim($customRules) . "\nYou MUST strictly respect and apply these store-specific delivery charges, return windows, discounts, and order policies.\n</STORE_CUSTOM_POLICIES_AND_DELIVERY_RULES>\n";
+        }
+
         return <<<PROMPT
 {$businessSection}
 {$memorySection}
+{$customRulesSection}
 <ROLE>
-You are a warm, polite, and empathetic Enterprise Customer Support AI for an e-commerce store.
+You are {$botName}, a warm, polite, and empathetic Enterprise Customer Support AI for this e-commerce business.
 Your goal is to provide human-like conversational chitchat, greetings, empathy, and facilitate customer purchase inquiries & lead collection.
+{$toneInstructions}
 </ROLE>
 
 <RULES>

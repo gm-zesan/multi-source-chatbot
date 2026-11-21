@@ -111,6 +111,9 @@ Route::middleware('auth')->prefix('dashboard')->group(function () {
     Route::post('/conversations/{conversation}/status', [ConversationController::class, 'updateStatus'])
         ->name('conversations.update-status')
         ->middleware('permission:' . ConversationPermission::UPDATE->value);
+    Route::post('/conversations/{conversation}/toggle-ai', [ConversationController::class, 'toggleAi'])
+        ->name('conversations.toggle-ai')
+        ->middleware('permission:' . ConversationPermission::UPDATE->value);
 
     // Users
     Route::post('/users/{user}/assign-role', [UserController::class, 'assignRole'])
@@ -222,6 +225,14 @@ Route::middleware('auth')->prefix('dashboard')->group(function () {
     Route::get('/commercial-dashboard', fn() => redirect()->route('admin.commercial.index'))
         ->name('commercial.index');
     Route::get('/admin/commercial', fn() => redirect()->route('admin.commercial.index'));
+    Route::post('/admin/commercial/plans', [\App\Http\Controllers\SuperAdminCommercialController::class, 'storePlan'])
+        ->name('admin.commercial.plans.store');
+    Route::put('/admin/commercial/plans/{plan}', [\App\Http\Controllers\SuperAdminCommercialController::class, 'updatePlan'])
+        ->name('admin.commercial.plans.update');
+    Route::post('/admin/commercial/plans/{plan}/toggle', [\App\Http\Controllers\SuperAdminCommercialController::class, 'togglePlan'])
+        ->name('admin.commercial.plans.toggle');
+    Route::delete('/admin/commercial/plans/{plan}', [\App\Http\Controllers\SuperAdminCommercialController::class, 'destroyPlan'])
+        ->name('admin.commercial.plans.destroy');
 
     // ── Multi-Tenant Workspaces Management ──────────────────────────────
     Route::get('/workspaces', [\App\Http\Controllers\SuperAdminWorkspaceController::class, 'index'])
@@ -246,6 +257,8 @@ Route::middleware('auth')->prefix('dashboard')->group(function () {
         ->name('channels.toggle');
     Route::delete('/channels/{channelAccount}', [\App\Http\Controllers\ChannelIntegrationController::class, 'destroy'])
         ->name('channels.destroy');
+    Route::post('/channels/{channelAccount}/ping', [\App\Http\Controllers\ChannelIntegrationController::class, 'ping'])
+        ->name('channels.ping');
 
     // ── Prepaid Wallet & Metered Billing (Option 1: ৳0.40/msg) ─────────
     Route::get('/billing', [\App\Http\Controllers\BillingController::class, 'index'])
@@ -254,6 +267,14 @@ Route::middleware('auth')->prefix('dashboard')->group(function () {
         ->name('billing.recharge');
     Route::post('/admin/commercial/wallets/{workspace}/adjust', [\App\Http\Controllers\SuperAdminCommercialController::class, 'adjustWallet'])
         ->name('admin.commercial.wallets.adjust');
+
+    // ── Orders & Captured Leads Hub ───────────────────────────────────
+    Route::get('/orders', [\App\Http\Controllers\WorkspaceOrderController::class, 'index'])
+        ->name('orders.index');
+    Route::post('/orders/{order}/status', [\App\Http\Controllers\WorkspaceOrderController::class, 'updateStatus'])
+        ->name('orders.update-status');
+    Route::get('/orders/export', [\App\Http\Controllers\WorkspaceOrderController::class, 'exportCsv'])
+        ->name('orders.export');
 
     // ── Developer REST API Key Management ──────────────────────────────
     Route::get('/developer/api-keys', [\App\Http\Controllers\ApiKeyController::class, 'index'])

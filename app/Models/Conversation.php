@@ -45,6 +45,47 @@ class Conversation extends Model
         return $this->hasMany(Message::class);
     }
 
+    public function orders(): HasMany
+    {
+        return $this->hasMany(WorkspaceOrder::class);
+    }
+
+    public function isAiPaused(): bool
+    {
+        $paused = (bool) ($this->metadata['ai_paused'] ?? false);
+        if (! $paused) {
+            return false;
+        }
+
+        $until = $this->metadata['ai_paused_until'] ?? null;
+        if ($until && \Carbon\Carbon::parse($until)->isPast()) {
+            $this->resumeAi();
+            return false;
+        }
+
+        return true;
+    }
+
+    public function pauseAi(?\Carbon\Carbon $until = null): void
+    {
+        $meta = $this->metadata ?? [];
+        $meta['ai_paused'] = true;
+        $meta['ai_paused_until'] = $until?->toIso8601String();
+        $meta['ai_paused_at'] = now()->toIso8601String();
+        $this->metadata = $meta;
+        $this->save();
+    }
+
+    public function resumeAi(): void
+    {
+        $meta = $this->metadata ?? [];
+        $meta['ai_paused'] = false;
+        unset($meta['ai_paused_until']);
+        $meta['ai_resumed_at'] = now()->toIso8601String();
+        $this->metadata = $meta;
+        $this->save();
+    }
+
     public function channelAccount()
     {
         return $this->belongsTo(ChannelAccount::class);

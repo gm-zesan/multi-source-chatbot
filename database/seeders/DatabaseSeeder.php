@@ -30,6 +30,7 @@ class DatabaseSeeder extends Seeder
             UnansweredQuestionSeeder::class,
             AnalyticsDatabaseSeeder::class,
             KnowledgeDocumentSeeder::class,
+            SubscriptionPlanSeeder::class,
         ]);
     }
 }

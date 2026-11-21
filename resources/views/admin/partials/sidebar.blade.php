@@ -29,6 +29,10 @@
                         <i class="ri-message-3-line text-sm {{ Route::is('conversations.*') ? 'text-brand-500' : 'text-light-muted dark:text-dark-muted' }}"></i>
                         <span class="sidebar-text-label">Conversations</span>
                     </a>
+                    <a href="{{ route('orders.index') }}" title="Orders & Leads" class="sidebar-nav-item flex items-center gap-2 px-2.5 py-1.5 rounded text-xs font-medium transition-colors {{ Route::is('orders.*') ? 'text-brand-600 dark:text-brand-400 bg-brand-500/10 font-semibold border-l-2 border-brand-500 rounded-l-none' : 'text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text dark:hover:text-dark-text hover:bg-light-elevated dark:hover:bg-dark-elevated' }}">
+                        <i class="ri-shopping-bag-3-line text-sm {{ Route::is('orders.*') ? 'text-brand-500' : 'text-light-muted dark:text-dark-muted' }}"></i>
+                        <span class="sidebar-text-label">Orders & Leads</span>
+                    </a>
                     <a href="{{ route('analytics.index') }}" title="Analytics & BI" class="sidebar-nav-item flex items-center gap-2 px-2.5 py-1.5 rounded text-xs font-medium transition-colors {{ Route::is('analytics.*') ? 'text-brand-600 dark:text-brand-400 bg-brand-500/10 font-semibold border-l-2 border-brand-500 rounded-l-none' : 'text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text dark:hover:text-dark-text hover:bg-light-elevated dark:hover:bg-dark-elevated' }}">
                         <i class="ri-bar-chart-2-line text-sm {{ Route::is('analytics.*') ? 'text-brand-500' : 'text-light-muted dark:text-dark-muted' }}"></i>
                         <span class="sidebar-text-label">Analytics & BI</span>

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Models\SubscriptionPlan;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;
 
@@ -11,7 +12,13 @@ class PublicPageController extends Controller
 {
     public function home(): View
     {
-        return view('public.home');
+        $meteredPlan = SubscriptionPlan::where('slug', 'metered-billing')->first();
+        $starterPlan = SubscriptionPlan::where('slug', 'starter-bonus')->first();
+
+        return view('public.home', [
+            'meteredPlan' => $meteredPlan,
+            'starterPlan' => $starterPlan,
+        ]);
     }
 
     public function platform(): View
@@ -51,7 +58,21 @@ class PublicPageController extends Controller
 
     public function pricing(): View
     {
-        return view('public.pricing');
+        $plans = SubscriptionPlan::where('is_active', true)
+            ->orderBy('sort_order', 'asc')
+            ->orderBy('id', 'asc')
+            ->get();
+
+        $meteredPlan = $plans->firstWhere('slug', 'metered-billing') 
+            ?? SubscriptionPlan::where('slug', 'metered-billing')->first();
+        $starterPlan = $plans->firstWhere('slug', 'starter-bonus') 
+            ?? SubscriptionPlan::where('slug', 'starter-bonus')->first();
+
+        return view('public.pricing', [
+            'plans'       => $plans,
+            'meteredPlan' => $meteredPlan,
+            'starterPlan' => $starterPlan,
+        ]);
     }
 
     public function about(): View

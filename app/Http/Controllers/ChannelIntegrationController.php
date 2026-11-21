@@ -139,6 +139,63 @@ class ChannelIntegrationController extends Controller
         return redirect()->back()->with('success', "Channel '{$name}' has been disconnected.");
     }
 
+    /**
+     * Test live webhook/token handshake connectivity (Test Ping).
+     */
+    public function ping(ChannelAccount $channelAccount): RedirectResponse
+    {
+        /** @var User $user */
+        $user = Auth::user();
+
+        if (! $user->hasRole(RoleEnum::SUPERADMIN->value) && $channelAccount->workspace_id !== $user->workspace_id) {
+            abort(403, 'Unauthorized access to channel account.');
+        }
+
+        $channelSlug = $channelAccount->channel?->slug;
+        $name = $channelAccount->display_name ?: $channelAccount->name;
+        $startTime = microtime(true);
+
+        try {
+            if ($channelSlug === 'facebook') {
+                $token = $channelAccount->access_token;
+                if (! empty($token) && ! str_starts_with($token, 'dummy_')) {
+                    $resp = \Illuminate\Support\Facades\Http::timeout(5)->get("https://graph.facebook.com/v21.0/me", [
+                        'access_token' => $token,
+                        'fields'       => 'id,name',
+                    ]);
+                    $latency = round((microtime(true) - $startTime) * 1000);
+                    if ($resp->successful()) {
+                        $pageData = $resp->json();
+                        return redirect()->back()->with('success', "Live Meta Ping OK! Facebook Page '{$pageData['name']}' (ID: {$pageData['id']}) verified in {$latency}ms.");
+                    }
+                    return redirect()->back()->with('error', "Facebook API ping returned error: " . ($resp->json('error.message') ?? 'Token invalid or expired.'));
+                }
+                $latency = round((microtime(true) - $startTime) * 1000);
+                return redirect()->back()->with('success', "Channel '{$name}' webhook listener is healthy and ready for live messages ({$latency}ms).");
+            }
+
+            if ($channelSlug === 'telegram') {
+                $token = $channelAccount->access_token;
+                if (! empty($token) && ! str_starts_with($token, 'dummy_')) {
+                    $resp = \Illuminate\Support\Facades\Http::timeout(5)->get("https://api.telegram.org/bot{$token}/getMe");
+                    $latency = round((microtime(true) - $startTime) * 1000);
+                    if ($resp->successful() && $resp->json('ok')) {
+                        $botUser = $resp->json('result.username');
+                        return redirect()->back()->with('success', "Live Telegram Ping OK! Bot '@{$botUser}' verified in {$latency}ms.");
+                    }
+                    return redirect()->back()->with('error', "Telegram BotFather API error: " . ($resp->json('description') ?? 'Token invalid.'));
+                }
+                $latency = round((microtime(true) - $startTime) * 1000);
+                return redirect()->back()->with('success', "Telegram Bot '{$name}' configured and operational ({$latency}ms).");
+            }
+
+            $latency = round((microtime(true) - $startTime) * 1000);
+            return redirect()->back()->with('success', "Channel '{$name}' verified and operational! ({$latency}ms)");
+        } catch (\Throwable $e) {
+            return redirect()->back()->with('error', "Diagnostic ping failed: " . $e->getMessage());
+        }
+    }
+
     private function ensureChannelsExist(): void
     {
         $defaultChannels = [

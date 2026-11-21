@@ -41,7 +41,7 @@ class PublicMarketingWebsiteTest extends TestCase
             ['automation', 'Smarter Operations. Automated Workflows'],
             ['integrations', 'Integrated With Your Commerce Stack'],
             ['solutions', 'Tailored for High-Velocity Modern Commerce'],
-            ['pricing', 'Simple, Scalable Plans for High-Growth Commerce'],
+            ['pricing', 'Simple, Fair Pricing'],
             ['about', 'Building the Operating System for Intelligent Commerce'],
             ['contact', "Let's Discuss Your Business Operations"],
             ['resources', 'Resources, Guides'],

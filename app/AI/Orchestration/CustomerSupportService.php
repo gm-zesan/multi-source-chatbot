@@ -388,6 +388,14 @@ class CustomerSupportService
             return null;
         }
 
+        if ($conversation->isAiPaused()) {
+            Log::info('[CustomerSupportService] Skipping AI reply: Conversation AI is paused by human staff', [
+                'conversation_id' => $conversation->id,
+            ]);
+
+            return null;
+        }
+
         $result = $this->handleQuery(
             query: $message->body,
             workspaceId: $workspaceId,
@@ -448,6 +456,17 @@ class CustomerSupportService
             ));
         } catch (\Throwable $e) {
             Log::warning('[CustomerSupportService] Telemetry dispatch failed safely (Observer pattern): ' . $e->getMessage());
+        }
+
+        // Automated Order & Lead Extraction
+        try {
+            app(\App\Services\Commerce\OrderCaptureService::class)->extractAndCapture(
+                conversation: $conversation,
+                userMessage: $message->body,
+                aiResponse: $replyText,
+            );
+        } catch (\Throwable $eOrder) {
+            Log::warning('[CustomerSupportService] Order capture extraction non-fatal failure: ' . $eOrder->getMessage());
         }
 
         return $savedMessage;
@@ -2080,11 +2099,15 @@ PROMPT;
         $fallbackProvider = config('ai.fallback_provider', 'openrouter');
         $fallbackModel = config('ai.fallback_model', 'openrouter/free');
 
+        $workspace = Workspace::find($workspaceId) ?? $conversation?->channelAccount?->workspace;
+
         $agent = new KnowledgeSupportAgent(
             conversation: $conversation,
             retrievedKnowledge: $retrievedHits,
             memoryContext: $memoryContext,
             businessContext: $businessContext,
+            retrievalTool: null,
+            workspace: $workspace,
         );
 
         // Tier 1: Try Primary Provider
@@ -2160,10 +2183,13 @@ PROMPT;
         $fallbackProvider = config('ai.fallback_provider', 'openrouter');
         $fallbackModel = config('ai.fallback_model', 'openrouter/free');
 
+        $workspace = $conversation?->channelAccount?->workspace;
+
         $agent = new ConversationalSupportAgent(
             conversation: $conversation,
             memoryContext: $memoryContext,
             businessContext: $businessContext,
+            workspace: $workspace,
         );
 
         // Tier 1: Try Primary Provider

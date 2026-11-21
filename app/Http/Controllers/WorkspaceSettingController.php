@@ -76,6 +76,12 @@ class WorkspaceSettingController extends Controller
             : (int) ($user->workspace_id ?: Workspace::first()?->id ?: 1);
 
         $workspace = Workspace::findOrFail($workspaceId);
+        
+        $existingSettings = $workspace->settings ?? [];
+        if (isset($validated['settings'])) {
+            $validated['settings'] = array_merge($existingSettings, $validated['settings']);
+        }
+
         $workspace->update($validated);
 
         $redirectParams = $isSuperAdmin ? ['workspace_id' => $workspaceId] : [];

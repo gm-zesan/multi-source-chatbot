@@ -34,6 +34,7 @@ class KnowledgeSupportAgent implements Agent, Conversational, HasProviderOptions
         public readonly ?string $memoryContext = null,
         public readonly ?string $businessContext = null,
         public readonly mixed $retrievalTool = null,
+        public readonly ?\App\Models\Workspace $workspace = null,
     ) {}
 
     public function getAgentId(): string
@@ -100,10 +101,22 @@ class KnowledgeSupportAgent implements Agent, Conversational, HasProviderOptions
             $memorySection = "<MEMORY_CONTEXT>\n[Layer 2: Customer Conversation Graph Memory (Historical Preferences)]\nCustomer Preferences:\n" . $this->memoryContext . "\n</MEMORY_CONTEXT>\n";
         }
 
+        $workspace = $this->workspace ?? $this->conversation?->channelAccount?->workspace;
+        $botName = $workspace?->getAiBotName() ?: 'Enterprise Customer Support AI Assistant';
+        $toneInstructions = $workspace?->getAiToneInstructions() ?: "Match the customer's language style naturally (Bangla, Banglish, English, or Code-Mixed). Maintain a warm, professional, and empathetic tone.";
+        $customRules = $workspace?->getCustomSalesPrompt();
+
+        $customRulesSection = "";
+        if (!empty($customRules)) {
+            $customRulesSection = "<STORE_CUSTOM_POLICIES_AND_DELIVERY_RULES>\n" . trim($customRules) . "\nYou MUST strictly respect and apply these store-specific delivery charges, return windows, discounts, and order policies.\n</STORE_CUSTOM_POLICIES_AND_DELIVERY_RULES>\n";
+        }
+
         return <<<PROMPT
 <ROLE>
-You are a professional Enterprise Customer Support AI Assistant. Your goal is to assist customers accurately, politely, and concisely based ONLY on the provided context.
+You are {$botName}, a professional Enterprise Customer Support AI Assistant for this store. Your goal is to assist customers accurately, politely, and concisely based ONLY on the provided context.
+{$toneInstructions}
 </ROLE>
+{$customRulesSection}
 
 <CONTEXT_HIERARCHY>
 Context Hierarchy & Conflict Resolution:
