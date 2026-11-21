@@ -331,4 +331,119 @@ class UnifiedOrchestratorProductionIntegrationTest extends TestCase
         $response->assertRedirect('/dashboard/conversations');
         $response->assertSessionHas('success', 'AI response generated successfully.');
     }
+
+    /**
+     * Test 7: In-domain missing knowledge query with 0 hits returns calibrated in-domain
+     * message with answered=false and route=unanswerable (GAP-RET-01).
+     */
+    public function test_7_in_domain_zero_match_query_returns_calibrated_unanswerable(): void
+    {
+        /** @var UnifiedOrchestrator $orchestrator */
+        $orchestrator = app(UnifiedOrchestrator::class);
+
+        $conv = Conversation::create([
+            'channel_account_id' => $this->whatsappAccount->id,
+            'external_user_id'   => 'user_wa_unanswerable',
+            'status'             => 'open',
+            'last_direction'     => 'inbound',
+        ]);
+
+        $result = $orchestrator->process(
+            query: 'আপনাদের শোরুমের ঠিকানা কোথায়?',
+            workspaceId: (int) $this->workspace->id,
+            user: null,
+            conversation: $conv,
+            channelSlug: 'whatsapp',
+            isCustomer: true
+        );
+
+        $this->assertFalse($result['answered']);
+        $this->assertSame('unanswerable', $result['route']);
+        $this->assertStringContainsString('সুনির্দিষ্ট তথ্য আমাদের নলেজ বেসে এই মুহূর্তে পাওয়া যায়নি', $result['reply']);
+        $this->assertStringNotContainsString('নলেজ বেসের আওতাভুক্ত নয়', $result['reply']);
+    }
+
+    /**
+     * Test 8: Knowledge retrieval hit populates non-empty sources list (GAP-GEN-01).
+     */
+    public function test_8_knowledge_hit_populates_sources_list(): void
+    {
+        FAQ::create([
+            'workspace_id'     => $this->workspace->id,
+            'question'         => 'What are your store hours?',
+            'answer'           => 'We are open from 9 AM to 9 PM every day.',
+            'lifecycle_status' => FaqLifecycleStatus::ACTIVE,
+            'is_active'        => true,
+        ]);
+
+        /** @var UnifiedOrchestrator $orchestrator */
+        $orchestrator = app(UnifiedOrchestrator::class);
+
+        $conv = Conversation::create([
+            'channel_account_id' => $this->whatsappAccount->id,
+            'external_user_id'   => 'user_wa_sources',
+            'status'             => 'open',
+            'last_direction'     => 'inbound',
+        ]);
+
+        $result = $orchestrator->process(
+            query: 'What are your store hours?',
+            workspaceId: (int) $this->workspace->id,
+            user: null,
+            conversation: $conv,
+            channelSlug: 'whatsapp',
+            isCustomer: true
+        );
+
+        $this->assertTrue($result['answered']);
+        $this->assertNotEmpty($result['sources']);
+        $this->assertContains('What are your store hours?', $result['sources']);
+    }
+
+    /**
+     * Test 9: Extended conversation window preserves 6-8 dialogue turns (GAP-GEN-04).
+     */
+    public function test_9_extended_conversation_window_preserves_6_to_8_turns_dialogue_context(): void
+    {
+        $conv = Conversation::create([
+            'channel_account_id' => $this->whatsappAccount->id,
+            'external_user_id'   => 'user_wa_multiturn',
+            'status'             => 'open',
+            'last_direction'     => 'inbound',
+        ]);
+
+        // Create 10 previous messages across 5 turns
+        for ($i = 1; $i <= 5; $i++) {
+            \App\Models\Message::create([
+                'conversation_id' => $conv->id,
+                'direction'       => 'inbound',
+                'is_from_user'    => true,
+                'type'            => 'text',
+                'body'            => "Turn {$i}: Customer inquiry about Royal Silk Panjabi variant details.",
+            ]);
+            \App\Models\Message::create([
+                'conversation_id' => $conv->id,
+                'direction'       => 'outbound',
+                'is_from_user'    => false,
+                'type'            => 'text',
+                'body'            => "Turn {$i}: Assistant answer that Royal Silk Panjabi is available in size XL for 3500 BDT.",
+            ]);
+        }
+
+        /** @var UnifiedOrchestrator $orchestrator */
+        $orchestrator = app(UnifiedOrchestrator::class);
+
+        // Access protected buildCompactContext using reflection
+        $reflection = new \ReflectionClass($orchestrator);
+        $method = $reflection->getMethod('buildCompactContext');
+        $method->setAccessible(true);
+
+        $context = $method->invoke($orchestrator, $conv, 'tahole eta delivery kobe pabo?', (int) $this->workspace->id);
+
+        $this->assertNotNull($context);
+        $this->assertStringContainsString('Recent Dialogue Turns', $context);
+        // Verify earlier turns (Turn 1 and Turn 2) are not aggressively dropped
+        $this->assertStringContainsString('Turn 1:', $context);
+        $this->assertStringContainsString('Turn 5:', $context);
+    }
 }

@@ -32,7 +32,7 @@ return [
     */
 
     'memory' => [
-        'max_messages' => (int) env('AI_MEMORY_MAX_MESSAGES', 10),
+        'max_messages' => (int) env('AI_MEMORY_MAX_MESSAGES', 16),
         'max_message_chars' => (int) env('AI_MEMORY_MAX_CHARS', 1000),
     ],
 

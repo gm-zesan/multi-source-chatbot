@@ -4,11 +4,13 @@ declare(strict_types=1);
 
 namespace App\Services\Business;
 
+use App\Models\AnalyticsOrder;
 use App\Models\AnalyticsProduct;
 use App\Models\Conversation;
 use App\Models\CRMContact;
 use App\Models\KnowledgeDocument;
 use App\Models\StructuredRecord;
+use App\Models\WorkspaceOrder;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use PDO;
@@ -112,24 +114,76 @@ class BusinessSourceOfTruthService
      */
     public function lookupOrder(string|int $orderId, int $workspaceId = 1, ?Conversation $conversation = null): ?array
     {
-        // 1. Production safety: Mock fixtures are strictly restricted to automated tests under 'testing'.
-        if (!app()->environment('testing')) {
-            Log::info('[BusinessSourceOfTruth] Order lookup suppressed in non-testing environment (no authoritative source)', [
-                'order_id'     => $orderId,
-                'workspace_id' => $workspaceId,
-            ]);
-            return null;
-        }
-
         $cleanId = ltrim((string) $orderId, '#');
 
-        if (!isset(self::$mockOrderStore[$cleanId])) {
+        $order = null;
+
+        // 1. In 'testing' environment, check mock test fixtures first
+        if (app()->environment('testing') && isset(self::$mockOrderStore[$cleanId])) {
+            $order = self::$mockOrderStore[$cleanId];
+        }
+
+        // 2. Query Authoritative Live Order Database (WorkspaceOrder / AnalyticsOrder)
+        if ($order === null) {
+            $dbOrder = WorkspaceOrder::where('workspace_id', $workspaceId)
+                ->where(function ($q) use ($cleanId) {
+                    $q->where('order_number', $cleanId)
+                        ->orWhere('order_number', '#' . $cleanId)
+                        ->orWhere('id', is_numeric($cleanId) ? (int) $cleanId : 0);
+                })
+                ->first();
+
+            if ($dbOrder !== null) {
+                $order = [
+                    'order_id'           => $dbOrder->order_number ?: (string) $dbOrder->id,
+                    'workspace_id'       => (int) $dbOrder->workspace_id,
+                    'conversation_id'    => $dbOrder->conversation_id,
+                    'external_user_id'   => $dbOrder->conversation?->external_user_id,
+                    'customer_name'      => $dbOrder->customer_name,
+                    'customer_phones'    => array_values(array_filter([$dbOrder->customer_phone])),
+                    'status'             => $dbOrder->status ?: 'Pending',
+                    'carrier'            => $dbOrder->courier_provider ?: 'Standard Courier',
+                    'tracking_code'      => $dbOrder->courier_tracking_code ?: ($dbOrder->courier_consignment_id ?: 'N/A'),
+                    'estimated_delivery' => $dbOrder->courier_status ?: 'Processing',
+                    'total_bdt'          => (float) $dbOrder->order_amount,
+                    'items'              => $dbOrder->product_summary ?: 'Order Items',
+                    'payment_status'     => 'Cash on Delivery',
+                ];
+            } else {
+                $analyticsOrder = AnalyticsOrder::where('workspace_id', $workspaceId)
+                    ->where(function ($q) use ($cleanId) {
+                        $q->where('order_number', $cleanId)
+                            ->orWhere('order_number', '#' . $cleanId)
+                            ->orWhere('id', is_numeric($cleanId) ? (int) $cleanId : 0);
+                    })
+                    ->with(['customer', 'items.product'])
+                    ->first();
+
+                if ($analyticsOrder !== null) {
+                    $itemNames = $analyticsOrder->items->map(fn ($item) => $item->product?->name)->filter()->implode(', ');
+                    $order = [
+                        'order_id'           => $analyticsOrder->order_number ?: (string) $analyticsOrder->id,
+                        'workspace_id'       => (int) $analyticsOrder->workspace_id,
+                        'customer_id'        => (string) $analyticsOrder->customer_id,
+                        'customer_name'      => $analyticsOrder->customer?->name ?? 'Customer',
+                        'customer_phones'    => array_values(array_filter([$analyticsOrder->customer?->phone])),
+                        'status'             => $analyticsOrder->status ?: 'Completed',
+                        'carrier'            => 'Standard Delivery',
+                        'tracking_code'      => 'N/A',
+                        'estimated_delivery' => 'Standard',
+                        'total_bdt'          => (float) $analyticsOrder->net_amount,
+                        'items'              => $itemNames ?: 'Ordered Products',
+                        'payment_status'     => 'Completed',
+                    ];
+                }
+            }
+        }
+
+        if ($order === null) {
             return null;
         }
 
-        $order = self::$mockOrderStore[$cleanId];
-
-        // 2. Enforce Workspace Scoping
+        // 3. Enforce Workspace Scoping
         if (isset($order['workspace_id']) && (int) $order['workspace_id'] !== (int) $workspaceId) {
             Log::warning('[BusinessSourceOfTruth] Cross-workspace order access attempt blocked', [
                 'order_id'            => $cleanId,
@@ -139,7 +193,7 @@ class BusinessSourceOfTruthService
             return null;
         }
 
-        // 3. Enforce Customer Ownership Authorization (fail-closed)
+        // 4. Enforce Customer Ownership Authorization (fail-closed)
         if ($conversation === null || !$this->isAuthorizedCustomerForOrder($conversation, $order)) {
             Log::warning('[BusinessSourceOfTruth] Unauthorized order access attempt blocked (missing or invalid customer ownership)', [
                 'order_id'         => $cleanId,
@@ -149,7 +203,7 @@ class BusinessSourceOfTruthService
             return null;
         }
 
-        Log::info('[BusinessSourceOfTruth] Order resolved from authorized test fixture', [
+        Log::info('[BusinessSourceOfTruth] Order resolved from authoritative source', [
             'order_id'     => $cleanId,
             'status'       => $order['status'] ?? 'Unknown',
             'workspace_id' => $workspaceId,
@@ -168,6 +222,11 @@ class BusinessSourceOfTruthService
      */
     private function isAuthorizedCustomerForOrder(Conversation $conversation, array $order): bool
     {
+        // 0. Same Conversation Check (Orders captured or discussed in this conversation)
+        if (!empty($order['conversation_id']) && (int) $order['conversation_id'] === (int) $conversation->id) {
+            return true;
+        }
+
         // 1. Gather Order Owner Identifiers
         $allowedExternalIds = [];
         if (!empty($order['external_user_id'])) {
@@ -654,9 +713,27 @@ class BusinessSourceOfTruthService
                     $activeDocIds[] = (string) $d->id;
                 }
 
-                $sqliteDir = realpath(base_path('../python-ai-service/storage/excel_databases'));
-                if ($sqliteDir && is_dir($sqliteDir)) {
-                    $dbs = glob("{$sqliteDir}/ws_{$workspaceId}_*.sqlite");
+                $dbs = [];
+
+                // 1. Shared excel_databases directory (strictly scoped to ws_{$workspaceId}_*.sqlite)
+                $sharedDir = realpath(base_path('../python-ai-service/storage/excel_databases'));
+                if ($sharedDir && is_dir($sharedDir)) {
+                    $dbs = array_merge($dbs, glob("{$sharedDir}/ws_{$workspaceId}_*.sqlite") ?: []);
+                }
+
+                // 2. Workspace-isolated local storage directories
+                $localDirs = [
+                    storage_path("app/analytics/{$workspaceId}"),
+                    storage_path("app/spreadsheets/{$workspaceId}"),
+                ];
+                foreach ($localDirs as $lDir) {
+                    if (is_dir($lDir)) {
+                        $dbs = array_merge($dbs, glob("{$lDir}/*.sqlite") ?: []);
+                    }
+                }
+                $dbs = array_unique($dbs);
+
+                if (!empty($dbs)) {
                     $seenFileProd = [];
                     foreach ($dbs as $db) {
                         try {
@@ -664,7 +741,7 @@ class BusinessSourceOfTruthService
                             // Only load databases that belong to active KnowledgeDocuments in this workspace
                             $isActive = false;
                             foreach ($activeDocIds as $docId) {
-                                if (str_contains($base, $docId)) {
+                                if (str_contains($base, (string) $docId)) {
                                     $isActive = true;
                                     break;
                                 }
@@ -697,22 +774,45 @@ class BusinessSourceOfTruthService
 
                             foreach ($tables as $tbl) {
                                 $colsStmt = $pdo->query("PRAGMA table_info(\"{$tbl}\")");
-                                $cols = $colsStmt ? array_map('strtolower', array_column($colsStmt->fetchAll(PDO::FETCH_ASSOC), 'name')) : [];
+                                $cols = $colsStmt ? array_map(fn ($c) => mb_strtolower((string) $c), array_column($colsStmt->fetchAll(PDO::FETCH_ASSOC), 'name')) : [];
 
                                 $prodCol = null;
-                                foreach (['product_name', 'product', 'item_name', 'item', 'product_name_description', 'title'] as $cand) {
-                                    if (in_array($cand, $cols)) {
+                                $prodCandidates = [
+                                    'product_name', 'product', 'item_name', 'item', 'product_name_description', 'title',
+                                    'পণ্যের_নাম', 'পণ্য', 'আইটেম', 'আইটেমের_নাম', 'প্রোডাক্ট', 'প্রোডাক্টের_নাম', 'কোর্স', 'কোর্সের_নাম', 'সেবা', 'সার্ভিস',
+                                    'product_title', 'name', 'model', 'package_name', 'service_name', 'course_name',
+                                ];
+                                foreach ($prodCandidates as $cand) {
+                                    if (in_array($cand, $cols, true)) {
                                         $prodCol = $cand;
                                         break;
                                     }
                                 }
+                                if (!$prodCol) {
+                                    foreach ($cols as $colName) {
+                                        if (str_contains($colName, 'name') || str_contains($colName, 'title') || str_contains($colName, 'item') || str_contains($colName, 'নাম') || str_contains($colName, 'পণ্য')) {
+                                            $prodCol = $colName;
+                                            break;
+                                        }
+                                    }
+                                }
                                 if (!$prodCol) continue;
 
-                                $catCol = in_array('category', $cols) ? "category" : "NULL";
+                                $catCol = 'NULL';
+                                foreach (['category', 'product_category', 'item_category', 'cat', 'type', 'ক্যাটাগরি', 'ধরন', 'বিভাগ', 'শ্রেণী'] as $candCat) {
+                                    if (in_array($candCat, $cols, true)) {
+                                        $catCol = "\"{$candCat}\"";
+                                        break;
+                                    }
+                                }
 
                                 $priceCol = null;
-                                foreach (['unit_price_bdt', 'price_bdt', 'unit_price', 'selling_price', 'price', 'unit_cost_price', 'total_net', 'mrp', 'rate'] as $candPrice) {
-                                    if (in_array($candPrice, $cols)) {
+                                $priceCandidates = [
+                                    'unit_price_bdt', 'price_bdt', 'unit_price', 'selling_price', 'price', 'unit_cost_price', 'total_net', 'mrp', 'rate',
+                                    'মূল্য', 'দাম', 'টাকা', 'দর', 'রেট', 'ফি', 'খরচ', 'ফি_টাকা',
+                                ];
+                                foreach ($priceCandidates as $candPrice) {
+                                    if (in_array($candPrice, $cols, true)) {
                                         $priceCol = $candPrice;
                                         break;
                                     }
@@ -720,8 +820,12 @@ class BusinessSourceOfTruthService
                                 $priceSql = $priceCol ? "\"{$priceCol}\"" : "NULL";
 
                                 $stockCol = null;
-                                foreach (['stock_qty', 'stock_quantity', 'stock', 'quantity', 'units', 'qty', 'stock_count'] as $candStock) {
-                                    if (in_array($candStock, $cols)) {
+                                $stockCandidates = [
+                                    'stock_qty', 'stock_quantity', 'stock', 'quantity', 'units', 'qty', 'stock_count', 'available_stock',
+                                    'স্টক', 'পরিমাণ', 'মজুদ',
+                                ];
+                                foreach ($stockCandidates as $candStock) {
+                                    if (in_array($candStock, $cols, true)) {
                                         $stockCol = $candStock;
                                         break;
                                     }
@@ -730,23 +834,41 @@ class BusinessSourceOfTruthService
 
                                 $specsCol = null;
                                 foreach (['configuration_specs', 'specs', 'specification', 'specifications', 'config', 'hardware_specs'] as $candSpec) {
-                                    if (in_array($candSpec, $cols)) {
+                                    if (in_array($candSpec, $cols, true)) {
                                         $specsCol = $candSpec;
                                         break;
                                     }
                                 }
-                                $specsSql = $specsCol ? "\"{$specsCol}\"" : "NULL";
+
+                                $variantCols = [];
+                                foreach (['size', 'sizes', 'color', 'colors', 'variant', 'variants', 'সাইজ', 'রং', 'কালার', 'ভেরিয়েন্ট', 'ভেরিয়েন্ট'] as $candVar) {
+                                    if (in_array($candVar, $cols, true)) {
+                                        $variantCols[] = "\"{$candVar}\"";
+                                    }
+                                }
+
+                                if ($specsCol && !empty($variantCols)) {
+                                    $varParts = implode(" || ', ' || ", array_map(fn ($c) => "COALESCE({$c}, '')", $variantCols));
+                                    $specsSql = "TRIM(COALESCE(\"{$specsCol}\", '') || ' | ' || {$varParts})";
+                                } elseif ($specsCol) {
+                                    $specsSql = "\"{$specsCol}\"";
+                                } elseif (!empty($variantCols)) {
+                                    $varParts = implode(" || ', ' || ", array_map(fn ($c) => "COALESCE({$c}, '')", $variantCols));
+                                    $specsSql = "TRIM({$varParts})";
+                                } else {
+                                    $specsSql = "NULL";
+                                }
 
                                 $descCol = null;
-                                foreach (['description', 'desc', 'details', 'product_description'] as $candDesc) {
-                                    if (in_array($candDesc, $cols)) {
+                                foreach (['description', 'desc', 'details', 'product_description', 'বিবরণ', 'বর্ণনা', 'বিস্তারিত'] as $candDesc) {
+                                    if (in_array($candDesc, $cols, true)) {
                                         $descCol = $candDesc;
                                         break;
                                     }
                                 }
                                 $descSql = $descCol ? "\"{$descCol}\"" : "NULL";
 
-                                $stmt = $pdo->query("SELECT DISTINCT \"{$prodCol}\" as p_name, {$catCol} as p_cat, {$priceSql} as p_price, {$stockSql} as p_stock, {$specsSql} as p_specs, {$descSql} as p_desc FROM \"{$tbl}\" WHERE \"{$prodCol}\" IS NOT NULL AND TRIM(\"{$prodCol}\") != '' LIMIT 50");
+                                $stmt = $pdo->query("SELECT DISTINCT \"{$prodCol}\" as p_name, {$catCol} as p_cat, {$priceSql} as p_price, {$stockSql} as p_stock, {$specsSql} as p_specs, {$descSql} as p_desc FROM \"{$tbl}\" WHERE \"{$prodCol}\" IS NOT NULL AND TRIM(\"{$prodCol}\") != '' LIMIT 500");
                                 if ($stmt) {
                                     while ($r = $stmt->fetch(PDO::FETCH_ASSOC)) {
                                         $nm = trim((string) $r['p_name']);
@@ -769,7 +891,80 @@ class BusinessSourceOfTruthService
                                     }
                                 }
                             }
+
+                            // Check for cross-sheet variant joins if multiple tables exist in the spreadsheet
+                            if (count($tables) >= 2) {
+                                $parentTable = null;
+                                $parentIdCol = null;
+                                $parentNameCol = null;
+
+                                foreach ($tables as $tName) {
+                                    $colsStmt = $pdo->query("PRAGMA table_info(\"{$tName}\")");
+                                    $tCols = $colsStmt ? array_map(fn ($c) => mb_strtolower((string) $c), array_column($colsStmt->fetchAll(PDO::FETCH_ASSOC), 'name')) : [];
+                                    $idCands = ['id', 'product_id', 'item_id', 'sku', 'আইডি', 'কোড'];
+                                    $nameCands = ['product_name', 'name', 'item_name', 'title', 'পণ্যের_নাম', 'পণ্য', 'নাম'];
+                                    $fId = null;
+                                    $fName = null;
+                                    foreach ($idCands as $c) { if (in_array($c, $tCols, true)) { $fId = $c; break; } }
+                                    foreach ($nameCands as $c) { if (in_array($c, $tCols, true)) { $fName = $c; break; } }
+                                    if ($fId && $fName) {
+                                        $parentTable = $tName;
+                                        $parentIdCol = $fId;
+                                        $parentNameCol = $fName;
+                                        break;
+                                    }
+                                }
+
+                                if ($parentTable) {
+                                    foreach ($tables as $childTable) {
+                                        if ($childTable === $parentTable) continue;
+                                        $colsStmt = $pdo->query("PRAGMA table_info(\"{$childTable}\")");
+                                        $cCols = $colsStmt ? array_map(fn ($c) => mb_strtolower((string) $c), array_column($colsStmt->fetchAll(PDO::FETCH_ASSOC), 'name')) : [];
+
+                                        $fkCol = null;
+                                        foreach (['product_id', 'item_id', 'id', 'sku', 'আইডি', 'কোড'] as $c) {
+                                            if (in_array($c, $cCols, true)) { $fkCol = $c; break; }
+                                        }
+
+                                        $vCols = [];
+                                        foreach (['size', 'color', 'variant', 'stock', 'stock_qty', 'price', 'unit_price', 'সাইজ', 'রং', 'কালার'] as $c) {
+                                            if (in_array($c, $cCols, true)) {
+                                                $vCols[] = $c;
+                                            }
+                                        }
+
+                                        if ($fkCol && !empty($vCols)) {
+                                            $vParts = implode(" || ', ' || ", array_map(fn ($c) => "'{$c}: ' || COALESCE(C.\"{$c}\", '')", $vCols));
+                                            $joinSql = "SELECT P.\"{$parentNameCol}\" as p_name, {$vParts} as p_specs FROM \"{$parentTable}\" P JOIN \"{$childTable}\" C ON P.\"{$parentIdCol}\" = C.\"{$fkCol}\" LIMIT 500";
+                                            $jStmt = $pdo->query($joinSql);
+                                            if ($jStmt) {
+                                                while ($jr = $jStmt->fetch(PDO::FETCH_ASSOC)) {
+                                                    $jNm = trim((string) $jr['p_name']);
+                                                    $jSpecs = trim((string) $jr['p_specs']);
+                                                    if ($jNm === '' || $jSpecs === '') continue;
+                                                    $fileProducts[] = [
+                                                        'name'        => "{$jNm} ({$jSpecs})",
+                                                        'category'    => 'Variant',
+                                                        'price'       => null,
+                                                        'stock'       => null,
+                                                        'specs'       => $jSpecs,
+                                                        'description' => null,
+                                                        'source'      => "Uploaded File: {$inferredFile} ({$parentTable} + {$childTable})",
+                                                        'source_file' => $inferredFile,
+                                                        'source_type' => 'uploaded_file',
+                                                    ];
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
                         } catch (\Throwable) {}
+                    }
+
+                    // Cross-File Virtual Database Query Federation (GAP-XLS-04)
+                    if (count($dbs) >= 2) {
+                        $this->federateCrossFileDatabases($dbs, $docMap, $seenFileProd, $fileProducts);
                     }
                 }
             } catch (\Throwable $e) {
@@ -934,5 +1129,180 @@ class BusinessSourceOfTruthService
         }
 
         return array_values(array_unique($keywords));
+    }
+
+    /**
+     * Cross-File Virtual Database Query Federation (GAP-XLS-04).
+     * Connects multiple separate SQLite databases within the same workspace using SQLite ATTACH DATABASE.
+     * Discovers entity foreign-key relationships across independent database files (e.g. products.sqlite + inventory.sqlite)
+     * and joins them in read-only mode to enrich catalog items and extract variant/stock relationships.
+     *
+     * @param string[] $dbs
+     * @param array<string, string> $docMap
+     * @param array<string, bool> $seenFileProd
+     * @param array<int, array<string, mixed>> $fileProducts
+     */
+    private function federateCrossFileDatabases(
+        array $dbs,
+        array $docMap,
+        array &$seenFileProd,
+        array &$fileProducts
+    ): void {
+        if (count($dbs) < 2) {
+            return;
+        }
+
+        $schemas = [];
+        foreach ($dbs as $db) {
+            try {
+                $p = new PDO("sqlite:" . $db);
+                $tablesStmt = $p->query("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'");
+                $tables = $tablesStmt ? $tablesStmt->fetchAll(PDO::FETCH_COLUMN) : [];
+                $tableCols = [];
+                foreach ($tables as $t) {
+                    $cStmt = $p->query("PRAGMA table_info(\"{$t}\")");
+                    $cols = $cStmt ? array_map(fn ($c) => mb_strtolower((string) $c), array_column($cStmt->fetchAll(PDO::FETCH_ASSOC), 'name')) : [];
+                    $tableCols[$t] = $cols;
+                }
+                $schemas[$db] = $tableCols;
+            } catch (\Throwable) {}
+        }
+
+        $idPatterns = ['id', 'product_id', 'item_id', 'sku', 'code', 'আইডি', 'কোড'];
+        $namePatterns = [
+            'product_name', 'product', 'item_name', 'item', 'title', 'name', 'model',
+            'পণ্যের_নাম', 'পণ্য', 'আইটেম', 'আইটেমের_নাম', 'প্রোডাক্ট', 'প্রোডাক্টের_নাম', 'কোর্স', 'সেবা',
+        ];
+        $stockCandidates = ['stock_qty', 'stock_quantity', 'stock', 'quantity', 'units', 'qty', 'স্টক', 'পরিমাণ', 'মজুদ'];
+        $priceCandidates = ['unit_price_bdt', 'price_bdt', 'unit_price', 'selling_price', 'price', 'মূল্য', 'দাম', 'টাকা', 'দর'];
+        $variantCandidates = ['size', 'color', 'variant', 'warehouse', 'সাইজ', 'রং', 'কালার'];
+
+        // Iterate through all pairs of distinct databases in the workspace
+        $dbList = array_values($dbs);
+        for ($i = 0; $i < count($dbList); $i++) {
+            $dbA = $dbList[$i];
+            if (!isset($schemas[$dbA])) continue;
+
+            for ($j = 0; $j < count($dbList); $j++) {
+                if ($i === $j) continue;
+                $dbB = $dbList[$j];
+                if (!isset($schemas[$dbB])) continue;
+
+                // Look for parent table in dbA with ID and Name
+                foreach ($schemas[$dbA] as $tblA => $colsA) {
+                    $idColA = null;
+                    $nameColA = null;
+                    $priceColA = null;
+                    $stockColA = null;
+                    foreach ($idPatterns as $c) { if (in_array($c, $colsA, true)) { $idColA = $c; break; } }
+                    foreach ($namePatterns as $c) { if (in_array($c, $colsA, true)) { $nameColA = $c; break; } }
+                    foreach ($priceCandidates as $c) { if (in_array($c, $colsA, true)) { $priceColA = $c; break; } }
+                    foreach ($stockCandidates as $c) { if (in_array($c, $colsA, true)) { $stockColA = $c; break; } }
+
+                    if (!$idColA || !$nameColA) continue;
+
+                    // Look for child/extension table in dbB with FK matching idColA
+                    foreach ($schemas[$dbB] as $tblB => $colsB) {
+                        $fkColB = null;
+                        foreach ($idPatterns as $c) { if (in_array($c, $colsB, true)) { $fkColB = $c; break; } }
+                        if (!$fkColB) continue;
+
+                        // Check if dbB table has stock, price, or variant columns
+                        $stockColB = null;
+                        foreach ($stockCandidates as $c) { if (in_array($c, $colsB, true)) { $stockColB = $c; break; } }
+
+                        $priceColB = null;
+                        foreach ($priceCandidates as $c) { if (in_array($c, $colsB, true)) { $priceColB = $c; break; } }
+
+                        $vColsB = [];
+                        foreach ($variantCandidates as $c) { if (in_array($c, $colsB, true)) { $vColsB[] = $c; } }
+
+                        if (!$stockColB && !$priceColB && empty($vColsB)) continue;
+
+                        try {
+                            $pdoA = new PDO("sqlite:" . $dbA);
+                            $pdoA->exec("ATTACH DATABASE " . $pdoA->quote($dbB) . " AS ext_b");
+
+                            $stockSql = $stockColB ? "B.\"{$stockColB}\"" : ($stockColA ? "A.\"{$stockColA}\"" : "NULL");
+                            $priceSql = $priceColB ? "B.\"{$priceColB}\"" : ($priceColA ? "A.\"{$priceColA}\"" : "NULL");
+
+                            $vParts = !empty($vColsB)
+                                ? implode(" || ', ' || ", array_map(fn ($c) => "'{$c}: ' || COALESCE(B.\"{$c}\", '')", $vColsB))
+                                : "NULL";
+
+                            $joinSql = "SELECT DISTINCT A.\"{$nameColA}\" as p_name, {$priceSql} as p_price, {$stockSql} as p_stock, {$vParts} as p_specs "
+                                . "FROM \"{$tblA}\" A JOIN ext_b.\"{$tblB}\" B ON A.\"{$idColA}\" = B.\"{$fkColB}\" "
+                                . "WHERE A.\"{$nameColA}\" IS NOT NULL AND TRIM(A.\"{$nameColA}\") != '' LIMIT 500";
+
+                            $jStmt = $pdoA->query($joinSql);
+                            if ($jStmt) {
+                                $fileA = basename($dbA);
+                                foreach ($docMap as $uuid => $fn) { if (str_contains($fileA, $uuid)) { $fileA = $fn; break; } }
+                                $fileB = basename($dbB);
+                                foreach ($docMap as $uuid => $fn) { if (str_contains($fileB, $uuid)) { $fileB = $fn; break; } }
+
+                                while ($row = $jStmt->fetch(PDO::FETCH_ASSOC)) {
+                                    $pName = trim((string) $row['p_name']);
+                                    if ($pName === '') continue;
+
+                                    $pStock = $row['p_stock'] !== null ? (int) $row['p_stock'] : null;
+                                    $pPrice = $row['p_price'] !== null ? (float) $row['p_price'] : null;
+                                    $pSpecs = !empty($row['p_specs']) && $row['p_specs'] !== 'NULL' ? (string) $row['p_specs'] : null;
+
+                                    // 1. Enrich existing product record if stock or price was previously missing
+                                    $k = mb_strtolower($pName);
+                                    $enriched = false;
+                                    foreach ($fileProducts as &$existingProd) {
+                                        if (mb_strtolower($existingProd['name']) === $k) {
+                                            if ($existingProd['stock'] === null && $pStock !== null) {
+                                                $existingProd['stock'] = $pStock;
+                                                $enriched = true;
+                                            }
+                                            if ($existingProd['price'] === null && $pPrice !== null) {
+                                                $existingProd['price'] = $pPrice;
+                                                $enriched = true;
+                                            }
+                                            if ($pSpecs !== null) {
+                                                $existingProd['specs'] = trim(($existingProd['specs'] ?? '') . ' | ' . $pSpecs, ' |');
+                                                $enriched = true;
+                                            }
+                                            if ($enriched) {
+                                                $existingProd['source'] = "Cross-File Federated: {$existingProd['source_file']} + {$fileB}";
+                                            }
+                                            break;
+                                        }
+                                    }
+                                    unset($existingProd);
+
+                                    // 2. If it is a variant with specs, add as distinct variant entry
+                                    if ($pSpecs !== null) {
+                                        $variantName = "{$pName} ({$pSpecs})";
+                                        $vk = mb_strtolower($variantName);
+                                        if (!isset($seenFileProd[$vk])) {
+                                            $seenFileProd[$vk] = true;
+                                            $fileProducts[] = [
+                                                'name'        => $variantName,
+                                                'category'    => 'Variant',
+                                                'price'       => $pPrice,
+                                                'stock'       => $pStock,
+                                                'specs'       => $pSpecs,
+                                                'description' => null,
+                                                'source'      => "Cross-File Federated: {$fileA} ({$tblA}) + {$fileB} ({$tblB})",
+                                                'source_file' => "{$fileA} + {$fileB}",
+                                                'source_type' => 'uploaded_file',
+                                            ];
+                                        }
+                                    }
+                                }
+                            }
+
+                            $pdoA->exec("DETACH DATABASE ext_b");
+                        } catch (\Throwable $ex) {
+                            Log::debug('[BusinessSourceOfTruth] Cross-file federation query exception: ' . $ex->getMessage());
+                        }
+                    }
+                }
+            }
+        }
     }
 }

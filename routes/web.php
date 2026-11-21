@@ -6,6 +6,7 @@ use App\Enums\Permissions\ConversationPermission;
 use App\Enums\Permissions\FAQPermission;
 use App\Enums\Permissions\KnowledgeDocumentPermission;
 use App\Enums\Permissions\MessagePermission;
+use App\Enums\Permissions\UnansweredQuestionPermission;
 use App\Enums\Permissions\UserPermission;
 use App\Enums\RoleEnum;
 use App\Http\Controllers\AnalyticsDashboardController;
@@ -28,6 +29,7 @@ use App\Http\Controllers\RoleController;
 use App\Http\Controllers\SpreadsheetImportController;
 use App\Http\Controllers\SuperAdminCommercialController;
 use App\Http\Controllers\SuperAdminWorkspaceController;
+use App\Http\Controllers\UnansweredQuestionController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\WebhookController;
 use App\Http\Controllers\WidgetChatController;
@@ -251,6 +253,17 @@ Route::middleware('auth')->prefix('dashboard')->group(function () {
             ->name('relationships.reject')
             ->middleware('permission:' . KnowledgeDocumentPermission::UPDATE->value);
     });
+
+    // Unanswered Questions (Merchant Visibility & 1-Click FAQ Conversion)
+    Route::resource('/unanswered-questions', UnansweredQuestionController::class)->only(['index', 'update', 'destroy'])
+        ->middleware('permission:' . implode('|', [
+            UnansweredQuestionPermission::VIEW->value,
+            UnansweredQuestionPermission::UPDATE->value,
+            UnansweredQuestionPermission::DELETE->value,
+        ]));
+    Route::post('/unanswered-questions/{unanswered_question}/convert-to-faq', [UnansweredQuestionController::class, 'convertToFaq'])
+        ->name('unanswered-questions.convert-to-faq')
+        ->middleware('permission:' . UnansweredQuestionPermission::UPDATE->value);
 
     // ── 4.7 Omnichannel Channels & Developer APIs ─────────────────────
     Route::get('/channels', [ChannelIntegrationController::class, 'index'])->name('channels.index');

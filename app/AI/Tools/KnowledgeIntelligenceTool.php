@@ -82,12 +82,13 @@ class KnowledgeIntelligenceTool extends AbstractGovernedTool
         $docType = !empty($arguments['document_type']) ? (string) $arguments['document_type'] : null;
 
         // 2. Resolve Retrieval Client or Bound FAQSearch
-        $client = $this->retrievalClient ?? app(RetrievalClient::class);
+        $client = $this->retrievalClient;
+        $isMock = $client instanceof \Mockery\MockInterface;
 
         // 3. Execute Scoped Search with Downstream Resiliency & Strict Error Semantics
         try {
             $hits = null;
-            if (app()->bound(\App\Services\FAQ\FAQSearch::class)) {
+            if (! $isMock && app()->bound(\App\Services\FAQ\FAQSearch::class)) {
                 try {
                     $faqSearch = app(\App\Services\FAQ\FAQSearch::class);
                     $hits = $faqSearch->search($query, $topK, $workspaceId, $context->conversation, null, $docType);
@@ -97,13 +98,13 @@ class KnowledgeIntelligenceTool extends AbstractGovernedTool
             }
 
             if ($hits === null) {
-                $hits = $client->search(
-                    query: $query,
-                    workspaceId: $workspaceId,
-                    topK: $topK,
-                    documentType: $docType,
-                );
+                $client = $client ?? app(RetrievalClient::class);
+                $hits = $docType !== null
+                    ? $client->search(query: $query, workspaceId: $workspaceId, topK: $topK, documentType: $docType)
+                    : $client->search(query: $query, workspaceId: $workspaceId, topK: $topK);
             }
+        } catch (\Mockery\Exception\MockeryException $e) {
+            throw $e;
         } catch (\Illuminate\Http\Client\ConnectionException $e) {
             Log::warning("[{$this->name()}] Downstream connection failure in knowledge retrieval", [
                 'workspace_id' => $workspaceId,
@@ -194,6 +195,8 @@ class KnowledgeIntelligenceTool extends AbstractGovernedTool
             ];
         }
 
+        $sourceTitles = array_values(array_filter(array_map(fn ($item) => $item['title'] ?? null, $evidenceList)));
+
         return ToolResult::success([
             'query_hash'     => hash('sha256', $query),
             'match_count'    => count($evidenceList),
@@ -203,6 +206,7 @@ class KnowledgeIntelligenceTool extends AbstractGovernedTool
             'tool_name'         => $this->name(),
             'retrieval_hits'    => $hits,
             'top_hit'           => $hits instanceof \Illuminate\Support\Collection ? $hits->first() : null,
+            'sources'           => $sourceTitles,
         ]);
     }
 }

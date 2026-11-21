@@ -148,10 +148,11 @@ class UnifiedOrchestrator
             }
         }
 
-        // 2. Short-Term Dialogue Context (recent substantive turns)
+        // 2. Short-Term Dialogue Context (recent substantive turns across 6-8 dialogue rounds)
+        $messagesLimit = (int) config('ai.memory.max_messages', 16);
         $messages = $conversation->messages()
             ->latest('id')
-            ->take(3)
+            ->take($messagesLimit)
             ->get()
             ->reverse();
 
@@ -160,8 +161,8 @@ class UnifiedOrchestrator
             foreach ($messages as $msg) {
                 $speaker = $msg->is_from_user ? 'User' : 'Assistant';
                 $text = trim(strip_tags((string) ($msg->body ?? '')));
-                if (mb_strlen($text) > 140) {
-                    $text = mb_substr($text, 0, 140) . '...';
+                if (mb_strlen($text) > 400) {
+                    $text = mb_substr($text, 0, 400) . '...';
                 }
                 if ($text !== '') {
                     $dialogueLines[] = "{$speaker}: {$text}";

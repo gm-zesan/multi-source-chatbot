@@ -1548,5 +1548,244 @@ class KnowledgeDocumentRetrievalPipelineTest extends TestCase
         $deletedUrls = implode(' ', $this->deletedChunks);
         $this->assertStringNotContainsString("_{$initialActiveGen}_", $deletedUrls);
     }
+
+    /**
+     * CSV spreadsheet document extracts structured rows and indexes into knowledge base.
+     */
+    public function test_csv_spreadsheet_document_extracts_structured_rows_and_indexes_into_knowledge_base(): void
+    {
+        $csvContent = "Product Name,Price BDT,Availability\n" .
+                      "Premium Cotton Panjabi,1850,In Stock\n" .
+                      "Linen Casual Shirt,1250,Out of Stock\n";
+
+        $file = UploadedFile::fake()->createWithContent('catalog.csv', $csvContent);
+
+        $document = $this->documentService->store(
+            file: $file,
+            title: 'Product Catalog CSV',
+            purpose: IngestionPurpose::KNOWLEDGE_BASE,
+            explicitWorkspaceId: $this->workspace->id
+        );
+
+        $document->refresh();
+        $this->assertSame(DocumentLifecycleStatus::ACTIVE, $document->lifecycle_status);
+        $this->assertTrue($document->is_active);
+        $this->assertNull($document->error_message);
+
+        // Check synced chunks payload
+        $this->assertNotEmpty($this->syncedChunks);
+        $allSyncedQuestions = array_column($this->syncedChunks, 'question');
+        $allSyncedAnswers = array_column($this->syncedChunks, 'answer');
+        $fullSyncedText = implode("\n", array_merge($allSyncedQuestions, $allSyncedAnswers));
+
+        $this->assertStringContainsString('Premium Cotton Panjabi', $fullSyncedText);
+        $this->assertStringContainsString('1850', $fullSyncedText);
+        $this->assertStringContainsString('Linen Casual Shirt', $fullSyncedText);
+    }
+
+    /**
+     * Excel spreadsheet document extracts sheet columns and rows and indexes into knowledge base.
+     */
+    public function test_excel_spreadsheet_document_extracts_sheet_columns_and_rows_and_indexes_into_knowledge_base(): void
+    {
+        $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+        $sheet->setTitle('Delivery Rates');
+        $sheet->fromArray([
+            ['Destination', 'Express Fee', 'Standard Fee'],
+            ['Inside Dhaka', '100 BDT', '60 BDT'],
+            ['Outside Dhaka', '180 BDT', '120 BDT'],
+        ]);
+
+        $tempFile = tempnam(sys_get_temp_dir(), 'test_xlsx_');
+        $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
+        $writer->save($tempFile);
+
+        $file = new UploadedFile(
+            $tempFile,
+            'rates.xlsx',
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            null,
+            true
+        );
+
+        $document = $this->documentService->store(
+            file: $file,
+            title: 'Delivery Rates Excel',
+            purpose: IngestionPurpose::KNOWLEDGE_BASE,
+            explicitWorkspaceId: $this->workspace->id
+        );
+
+        if (file_exists($tempFile)) {
+            @unlink($tempFile);
+        }
+
+        $document->refresh();
+        $this->assertSame(DocumentLifecycleStatus::ACTIVE, $document->lifecycle_status);
+        $this->assertTrue($document->is_active);
+        $this->assertNull($document->error_message);
+
+        $this->assertNotEmpty($this->syncedChunks);
+        $allSyncedQuestions = array_column($this->syncedChunks, 'question');
+        $allSyncedAnswers = array_column($this->syncedChunks, 'answer');
+        $fullSyncedText = implode("\n", array_merge($allSyncedQuestions, $allSyncedAnswers));
+
+        $this->assertStringContainsString('Inside Dhaka', $fullSyncedText);
+        $this->assertStringContainsString('Express Fee: 100 BDT', $fullSyncedText);
+        $this->assertStringContainsString('Outside Dhaka', $fullSyncedText);
+    }
+
+    /**
+     * Test multi-sheet Excel spreadsheet correlates cross-sheet variant relationships (GAP-XLS-03 & GAP-XLS-05).
+     */
+    public function test_multi_sheet_excel_correlates_cross_sheet_variant_relationships(): void
+    {
+        $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
+
+        // Sheet 1: Products
+        $sheet1 = $spreadsheet->getActiveSheet();
+        $sheet1->setTitle('Products');
+        $sheet1->fromArray([
+            ['ID', 'Product Name', 'Base Price'],
+            ['P100', 'Royal Silk Panjabi', '3500'],
+            ['P200', 'Executive Cotton Shirt', '1800'],
+        ]);
+
+        // Sheet 2: Variants
+        $sheet2 = $spreadsheet->createSheet();
+        $sheet2->setTitle('Variants');
+        $sheet2->fromArray([
+            ['Product ID', 'Size', 'Color', 'Stock Qty'],
+            ['P100', 'XL', 'Maroon', '12'],
+            ['P100', 'L', 'White', '8'],
+            ['P200', 'M', 'Sky Blue', '25'],
+        ]);
+
+        $tempFile = tempnam(sys_get_temp_dir(), 'test_multisheet_');
+        $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
+        $writer->save($tempFile);
+
+        $file = new UploadedFile(
+            $tempFile,
+            'catalog_variants.xlsx',
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            null,
+            true
+        );
+
+        $document = $this->documentService->store(
+            file: $file,
+            title: 'Catalog and Variants',
+            purpose: IngestionPurpose::KNOWLEDGE_BASE,
+            explicitWorkspaceId: $this->workspace->id
+        );
+
+        if (file_exists($tempFile)) {
+            @unlink($tempFile);
+        }
+
+        $document->refresh();
+        $this->assertSame(DocumentLifecycleStatus::ACTIVE, $document->lifecycle_status);
+        $this->assertTrue($document->is_active);
+
+        $this->assertNotEmpty($this->syncedChunks);
+        $allAnswers = implode("\n", array_column($this->syncedChunks, 'answer'));
+
+        // Verify that the child variant rows were augmented with the parent product entity reference
+        $this->assertStringContainsString('Product ID: P100 (Ref Product: Royal Silk Panjabi)', $allAnswers);
+        $this->assertStringContainsString('Size: XL', $allAnswers);
+        $this->assertStringContainsString('Color: Maroon', $allAnswers);
+        $this->assertStringContainsString('Product ID: P200 (Ref Product: Executive Cotton Shirt)', $allAnswers);
+        $this->assertStringContainsString('Size: M', $allAnswers);
+        $this->assertStringContainsString('Color: Sky Blue', $allAnswers);
+    }
+
+    /**
+     * Test section-boundary-aware chunking preserves section and document breadcrumbs (GAP-ING-03).
+     */
+    public function test_section_boundary_aware_chunking_preserves_section_and_document_breadcrumbs(): void
+    {
+        $policyText = "# 1. Return and Exchange Policy\n"
+            . "Customers may exchange products within 7 days of delivery. The item must be unused, unwashed, and in its original packaging with tags attached.\n\n"
+            . "## 2. Warranty and Claim Procedure\n"
+            . "All electronic goods carry a 1-year brand warranty. Claims must be submitted with original invoice and warranty registration card.\n\n"
+            . "## 3. Shipping and Delivery Costs\n"
+            . "Standard delivery fee inside Dhaka is 60 BDT. Express delivery inside Dhaka is 100 BDT. Delivery outside Dhaka is 130 BDT.";
+
+        $chunks = $this->documentService->chunkDocumentText(
+            text: $policyText,
+            documentTitle: 'Store Operations Manual',
+            chunkSize: 300,
+            overlap: 50
+        );
+
+        $this->assertGreaterThanOrEqual(3, count($chunks));
+
+        $chunk1 = $chunks[0];
+        $this->assertStringContainsString('Doc: Store Operations Manual | 1. Return and Exchange Policy', $chunk1);
+        $this->assertStringContainsString('within 7 days of delivery', $chunk1);
+
+        $chunk2 = $chunks[1];
+        $this->assertStringContainsString('Doc: Store Operations Manual | 2. Warranty and Claim Procedure', $chunk2);
+        $this->assertStringContainsString('1-year brand warranty', $chunk2);
+
+        $chunk3 = $chunks[2];
+        $this->assertStringContainsString('Doc: Store Operations Manual | 3. Shipping and Delivery Costs', $chunk3);
+        $this->assertStringContainsString('Standard delivery fee inside Dhaka is 60 BDT', $chunk3);
+    }
+
+    /**
+     * Test ingestion metadata retention records sheets, columns, and character counts (GAP-ING-04).
+     */
+    public function test_ingestion_metadata_retention_records_sheets_columns_and_character_counts(): void
+    {
+        // 1. Text document ingestion metadata
+        $textDoc = $this->documentService->storeText(
+            title: 'Customer Refund Rules',
+            textContent: "Line 1: Full refund within 24 hours.\nLine 2: Partial refund within 7 days.\nLine 3: No refund on clearance items.",
+            purpose: IngestionPurpose::KNOWLEDGE_BASE,
+            explicitWorkspaceId: (int) $this->workspace->id
+        );
+
+        $textDoc->refresh();
+        $this->assertIsArray($textDoc->metadata);
+        $this->assertSame(3, $textDoc->metadata['line_count']);
+        $this->assertGreaterThan(0, $textDoc->metadata['extracted_character_count']);
+        $this->assertNotEmpty($textDoc->metadata['ingested_at']);
+
+        // Verify preview reflects metadata
+        $textPreview = $this->documentService->getDocumentPreview($textDoc);
+        $this->assertTrue($textPreview['success']);
+        $this->assertArrayHasKey('metadata', $textPreview);
+        $this->assertSame(3, $textPreview['metadata']['line_count']);
+
+        // 2. CSV document ingestion metadata
+        $csvContent = "Product ID,Product Name,Unit Price,In Stock\n"
+            . "P101,Acoustic Guitar,12500,15\n"
+            . "P102,Digital Tuner,850,50\n";
+
+        $csvFile = UploadedFile::fake()->createWithContent('inventory.csv', $csvContent);
+        $csvDoc = $this->documentService->store(
+            file: $csvFile,
+            title: 'Store Inventory',
+            purpose: IngestionPurpose::KNOWLEDGE_BASE,
+            explicitWorkspaceId: (int) $this->workspace->id
+        );
+
+        $csvDoc->refresh();
+        $this->assertIsArray($csvDoc->metadata);
+        $this->assertEquals(['Sheet1'], $csvDoc->metadata['sheet_names']);
+        $this->assertArrayHasKey('Sheet1', $csvDoc->metadata['column_headers']);
+        $this->assertEquals(['Product ID', 'Product Name', 'Unit Price', 'In Stock'], $csvDoc->metadata['column_headers']['Sheet1']);
+        $this->assertSame(3, $csvDoc->metadata['total_rows']); // 1 header + 2 data rows
+        $this->assertGreaterThan(0, $csvDoc->metadata['extracted_character_count']);
+        $this->assertNotEmpty($csvDoc->metadata['ingested_at']);
+
+        // Verify spreadsheet preview includes metadata
+        $csvPreview = $this->documentService->getDocumentPreview($csvDoc);
+        $this->assertTrue($csvPreview['success']);
+        $this->assertArrayHasKey('metadata', $csvPreview);
+        $this->assertEquals(['Product ID', 'Product Name', 'Unit Price', 'In Stock'], $csvPreview['metadata']['column_headers']['Sheet1']);
+    }
 }
 

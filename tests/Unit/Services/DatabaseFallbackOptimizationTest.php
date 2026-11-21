@@ -232,5 +232,45 @@ class DatabaseFallbackOptimizationTest extends TestCase
         $this->assertTrue(true, 'Query executed safely without SQL injection crash');
         $this->assertDatabaseHas('faqs', ['question' => 'Normal Question']);
     }
+
+    public function test_bengali_spelling_variants_normalization_and_calibrated_scoring(): void
+    {
+        $faq = FAQ::create([
+            'workspace_id' => $this->workspaceA->id,
+            'question'     => 'রিটার্ন পলিসী কী?',
+            'answer'       => 'পণ্য ক্রয়ের ৭ দিনের মধ্যে ফেরত দেওয়া যাবে।',
+            'is_active'    => true,
+        ]);
+
+        $client = new RetrievalClient('http://127.0.0.1:8002');
+        // Query uses normalized modern spelling: 'পলিসি কি' vs stored 'পলিসী কী?'
+        $results = $client->search('রিটার্ন পলিসি কি', workspaceId: $this->workspaceA->id);
+
+        $this->assertNotEmpty($results);
+        $topHit = $results->first();
+        $this->assertSame($faq->id, $topHit->faq->id);
+        $this->assertSame('keyword_fallback', $topHit->matchType);
+        $this->assertEquals(0.95, $topHit->finalScore);
+    }
+
+    public function test_banglish_to_bengali_cross_language_fallback_search(): void
+    {
+        $faq = FAQ::create([
+            'workspace_id' => $this->workspaceA->id,
+            'question'     => 'ডেলিভারি চার্জ কত?',
+            'answer'       => 'ঢাকার মধ্যে ৬০ টাকা এবং ঢাকার বাইরে ১২০ টাকা।',
+            'is_active'    => true,
+        ]);
+
+        $client = new RetrievalClient('http://127.0.0.1:8002');
+        // Query in Banglish: 'charge koto'
+        $results = $client->search('charge koto', workspaceId: $this->workspaceA->id);
+
+        $this->assertNotEmpty($results);
+        $topHit = $results->first();
+        $this->assertSame($faq->id, $topHit->faq->id);
+        $this->assertSame('keyword_fallback', $topHit->matchType);
+        $this->assertGreaterThanOrEqual(0.80, $topHit->finalScore);
+    }
 }
 

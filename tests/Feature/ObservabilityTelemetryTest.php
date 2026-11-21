@@ -128,6 +128,121 @@ class ObservabilityTelemetryTest extends TestCase
         $this->assertTrue(true);
     }
 
+    public function test_telemetry_listener_persists_knowledge_search_log(): void
+    {
+        $listener = new RecordAITelemetryListener();
+
+        $event = new AITelemetryRecorded(
+            conversation: $this->conversation,
+            outboundMessage: null,
+            query: 'What is your delivery timeframe?',
+            reply: 'We deliver within 3 days.',
+            telemetry: [
+                'route'         => 'knowledge',
+                'total_time_ms' => 210.5,
+                'confidence'    => 0.94,
+                'answerability_decision' => [
+                    'status' => 'confident',
+                    'top_hit' => [
+                        'score'          => 0.94,
+                        'keyword_score'  => 0.85,
+                        'semantic_score' => 0.96,
+                    ],
+                ],
+            ],
+            workspaceId: $this->workspace->id,
+        );
+
+        $listener->handle($event);
+
+        $this->assertDatabaseHas('knowledge_search_logs', [
+            'workspace_id'     => $this->workspace->id,
+            'customer_query'   => 'What is your delivery timeframe?',
+            'response_time_ms' => 211,
+            'answer_source'    => 'knowledge_base',
+        ]);
+
+        $log = \App\Models\KnowledgeSearchLog::where('workspace_id', $this->workspace->id)->first();
+        $this->assertNotNull($log);
+        $this->assertEquals(0.85, (float) $log->keyword_score);
+        $this->assertEquals(0.96, (float) $log->semantic_score);
+        $this->assertEquals(0.94, (float) $log->final_score);
+    }
+
+    public function test_telemetry_listener_tracks_unanswered_question_and_deduplicates(): void
+    {
+        $listener = new RecordAITelemetryListener();
+
+        $event1 = new AITelemetryRecorded(
+            conversation: $this->conversation,
+            outboundMessage: null,
+            query: 'Do you offer international shipping to Canada?',
+            reply: 'Sorry, we do not have information on this.',
+            telemetry: [
+                'route'    => 'unanswerable',
+                'answered' => false,
+                'answerability_decision' => [
+                    'status' => 'unanswerable',
+                ],
+            ],
+            workspaceId: $this->workspace->id,
+        );
+
+        $listener->handle($event1);
+
+        $this->assertDatabaseHas('unanswered_questions', [
+            'workspace_id'        => $this->workspace->id,
+            'original_question'   => 'Do you offer international shipping to Canada?',
+            'normalized_question' => 'do you offer international shipping to canada?',
+            'occurrence_count'    => 1,
+            'status'              => 'pending',
+        ]);
+
+        // Second occurrence of same question with different whitespace/casing
+        $event2 = new AITelemetryRecorded(
+            conversation: $this->conversation,
+            outboundMessage: null,
+            query: '  DO YOU OFFER INTERNATIONAL SHIPPING TO CANADA?  ',
+            reply: 'Sorry, we do not have information on this.',
+            telemetry: [
+                'route'    => 'unanswerable',
+                'answered' => false,
+                'answerability_decision' => [
+                    'status' => 'unanswerable',
+                ],
+            ],
+            workspaceId: $this->workspace->id,
+        );
+
+        $listener->handle($event2);
+
+        // Occurrence count should increment to 2, still 1 row
+        $this->assertSame(1, \App\Models\UnansweredQuestion::where('workspace_id', $this->workspace->id)->count());
+        $unanswered = \App\Models\UnansweredQuestion::where('workspace_id', $this->workspace->id)->first();
+        $this->assertSame(2, $unanswered->occurrence_count);
+    }
+
+    public function test_telemetry_listener_ignores_trivial_greetings_for_unanswered(): void
+    {
+        $listener = new RecordAITelemetryListener();
+
+        $event = new AITelemetryRecorded(
+            conversation: $this->conversation,
+            outboundMessage: null,
+            query: 'Hello',
+            reply: 'Hello! How can I help you today?',
+            telemetry: [
+                'route'    => 'chat',
+                'answered' => false,
+            ],
+            workspaceId: $this->workspace->id,
+        );
+
+        $listener->handle($event);
+
+        $this->assertDatabaseCount('unanswered_questions', 0);
+    }
+
     public function test_telemetry_observer_invariant_failure_never_breaks_customer_delivery(): void
     {
         // When telemetry recording fails or logs error, CustomerSupportService MUST succeed

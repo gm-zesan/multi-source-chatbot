@@ -23,6 +23,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use PhpOffice\PhpSpreadsheet\IOFactory;
 use Yajra\DataTables\DataTables;
 
 class KnowledgeDocumentService
@@ -303,12 +304,16 @@ class KnowledgeDocumentService
                     'status_label'          => $status?->label() ?? 'Unknown',
                     'status_badge'          => $status?->badgeClass() ?? 'bg-secondary',
                     'status_icon'           => $status?->icon() ?? 'ri-file-line',
-                    'sheets'                => $doc->metadata['sheets'] ?? [],
-                    'sheets_count'          => (int) ($doc->sheets_count ?: 1),
-                    'total_rows'            => (int) ($doc->chunk_count ?: 0),
-                    'staged_rows'           => (int) ($doc->metadata['checkpoint']['staged_rows_count'] ?? 0),
-                    'schema_summary'        => $doc->metadata['schema_summary'] ?? null,
-                    'tables'                => $doc->metadata['tables'] ?? [],
+                    'sheets'                    => $doc->metadata['sheet_names'] ?? $doc->metadata['sheets'] ?? [],
+                    'sheets_count'              => (int) ($doc->sheets_count ?: 1),
+                    'total_rows'                => (int) ($doc->metadata['total_rows'] ?? $doc->chunk_count ?? 0),
+                    'staged_rows'               => (int) ($doc->metadata['checkpoint']['staged_rows_count'] ?? 0),
+                    'schema_summary'            => $doc->metadata['schema_summary'] ?? null,
+                    'tables'                    => $doc->metadata['tables'] ?? [],
+                    'column_headers'            => $doc->metadata['column_headers'] ?? null,
+                    'extracted_character_count' => (int) ($doc->metadata['extracted_character_count'] ?? 0),
+                    'ingested_at'               => $doc->metadata['ingested_at'] ?? null,
+                    'metadata'                  => $doc->metadata ?? [],
                 ];
             })
             ->rawColumns(['mime_type', 'sheets_count', 'status_badge', 'purpose_badge'])
@@ -492,8 +497,11 @@ class KnowledgeDocumentService
                 'is_active'           => false,
                 'error_message'       => null,
                 'metadata'            => [
-                    'ingestion_purpose' => $resolvedPurpose->value,
-                    'raw_text'          => $textContent,
+                    'ingestion_purpose'         => $resolvedPurpose->value,
+                    'raw_text'                  => $textContent,
+                    'extracted_character_count' => mb_strlen($textContent),
+                    'line_count'                => substr_count($textContent, "\n") + 1,
+                    'ingested_at'               => now()->toIso8601String(),
                 ],
                 'created_by'          => Auth::id(),
                 'updated_by'          => Auth::id(),
@@ -703,7 +711,9 @@ class KnowledgeDocumentService
                 throw new \RuntimeException('Document content is empty or contains no extractable text.');
             }
 
-            $chunks = $this->chunkText($trimmed);
+            $ingestionMetadata = $this->extractDocumentIngestionMetadata($document, $trimmed);
+
+            $chunks = $this->chunkDocumentText($trimmed, (string) $document->title);
             if (empty($chunks)) {
                 throw new \RuntimeException('Failed to generate chunks from document text.');
             }
@@ -795,10 +805,14 @@ class KnowledgeDocumentService
                 ]);
             }
 
-            // Clear pending attempt metadata
+            // Clear pending attempt metadata, persist durable ingestion metadata (GAP-ING-04)
             $meta = $document->fresh()?->metadata ?? $document->metadata ?? [];
             unset($meta['pending_generation_id'], $meta['pending_chunk_count']);
+            $meta = array_merge($meta, $ingestionMetadata);
             $document->metadata = $meta;
+            if (! empty($ingestionMetadata['sheet_names'])) {
+                $document->sheets_count = count($ingestionMetadata['sheet_names']);
+            }
             $document->saveQuietly();
             $document->refresh();
 
@@ -910,16 +924,31 @@ class KnowledgeDocumentService
 
         $extension = strtolower(pathinfo($document->original_filename ?: $filePath, PATHINFO_EXTENSION));
 
-        // Supported text formats: txt, md, json, log, csv
-        if (in_array($extension, ['txt', 'md', 'json', 'log', 'csv'], true)) {
+        // Spreadsheets (.xlsx, .xls, .csv) - lossless structured text extraction for knowledge base
+        if (in_array($extension, ['xlsx', 'xls', 'csv'], true)) {
+            $realPath = Storage::disk('local')->path($filePath);
+            $extracted = $this->extractSpreadsheetText($realPath, $extension);
+            if (trim($extracted) !== '') {
+                return $extracted;
+            }
+            if ($extension === 'csv') {
+                $rawCsv = Storage::disk('local')->get($filePath);
+                if ($rawCsv !== null && trim($rawCsv) !== '') {
+                    return $rawCsv;
+                }
+            }
+        }
+
+        // Supported plain text formats: txt, md, json, log
+        if (in_array($extension, ['txt', 'md', 'json', 'log'], true)) {
             $content = Storage::disk('local')->get($filePath);
             return $content ?? '';
         }
 
-        // Non-plain-text formats
-        if (! in_array($extension, ['txt', 'md', 'json', 'log', 'csv'], true)) {
+        // Unsupported binary formats (PDF, Word, PowerPoint)
+        if (in_array($extension, ['pdf', 'doc', 'docx', 'ppt', 'pptx'], true)) {
             throw new \RuntimeException(
-                "Unsupported file format for text extraction (.{$extension}). Spreadsheets (.xlsx, .csv) are processed via Analytics Data Sources, while knowledge articles accept plain text (.txt, .md) or direct text entries."
+                "Unsupported file format for text extraction (.{$extension}). Text extraction requires plain text (.txt, .md), spreadsheets (.xlsx, .xls, .csv), or direct text entries."
             );
         }
 
@@ -929,6 +958,310 @@ class KnowledgeDocumentService
         }
 
         throw new \RuntimeException("Unable to extract text from document of type: .{$extension}");
+    }
+
+    /**
+     * Extract structured, readable textual content from a spreadsheet (.xlsx, .xls, .csv).
+     */
+    public function extractSpreadsheetText(string $absolutePath, string $extension): string
+    {
+        if ($extension === 'csv') {
+            return $this->extractCsvText($absolutePath);
+        }
+
+        try {
+            $reader = IOFactory::createReaderForFile($absolutePath);
+            $reader->setReadDataOnly(true);
+            $spreadsheet = $reader->load($absolutePath);
+            $sheetNames = $spreadsheet->getSheetNames();
+
+            // Pass 1: Scan for primary entity identifier maps across all sheets
+            $entityLookup = [];
+            $idColPatterns = ['id', 'product_id', 'item_id', 'sku', 'code', 'আইডি', 'কোড', 'পণ্য_আইডি', 'আইটেম_আইডি'];
+            $nameColPatterns = ['name', 'product_name', 'item_name', 'title', 'পণ্যের_নাম', 'পণ্য', 'নাম', 'আইটেম', 'প্রোডাক্ট'];
+
+            $allSheetsData = [];
+            foreach ($sheetNames as $sheetName) {
+                $worksheet = $spreadsheet->getSheetByName($sheetName);
+                if (! $worksheet) {
+                    continue;
+                }
+
+                $rows = $worksheet->toArray(null, true, false, false);
+                if (empty($rows)) {
+                    continue;
+                }
+
+                // Find header row (first non-empty row)
+                $headers = [];
+                $dataStartIdx = 0;
+                foreach ($rows as $idx => $row) {
+                    $cleaned = array_filter(array_map('trim', array_map('strval', $row)));
+                    if (! empty($cleaned)) {
+                        $headers = array_map('trim', array_map('strval', $row));
+                        $dataStartIdx = $idx + 1;
+                        break;
+                    }
+                }
+
+                $allSheetsData[$sheetName] = [
+                    'headers'      => $headers,
+                    'dataStartIdx' => $dataStartIdx,
+                    'rows'         => $rows,
+                ];
+
+                // Detect id column and name column in this sheet
+                $idColIdx = null;
+                $nameColIdx = null;
+                foreach ($headers as $colIdx => $h) {
+                    $hLower = mb_strtolower(trim((string) $h));
+                    if ($idColIdx === null) {
+                        foreach ($idColPatterns as $pat) {
+                            if ($hLower === $pat || str_contains($hLower, $pat)) {
+                                $idColIdx = $colIdx;
+                                break;
+                            }
+                        }
+                    }
+                    if ($nameColIdx === null) {
+                        foreach ($nameColPatterns as $pat) {
+                            if ($hLower === $pat || str_contains($hLower, $pat)) {
+                                $nameColIdx = $colIdx;
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                if ($idColIdx !== null && $nameColIdx !== null && $idColIdx !== $nameColIdx) {
+                    for ($i = $dataStartIdx; $i < count($rows); $i++) {
+                        $row = $rows[$i];
+                        $idVal = trim((string) ($row[$idColIdx] ?? ''));
+                        $nameVal = trim((string) ($row[$nameColIdx] ?? ''));
+                        if ($idVal !== '' && $nameVal !== '') {
+                            $entityLookup[mb_strtolower($idVal)] = [
+                                'name'  => $nameVal,
+                                'sheet' => $sheetName,
+                            ];
+                        }
+                    }
+                }
+            }
+
+            // Pass 2: Extract each sheet, augmenting rows that reference foreign keys with entity breadcrumbs
+            $output = [];
+            foreach ($allSheetsData as $sheetName => $sheetData) {
+                $headers = $sheetData['headers'];
+                $dataStartIdx = $sheetData['dataStartIdx'];
+                $rows = $sheetData['rows'];
+
+                $sheetLines = [];
+                $sheetLines[] = "### Worksheet: {$sheetName}";
+
+                if (! empty($headers)) {
+                    $cleanHeaders = array_filter($headers, fn ($h) => $h !== '');
+                    if (! empty($cleanHeaders)) {
+                        $sheetLines[] = 'Columns: ' . implode(' | ', $cleanHeaders);
+                    }
+                }
+
+                // Check if this sheet has an FK referencing $entityLookup but lacks a direct name column
+                $fkColIdx = null;
+                $hasNameCol = false;
+                foreach ($headers as $colIdx => $h) {
+                    $hLower = mb_strtolower(trim((string) $h));
+                    foreach ($nameColPatterns as $pat) {
+                        if ($hLower === $pat || str_contains($hLower, $pat)) {
+                            $hasNameCol = true;
+                            break;
+                        }
+                    }
+                    if ($fkColIdx === null) {
+                        foreach ($idColPatterns as $pat) {
+                            if ($hLower === $pat || str_contains($hLower, $pat)) {
+                                $fkColIdx = $colIdx;
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                for ($i = $dataStartIdx; $i < count($rows); $i++) {
+                    $row = $rows[$i];
+                    $cleanedRow = array_filter(array_map('trim', array_map('strval', $row)));
+                    if (empty($cleanedRow)) {
+                        continue;
+                    }
+
+                    $rowParts = [];
+                    foreach ($row as $colIdx => $val) {
+                        $colHeader = $headers[$colIdx] ?? ('Col ' . ($colIdx + 1));
+                        $valStr = trim((string) $val);
+                        if ($valStr !== '') {
+                            // If this is an FK column, sheet lacks name col, and entity is known in lookup map, augment with entity name
+                            if ($fkColIdx === $colIdx && ! $hasNameCol && isset($entityLookup[mb_strtolower($valStr)])) {
+                                $refName = $entityLookup[mb_strtolower($valStr)]['name'];
+                                $rowParts[] = "{$colHeader}: {$valStr} (Ref Product: {$refName})";
+                            } else {
+                                $rowParts[] = "{$colHeader}: {$valStr}";
+                            }
+                        }
+                    }
+
+                    if (! empty($rowParts)) {
+                        $sheetLines[] = '- Row ' . ($i + 1) . ': ' . implode(' | ', $rowParts);
+                    }
+                }
+
+                if (count($sheetLines) > 1) {
+                    $output[] = implode("\n", $sheetLines);
+                }
+            }
+
+            return implode("\n\n", $output);
+        } catch (\Throwable $e) {
+            Log::warning('[KnowledgeDocumentService] PhpSpreadsheet text extraction fallback', [
+                'path'  => $absolutePath,
+                'error' => $e->getMessage(),
+            ]);
+
+            return '';
+        }
+    }
+
+    /**
+     * Extract structured, row-aware textual content from a CSV file.
+     */
+    public function extractCsvText(string $absolutePath): string
+    {
+        $handle = fopen($absolutePath, 'r');
+        if (! $handle) {
+            return '';
+        }
+
+        $headers = [];
+        $lines = [];
+        $rowNum = 0;
+
+        while (($row = fgetcsv($handle)) !== false) {
+            $rowNum++;
+            $cleaned = array_filter(array_map('trim', array_map('strval', $row)));
+            if (empty($cleaned)) {
+                continue;
+            }
+
+            if (empty($headers)) {
+                $headers = array_map('trim', array_map('strval', $row));
+                $cleanHeaders = array_filter($headers, fn ($h) => $h !== '');
+                if (! empty($cleanHeaders)) {
+                    $lines[] = 'Columns: ' . implode(' | ', $cleanHeaders);
+                }
+                continue;
+            }
+
+            $rowParts = [];
+            foreach ($row as $colIdx => $val) {
+                $colHeader = $headers[$colIdx] ?? ('Col ' . ($colIdx + 1));
+                $valStr = trim((string) $val);
+                if ($valStr !== '') {
+                    $rowParts[] = "{$colHeader}: {$valStr}";
+                }
+            }
+
+            if (! empty($rowParts)) {
+                $lines[] = "- Row {$rowNum}: " . implode(' | ', $rowParts);
+            }
+        }
+
+        fclose($handle);
+
+        return implode("\n", $lines);
+    }
+
+    /**
+     * Extract structured ingestion metadata (sheet names, column headers, character counts, line counts, timestamps).
+     * GAP-ING-04: Retains file structure metadata for UI inspection, semantic grounding, and analytics federation.
+     *
+     * @return array<string, mixed>
+     */
+    public function extractDocumentIngestionMetadata(KnowledgeDocument $document, string $extractedText): array
+    {
+        $meta = [
+            'extracted_character_count' => mb_strlen($extractedText),
+            'ingested_at'               => now()->toIso8601String(),
+        ];
+
+        $filePath = $document->file_path;
+        $extension = strtolower(pathinfo($document->original_filename ?: ($filePath ?? ''), PATHINFO_EXTENSION));
+
+        if (in_array($extension, ['xlsx', 'xls'], true)) {
+            if ($filePath && Storage::disk('local')->exists($filePath)) {
+                $absPath = Storage::disk('local')->path($filePath);
+                try {
+                    $reader = IOFactory::createReaderForFile($absPath);
+                    $reader->setReadDataOnly(true);
+                    $sheetNames = $reader->listWorksheetNames($absPath);
+                    $meta['sheet_names'] = $sheetNames;
+                    $columnHeaders = [];
+                    $totalRows = 0;
+
+                    foreach ($sheetNames as $sName) {
+                        $reader->setLoadSheetsOnly([$sName]);
+                        $ss = $reader->load($absPath);
+                        $ws = $ss->getSheetByName($sName);
+                        if (! $ws) {
+                            continue;
+                        }
+                        $highestRow = (int) $ws->getHighestRow();
+                        $highestCol = $ws->getHighestColumn();
+                        $totalRows += $highestRow;
+                        $firstRow = $ws->rangeToArray("A1:{$highestCol}1", null, true, true, false);
+                        if (! empty($firstRow) && ! empty($firstRow[0])) {
+                            $cleanH = array_values(array_filter(array_map('trim', array_map('strval', $firstRow[0])), fn ($h) => $h !== ''));
+                            if (! empty($cleanH)) {
+                                $columnHeaders[$sName] = $cleanH;
+                            }
+                        }
+                        $ss->disconnectWorksheets();
+                        unset($ss);
+                    }
+                    $meta['column_headers'] = $columnHeaders;
+                    $meta['total_rows'] = $totalRows;
+                } catch (\Throwable $e) {
+                    Log::debug('[KnowledgeDocumentService] Failed to extract spreadsheet metadata: ' . $e->getMessage());
+                }
+            }
+        } elseif ($extension === 'csv') {
+            if ($filePath && Storage::disk('local')->exists($filePath)) {
+                $absPath = Storage::disk('local')->path($filePath);
+                try {
+                    $handle = fopen($absPath, 'r');
+                    if ($handle) {
+                        $meta['sheet_names'] = ['Sheet1'];
+                        $totalRows = 0;
+                        $firstRowHeaders = [];
+                        while (($row = fgetcsv($handle)) !== false) {
+                            $totalRows++;
+                            if (empty($firstRowHeaders)) {
+                                $cleaned = array_filter(array_map('trim', array_map('strval', $row)));
+                                if (! empty($cleaned)) {
+                                    $firstRowHeaders = array_values($cleaned);
+                                }
+                            }
+                        }
+                        fclose($handle);
+                        $meta['column_headers'] = ['Sheet1' => $firstRowHeaders];
+                        $meta['total_rows'] = $totalRows;
+                    }
+                } catch (\Throwable $e) {
+                    Log::debug('[KnowledgeDocumentService] Failed to extract csv metadata: ' . $e->getMessage());
+                }
+            }
+        } else {
+            $meta['line_count'] = substr_count($extractedText, "\n") + 1;
+        }
+
+        return $meta;
     }
 
     /**
@@ -989,6 +1322,73 @@ class KnowledgeDocumentService
         }
 
         return $chunks;
+    }
+
+    /**
+     * Chunk document text with section-boundary and parent context awareness.
+     * Preserves markdown headings (#, ##, ###) and structured sections (Section, ধারা, ইত্যাদি)
+     * so that child chunks are grounded with parent document and section titles.
+     *
+     * @return array<int, string>
+     */
+    public function chunkDocumentText(string $text, string $documentTitle = '', int $chunkSize = 500, int $overlap = 80): array
+    {
+        $text = str_replace(["\r\n", "\r"], "\n", trim($text));
+        if ($text === '') {
+            return [];
+        }
+
+        // If document fits in a single chunk, return as-is
+        if (mb_strlen($text) <= $chunkSize) {
+            return [$text];
+        }
+
+        // Detect section headings: markdown headings or explicit Section / Worksheet headers
+        $sectionPattern = '/(?=(?:^|\n)(?:#{1,4}\s+|###\s+Worksheet:\s+|(?:Section|Part|Chapter|অধ্যায়|ধারা|পর্ব)\s+\d+[:\s]))/u';
+        $rawSections = preg_split($sectionPattern, $text, -1, PREG_SPLIT_NO_EMPTY);
+
+        if (! is_array($rawSections) || count($rawSections) <= 1) {
+            // No distinct section boundaries: use natural boundary chunking
+            return $this->chunkText($text, $chunkSize, $overlap);
+        }
+
+        $allChunks = [];
+        foreach ($rawSections as $section) {
+            $section = trim($section);
+            if ($section === '') {
+                continue;
+            }
+
+            // Extract section heading from first line
+            $lines = explode("\n", $section, 2);
+            $headingLine = trim($lines[0]);
+            $cleanHeading = trim(preg_replace('/^#{1,4}\s+/u', '', $headingLine));
+            $body = isset($lines[1]) ? trim($lines[1]) : '';
+
+            $sectionBreadcrumb = $documentTitle !== ''
+                ? "[Doc: {$documentTitle} | {$cleanHeading}]\n"
+                : "[{$cleanHeading}]\n";
+
+            if (mb_strlen($section) <= $chunkSize) {
+                // Section fits in one chunk
+                $allChunks[] = ($body !== '') ? $sectionBreadcrumb . $body : $section;
+            } else {
+                // Section is large: split body using sentence boundaries
+                $bodyToSplit = $body !== '' ? $body : $section;
+                $availSize = max(200, $chunkSize - mb_strlen($sectionBreadcrumb));
+                $subChunks = $this->chunkText($bodyToSplit, $availSize, $overlap);
+                $subTotal = count($subChunks);
+                foreach ($subChunks as $sIdx => $sChunk) {
+                    $part = $sIdx + 1;
+                    $subBreadcrumb = $documentTitle !== ''
+                        ? "[Doc: {$documentTitle} | {$cleanHeading} (Part {$part}/{$subTotal})]\n"
+                        : "[{$cleanHeading} (Part {$part}/{$subTotal})]\n";
+                    $allChunks[] = $subBreadcrumb . $sChunk;
+                }
+            }
+        }
+
+        return ! empty($allChunks) ? $allChunks : $this->chunkText($text, $chunkSize, $overlap);
     }
 
     /**
@@ -1457,6 +1857,7 @@ class KnowledgeDocumentService
                 'filename'     => $document->original_filename,
                 'content'      => $previewText,
                 'is_truncated' => $isTruncated,
+                'metadata'     => $document->metadata ?? [],
                 'stream_url'   => route('documents.preview', ['document' => $document->id, 'stream' => 1]),
             ];
         }
@@ -1478,6 +1879,8 @@ class KnowledgeDocumentService
                         ]);
                     }
                 }
+
+                $preview['metadata'] = $document->metadata ?? [];
 
                 return $preview;
             } catch (\Throwable $e) {

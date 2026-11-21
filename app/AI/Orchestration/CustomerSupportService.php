@@ -2322,6 +2322,7 @@ PROMPT;
             $ans = preg_replace('/\{[\s\S]*?"(?:proposed_follow_up|follow_up_type)"[\s\S]*?\}/u', '', (string) $decoded['answer']);
             return [
                 'answer'             => trim((string) $ans),
+                'citations'          => isset($decoded['citations']) && is_array($decoded['citations']) ? array_values(array_filter($decoded['citations'])) : [],
                 'proposed_follow_up' => !empty($decoded['proposed_follow_up']) ? trim((string) $decoded['proposed_follow_up']) : null,
                 'follow_up_type'     => !empty($decoded['follow_up_type']) ? trim((string) $decoded['follow_up_type']) : null,
             ];
@@ -2337,6 +2338,7 @@ PROMPT;
                 $ans = preg_replace('/\{[\s\S]*?"(?:proposed_follow_up|follow_up_type)"[\s\S]*?\}/u', '', $rawAns);
                 return [
                     'answer'             => trim((string) $ans),
+                    'citations'          => isset($fenceDecoded['citations']) && is_array($fenceDecoded['citations']) ? array_values(array_filter($fenceDecoded['citations'])) : [],
                     'proposed_follow_up' => !empty($fenceDecoded['proposed_follow_up']) ? trim((string) $fenceDecoded['proposed_follow_up']) : null,
                     'follow_up_type'     => !empty($fenceDecoded['follow_up_type']) ? trim((string) $fenceDecoded['follow_up_type']) : null,
                 ];
@@ -2353,6 +2355,7 @@ PROMPT;
                 $ans = preg_replace('/\{[\s\S]*?"(?:proposed_follow_up|follow_up_type)"[\s\S]*?\}/u', '', $rawAns);
                 return [
                     'answer'             => trim((string) $ans),
+                    'citations'          => isset($blockDecoded['citations']) && is_array($blockDecoded['citations']) ? array_values(array_filter($blockDecoded['citations'])) : [],
                     'proposed_follow_up' => !empty($blockDecoded['proposed_follow_up']) ? trim((string) $blockDecoded['proposed_follow_up']) : null,
                     'follow_up_type'     => !empty($blockDecoded['follow_up_type']) ? trim((string) $blockDecoded['follow_up_type']) : null,
                 ];
@@ -2363,6 +2366,7 @@ PROMPT;
         $sanitized = preg_replace('/\{[\s\S]*?"(?:proposed_follow_up|follow_up_type)"[\s\S]*?\}/u', '', $clean);
         return [
             'answer'             => trim((string) $sanitized),
+            'citations'          => [],
             'proposed_follow_up' => null,
             'follow_up_type'     => null,
         ];

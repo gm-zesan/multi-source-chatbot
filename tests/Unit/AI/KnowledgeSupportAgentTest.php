@@ -709,4 +709,38 @@ class KnowledgeSupportAgentTest extends TestCase
         $this->assertStringContainsString('আমাদের ডেলিভারি চার্জ ঢাকার ভেতরে ৭০ টাকা।', $decisionValid->finalReply());
         $this->assertStringContainsString('আপনি কি অন্য কোনো সাইজ দেখতে চান?', $decisionValid->finalReply());
     }
+
+    /**
+     * Test in-line citations and citations list preservation (GAP-GEN-02).
+     */
+    public function test_agent_preserves_inline_citations_and_parses_citations_list(): void
+    {
+        $payloadWithCitations = json_encode([
+            'answer' => 'আমাদের রিটার্ন পলিসি অনুযায়ী [Doc 1: Return Policy] ডেলিভারির ৭ দিনের মধ্যে প্রোডাক্ট এক্সচেঞ্জ করা যায়। ডেলিভারি চার্জ ঢাকার ভেতর ৬০ টাকা [Doc 2: Delivery Charges]।',
+            'citations' => [
+                'Doc 1: Return Policy',
+                'Doc 2: Delivery Charges',
+            ],
+            'proposed_follow_up' => null,
+            'follow_up_type' => null,
+        ], JSON_UNESCAPED_UNICODE);
+
+        $sanitized = KnowledgeSupportAgent::sanitizeUnsupportedContactDetails($payloadWithCitations);
+
+        $service = app(CustomerSupportService::class);
+        $parsed = $service->parseAgentOutput($sanitized);
+
+        $this->assertStringContainsString('[Doc 1: Return Policy]', $parsed['answer']);
+        $this->assertStringContainsString('[Doc 2: Delivery Charges]', $parsed['answer']);
+        $this->assertEquals(['Doc 1: Return Policy', 'Doc 2: Delivery Charges'], $parsed['citations']);
+
+        $agent = new KnowledgeSupportAgent(
+            conversation: $this->conversation,
+            retrievalTool: $this->retrievalTool,
+        );
+
+        $instructions = (string) $agent->instructions();
+        $this->assertStringContainsString('Source Attribution', $instructions);
+        $this->assertStringContainsString('citations', $instructions);
+    }
 }

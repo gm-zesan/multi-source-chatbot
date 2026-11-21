@@ -86,12 +86,14 @@ class KnowledgeSupportAgent implements Agent, Conversational, HasProviderOptions
         $contextSection = "[Knowledge Base]\nNo documents retrieved.";
         if ($this->retrievedKnowledge && $this->retrievedKnowledge->isNotEmpty()) {
             $docs = [];
-            $topHits = $this->retrievedKnowledge->take(3);
+            $topHits = $this->retrievedKnowledge->take(5);
             foreach ($topHits as $idx => $hit) {
                 $n = $idx + 1;
-                $q = trim((string) ($hit->faq?->question ?? 'N/A'));
-                $a = trim((string) ($hit->faq?->answer ?? 'N/A'));
-                $docs[] = "[Doc {$n}]\nQ: {$q}\nA: {$a}";
+                $faq = $hit->faq ?? ($hit instanceof \App\Models\FAQ ? $hit : null);
+                $title = trim((string) ($faq?->question ?? $hit->question ?? $hit->title ?? "Document {$n}"));
+                $content = trim((string) ($faq?->answer ?? $hit->answer ?? $hit->content ?? 'N/A'));
+                $docType = (string) ($faq?->document_type ?? $hit->document_type ?? 'knowledge_document');
+                $docs[] = "[Doc {$n}: {$title}]\nType: {$docType}\nContent: {$content}";
             }
             $contextSection = "[Layer 1: Official Knowledge Base Documents]\nRetrieved Knowledge Base Documents:\n" . implode("\n\n", $docs);
         }
@@ -129,6 +131,7 @@ Context Hierarchy & Conflict Resolution:
 1. Grounding & Verification (Authority & Hierarchy):
    - Treat supplied Live Business Data (Layer 3) and Knowledge Base Documents (Layer 1) as the sole factual authority according to the context hierarchy.
    - Ground all company-specific and policy assertions strictly on relevant provided docs. Disregard irrelevant docs.
+   - Source Attribution: When synthesizing answers from multiple retrieved knowledge documents or policies, include clear in-line source attribution (e.g. [Doc 1] or by document title) so merchants and customers can trace which document provided the evidence.
 2. Negative Boundary Constraints:
    - NEVER invent, extrapolate, or assume branch/showroom availability, physical addresses, replacement windows, deadlines, fees, contact details (including phone numbers, hotlines, email addresses, support handles, or URLs), or other business-policy specifics absent from the supplied evidence.
    - Strictly distinguish an explicitly stated policy from an unknown or unverified policy.
@@ -144,11 +147,12 @@ Context Hierarchy & Conflict Resolution:
 6. Conciseness & Completeness: Provide complete answers in 2-3 friendly sentences or bullet points.
 7. Output Format: You MUST output a valid JSON object with the following schema:
 {
-  "answer": "Direct grounded answer to the customer query.",
+  "answer": "Direct grounded answer to the customer query (with in-line citation markers e.g. [Doc 1] when citing specific documents).",
+  "citations": ["Doc 1: Return Policy", "Doc 2: Delivery Rates"],
   "proposed_follow_up": "Optional polite follow-up question (e.g. 'আপনি কি এটি নিতে চাচ্ছেন?') or null if no follow-up is appropriate.",
   "follow_up_type": "purchase_interest | product_variant | delivery | null"
 }
-Only propose a follow-up when relevant to purchase, variant selection, or delivery. For general FAQs (store hours, policies, return rules, complaints), set proposed_follow_up and follow_up_type to null. Do NOT include any text, reasoning, or formatting outside this JSON structure.
+Only propose a follow-up when relevant to purchase, variant selection, or delivery. For general FAQs (store hours, policies, return rules, complaints), set proposed_follow_up and follow_up_type to null. The citations array should list the documents or FAQs used to formulate the answer (or empty array [] if answering from general conversation or live business data). Do NOT include any text, reasoning, or formatting outside this JSON structure.
 8. Product Availability & Negative Grounding:
    - When the customer asks about a SPECIFIC product, category, or item (e.g. "ki ki phone ache?", "tell me about mobile phone", "smartphone ache?", "amar upload kora file e product ache kina"):
      Check Live Business Data (Layer 3).

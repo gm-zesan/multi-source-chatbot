@@ -74,14 +74,16 @@ class StoreKnowledgeDocumentRequest extends FormRequest
             'semantic_knowledge',
         ];
 
+        $hasDocumentFile = $this->hasFile('document');
+
         return [
             'workspace_id'      => ['nullable', 'integer', 'exists:workspaces,id'],
             'purpose'           => ['nullable', 'string', \Illuminate\Validation\Rule::in($validPurposes)],
             'ingestion_purpose' => ['nullable', 'string', \Illuminate\Validation\Rule::in($validPurposes)],
-            'title'             => [$isKnowledge ? 'required' : 'nullable', 'string', 'max:255'],
-            'content'           => [$isKnowledge ? 'required' : 'nullable', 'string', 'min:5', 'max:5000', new \App\Rules\MaxWords(250)],
+            'title'             => [$isKnowledge && ! $hasDocumentFile ? 'required' : 'nullable', 'string', 'max:255'],
+            'content'           => [$isKnowledge && ! $hasDocumentFile ? 'required' : 'nullable', 'string', 'min:5', 'max:5000', new \App\Rules\MaxWords(250)],
             'document'          => [
-                $isKnowledge ? 'nullable' : 'required',
+                (! $isKnowledge || ! $this->filled('content')) ? 'required' : 'nullable',
                 'file',
                 'max:20480', // 20MB in KB
                 "mimes:{$allowedExtensions}",

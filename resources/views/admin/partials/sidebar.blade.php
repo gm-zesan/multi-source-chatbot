@@ -61,6 +61,12 @@
                         <i class="ri-book-open-line text-sm {{ Route::is('knowledge-base.*') || Route::is('faqs.*') || Route::is('documents.*') ? 'text-brand-500' : 'text-light-muted dark:text-dark-muted' }}"></i>
                         <span class="sidebar-text-label">Knowledge Base</span>
                     </a>
+                    @can(\App\Enums\Permissions\UnansweredQuestionPermission::VIEW->value)
+                    <a href="{{ route('unanswered-questions.index') }}" title="Unanswered Customer Questions" class="sidebar-nav-item flex items-center gap-2 px-2.5 py-1.5 rounded text-xs font-medium transition-colors {{ Route::is('unanswered-questions.*') ? 'text-brand-600 dark:text-brand-400 bg-brand-500/10 font-semibold border-l-2 border-brand-500 rounded-l-none' : 'text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text dark:hover:text-dark-text hover:bg-light-elevated dark:hover:bg-dark-elevated' }}">
+                        <i class="ri-question-mark text-sm {{ Route::is('unanswered-questions.*') ? 'text-brand-500' : 'text-light-muted dark:text-dark-muted' }}"></i>
+                        <span class="sidebar-text-label">Unanswered Queries</span>
+                    </a>
+                    @endcan
                     <a href="{{ route('simulator.index') }}" title="Internal AI Chat Simulator" class="sidebar-nav-item flex items-center gap-2 px-2.5 py-1.5 rounded text-xs font-medium transition-colors {{ Route::is('simulator.index') ? 'text-brand-600 dark:text-brand-400 bg-brand-500/10 font-semibold border-l-2 border-brand-500 rounded-l-none' : 'text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text dark:hover:text-dark-text hover:bg-light-elevated dark:hover:bg-dark-elevated' }}">
                         <i class="ri-robot-2-line text-sm {{ Route::is('simulator.index') ? 'text-brand-500' : 'text-light-muted dark:text-dark-muted' }}"></i>
                         <span class="sidebar-text-label">AI Simulator (Internal)</span>

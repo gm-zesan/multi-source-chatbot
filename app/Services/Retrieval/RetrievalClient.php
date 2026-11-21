@@ -59,6 +59,92 @@ class RetrievalClient
         'fee' => ['ফি', 'খরচ', 'charge'],
     ];
 
+    public const BANGLISH_TO_BANGLA = [
+        'koto' => 'কত',
+        'dam' => 'দাম',
+        'daam' => 'দাম',
+        'damer' => 'দামের',
+        'kivabe' => 'কিভাবে',
+        'kibhabe' => 'কিভাবে',
+        'kobe' => 'কবে',
+        'kokhon' => 'কখন',
+        'pabo' => 'পাব',
+        'paowa' => 'পাওয়া',
+        'ache' => 'আছে',
+        'asen' => 'আছেন',
+        'kothay' => 'কোথায়',
+        'kothai' => 'কোথায়',
+        'charz' => 'চার্জ',
+        'charge' => 'চার্জ',
+        'ferot' => 'ফেরত',
+        'feroth' => 'ফেরত',
+        'dekhte' => 'দেখতে',
+        'kinte' => 'কিনতে',
+        'chara' => 'ছাড়া',
+        'bade' => 'বাদে',
+        'notun' => 'নতুন',
+        'puran' => 'পুরানো',
+        'purano' => 'পুরানো',
+        'khula' => 'খোলা',
+        'bondho' => 'বন্ধ',
+        'somoy' => 'সময়',
+        'shokal' => 'সকাল',
+        'raat' => 'রাত',
+        'thikana' => 'ঠিকানা',
+        'jogajog' => 'যোগাযোগ',
+        'ovijog' => 'অভিযোগ',
+        'sahajjo' => 'সাহায্য',
+        'bhalo' => 'ভালো',
+        'shob' => 'সব',
+    ];
+
+    public const BENGALI_SPELLING_VARIANTS = [
+        '/(?<![^\s,;.!?])কী(?![^\s,;.!?])/u' => 'কি',
+        '/ওয়/u' => 'ওয়',
+        '/ওয়ারেন্টি/u' => 'ওয়ারেন্টি',
+        '/কুরিয়ার/u' => 'কুরিয়ার',
+        '/ডেলিভারী/u' => 'ডেলিভারি',
+        '/পলিসী/u' => 'পলিসি',
+        '/কোম্পানী/u' => 'কোম্পানি',
+        '/ডিসকাওন্ট/u' => 'ডিসকাউন্ট',
+        '/ষ্টোর/u' => 'স্টোর',
+        '/অরডার/u' => 'অর্ডার',
+    ];
+
+    /**
+     * Normalize query text: zero-width artifacts, Bengali spelling variants, and fast local Banglish expansion.
+     */
+    public function normalizeSpellingOnly(string $text): string
+    {
+        $clean = preg_replace('/[\x{200b}\x{200c}\x{200d}\x{feff}]/u', '', $text);
+        foreach (self::BENGALI_SPELLING_VARIANTS as $pattern => $replacement) {
+            $clean = preg_replace($pattern, $replacement, $clean);
+        }
+        return trim((string) preg_replace('/\s+/u', ' ', $clean));
+    }
+
+    public function normalizeQueryText(string $query): string
+    {
+        $clean = $this->normalizeSpellingOnly($query);
+
+        if (preg_match_all('/\b[a-zA-Z]+\b/u', mb_strtolower($clean), $matches)) {
+            $appendedBangla = [];
+            foreach ($matches[0] as $w) {
+                if (isset(self::BANGLISH_TO_BANGLA[$w])) {
+                    $bn = self::BANGLISH_TO_BANGLA[$w];
+                    if (!str_contains($clean, $bn) && !in_array($bn, $appendedBangla, true)) {
+                        $appendedBangla[] = $bn;
+                    }
+                }
+            }
+            if (!empty($appendedBangla)) {
+                return $clean . ' ' . implode(' ', $appendedBangla);
+            }
+        }
+
+        return $clean;
+    }
+
     public function __construct(
         private readonly ?string $baseUrl = null,
         private readonly ?string $apiKey = null,
@@ -617,9 +703,9 @@ class RetrievalClient
             return new Collection();
         }
 
-        $cleanQuery = mb_strtolower(trim($query));
+        $cleanQuery = $this->normalizeSpellingOnly(mb_strtolower(trim($query)));
         $cleanContext = ($contextualSignal !== null && trim($contextualSignal) !== '' && trim($contextualSignal) !== trim($query))
-            ? mb_strtolower(trim($contextualSignal))
+            ? $this->normalizeSpellingOnly(mb_strtolower(trim($contextualSignal)))
             : null;
 
         if (($cleanQuery === '' || mb_strlen($cleanQuery) < 2) && empty($cleanContext)) {
@@ -660,13 +746,26 @@ class RetrievalClient
         $substantiveWords = array_values(array_filter($allWords, fn ($w) => !in_array($w, self::FALLBACK_STOPWORDS, true)));
         $searchWords = !empty($substantiveWords) ? $substantiveWords : $allWords;
 
-        // Expand candidate filtering keywords using generic morphological stemming and language synonyms
+        // Expand candidate filtering keywords using generic morphological stemming, language synonyms, banglish, and spelling variants
         $expandedSearchWords = $searchWords;
         $stemSuffixes = ['গুলোতে', 'গুলোর', 'টিতে', 'টাতে', 'টার', 'টির', 'গুলো', 'গুলা', 'য়ের', 'ের', 'তে', 'এ', 'র', 'কে', 'টা', 'টি'];
         foreach ($searchWords as $w) {
+            $wClean = mb_strtolower(trim($w));
+            $wSpelling = $this->normalizeSpellingOnly($wClean);
+            if ($wSpelling !== $wClean) {
+                $expandedSearchWords[] = $wSpelling;
+            }
+            if (isset(self::BANGLISH_TO_BANGLA[$wClean])) {
+                $expandedSearchWords[] = self::BANGLISH_TO_BANGLA[$wClean];
+            }
+            foreach (self::BANGLISH_TO_BANGLA as $banglish => $bangla) {
+                if ($bangla === $wClean || $bangla === $wSpelling) {
+                    $expandedSearchWords[] = $banglish;
+                }
+            }
             foreach ($stemSuffixes as $suf) {
-                if (str_ends_with($w, $suf)) {
-                    $stem = mb_substr($w, 0, mb_strlen($w) - mb_strlen($suf));
+                if (str_ends_with($wClean, $suf)) {
+                    $stem = mb_substr($wClean, 0, mb_strlen($wClean) - mb_strlen($suf));
                     if (mb_strlen($stem) >= 3) {
                         $expandedSearchWords[] = $stem;
                     }
@@ -905,15 +1004,15 @@ class RetrievalClient
             }
         }
 
-        // 1. Exact title/question match (ignoring trailing punctuation)
-        $normalizedTitle = trim(preg_replace('/[?!.,;:]+$/u', '', $title));
-        $normalizedQuery = trim(preg_replace('/[?!.,;:]+$/u', '', $cleanQuery));
+        // 1. Exact title/question match (ignoring trailing punctuation and zero-width/spelling variants)
+        $normalizedTitle = $this->normalizeSpellingOnly(trim(preg_replace('/[?!.,;:]+$/u', '', $title)));
+        $normalizedQuery = $this->normalizeSpellingOnly(trim(preg_replace('/[?!.,;:]+$/u', '', $cleanQuery)));
         if ($title === $cleanQuery || ($normalizedTitle !== '' && $normalizedTitle === $normalizedQuery)) {
             return 0.95;
         }
 
         // 2. Contiguous phrase containment in title
-        if (str_contains($title, $cleanQuery) || ($normalizedQuery !== '' && str_contains($title, $normalizedQuery))) {
+        if (str_contains($title, $cleanQuery) || ($normalizedQuery !== '' && str_contains($normalizedTitle, $normalizedQuery))) {
             return 0.90;
         }
 
@@ -1003,37 +1102,53 @@ class RetrievalClient
     }
 
     /**
-     * Check if a token or its morphological/synonym variants match within target text.
+     * Check if a token or its morphological/synonym/banglish variants match within target text.
      */
     private function wordMatches(string $haystack, string $needle): bool
     {
+        $haystackClean = $this->normalizeSpellingOnly(mb_strtolower($haystack));
+        $needleClean = $this->normalizeSpellingOnly(mb_strtolower(trim($needle)));
+
         $suffixes = ['গুলোতে', 'গুলোর', 'টিতে', 'টাতে', 'টার', 'টির', 'গুলো', 'গুলা', 'য়ের', 'ের', 'তে', 'এ', 'র', 'কে', 'টা', 'টি'];
-        $variants = [$needle];
-        foreach ($suffixes as $suf) {
-            if (str_ends_with($needle, $suf)) {
-                $stem = mb_substr($needle, 0, mb_strlen($needle) - mb_strlen($suf));
-                if (mb_strlen($stem) >= 3) {
-                    $variants[] = $stem;
-                }
+        $variants = [$needleClean];
+
+        if (isset(self::BANGLISH_TO_BANGLA[$needleClean])) {
+            $variants[] = self::BANGLISH_TO_BANGLA[$needleClean];
+        }
+        foreach (self::BANGLISH_TO_BANGLA as $banglish => $bangla) {
+            if ($bangla === $needleClean) {
+                $variants[] = $banglish;
             }
         }
 
+        foreach ($variants as $v) {
+            foreach ($suffixes as $suf) {
+                if (str_ends_with($v, $suf)) {
+                    $stem = mb_substr($v, 0, mb_strlen($v) - mb_strlen($suf));
+                    if (mb_strlen($stem) >= 3) {
+                        $variants[] = $stem;
+                    }
+                }
+            }
+        }
+        $variants = array_values(array_unique($variants));
+
         foreach ($variants as $var) {
             if (mb_strlen($var) <= 3) {
-                if ((bool) preg_match('/(?:^|[^\p{L}\p{M}\p{N}])' . preg_quote($var, '/') . '(?:$|[^\p{L}\p{M}\p{N}])/ui', $haystack)) {
+                if ((bool) preg_match('/(?:^|[^\p{L}\p{M}\p{N}])' . preg_quote($var, '/') . '(?:$|[^\p{L}\p{M}\p{N}])/ui', $haystackClean)) {
                     return true;
                 }
-            } elseif (stripos($haystack, $var) !== false) {
+            } elseif (stripos($haystackClean, $var) !== false) {
                 return true;
             }
 
             if (isset(self::GENERIC_SYNONYMS[$var])) {
                 foreach (self::GENERIC_SYNONYMS[$var] as $syn) {
                     if (mb_strlen($syn) <= 3) {
-                        if ((bool) preg_match('/(?:^|[^\p{L}\p{M}\p{N}])' . preg_quote($syn, '/') . '(?:$|[^\p{L}\p{M}\p{N}])/ui', $haystack)) {
+                        if ((bool) preg_match('/(?:^|[^\p{L}\p{M}\p{N}])' . preg_quote($syn, '/') . '(?:$|[^\p{L}\p{M}\p{N}])/ui', $haystackClean)) {
                             return true;
                         }
-                    } elseif (stripos($haystack, $syn) !== false) {
+                    } elseif (stripos($haystackClean, $syn) !== false) {
                         return true;
                     }
                 }

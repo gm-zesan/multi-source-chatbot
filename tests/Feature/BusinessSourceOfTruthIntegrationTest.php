@@ -5,7 +5,11 @@ declare(strict_types=1);
 namespace Tests\Feature;
 
 use App\AI\Agents\KnowledgeSupportAgent;
+use App\Models\AnalyticsCustomer;
+use App\Models\AnalyticsOrder;
+use App\Models\AnalyticsOrderItem;
 use App\Models\AnalyticsProduct;
+use App\Models\AnalyticsSalesperson;
 use App\Models\Channel;
 use App\Models\ChannelAccount;
 use App\Models\Conversation;
@@ -14,6 +18,7 @@ use App\Models\CRMContactEmail;
 use App\Models\CRMContactPhone;
 use App\Models\FAQ;
 use App\Models\Workspace;
+use App\Models\WorkspaceOrder;
 use App\AI\Orchestration\CustomerSupportService;
 use App\Services\Business\BusinessSourceOfTruthService;
 use App\Services\FAQ\FAQSearchResult;
@@ -405,5 +410,239 @@ class BusinessSourceOfTruthIntegrationTest extends TestCase
         $this->assertStringNotContainsString('PATH-1042-BD', $context);
         $this->assertStringContainsString('Order status could not be verified for this customer account.', $context);
         $this->assertStringContainsString('Do NOT guess, invent, or assume any status', $context);
+    }
+
+    /**
+     * Test live WorkspaceOrder database lookup (GAP-GEN-03).
+     */
+    public function test_lookup_order_resolves_live_workspace_order_from_database(): void
+    {
+        $dbOrder = WorkspaceOrder::create([
+            'workspace_id'            => $this->workspace->id,
+            'conversation_id'         => $this->conversation->id,
+            'order_number'            => 'ORD-LIVE-550',
+            'channel'                 => 'web',
+            'customer_name'           => 'Tanvir Rahman',
+            'customer_phone'          => '+8801712345678',
+            'delivery_address'        => 'House 12, Road 4, Dhanmondi, Dhaka',
+            'product_summary'         => 'Exclusive Jamdani Saree (White)',
+            'order_amount'            => 6500.00,
+            'delivery_fee'            => 100.00,
+            'status'                  => 'confirmed',
+            'courier_provider'        => 'RedX Logistics',
+            'courier_tracking_code'   => 'REDX-550-DH',
+            'courier_status'          => 'In Hub Sorting',
+        ]);
+
+        $resolved = $this->businessService->lookupOrder('ORD-LIVE-550', $this->workspace->id, $this->conversation);
+
+        $this->assertNotNull($resolved);
+        $this->assertSame('ORD-LIVE-550', $resolved['order_id']);
+        $this->assertSame('confirmed', $resolved['status']);
+        $this->assertSame('RedX Logistics', $resolved['carrier']);
+        $this->assertSame('REDX-550-DH', $resolved['tracking_code']);
+        $this->assertEquals(6500.00, $resolved['total_bdt']);
+        $this->assertStringContainsString('Jamdani Saree', $resolved['items']);
+    }
+
+    /**
+     * Test live AnalyticsOrder database lookup (GAP-GEN-03).
+     */
+    public function test_lookup_order_resolves_live_analytics_order_from_database(): void
+    {
+        $customer = AnalyticsCustomer::create([
+            'workspace_id' => $this->workspace->id,
+            'name'         => 'Tanvir Rahman',
+            'phone'        => '+8801712345678',
+            'email'        => 'tanvir@example.com',
+        ]);
+
+        $salesperson = AnalyticsSalesperson::create([
+            'workspace_id'  => $this->workspace->id,
+            'name'          => 'Agent Karim',
+            'email'         => 'karim@example.com',
+            'employee_code' => 'EMP-001',
+        ]);
+
+        $analyticsOrder = AnalyticsOrder::create([
+            'workspace_id'   => $this->workspace->id,
+            'customer_id'    => $customer->id,
+            'salesperson_id' => $salesperson->id,
+            'order_number'   => 'ORD-ANALYTICS-770',
+            'total_amount'   => 4500.00,
+            'discount'       => 500.00,
+            'net_amount'     => 4000.00,
+            'status'         => 'completed',
+            'order_date'     => now()->toDateString(),
+        ]);
+
+        $product = AnalyticsProduct::create([
+            'workspace_id' => $this->workspace->id,
+            'name'         => 'Cotton Punjabi Navy',
+            'sku'          => 'SKU-CPN-01',
+            'unit_price'   => 2000.00,
+        ]);
+
+        AnalyticsOrderItem::create([
+            'order_id'   => $analyticsOrder->id,
+            'product_id' => $product->id,
+            'quantity'   => 2,
+            'unit_price' => 2000.00,
+            'subtotal'   => 4000.00,
+        ]);
+
+        $resolved = $this->businessService->lookupOrder('ORD-ANALYTICS-770', $this->workspace->id, $this->conversation);
+
+        $this->assertNotNull($resolved);
+        $this->assertSame('ORD-ANALYTICS-770', $resolved['order_id']);
+        $this->assertSame('completed', $resolved['status']);
+        $this->assertEquals(4000.00, $resolved['total_bdt']);
+        $this->assertStringContainsString('Cotton Punjabi Navy', $resolved['items']);
+    }
+
+    /**
+     * Test spreadsheet ingestion with Bengali column names (GAP-XLS-01 & GAP-XLS-02).
+     */
+    public function test_get_all_workspace_products_recognizes_bengali_column_names(): void
+    {
+        \Illuminate\Support\Facades\Cache::forget("ws_{$this->workspace->id}_all_products_v2");
+
+        $dir = storage_path("app/analytics/{$this->workspace->id}");
+        if (!is_dir($dir)) {
+            mkdir($dir, 0755, true);
+        }
+        $dbPath = "{$dir}/catalog_test.sqlite";
+        $pdo = new \PDO("sqlite:{$dbPath}");
+        $pdo->exec('CREATE TABLE items ("পণ্যের_নাম" TEXT, "ক্যাটাগরি" TEXT, "মূল্য" REAL, "স্টক" INTEGER)');
+        $pdo->exec("INSERT INTO items VALUES ('কাতান শাড়ি', 'শাড়ি', 4500.0, 15)");
+
+        try {
+            $data = $this->businessService->getAllWorkspaceProducts($this->workspace->id);
+            $allProducts = array_merge($data['catalog'] ?? [], $data['structured'] ?? [], $data['files'] ?? []);
+            $this->assertNotEmpty($allProducts);
+            $names = array_column($allProducts, 'name');
+            $this->assertContains('কাতান শাড়ি', $names);
+
+            $matched = null;
+            foreach ($allProducts as $p) {
+                if ($p['name'] === 'কাতান শাড়ি') {
+                    $matched = $p;
+                    break;
+                }
+            }
+            $this->assertNotNull($matched);
+            $this->assertEquals(4500.0, $matched['price']);
+            $this->assertEquals(15, $matched['stock']);
+            $this->assertEquals('শাড়ি', $matched['category']);
+        } finally {
+            if (file_exists($dbPath)) {
+                @unlink($dbPath);
+            }
+            \Illuminate\Support\Facades\Cache::forget("ws_{$this->workspace->id}_all_products_v2");
+        }
+    }
+
+    /**
+     * Test spreadsheet multi-table cross-sheet variant resolution (GAP-XLS-03 & GAP-XLS-05).
+     */
+    public function test_get_all_workspace_products_resolves_cross_table_variants(): void
+    {
+        \Illuminate\Support\Facades\Cache::forget("ws_{$this->workspace->id}_all_products_v2");
+
+        $dir = storage_path("app/analytics/{$this->workspace->id}");
+        if (!is_dir($dir)) {
+            mkdir($dir, 0755, true);
+        }
+        $dbPath = "{$dir}/catalog_variants.sqlite";
+        $pdo = new \PDO("sqlite:{$dbPath}");
+        $pdo->exec('CREATE TABLE products (id INTEGER PRIMARY KEY, product_name TEXT, category TEXT, price REAL)');
+        $pdo->exec('CREATE TABLE variants (product_id INTEGER, size TEXT, color TEXT, stock INTEGER)');
+        $pdo->exec("INSERT INTO products VALUES (10, 'Silk Kurti', 'Women', 2200.0)");
+        $pdo->exec("INSERT INTO variants VALUES (10, 'M', 'Pink', 8)");
+
+        try {
+            $data = $this->businessService->getAllWorkspaceProducts($this->workspace->id);
+            $allProducts = array_merge($data['catalog'] ?? [], $data['structured'] ?? [], $data['files'] ?? []);
+            $this->assertNotEmpty($allProducts);
+
+            $names = array_column($allProducts, 'name');
+            $hasVariant = false;
+            foreach ($names as $name) {
+                if (str_contains($name, 'Silk Kurti') && str_contains($name, 'Pink') && str_contains($name, 'M')) {
+                    $hasVariant = true;
+                    break;
+                }
+            }
+            $this->assertTrue($hasVariant, 'Cross-table product variant was not resolved in workspace products.');
+        } finally {
+            if (file_exists($dbPath)) {
+                @unlink($dbPath);
+            }
+            \Illuminate\Support\Facades\Cache::forget("ws_{$this->workspace->id}_all_products_v2");
+        }
+    }
+
+    /**
+     * Test cross-file virtual database query federation across separate SQLite databases (GAP-XLS-04).
+     */
+    public function test_get_all_workspace_products_resolves_cross_file_virtual_database_federation(): void
+    {
+        \Illuminate\Support\Facades\Cache::forget("ws_{$this->workspace->id}_all_products_v2");
+
+        $dir = storage_path("app/analytics/{$this->workspace->id}");
+        if (!is_dir($dir)) {
+            mkdir($dir, 0755, true);
+        }
+
+        $dbProducts = "{$dir}/catalog_products.sqlite";
+        $dbInventory = "{$dir}/catalog_inventory.sqlite";
+
+        $pdoProd = new \PDO("sqlite:{$dbProducts}");
+        $pdoProd->exec('CREATE TABLE items (id INTEGER PRIMARY KEY, product_name TEXT, category TEXT, price REAL)');
+        $pdoProd->exec("INSERT INTO items VALUES (101, 'Linen Casual Shirt', 'Menswear', 1850.0)");
+
+        $pdoInv = new \PDO("sqlite:{$dbInventory}");
+        $pdoInv->exec('CREATE TABLE stock_items (product_id INTEGER, stock_qty INTEGER, size TEXT, color TEXT)');
+        $pdoInv->exec("INSERT INTO stock_items VALUES (101, 30, 'XL', 'Beige')");
+
+        try {
+            $data = $this->businessService->getAllWorkspaceProducts($this->workspace->id);
+            $allProducts = array_merge($data['catalog'] ?? [], $data['structured'] ?? [], $data['files'] ?? []);
+            $this->assertNotEmpty($allProducts);
+
+            // 1. Verify base product was enriched with stock from the separate inventory database
+            $baseProduct = null;
+            foreach ($allProducts as $p) {
+                if ($p['name'] === 'Linen Casual Shirt') {
+                    $baseProduct = $p;
+                    break;
+                }
+            }
+            $this->assertNotNull($baseProduct, 'Base product not found in workspace products.');
+            $this->assertEquals(1850.0, $baseProduct['price']);
+            $this->assertEquals(30, $baseProduct['stock'], 'Base product was not enriched with stock from cross-file database.');
+            $this->assertStringContainsString('Cross-File Federated', $baseProduct['source']);
+
+            // 2. Verify variant was generated from cross-file joined entity
+            $hasVariant = false;
+            foreach ($allProducts as $p) {
+                if (str_contains($p['name'], 'Linen Casual Shirt') && str_contains($p['name'], 'Beige') && str_contains($p['name'], 'XL')) {
+                    $hasVariant = true;
+                    $this->assertEquals(30, $p['stock']);
+                    $this->assertEquals(1850.0, $p['price']);
+                    $this->assertStringContainsString('Cross-File Federated', $p['source']);
+                    break;
+                }
+            }
+            $this->assertTrue($hasVariant, 'Cross-file product variant was not resolved.');
+        } finally {
+            if (file_exists($dbProducts)) {
+                @unlink($dbProducts);
+            }
+            if (file_exists($dbInventory)) {
+                @unlink($dbInventory);
+            }
+            \Illuminate\Support\Facades\Cache::forget("ws_{$this->workspace->id}_all_products_v2");
+        }
     }
 }

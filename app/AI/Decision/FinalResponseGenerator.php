@@ -142,6 +142,8 @@ class FinalResponseGenerator
         $reports = [];
         $retrievalHits = new Collection();
         $topHit = null;
+        $isZeroMatchUnanswerable = false;
+        $unansweredRoute = 'unanswerable';
 
         foreach ($execution->toolResults as $item) {
             $toolName = (string) ($item['tool'] ?? '');
@@ -198,7 +200,14 @@ class FinalResponseGenerator
                                     }
                                 }
                             } else {
-                                $reports[] = 'দুঃখিত, এই বিষয়টি আমাদের কাস্টমার সাপোর্ট নলেজ বেসের আওতাভুক্ত নয়। আমি শুধুমাত্র আমাদের পণ্য ও সেবা সংক্রান্ত তথ্যে সাহায্য করতে পারি।';
+                                $isZeroMatchUnanswerable = true;
+                                if ($this->isOutOfDomainQuery($request->query)) {
+                                    $unansweredRoute = 'ood';
+                                    $reports[] = 'দুঃখিত, এই বিষয়টি আমাদের কাস্টমার সাপোর্ট নলেজ বেসের আওতাভুক্ত নয়। আমি শুধুমাত্র আমাদের পণ্য ও সেবা সংক্রান্ত তথ্যে সাহায্য করতে পারি।';
+                                } else {
+                                    $unansweredRoute = 'unanswerable';
+                                    $reports[] = 'দুঃখিত, আপনার প্রশ্নটি সম্পর্কিত সুনির্দিষ্ট তথ্য আমাদের নলেজ বেসে এই মুহূর্তে পাওয়া যায়নি। বিস্তারিত জানতে অনুগ্রহ করে আমাদের সাপোর্ট টিমের সাথে যোগাযোগ করুন।';
+                                }
                             }
                         } else {
                             try {
@@ -217,6 +226,16 @@ class FinalResponseGenerator
                                 );
 
                                 $reports[] = $this->formatAgentReply($cleanReply);
+
+                                // GAP-GEN-02: Collect in-line citations from agent JSON output
+                                $decodedAgent = json_decode($cleanReply, true);
+                                if (is_array($decodedAgent) && !empty($decodedAgent['citations']) && is_array($decodedAgent['citations'])) {
+                                    foreach ($decodedAgent['citations'] as $c) {
+                                        if (is_string($c) && trim($c) !== '') {
+                                            $sources[] = trim($c);
+                                        }
+                                    }
+                                }
                             } catch (Throwable $agentError) {
                                 Log::warning('[FinalResponseGenerator] KnowledgeSupportAgent generation failed: ' . $agentError->getMessage());
                                 $topAnswer = $topHit?->faq?->answer
@@ -231,6 +250,12 @@ class FinalResponseGenerator
 
                     if (!empty($result->metadata['sources'])) {
                         $sources = array_merge($sources, (array) $result->metadata['sources']);
+                    } elseif (!empty($result->data['evidence_items'])) {
+                        foreach ($result->data['evidence_items'] as $item) {
+                            if (!empty($item['title'])) {
+                                $sources[] = (string) $item['title'];
+                            }
+                        }
                     }
                 } else {
                     $reports[] = "টুল '{$toolName}': " . $result->error;
@@ -242,6 +267,38 @@ class FinalResponseGenerator
 
         $combinedReport = implode("\n\n", array_filter($reports));
         $routeValue = $decision->toRouteType()->value;
+
+        if ($isZeroMatchUnanswerable) {
+            $isOwnerPipeline = !$request->isCustomer;
+            $gateStatus = $unansweredRoute === 'ood' ? 'UNANSWERABLE_OOD' : 'UNANSWERABLE_NO_EVIDENCE';
+
+            return $this->defaultContract([
+                'reply'                  => $combinedReport,
+                'route'                  => $unansweredRoute,
+                'confidence'             => 0.0,
+                'answered'               => false,
+                'is_owner_pipeline'      => $isOwnerPipeline,
+                'sources'                => [],
+                'retrieval_hits'         => $retrievalHits,
+                'top_hit'                => null,
+                'answerability_decision' => [
+                    'status'           => $gateStatus,
+                    'confidence_score' => 0.0,
+                    'grounded_count'   => 0,
+                    'reasons'          => ['Zero knowledge chunks or catalog records matched query'],
+                ],
+                'routing_telemetry'      => [
+                    'route'             => $unansweredRoute,
+                    'confidence'        => 0.0,
+                    'intent'            => $unansweredRoute === 'ood' ? 'ood' : 'unanswerable',
+                    'router_latency_ms' => 0.0,
+                    'total_e2e_ms'      => 0.0,
+                    'signals'           => [
+                        'contextual_signal' => 'ZERO_RETRIEVAL_UNANSWERABLE',
+                    ],
+                ],
+            ]);
+        }
 
         if (!empty($combinedReport)) {
             $answerabilityDecision = [
@@ -506,5 +563,23 @@ class FinalResponseGenerator
         } catch (\Throwable) {
             return $reply;
         }
+    }
+
+    /**
+     * Check if query is unambiguously Out-Of-Domain (e.g. politics, space, coding, astronomy).
+     */
+    protected function isOutOfDomainQuery(string $query): bool
+    {
+        $lower = mb_strtolower($query);
+
+        if (preg_match('/\b(?:nuclear|reactor|fusion|space|rocket|astronomy|weather|climate|politics|president|election|recipe|cook|song|movie|aircraft|airplane|plane|flight|boeing|jet|world\s*cup|fifa|cricket|football|sports|python|coding|programming|mars)\b/ui', $lower)) {
+            return true;
+        }
+
+        if (preg_match('/(?:আবহাওয়া|আবহাওয়া|রাজনীতি|নির্বাচন|ভোট|রেসিপি|গান|সিনেমা|মুভি|ফুটবল|ক্রিকেট|খেলাধুলা|মঙ্গল\s*গ্রহ|চাঁদে|গ্রহের)/ui', $lower)) {
+            return true;
+        }
+
+        return false;
     }
 }

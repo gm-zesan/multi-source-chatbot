@@ -83,6 +83,11 @@
                 <i class="ri-bar-chart-2-line"></i> Analytics Data Sources
             </button>
         @endif
+        @can(\App\Enums\Permissions\UnansweredQuestionPermission::VIEW->value)
+            <a href="{{ route('unanswered-questions.index') }}" class="kb-pill-btn app-btn app-btn-secondary text-xs">
+                <i class="ri-question-mark"></i> Unanswered Queries
+            </a>
+        @endcan
     </div>
 
     {{-- Section 1: FAQ, Policies, and Business Information Table --}}

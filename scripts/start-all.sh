@@ -65,7 +65,7 @@ fi
 # 4. Start Laravel Background Queue Worker
 echo ">> [4/5] Starting Laravel Queue Worker..."
 cd "${PROJECT_ROOT}"
-php artisan queue:work --queue=faq,default,documents,memory,telemetry --tries=3 --timeout=90 > /tmp/laravel_queue.log 2>&1 &
+php artisan queue:work --queue=faq,default,documents,memory,telemetry --tries=3 --timeout=90 --max-jobs=1000 --max-time=3600 --memory=512 > /tmp/laravel_queue.log 2>&1 &
 QUEUE_PID=$!
 echo "   -> Queue Worker running in background (PID: ${QUEUE_PID})"
 

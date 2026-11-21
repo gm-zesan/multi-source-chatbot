@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Listeners;
 
 use App\AI\Decision\UnifiedOrchestrator;
+use App\Events\AITelemetryRecorded;
 use App\Events\IncomingMessageReceived;
 use App\AI\Orchestration\CustomerSupportService;
 use App\Support\ChannelManager;
@@ -103,11 +104,35 @@ class RunFAQEngineListener implements ShouldQueue
                     }
                 }
 
-                $this->customerSupportService->saveOutboundReply(
+                $savedMessage = $this->customerSupportService->saveOutboundReply(
                     conversation: $event->conversation,
                     replyText: $replyText,
                     deliveryResponse: $deliveryResponse,
                 );
+
+                // Telemetry Observer Dispatch (Decoupled & Non-blocking)
+                try {
+                    event(new AITelemetryRecorded(
+                        conversation: $event->conversation,
+                        outboundMessage: $savedMessage,
+                        query: $event->message->body,
+                        reply: $replyText,
+                        telemetry: [
+                            'route'                  => $result['route'] ?? 'knowledge',
+                            'confidence'             => $result['confidence'] ?? 1.0,
+                            'answered'               => $result['answered'] ?? false,
+                            'total_time_ms'          => $result['routing_telemetry']['total_e2e_ms'] ?? null,
+                            'answerability_decision' => $result['answerability_decision'] ?? null,
+                            'routing_telemetry'      => $result['routing_telemetry'] ?? [],
+                            'llm_usage'              => $result['raw_llm_response'] ?? [],
+                            'provider'               => config('ai.default', 'deepseek'),
+                            'model'                  => config('ai.default_model', 'deepseek-chat'),
+                        ],
+                        workspaceId: (int) $event->account->workspace_id,
+                    ));
+                } catch (\Throwable $telemetryEx) {
+                    Log::warning('[FAQ Listener] Telemetry dispatch absorbed: ' . $telemetryEx->getMessage());
+                }
 
                 // Dispatch asynchronous Graph Memory Ingestion (Non-blocking, port 8002)
                 \App\Jobs\IngestConversationMemoryJob::dispatch($event->conversation);
