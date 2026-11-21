@@ -36,10 +36,18 @@ class SteadfastCourierDriver implements CourierDriverInterface
             );
         }
 
+        $recipientPhone = $order->getFormatted11DigitPhone();
+        if (empty($recipientPhone)) {
+            return CourierBookingResult::failure(
+                provider: $this->getProviderSlug(),
+                errorMessage: 'Valid recipient phone number is required to book Steadfast consignment.'
+            );
+        }
+
         $payload = [
             'invoice'           => $order->order_number,
             'recipient_name'    => $order->customer_name ?: 'Valued Customer',
-            'recipient_phone'   => $order->getFormatted11DigitPhone(),
+            'recipient_phone'   => $recipientPhone,
             'recipient_address' => $order->delivery_address ?: 'Dhaka, Bangladesh',
             'cod_amount'        => (float) $order->order_amount,
             'note'              => $order->customer_notes ?: $order->admin_notes ?: 'Delivery handover',

@@ -11,7 +11,9 @@ use App\AI\Decision\DTOs\ExecutionResponse;
 use App\AI\DTOs\ToolResult;
 use App\AI\LLM\LLMClient;
 use App\AI\Orchestration\CustomerSupportService;
+use App\Models\Workspace;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Throwable;
 
@@ -109,7 +111,7 @@ class FinalResponseGenerator
         // ── 4. Out of Domain Optimization (Zero 2nd LLM Call) ───────────────
         if ($decision->isOod()) {
             return $this->defaultContract([
-                'reply'       => $decision->directResponse ?? 'দুঃখিত, এই বিষয়টি আমাদের কাস্টমার সাপোর্ট নলেজ বেসের আওতাভুক্ত নয়। আমি শুধুমাত্র আমাদের পণ্য ও সেবা সংক্রান্ত তথ্যে সাহায্য করতে পারি।',
+                'reply'       => $this->getOutOfDomainMessage($request->workspaceId, $decision->directResponse),
                 'route'       => 'ood',
                 'confidence'  => 1.0,
                 'answered'    => true,
@@ -193,11 +195,11 @@ class FinalResponseGenerator
                                     $reports[] = $this->formatAgentReply($cleanReply);
                                 } catch (Throwable $e) {
                                     if (str_contains($bContext, 'UNAVAILABLE / NOT FOUND')) {
+                                        $availCat = null;
                                         if (preg_match('/Available Categories:\s*([^\n]+)/u', $bContext, $mCats)) {
-                                            $reports[] = "দুঃখিত, আপনার কাঙ্ক্ষিত পণ্যটি বর্তমানে আমাদের স্টোরে উপলব্ধ নেই। আমাদের স্টোরে " . trim($mCats[1]) . " পাওয়া যাচ্ছে।";
-                                        } else {
-                                            $reports[] = "দুঃখিত, আপনার কাঙ্ক্ষিত পণ্যটি বর্তমানে আমাদের স্টোরে উপলব্ধ নেই।";
+                                            $availCat = trim($mCats[1]);
                                         }
+                                        $reports[] = $this->getProductUnavailableMessage($request->workspaceId, $availCat);
                                     } else {
                                         $fallbackDetails = [];
                                         if (preg_match('/\*\s*Product:\s*([^\n]+)/u', $bContext, $mProd)) {
@@ -223,10 +225,10 @@ class FinalResponseGenerator
                                 $isZeroMatchUnanswerable = true;
                                 if ($this->isOutOfDomainQuery($request->query)) {
                                     $unansweredRoute = 'ood';
-                                    $reports[] = 'দুঃখিত, এই বিষয়টি আমাদের কাস্টমার সাপোর্ট নলেজ বেসের আওতাভুক্ত নয়। আমি শুধুমাত্র আমাদের পণ্য ও সেবা সংক্রান্ত তথ্যে সাহায্য করতে পারি।';
+                                    $reports[] = $this->getOutOfDomainMessage($request->workspaceId);
                                 } else {
                                     $unansweredRoute = 'unanswerable';
-                                    $reports[] = 'দুঃখিত, আপনার প্রশ্নটি সম্পর্কিত সুনির্দিষ্ট তথ্য আমাদের নলেজ বেসে এই মুহূর্তে পাওয়া যায়নি। বিস্তারিত জানতে অনুগ্রহ করে আমাদের সাপোর্ট টিমের সাথে যোগাযোগ করুন।';
+                                    $reports[] = $this->getUnanswerableMessage($request->workspaceId);
                                 }
                             }
                         } else {
@@ -260,11 +262,11 @@ class FinalResponseGenerator
                                 Log::warning('[FinalResponseGenerator] KnowledgeSupportAgent generation failed: ' . $agentError->getMessage());
                                 if ($hasDirectProductOrOrder) {
                                     if (str_contains($bContext, 'UNAVAILABLE / NOT FOUND')) {
+                                        $availCat = null;
                                         if (preg_match('/Available Categories:\s*([^\n]+)/u', $bContext, $mCats)) {
-                                            $reports[] = "দুঃখিত, আপনার কাঙ্ক্ষিত পণ্যটি বর্তমানে আমাদের স্টোরে উপলব্ধ নেই। আমাদের স্টোরে " . trim($mCats[1]) . " পাওয়া যাচ্ছে।";
-                                        } else {
-                                            $reports[] = "দুঃখিত, আপনার কাঙ্ক্ষিত পণ্যটি বর্তমানে আমাদের স্টোরে উপলব্ধ নেই।";
+                                            $availCat = trim($mCats[1]);
                                         }
+                                        $reports[] = $this->getProductUnavailableMessage($request->workspaceId, $availCat);
                                     } elseif (str_contains($bContext, 'Live Product Catalog Record')) {
                                         $fallbackDetails = [];
                                         if (preg_match('/\*\s*Product:\s*([^\n]+)/u', $bContext, $mProd)) {
@@ -633,5 +635,86 @@ class FinalResponseGenerator
         }
 
         return false;
+    }
+
+    /**
+     * Retrieve workspace model with short cache.
+     */
+    protected function getWorkspace(int $workspaceId): ?Workspace
+    {
+        if ($workspaceId <= 0) {
+            return null;
+        }
+
+        return Cache::remember("ws_{$workspaceId}_model", 60, function () use ($workspaceId) {
+            return Workspace::find($workspaceId);
+        });
+    }
+
+    /**
+     * Resolve Out-Of-Domain refusal message (dynamic merchant setting or default).
+     */
+    protected function getOutOfDomainMessage(int $workspaceId, ?string $directResponse = null): string
+    {
+        if (!empty($directResponse) && is_string($directResponse)) {
+            return $directResponse;
+        }
+
+        $workspace = $this->getWorkspace($workspaceId);
+        $custom = $workspace?->settings['ood_refusal_message'] ?? null;
+        if (!empty($custom) && is_string($custom)) {
+            return trim($custom);
+        }
+
+        return 'দুঃখিত, এই বিষয়টি আমাদের কাস্টমার সাপোর্ট নলেজ বেসের আওতাভুক্ত নয়। আমি শুধুমাত্র আমাদের পণ্য ও সেবা সংক্রান্ত তথ্যে সাহায্য করতে পারি।';
+    }
+
+    /**
+     * Resolve Unanswerable message (dynamic merchant setting or default + support contacts).
+     */
+    protected function getUnanswerableMessage(int $workspaceId): string
+    {
+        $workspace = $this->getWorkspace($workspaceId);
+        $custom = $workspace?->settings['unanswerable_message'] ?? null;
+        if (!empty($custom) && is_string($custom)) {
+            $msg = trim($custom);
+        } else {
+            $msg = 'দুঃখিত, আপনার প্রশ্নটি সম্পর্কিত সুনির্দিষ্ট তথ্য আমাদের নলেজ বেসে এই মুহূর্তে পাওয়া যায়নি। বিস্তারিত জানতে অনুগ্রহ করে আমাদের সাপোর্ট টিমের সাথে যোগাযোগ করুন।';
+        }
+
+        $contactParts = [];
+        if (!empty($workspace?->support_phone) && !str_contains($msg, (string) $workspace->support_phone)) {
+            $contactParts[] = "হটলাইন: " . $workspace->support_phone;
+        }
+        if (!empty($workspace?->support_email) && !str_contains($msg, (string) $workspace->support_email)) {
+            $contactParts[] = "ইমেইল: " . $workspace->support_email;
+        }
+        if (!empty($contactParts)) {
+            $msg .= " (" . implode(", ", $contactParts) . ")";
+        }
+
+        return $msg;
+    }
+
+    /**
+     * Resolve Product Unavailable message (dynamic merchant setting or default + available categories).
+     */
+    protected function getProductUnavailableMessage(int $workspaceId, ?string $availableCategories = null): string
+    {
+        $workspace = $this->getWorkspace($workspaceId);
+        $custom = $workspace?->settings['product_unavailable_message'] ?? null;
+        if (!empty($custom) && is_string($custom)) {
+            $msg = trim($custom);
+            if ($availableCategories && !empty(trim($availableCategories))) {
+                $msg .= " আমাদের স্টোরে " . trim($availableCategories) . " পাওয়া যাচ্ছে।";
+            }
+            return $msg;
+        }
+
+        if ($availableCategories && !empty(trim($availableCategories))) {
+            return "দুঃখিত, আপনার কাঙ্ক্ষিত পণ্যটি বর্তমানে আমাদের স্টোরে উপলব্ধ নেই। আমাদের স্টোরে " . trim($availableCategories) . " পাওয়া যাচ্ছে।";
+        }
+
+        return "দুঃখিত, আপনার কাঙ্ক্ষিত পণ্যটি বর্তমানে আমাদের স্টোরে উপলব্ধ নেই।";
     }
 }

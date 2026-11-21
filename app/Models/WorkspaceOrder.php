@@ -68,7 +68,7 @@ class WorkspaceOrder extends Model
     public function getFormatted11DigitPhone(): string
     {
         if (empty($this->customer_phone)) {
-            return '01700000000';
+            return '';
         }
 
         $cleaned = preg_replace('/[^\d]/', '', $this->customer_phone);

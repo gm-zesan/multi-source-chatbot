@@ -11,6 +11,9 @@ use App\AI\Decision\DTOs\ToolCall;
 use App\AI\LLM\LLMClient;
 use App\AI\LLM\LLMRequest;
 use App\AI\Orchestration\CustomerSupportService;
+use App\Models\Workspace;
+use App\Services\Business\BusinessSourceOfTruthService;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Throwable;
 
@@ -26,6 +29,7 @@ class UnifiedDecisionEngine implements DecisionEngineInterface
         private readonly LLMClient $llmClient,
         private readonly ToolRegistry $toolRegistry,
         private readonly ?CustomerSupportService $customerSupportService = null,
+        private readonly ?BusinessSourceOfTruthService $businessSourceOfTruth = null,
     ) {}
 
     public function decide(DecisionRequest $request): DecisionResult
@@ -449,7 +453,7 @@ class UnifiedDecisionEngine implements DecisionEngineInterface
                 responseMode: DecisionResult::MODE_OUT_OF_DOMAIN,
                 toolCalls: [],
                 clarification: null,
-                directResponse: 'দুঃখিত, এই বিষয়টি আমাদের কাস্টমার সাপোর্ট নলেজ বেসের আওতাভুক্ত নয়। আমি শুধুমাত্র আমাদের পণ্য ও সেবা সংক্রান্ত তথ্যে সাহায্য করতে পারি।',
+                directResponse: $this->getOodRefusalMessage($request->workspaceId),
                 decisionMetadata: ['layer' => 'fallback_ood_math', 'decision_ms' => $latency, 'is_fallback' => true]
             );
         }
@@ -463,15 +467,14 @@ class UnifiedDecisionEngine implements DecisionEngineInterface
                 responseMode: DecisionResult::MODE_OUT_OF_DOMAIN,
                 toolCalls: [],
                 clarification: null,
-                directResponse: 'দুঃখিত, এই বিষয়টি আমাদের কাস্টমার সাপোর্ট নলেজ বেসের আওতাভুক্ত নয়। আমি শুধুমাত্র আমাদের পণ্য ও সেবা সংক্রান্ত তথ্যে সাহায্য করতে পারি।',
+                directResponse: $this->getOodRefusalMessage($request->workspaceId),
                 decisionMetadata: ['layer' => 'fallback_ood_refusal', 'decision_ms' => $latency, 'is_fallback' => true]
             );
         }
 
         // Fallback Rule 3.5: Product-specific availability or general FAQ inquiry -> KNOWLEDGE (Never analytics!)
-        if (preg_match('/(?:product|প্রোডাক্ট|পণ্য|আইটেম|item|items|sale|sell|সেল|বিক্রি|kinte|kinbo|buy|purchase|কেনা|কিনতে|কিনবো|phone|mobile|মোবাইল|কি\s*কি|কী\s*কী|collection|কালেকশন|stock|স্টক|available|দাম|দর|মূল্য|price|dam\s*koto|dam\s*কত|how\s*much|cost|delivery|shipping|courier|parcel|পার্সেল|tracking|ট্র্যাকিং|kothay|কোথায়|কোথাকার|ডেলিভারি|ডেলিভারী|কুরিয়ার|শিপিং|কত\s*দিন|কবে\s*পাব|পাবো|পৌঁছাবে|পৌছাবে|ফেরত|রিটার্ন|রিফান্ড|return|refund|টাকা|কার্যদিবস|policy|পলিসি|নিয়ম|সময়|how\s*long|when|charge|চার্জ|hours|store\s*hours|sla|guarantee|warranty|ওয়ারেন্টি|ওয়ারেন্টি|গ্যারান্টি|গ্যারান্টী|office|অফিস|ঠিকানা|address|location|where|branch|শাখা|outlet|আউটলেট|showroom|শোরুম|password|reset|login|signup|signin|sign-in|account|forgot|auth|discount|ডিসকাউন্ট|কুপন|কোড|অফার|code|coupon|offer|promo|voucher|payment|pay\b|cod|পেমেন্ট|টাকা\s*পরিশোধ|deri|দেরি|delay|order|অর্ডার|open|close|খোলা|বন্ধ|dokan|দোকান|help|helpline|হেল্পলাইন|care|hotline|হটলাইন|support|সাপোর্ট|number|নম্বর|যোগাযোগ|contact|call|phone|ফোন|fabric|ফেব্রিক|cloth|কাপড়|কাপড়|material|ম্যাটেরিয়াল|মেটেরিয়াল|origin|উৎপত্তি|made|damage|damaged|vanga|ভাঙা|ভাঙ্গা|নষ্ট|ক্ষতিগ্রস্ত|defect|defective|ত্রুটি|ত্রুটিপূর্ণ|unboxing|আনবক্সিং|video|ভিডিও|exchange|এক্সচেঞ্জ|বদল|বদলানো|পরিবর্তন|restocking|রিস্টকিং|tag|ট্যাগ|cancel|ক্যানসেল|বাতিল|free|ফ্রি|replacement|রিপ্লেসমেন্ট)/ui', $lower)
-            || preg_match('/\b(?:iphone|samsung|galaxy|laptop|mouse|keyboard|headphone|earphone|shirt|panjabi|sharee|saree|watch|tablet|car|tire|medicine|paracetamol)\b/ui', $lower)
-            || preg_match('/(?:আইফোন|স্যামসাং|ল্যাপটপ|মাউস|কীবোর্ড|হেডফোন|পাঞ্জাবি|পাঞ্জাবী|শাড়ি|শাড়ী|শার্ট|জুতা|ট্যাবলেট|ওষুধ|ঔষধ|প্যারাসিটামল|টায়ার|টায়ার)/ui', $lower)
+        if (preg_match('/(?:product|প্রোডাক্ট|পণ্য|আইটেম|item|items|sale|sell|সেল|বিক্রি|kinte|kinbo|buy|purchase|কেনা|কিনতে|কিনবো|phone|mobile|মোবাইল|কি\s*কি|কী\s*কী|collection|কালেকশন|stock|স্টক|available|দাম|দর|মূল্য|price|dam\s*koto|dam\s*কত|how\s*much|cost|delivery|shipping|courier|parcel|পার্সেল|tracking|ট্র্যাকিং|kothay|কোথায়|কোথাকার|ডেলিভারি|ডেলিভারী|কুরিয়ার|শিপিং|কত\s*দিন|কবে\s*পাব|পাবো|পৌঁছাবে|পৌছাবে|ফেরত|রিটার্ন|রিফান্ড|return|refund|টাকা|কার্যদিবস|policy|পলিসি|নিয়ম|সময়|how\s*long|when|charge|চার্জ|hours|store\s*hours|sla|guarantee|warranty|ওয়ারেন্টি|ওয়ারেন্টি|গ্যারান্টি|গ্যারান্টী|office|অফিস|ঠিকানা|address|location|where|branch|শাখা|outlet|আউটলেট|showroom|শোরুম|password|reset|login|signup|signin|sign-in|account|forgot|auth|discount|ডিসকাউন্ট|কুপন|কোড|অফার|code|coupon|offer|promo|voucher|payment|pay\b|cod|পেমেন্ট|টাকা\s*পরিশোধ|deri|দেরি|delay|order|অর্ডার|open|close|খোলা|বন্ধ|dokan|দোকান|help|helpline|হেল্পলাইন|care|hotline|হটলাইন|support|সাপোর্ট|number|নম্বর|যোগাযোগ|contact|call|fabric|ফেব্রিক|cloth|কাপড়|কাপড়|material|ম্যাটেরিয়াল|মেটেরিয়াল|origin|উৎপত্তি|made|damage|damaged|vanga|ভাঙা|ভাঙ্গা|নষ্ট|ক্ষতিগ্রস্ত|defect|defective|ত্রুটি|ত্রুটিপূর্ণ|unboxing|আনবক্সিং|video|ভিডিও|exchange|এক্সচেঞ্জ|বদল|বদলানো|পরিবর্তন|restocking|রিস্টকিং|tag|ট্যাগ|cancel|ক্যানসেল|বাতিল|free|ফ্রি|replacement|রিপ্লেসমেন্ট|specs|specification|বিবরণ|details|ডিটেইলস|পাওয়া|pawa|ache|আছে)/ui', $lower)
+            || $this->matchesWorkspaceCatalog($lower, $request->workspaceId)
         ) {
             return new DecisionResult(
                 schemaVersion: DecisionResult::SCHEMA_VERSION,
@@ -504,6 +507,43 @@ class UnifiedDecisionEngine implements DecisionEngineInterface
             directResponse: null,
             decisionMetadata: ['layer' => 'fallback_uncertain_clarification', 'decision_ms' => $latency, 'is_fallback' => true]
         );
+    }
+
+    /**
+     * Dynamically match customer query tokens against the workspace product catalog
+     * to ensure any merchant's inventory routes to KNOWLEDGE even in deterministic fallback.
+     */
+    protected function matchesWorkspaceCatalog(string $queryLower, int $workspaceId): bool
+    {
+        if ($workspaceId <= 0 || mb_strlen(trim($queryLower)) < 2) {
+            return false;
+        }
+
+        try {
+            $service = $this->businessSourceOfTruth ?? app(BusinessSourceOfTruthService::class);
+            $results = $service->searchWorkspaceProductsOnDemand($workspaceId, $queryLower, 1);
+            return !empty($results);
+        } catch (\Throwable) {
+            return false;
+        }
+    }
+
+    /**
+     * Resolve dynamic or default Out-Of-Domain refusal message for a workspace.
+     */
+    protected function getOodRefusalMessage(int $workspaceId): string
+    {
+        if ($workspaceId > 0) {
+            $custom = Cache::remember("ws_{$workspaceId}_ood_msg", 60, function () use ($workspaceId) {
+                $ws = Workspace::find($workspaceId);
+                return $ws?->settings['ood_refusal_message'] ?? null;
+            });
+            if (!empty($custom) && is_string($custom)) {
+                return trim($custom);
+            }
+        }
+
+        return 'দুঃখিত, এই বিষয়টি আমাদের কাস্টমার সাপোর্ট নলেজ বেসের আওতাভুক্ত নয়। আমি শুধুমাত্র আমাদের পণ্য ও সেবা সংক্রান্ত তথ্যে সাহায্য করতে পারি।';
     }
 
     /**
@@ -559,7 +599,7 @@ Analyze the user's message in context and return ONE validated Schema v1.0 JSON 
 
 <CAPABILITIES>
 - CHAT: Conversational greetings, pleasantries, chitchat, gratitude, general capability inquiries.
-- KNOWLEDGE: Product availability, specifications, pricing, stock for customer purchase (e.g. "Laptop Pro কি stock e ache?", "Laptop Pro এর দাম কত?"), return policies, shipping charges, delivery times.
+- KNOWLEDGE: Product availability, specifications, pricing, stock for customer purchase (e.g. "পণ্যটি কি stock e ache?", "দাম কত?"), return policies, shipping charges, delivery times.
 - ANALYTICS: Internal business metrics, aggregate sales, revenue summaries, employee sales rankings, low-stock inventory alerts, cash flow, debt/dues reports.
 - UNCERTAIN: Vague, ambiguous queries lacking required context or entity names.
 - OOD: Queries completely unrelated to business, e-commerce, or customer service (e.g. weather, coding, politics).
@@ -578,7 +618,7 @@ Analyze the user's message in context and return ONE validated Schema v1.0 JSON 
 </AVAILABLE_TOOLS>
 
 <CRITICAL_RULES>
-1. PRODUCT STOCK COLLISION RULE: A question asking if a specific product is in stock (e.g. "Laptop Pro কি stock e ache?", "Is this item available?") is KNOWLEDGE (tool: knowledge_intelligence, operation: check_product_availability), NOT ANALYTICS.
+1. PRODUCT STOCK COLLISION RULE: A question asking if a specific product is in stock (e.g. "পণ্যটি কি stock e ache?", "Is this item available?") is KNOWLEDGE (tool: knowledge_intelligence, operation: check_product_availability), NOT ANALYTICS.
 2. AGGREGATE INVENTORY REPORT RULE: A question asking for overall inventory levels or low-stock reports across the store (e.g. "স্টক রিপোর্ট দাও", "low stock products") is ANALYTICS (tool: inventory_analytics, operation: get_stock_overview).
 3. Do NOT invent raw SQL, database tables, or executable commands.
 4. Server will inject trusted workspace_id and permissions; do NOT include workspace_id or auth credentials in arguments.

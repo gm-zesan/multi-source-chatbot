@@ -43,9 +43,17 @@ class RedXCourierDriver implements CourierDriverInterface
             );
         }
 
+        $customerPhone = $order->getFormatted11DigitPhone();
+        if (empty($customerPhone)) {
+            return CourierBookingResult::failure(
+                provider: $this->getProviderSlug(),
+                errorMessage: 'Valid customer phone number is required to book RedX consignment.'
+            );
+        }
+
         $payload = [
             'customer_name'          => $order->customer_name ?: 'Valued Customer',
-            'customer_phone'         => $order->getFormatted11DigitPhone(),
+            'customer_phone'         => $customerPhone,
             'customer_address'       => $order->delivery_address ?: 'Dhaka, Bangladesh',
             'merchant_invoice_id'    => $order->order_number,
             'cash_collection_amount' => (float) $order->order_amount,

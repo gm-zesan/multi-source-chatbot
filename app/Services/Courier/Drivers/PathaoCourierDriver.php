@@ -43,11 +43,19 @@ class PathaoCourierDriver implements CourierDriverInterface
             );
         }
 
+        $recipientPhone = $order->getFormatted11DigitPhone();
+        if (empty($recipientPhone)) {
+            return CourierBookingResult::failure(
+                provider: $this->getProviderSlug(),
+                errorMessage: 'Valid recipient phone number is required to book Pathao consignment.'
+            );
+        }
+
         $payload = [
             'store_id'            => $storeId,
             'merchant_order_id'   => $order->order_number,
             'recipient_name'      => $order->customer_name ?: 'Valued Customer',
-            'recipient_phone'     => $order->getFormatted11DigitPhone(),
+            'recipient_phone'     => $recipientPhone,
             'recipient_address'   => $order->delivery_address ?: 'Dhaka, Bangladesh',
             'delivery_type'       => 48, // 48 Hours standard delivery
             'item_type'           => 2,  // 2 = Parcel

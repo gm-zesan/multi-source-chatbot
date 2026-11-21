@@ -10,6 +10,7 @@ use App\Models\Conversation;
 use App\Models\CRMContact;
 use App\Models\KnowledgeDocument;
 use App\Models\StructuredRecord;
+use App\Models\Workspace;
 use App\Models\WorkspaceOrder;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
@@ -462,7 +463,7 @@ class BusinessSourceOfTruthService
 
                 // Also check substantive product noun/keyword and category dynamically with Bengali noun inflections
                 $isKeywordMatch = false;
-                $prodKeywords = $this->extractProductKeywords($product['name'], $product['category'] ?? null);
+                $prodKeywords = $this->extractProductKeywords($product['name'], $product['category'] ?? null, $workspaceId);
                 if (!$isDirectMatch) {
                     $stemPattern = '(?:গুলোর|গুলোতে|গুলো|গুলা|টির|টার|টিতে|টাতে|য়ের|ের|য়ে|তে|ে|য়|র|কে|টা|টি)?';
                     foreach ($prodKeywords as $kw) {
@@ -1154,12 +1155,48 @@ class BusinessSourceOfTruthService
     }
 
     /**
+     * Retrieve merchant-configured custom synonyms from workspace settings.
+     *
+     * @return array<string, string[]>
+     */
+    protected function getMerchantCustomSynonyms(int $workspaceId): array
+    {
+        if ($workspaceId <= 0) {
+            return [];
+        }
+
+        return Cache::remember("ws_{$workspaceId}_custom_synonyms", 300, function () use ($workspaceId) {
+            $ws = Workspace::find($workspaceId);
+            $raw = $ws?->settings['custom_synonyms'] ?? [];
+            if (!is_array($raw)) {
+                return [];
+            }
+
+            $normalized = [];
+            foreach ($raw as $key => $values) {
+                $cleanKey = mb_strtolower(trim((string) $key));
+                if ($cleanKey === '') {
+                    continue;
+                }
+                if (is_string($values)) {
+                    $values = array_filter(array_map('trim', explode(',', $values)));
+                }
+                if (is_array($values)) {
+                    $normalized[$cleanKey] = array_values(array_unique(array_filter(array_map(fn ($v) => mb_strtolower(trim((string) $v)), $values))));
+                }
+            }
+
+            return $normalized;
+        });
+    }
+
+    /**
      * Extract substantive keywords and tokens dynamically from a product name and category.
      * Scalable and domain-agnostic for any business vertical (apparel, electronics, food, medicine, services, etc.)
      *
      * @return string[]
      */
-    private function extractProductKeywords(string $productName, ?string $category = null): array
+    private function extractProductKeywords(string $productName, ?string $category = null, int $workspaceId = 1): array
     {
         $keywords = [];
 
@@ -1203,6 +1240,9 @@ class BusinessSourceOfTruthService
             'mobile'     => ['মোবাইল', 'ফোন'],
         ];
 
+        $customMap = $this->getMerchantCustomSynonyms($workspaceId);
+        $effectiveCrossMap = !empty($customMap) ? array_merge($crossLingualMap, $customMap) : $crossLingualMap;
+
         // 1. Process category tokens if present and not 'General'
         if ($category && mb_strtolower($category) !== 'general') {
             $catLower = mb_strtolower(trim($category));
@@ -1211,8 +1251,8 @@ class BusinessSourceOfTruthService
             foreach ($catWords as $cw) {
                 if (mb_strlen($cw) >= 3) {
                     $keywords[] = $cw;
-                    if (isset($crossLingualMap[$cw])) {
-                        $keywords = array_merge($keywords, $crossLingualMap[$cw]);
+                    if (isset($effectiveCrossMap[$cw])) {
+                        $keywords = array_merge($keywords, $effectiveCrossMap[$cw]);
                     }
                 }
             }
@@ -1241,8 +1281,8 @@ class BusinessSourceOfTruthService
             $keywords[] = $token;
 
             // Add cross-lingual synonyms if available
-            if (isset($crossLingualMap[$token])) {
-                $keywords = array_merge($keywords, $crossLingualMap[$token]);
+            if (isset($effectiveCrossMap[$token])) {
+                $keywords = array_merge($keywords, $effectiveCrossMap[$token]);
             }
         }
 
@@ -1468,6 +1508,17 @@ class BusinessSourceOfTruthService
             'শার্ট' => ['shirt'],
             'ল্যাপটপ' => ['laptop'],
         ];
+
+        $customMap = $this->getMerchantCustomSynonyms($workspaceId);
+        if (!empty($customMap)) {
+            foreach ($customMap as $k => $syns) {
+                if (isset($crossMap[$k])) {
+                    $crossMap[$k] = array_values(array_unique(array_merge($crossMap[$k], $syns)));
+                } else {
+                    $crossMap[$k] = $syns;
+                }
+            }
+        }
 
         $tokens = $rawTokens;
         foreach ($rawTokens as $tok) {

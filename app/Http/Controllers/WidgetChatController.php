@@ -94,33 +94,36 @@ class WidgetChatController extends Controller
                 ->first();
         }
 
-        if (!$channelAccount) {
+        // In test or local debug environments without explicit IDs, fallback to any available website channel account
+        if (!$channelAccount && (app()->environment('local', 'testing') || config('app.debug'))) {
             $channelAccount = ChannelAccount::whereHas('channel', fn($q) => $q->whereIn('slug', ['website', 'web']))->first();
         }
 
-        // If still no channel account, find or create default website channel & account
-        if (!$channelAccount) {
-            $websiteChannel = Channel::firstOrCreate(
-                ['slug' => 'website'],
-                ['name' => 'Website', 'is_active' => true]
-            );
+        // If still no channel account and workspace_id was provided, create it on-demand for that workspace
+        if (!$channelAccount && !empty($validated['workspace_id'])) {
+            $workspace = Workspace::find($validated['workspace_id']);
+            if ($workspace) {
+                $websiteChannel = Channel::firstOrCreate(
+                    ['slug' => 'website'],
+                    ['name' => 'Website', 'is_active' => true]
+                );
 
-            $workspace = !empty($validated['workspace_id']) ? Workspace::find($validated['workspace_id']) : Workspace::first();
-            if (!$workspace) {
-                return response()->json([
-                    'success' => false,
-                    'reply'   => 'Service temporarily unavailable: no active workspace found.',
-                ], 503);
+                $channelAccount = ChannelAccount::create([
+                    'workspace_id' => $workspace->id,
+                    'channel_id'   => $websiteChannel->id,
+                    'name'         => $workspace->name . ' Storefront Web Widget',
+                    'external_id'  => 'widget_' . Str::random(12),
+                    'access_token' => 'widget_public_token',
+                    'is_active'    => true,
+                ]);
             }
+        }
 
-            $channelAccount = ChannelAccount::create([
-                'workspace_id' => $workspace->id,
-                'channel_id'   => $websiteChannel->id,
-                'name'         => 'Storefront Web Widget',
-                'external_id'  => 'widget_' . Str::random(12),
-                'access_token' => 'widget_public_token',
-                'is_active'    => true,
-            ]);
+        if (!$channelAccount) {
+            return response()->json([
+                'success' => false,
+                'reply'   => 'Service temporarily unavailable: invalid or missing channel_account_id or workspace_id.',
+            ], 400);
         }
 
         $workspaceId = (int) $channelAccount->workspace_id;

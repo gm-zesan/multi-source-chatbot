@@ -1758,6 +1758,17 @@ PROMPT;
             $conversation->save();
         }
 
+        if ($conversation?->workspace_id) {
+            $wsId = (int) $conversation->workspace_id;
+            $custom = \Illuminate\Support\Facades\Cache::remember("ws_{$wsId}_ood_msg", 60, function () use ($wsId) {
+                $ws = \App\Models\Workspace::find($wsId);
+                return $ws?->settings['ood_refusal_message'] ?? null;
+            });
+            if (!empty($custom) && is_string($custom)) {
+                return trim($custom);
+            }
+        }
+
         return "দুঃখিত, এই বিষয়টি আমাদের কাস্টমার সাপোর্ট নলেজ বেসের আওতাভুক্ত নয়। আমাদের সার্ভিস বা অ্যাকাউন্ট সম্পর্কিত কোনো প্রশ্ন থাকলে জানান, অথবা আমি আপনাকে একজন সাপোর্ট স্পেশালিস্টের সাথে যুক্ত করে দিতে পারি।";
     }
 
@@ -2157,11 +2168,19 @@ PROMPT;
 
             // Tier 3: Deterministic Grounded Fallback
             if (!empty($businessContext)) {
+                $categoriesNotice = '';
+                if (preg_match('/Available Categories:\s*([^\n]+)/u', $businessContext, $mCats)) {
+                    $categoriesNotice = ' আমাদের স্টোরে ' . trim($mCats[1]) . ' পাওয়া যাচ্ছে।';
+                }
+
                 if (str_contains($businessContext, 'UNAVAILABLE / NOT FOUND')) {
-                    return "দুঃখিত, আপনার কাঙ্ক্ষিত পণ্যটি বর্তমানে আমাদের স্টোরে উপলব্ধ নেই। তবে আমাদের কাছে ল্যাপটপ (Laptop Pro 15), ওয়্যারলেস হেডফোন, মেকানিক্যাল কীবোর্ড এবং অফিস চেয়ার পাওয়া যাচ্ছে।";
+                    return "দুঃখিত, আপনার কাঙ্ক্ষিত পণ্যটি বর্তমানে আমাদের স্টোরে উপলব্ধ নেই।" . $categoriesNotice;
                 }
                 if (str_contains($businessContext, 'Central Product Catalog') || str_contains($businessContext, 'Available Products in Store')) {
-                    return "আমাদের স্টোরে ইলেকট্রনিক্স ও আইটি সামগ্রী (যেমন Laptop Pro 15, ওয়্যারলেস হেডফোন, মেকানিক্যাল কীবোর্ড, ইউএসবি মাল্টি-হাব) এবং অফিস ফার্নিচার (এরগনোমিক চেয়ার) পাওয়া যায়। আপনি কোন পণ্যটি সম্পর্কে জানতে চান?";
+                    if (!empty($categoriesNotice)) {
+                        return "আমাদের স্টোরে" . $categoriesNotice . " আপনি কোন পণ্যটি সম্পর্কে জানতে চান?";
+                    }
+                    return "আমাদের স্টোরে আপনার কাঙ্ক্ষিত পণ্যটি সম্পর্কিত বিস্তারিত তথ্যের জন্য আমাদের প্রোডাক্ট ক্যাটালগ দেখতে পারেন অথবা কাস্টমার কেয়ারে যোগাযোগ করতে পারেন।";
                 }
             }
 
