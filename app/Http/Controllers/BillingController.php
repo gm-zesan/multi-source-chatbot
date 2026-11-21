@@ -29,6 +29,10 @@ class BillingController extends Controller
         /** @var User $user */
         $user = Auth::user();
 
+        if (! $user || (! $user->hasRole(RoleEnum::SUPERADMIN->value) && ! $user->hasRole(RoleEnum::ADMIN->value))) {
+            abort(403, 'Unauthorized. Only workspace business owners can access billing and wallet settings.');
+        }
+
         $workspaceId = ($user->hasRole(RoleEnum::SUPERADMIN->value) && $request->filled('workspace_id'))
             ? (int) $request->input('workspace_id')
             : (int) ($user->workspace_id ?: 1);
@@ -70,6 +74,10 @@ class BillingController extends Controller
     {
         /** @var User $user */
         $user = Auth::user();
+
+        if (! $user || (! $user->hasRole(RoleEnum::SUPERADMIN->value) && ! $user->hasRole(RoleEnum::ADMIN->value))) {
+            abort(403, 'Unauthorized. Only workspace business owners can recharge wallets.');
+        }
 
         $validated = $request->validate([
             'amount'       => ['required', 'numeric', 'min:50', 'max:100000'],

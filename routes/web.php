@@ -5,6 +5,7 @@ use App\Enums\Permissions\MessagePermission;
 use App\Enums\Permissions\RolePermission;
 use App\Enums\Permissions\UserPermission;
 use App\Enums\Permissions\FAQPermission;
+use App\Enums\RoleEnum;
 use App\Http\Controllers\AssignRoleController;
 use App\Http\Controllers\ChatSimulatorController;
 use App\Http\Controllers\ContactFormController;
@@ -128,14 +129,9 @@ Route::middleware('auth')->prefix('dashboard')->group(function () {
             UserPermission::DELETE->value,
         ]));
 
-    // Roles
+    // Roles - Restricted exclusively to Superadmin
     Route::resource('/roles', RoleController::class)->except(['show'])
-        ->middleware('permission:' . implode('|', [
-            RolePermission::VIEW->value,
-            RolePermission::CREATE->value,
-            RolePermission::UPDATE->value,
-            RolePermission::DELETE->value,
-        ]));
+        ->middleware('role:' . RoleEnum::SUPERADMIN->value);
 
 
     // Messages

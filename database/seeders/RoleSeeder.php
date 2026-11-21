@@ -39,9 +39,24 @@ class RoleSeeder extends Seeder
             ['description' => RoleEnum::SUPERADMIN->label() . ' - Full access to all features and permissions'],
         );
 
+        $platformSupport = Role::updateOrCreate(
+            ['name' => RoleEnum::PLATFORM_SUPPORT->value, 'guard_name' => 'web'],
+            ['description' => RoleEnum::PLATFORM_SUPPORT->label() . ' - Technical platform support and health diagnostics'],
+        );
+
         $admin = Role::updateOrCreate(
             ['name' => RoleEnum::ADMIN->value, 'guard_name' => 'web'],
-            ['description' => RoleEnum::ADMIN->label() . ' - Can manage users, conversations, and channels'],
+            ['description' => RoleEnum::ADMIN->label() . ' - Business Owner, manages own workspace channels, bot, staff & billing'],
+        );
+
+        $workspaceManager = Role::updateOrCreate(
+            ['name' => RoleEnum::WORKSPACE_MANAGER->value, 'guard_name' => 'web'],
+            ['description' => RoleEnum::WORKSPACE_MANAGER->label() . ' - Store Manager, handles conversations, orders and knowledge grounding'],
+        );
+
+        $workspaceAgent = Role::updateOrCreate(
+            ['name' => RoleEnum::WORKSPACE_AGENT->value, 'guard_name' => 'web'],
+            ['description' => RoleEnum::WORKSPACE_AGENT->label() . ' - Support & Sales Agent, handles customer live chat & order capture'],
         );
 
         // ── 2. Assign permissions ────────────────────────────────────────
@@ -51,7 +66,13 @@ class RoleSeeder extends Seeder
         // However, we sync all permissions for data consistency.
         $superadmin->syncPermissions(Permission::all()->pluck('name'));
 
-        // Admin: Operational permissions only (no role/permission/workspace management)
+        // Platform Support: Platform governance visibility & diagnostics only (no private merchant conversations)
+        $platformSupport->syncPermissions([
+            'workspace.view',
+            'channel.view',
+        ]);
+
+        // Business Admin: Full operational control of own workspace (no platform-level governance)
         $admin->syncPermissions([
             UserPermission::VIEW->value,
             UserPermission::CREATE->value,
@@ -94,6 +115,40 @@ class RoleSeeder extends Seeder
             UnansweredQuestionPermission::VIEW->value,
             UnansweredQuestionPermission::UPDATE->value,
             UnansweredQuestionPermission::DELETE->value,
+        ]);
+
+        // Workspace Manager: Operational chats, orders & knowledge base (no channel delete, no billing, no staff management)
+        $workspaceManager->syncPermissions([
+            ConversationPermission::VIEW->value,
+            ConversationPermission::CREATE->value,
+            ConversationPermission::UPDATE->value,
+
+            MessagePermission::VIEW->value,
+            MessagePermission::CREATE->value,
+            MessagePermission::UPDATE->value,
+
+            FAQPermission::VIEW->value,
+            FAQPermission::CREATE->value,
+            FAQPermission::UPDATE->value,
+
+            KnowledgeDocumentPermission::VIEW->value,
+            KnowledgeDocumentPermission::CREATE->value,
+            KnowledgeDocumentPermission::UPDATE->value,
+
+            KnowledgeSearchLogPermission::VIEW->value,
+            UnansweredQuestionPermission::VIEW->value,
+            UnansweredQuestionPermission::UPDATE->value,
+        ]);
+
+        // Workspace Agent: Live chat and message formulate/reply only
+        $workspaceAgent->syncPermissions([
+            ConversationPermission::VIEW->value,
+            ConversationPermission::CREATE->value,
+            ConversationPermission::UPDATE->value,
+
+            MessagePermission::VIEW->value,
+            MessagePermission::CREATE->value,
+            MessagePermission::UPDATE->value,
         ]);
     }
 }

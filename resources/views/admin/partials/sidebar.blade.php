@@ -8,14 +8,24 @@
                     {{ Auth::user()->workspace->name ?? 'Entrepreneurs Automation' }}
                 </div>
                 <div class="text-2xs text-light-muted dark:text-dark-muted truncate">
-                    Enterprise Platform
+                    @if(Auth::user()->isSuperAdmin())
+                        Platform Owner
+                    @elseif(Auth::user()->isBusinessAdmin())
+                        Store Owner
+                    @elseif(Auth::user()->isWorkspaceManager())
+                        Store Manager
+                    @elseif(Auth::user()->isWorkspaceAgent())
+                        Support Agent
+                    @else
+                        Enterprise Workspace
+                    @endif
                 </div>
             </div>
         </div>
 
         {{-- Navigation Menu --}}
         <nav class="space-y-3">
-            {{-- 1. OVERVIEW & INBOX --}}
+            {{-- 1. OVERVIEW & INBOX (All Workspace Users) --}}
             <div>
                 <div class="sidebar-section-title px-2 pb-1 text-2xs font-semibold uppercase tracking-wider text-light-muted dark:text-dark-muted">
                     Overview & Inbox
@@ -33,31 +43,32 @@
                         <i class="ri-shopping-bag-3-line text-sm {{ Route::is('orders.*') ? 'text-brand-500' : 'text-light-muted dark:text-dark-muted' }}"></i>
                         <span class="sidebar-text-label">Orders & Leads</span>
                     </a>
+                    @if(!Auth::user()->isWorkspaceAgent())
                     <a href="{{ route('analytics.index') }}" title="Analytics & BI" class="sidebar-nav-item flex items-center gap-2 px-2.5 py-1.5 rounded text-xs font-medium transition-colors {{ Route::is('analytics.*') ? 'text-brand-600 dark:text-brand-400 bg-brand-500/10 font-semibold border-l-2 border-brand-500 rounded-l-none' : 'text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text dark:hover:text-dark-text hover:bg-light-elevated dark:hover:bg-dark-elevated' }}">
                         <i class="ri-bar-chart-2-line text-sm {{ Route::is('analytics.*') ? 'text-brand-500' : 'text-light-muted dark:text-dark-muted' }}"></i>
                         <span class="sidebar-text-label">Analytics & BI</span>
                     </a>
-                    @can(\App\Enums\Permissions\MessagePermission::VIEW->value)
+                    @endif
+                    @if(Auth::user()->isSuperAdmin())
                     <a href="{{ route('message') }}" title="Contact Messages" class="sidebar-nav-item flex items-center gap-2 px-2.5 py-1.5 rounded text-xs font-medium transition-colors {{ Route::is('message*') ? 'text-brand-600 dark:text-brand-400 bg-brand-500/10 font-semibold border-l-2 border-brand-500 rounded-l-none' : 'text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text dark:hover:text-dark-text hover:bg-light-elevated dark:hover:bg-dark-elevated' }}">
                         <i class="ri-mail-line text-sm {{ Route::is('message*') ? 'text-brand-500' : 'text-light-muted dark:text-dark-muted' }}"></i>
-                        <span class="sidebar-text-label">Contact Messages</span>
+                        <span class="sidebar-text-label">Platform Inquiries</span>
                     </a>
-                    @endcan
+                    @endif
                 </div>
             </div>
 
-            {{-- 2. AI KNOWLEDGE & TOOLS --}}
+            {{-- 2. AI KNOWLEDGE & TOOLS (Owner & Manager) --}}
+            @if(!Auth::user()->isWorkspaceAgent())
             <div>
                 <div class="sidebar-section-title px-2 pb-1 text-2xs font-semibold uppercase tracking-wider text-light-muted dark:text-dark-muted">
                     AI Knowledge & Tools
                 </div>
                 <div class="space-y-0.5">
-                    @canany([\App\Enums\Permissions\FAQPermission::VIEW->value, \App\Enums\Permissions\KnowledgeDocumentPermission::VIEW->value])
                     <a href="{{ route('knowledge-base.index') }}" title="Knowledge Base" class="sidebar-nav-item flex items-center gap-2 px-2.5 py-1.5 rounded text-xs font-medium transition-colors {{ in_array(Route::currentRouteName(), ['knowledge-base.index', 'faqs.index', 'faqs.create', 'faqs.edit', 'documents.index', 'documents.create']) ? 'text-brand-600 dark:text-brand-400 bg-brand-500/10 font-semibold border-l-2 border-brand-500 rounded-l-none' : 'text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text dark:hover:text-dark-text hover:bg-light-elevated dark:hover:bg-dark-elevated' }}">
                         <i class="ri-book-open-line text-sm {{ Route::is('knowledge-base.*') || Route::is('faqs.*') || Route::is('documents.*') ? 'text-brand-500' : 'text-light-muted dark:text-dark-muted' }}"></i>
                         <span class="sidebar-text-label">Knowledge Base & FAQs</span>
                     </a>
-                    @endcanany
                     <a href="{{ route('simulator.index') }}" title="Chat Simulator" class="sidebar-nav-item flex items-center gap-2 px-2.5 py-1.5 rounded text-xs font-medium transition-colors {{ Route::is('simulator.index') ? 'text-brand-600 dark:text-brand-400 bg-brand-500/10 font-semibold border-l-2 border-brand-500 rounded-l-none' : 'text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text dark:hover:text-dark-text hover:bg-light-elevated dark:hover:bg-dark-elevated' }}">
                         <i class="ri-robot-2-line text-sm {{ Route::is('simulator.index') ? 'text-brand-500' : 'text-light-muted dark:text-dark-muted' }}"></i>
                         <span class="sidebar-text-label">AI Chat Simulator</span>
@@ -68,8 +79,10 @@
                     </a>
                 </div>
             </div>
+            @endif
 
-            {{-- 3. CHANNELS & INTEGRATIONS --}}
+            {{-- 3. CHANNELS & INTEGRATIONS (Business Owner & Superadmin Only) --}}
+            @if(Auth::user()->isSuperAdmin() || Auth::user()->isBusinessAdmin())
             <div>
                 <div class="sidebar-section-title px-2 pb-1 text-2xs font-semibold uppercase tracking-wider text-light-muted dark:text-dark-muted">
                     Channels & Integrations
@@ -89,29 +102,32 @@
                     </a>
                 </div>
             </div>
+            @endif
 
-            {{-- 4. USERS & ACCESS --}}
-            @if(Auth::user() && (Auth::user()->isSuperAdmin() || Auth::user()->hasRole('admin') || Auth::user()->can(\App\Enums\Permissions\UserPermission::VIEW->value)))
+            {{-- 4. TEAM & STAFF (Business Owner & Superadmin Only) --}}
+            @if(Auth::user()->isSuperAdmin() || Auth::user()->isBusinessAdmin())
             <div>
                 <div class="sidebar-section-title px-2 pb-1 text-2xs font-semibold uppercase tracking-wider text-light-muted dark:text-dark-muted">
-                    Users & Access
+                    {{ Auth::user()->isSuperAdmin() ? 'Users & Access' : 'Team & Staff' }}
                 </div>
                 <div class="space-y-0.5">
-                    <a href="{{ route('users.index') }}" title="Users" class="sidebar-nav-item flex items-center gap-2 px-2.5 py-1.5 rounded text-xs font-medium transition-colors {{ in_array(Route::currentRouteName(), ['users.index', 'users.create', 'users.edit']) ? 'text-brand-600 dark:text-brand-400 bg-brand-500/10 font-semibold border-l-2 border-brand-500 rounded-l-none' : 'text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text dark:hover:text-dark-text hover:bg-light-elevated dark:hover:bg-dark-elevated' }}">
+                    <a href="{{ route('users.index') }}" title="{{ Auth::user()->isSuperAdmin() ? 'All Platform Users' : 'Team & Employees' }}" class="sidebar-nav-item flex items-center gap-2 px-2.5 py-1.5 rounded text-xs font-medium transition-colors {{ in_array(Route::currentRouteName(), ['users.index', 'users.create', 'users.edit']) ? 'text-brand-600 dark:text-brand-400 bg-brand-500/10 font-semibold border-l-2 border-brand-500 rounded-l-none' : 'text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text dark:hover:text-dark-text hover:bg-light-elevated dark:hover:bg-dark-elevated' }}">
                         <i class="ri-user-settings-line text-sm {{ Route::is('users.*') ? 'text-brand-500' : 'text-light-muted dark:text-dark-muted' }}"></i>
-                        <span class="sidebar-text-label">Users</span>
+                        <span class="sidebar-text-label">{{ Auth::user()->isSuperAdmin() ? 'All Users' : 'Team & Employees' }}</span>
                     </a>
-                    @if(Auth::user()->isSuperAdmin() || Auth::user()->hasRole('admin') || Auth::user()->can(\App\Enums\Permissions\RolePermission::VIEW->value))
-                    <a href="{{ route('roles.index') }}" title="Roles" class="sidebar-nav-item flex items-center gap-2 px-2.5 py-1.5 rounded text-xs font-medium transition-colors {{ in_array(Route::currentRouteName(), ['roles.index', 'roles.create', 'roles.edit']) ? 'text-brand-600 dark:text-brand-400 bg-brand-500/10 font-semibold border-l-2 border-brand-500 rounded-l-none' : 'text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text dark:hover:text-dark-text hover:bg-light-elevated dark:hover:bg-dark-elevated' }}">
+                    {{-- Roles menu STRICTLY for SuperAdmin --}}
+                    @if(Auth::user()->isSuperAdmin())
+                    <a href="{{ route('roles.index') }}" title="Roles & Permissions" class="sidebar-nav-item flex items-center gap-2 px-2.5 py-1.5 rounded text-xs font-medium transition-colors {{ in_array(Route::currentRouteName(), ['roles.index', 'roles.create', 'roles.edit']) ? 'text-brand-600 dark:text-brand-400 bg-brand-500/10 font-semibold border-l-2 border-brand-500 rounded-l-none' : 'text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text dark:hover:text-dark-text hover:bg-light-elevated dark:hover:bg-dark-elevated' }}">
                         <i class="ri-shield-keyhole-line text-sm {{ Route::is('roles.*') ? 'text-brand-500' : 'text-light-muted dark:text-dark-muted' }}"></i>
-                        <span class="sidebar-text-label">Roles</span>
+                        <span class="sidebar-text-label">Roles & Permissions</span>
                     </a>
                     @endif
                 </div>
             </div>
             @endif
 
-            {{-- 5. WORKSPACE SETTINGS & BILLING --}}
+            {{-- 5. WORKSPACE SETTINGS & BILLING (Business Owner & Superadmin Only) --}}
+            @if(Auth::user()->isSuperAdmin() || Auth::user()->isBusinessAdmin())
             <div>
                 <div class="sidebar-section-title px-2 pb-1 text-2xs font-semibold uppercase tracking-wider text-light-muted dark:text-dark-muted">
                     Workspace & Billing
@@ -127,9 +143,10 @@
                     </a>
                 </div>
             </div>
+            @endif
 
-            {{-- 6. PLATFORM GOVERNANCE (Superadmin Only) --}}
-            @if(Auth::user() && (Auth::user()->isSuperAdmin() || Auth::user()->hasRole('superadmin') || Auth::user()->email === 'superadmin@example.com'))
+            {{-- 6. PLATFORM GOVERNANCE (Superadmin & Platform Support Only) --}}
+            @if(Auth::user()->isSuperAdmin() || Auth::user()->isPlatformSupport())
             <div>
                 <div class="sidebar-section-title px-2 pb-1 text-2xs font-semibold uppercase tracking-wider text-light-muted dark:text-dark-muted">
                     Platform Governance
@@ -139,10 +156,12 @@
                         <i class="ri-building-line text-sm {{ Route::is('workspaces.*') ? 'text-brand-500' : 'text-light-muted dark:text-dark-muted' }}"></i>
                         <span class="sidebar-text-label">All Workspaces</span>
                     </a>
+                    @if(Auth::user()->isSuperAdmin())
                     <a href="{{ route('admin.commercial.index') }}" title="Commercial & Billing" class="sidebar-nav-item flex items-center gap-2 px-2.5 py-1.5 rounded text-xs font-medium transition-colors {{ Route::is('commercial.*') || Route::is('admin.commercial.*') ? 'text-brand-600 dark:text-brand-400 bg-brand-500/10 font-semibold border-l-2 border-brand-500 rounded-l-none' : 'text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text dark:hover:text-dark-text hover:bg-light-elevated dark:hover:bg-dark-elevated' }}">
                         <i class="ri-money-dollar-circle-line text-sm {{ Route::is('commercial.*') ? 'text-brand-500' : 'text-light-muted dark:text-dark-muted' }}"></i>
                         <span class="sidebar-text-label">Commercial & Billing</span>
                     </a>
+                    @endif
                 </div>
             </div>
             @endif

@@ -28,6 +28,9 @@ class WidgetChatController extends Controller
     public function manage(Request $request): \Illuminate\View\View
     {
         $user = \Illuminate\Support\Facades\Auth::user();
+        if (! $user || (! $user->hasRole(\App\Enums\RoleEnum::SUPERADMIN->value) && ! $user->hasRole(\App\Enums\RoleEnum::ADMIN->value))) {
+            abort(403, 'Unauthorized. Only workspace business owners can manage the web widget.');
+        }
         $workspaceId = $user->workspace_id ?? session('active_workspace_id', 1);
         $workspace = Workspace::find($workspaceId) ?? Workspace::first();
 

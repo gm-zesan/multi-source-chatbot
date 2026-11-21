@@ -17,6 +17,30 @@ use Illuminate\View\View;
 
 class ChannelIntegrationController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware(function ($request, $next) {
+            /** @var User|null $user */
+            $user = Auth::user();
+            if (! $user) {
+                abort(403);
+            }
+
+            if ($user->hasRole(RoleEnum::PLATFORM_SUPPORT->value)) {
+                if ($request->isMethod('get') || $request->routeIs('channels.index')) {
+                    return $next($request);
+                }
+                abort(403, 'Platform support has read-only access to channels.');
+            }
+
+            if (! $user->hasRole(RoleEnum::SUPERADMIN->value) && ! $user->hasRole(RoleEnum::ADMIN->value)) {
+                abort(403, 'Unauthorized. Only workspace business owners can manage channel integrations.');
+            }
+
+            return $next($request);
+        });
+    }
+
     /**
      * Show Omnichannel Integrations Hub (Facebook, WhatsApp, Web Widget, Telegram).
      */

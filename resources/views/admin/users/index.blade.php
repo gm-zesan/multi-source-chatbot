@@ -1,7 +1,7 @@
 @extends('admin.app')
 
 @section('title')
-    Users Management
+    {{ Auth::user()->isSuperAdmin() ? 'Users & Access Control' : 'Team & Employees' }}
 @endsection
 
 @push('custom-style')
@@ -14,18 +14,23 @@
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
             <h1 class="text-base sm:text-lg font-bold text-light-text dark:text-dark-text flex items-center gap-2">
-                <span>Users & Access Control</span>
+                <i class="ri-team-line text-brand-500"></i>
+                <span>{{ Auth::user()->isSuperAdmin() ? 'Platform Users & Access Control' : 'Team & Employees' }}</span>
             </h1>
             <p class="text-xs text-light-text-secondary dark:text-dark-text-secondary">
-                Manage tenant user accounts, assigned permissions, and role delegations.
+                @if(Auth::user()->isSuperAdmin())
+                    Manage global platform users, merchant owners, and system permissions.
+                @else
+                    Manage your store managers, support agents, and workspace team members.
+                @endif
             </p>
         </div>
-        @role(\App\Enums\RoleEnum::SUPERADMIN->value)
+        @if(Auth::user()->isSuperAdmin() || Auth::user()->isBusinessAdmin())
             <a href="{{ route('users.create') }}" class="app-btn app-btn-primary">
-                <i class="ri-add-line text-sm"></i>
-                <span>Create User</span>
+                <i class="ri-user-add-line text-sm"></i>
+                <span>{{ Auth::user()->isSuperAdmin() ? 'Create User' : 'Add Employee' }}</span>
             </a>
-        @endrole
+        @endif
     </div>
 
     {{-- Data Table Card --}}
@@ -34,15 +39,13 @@
             <table class="app-table w-full" id="data-table">
                 <thead>
                     <tr>
-                        <th style="width: 70px;" class="no-sort">
-                            <div class="flex items-center gap-2">
-                                <input type="checkbox" class="app-checkbox app-select-all-checkbox" title="Select All">
-                                <span>#</span>
-                            </div>
-                        </th>
+                        <th style="width: 60px;" class="no-sort">#</th>
                         <th style="width: 24%;">Name</th>
                         <th style="width: 24%;">Email</th>
-                        <th style="width: 16%;">Phone No</th>
+                        <th style="width: 16%;">Phone</th>
+                        @if(Auth::user()->isSuperAdmin())
+                            <th style="width: 16%;">Workspace</th>
+                        @endif
                         <th style="width: 14%;">Role</th>
                         <th style="width: 14%; text-align: right;" class="no-sort">Action</th>
                     </tr>
@@ -63,7 +66,7 @@
             <div class="app-card-header">
                 <h3 class="text-xs font-bold text-light-text dark:text-dark-text flex items-center gap-1.5">
                     <i class="ri-shield-user-line text-brand-500"></i>
-                    <span>Assign User Role</span>
+                    <span>Assign Team Role</span>
                 </h3>
                 <button type="button" class="text-light-muted dark:text-dark-muted hover:text-light-text dark:hover:text-dark-text" data-bs-dismiss="modal">
                     <i class="ri-close-line text-base"></i>
@@ -71,7 +74,7 @@
             </div>
             <div class="app-card-body space-y-3">
                 <div class="space-y-0.5">
-                    <div class="text-2xs text-light-muted dark:text-dark-muted uppercase font-semibold">User Name</div>
+                    <div class="text-2xs text-light-muted dark:text-dark-muted uppercase font-semibold">Employee Name</div>
                     <div class="text-xs font-bold text-light-text dark:text-dark-text" id="modalUserName">Loading...</div>
                 </div>
                 <div class="space-y-0.5">
@@ -79,13 +82,26 @@
                     <div class="text-xs text-light-text-secondary dark:text-dark-text-secondary" id="modalUserEmail">loading@example.com</div>
                 </div>
                 <div class="space-y-1 pt-1">
-                    <label for="modalRoleSelect" class="text-2xs font-semibold text-light-text dark:text-dark-text">Choose Role <span class="text-red-500">*</span></label>
+                    <label for="modalRoleSelect" class="text-2xs font-semibold text-light-text dark:text-dark-text">Select Allowed Role <span class="text-red-500">*</span></label>
                     <select class="app-select w-full" id="modalRoleSelect" name="role" required>
                         <option value="">-- Choose Role --</option>
                         @foreach($roles ?? [] as $r)
-                            <option value="{{ $r }}">{{ ucfirst($r) }}</option>
+                            @php
+                                $roleLabel = match($r) {
+                                    \App\Enums\RoleEnum::ADMIN->value => 'Business Owner (Admin)',
+                                    \App\Enums\RoleEnum::WORKSPACE_MANAGER->value => 'Store Manager',
+                                    \App\Enums\RoleEnum::WORKSPACE_AGENT->value => 'Support Agent',
+                                    \App\Enums\RoleEnum::PLATFORM_SUPPORT->value => 'Platform Support',
+                                    \App\Enums\RoleEnum::SUPERADMIN->value => 'Super Admin',
+                                    default => ucfirst($r),
+                                };
+                            @endphp
+                            <option value="{{ $r }}">{{ $roleLabel }}</option>
                         @endforeach
                     </select>
+                    <p class="text-3xs text-light-muted dark:text-dark-muted mt-1">
+                        Employees only have access to their designated workspace and permissions.
+                    </p>
                 </div>
             </div>
             <div class="app-card-footer flex items-center justify-end gap-2">
@@ -102,8 +118,8 @@
 @push('custom-scripts')
     @if (Session::has('success'))
         <script>
-            swal("success", "{{ Session::get('success') }}", "success", {
-                timer: 1000,
+            swal("Success", "{{ Session::get('success') }}", "success", {
+                timer: 1500,
                 button: false,
             });
         </script>
@@ -113,9 +129,93 @@
 
     <script type="text/javascript">
         var listUrl = SITEURL + '/dashboard/users';
+        var isSuperAdmin = {{ Auth::user()->isSuperAdmin() ? 'true' : 'false' }};
         var table;
 
         $(document).ready(function() {
+            var columns = [
+                {
+                    data: 'id',
+                    name: 'id',
+                    orderable: false,
+                    searchable: false,
+                    width: '60px',
+                    render: function(data, type, row) {
+                        return `<span class="text-2xs text-light-muted dark:text-dark-muted font-mono tabular-nums">#${data}</span>`;
+                    }
+                },
+                {
+                    data: 'name',
+                    name: 'name',
+                    orderable: true,
+                    width: '24%'
+                },
+                {
+                    data: 'email',
+                    name: 'email',
+                    orderable: true,
+                    width: '24%'
+                },
+                {
+                    data: 'phone',
+                    name: 'phone',
+                    orderable: true,
+                    width: '16%',
+                    render: function(data) {
+                        return data ? htmlspecialchars(data) : '<span class="text-light-muted dark:text-dark-muted text-3xs font-mono">—</span>';
+                    }
+                }
+            ];
+
+            if (isSuperAdmin) {
+                columns.push({
+                    data: 'workspace',
+                    name: 'workspace',
+                    orderable: false,
+                    width: '16%'
+                });
+            }
+
+            columns.push(
+                {
+                    data: 'role',
+                    name: 'role',
+                    orderable: false,
+                    width: '14%'
+                },
+                {
+                    data: 'action-btn',
+                    orderable: false,
+                    width: '14%',
+                    render: function(data) {
+                        var btns = '';
+                        btns += '<div class="flex items-center justify-end gap-1.5">';
+
+                        if (data.is_self) {
+                            btns += '<span class="text-3xs text-light-muted dark:text-dark-muted font-mono px-2 py-0.5 rounded bg-light-elevated dark:bg-dark-elevated">You</span>';
+                        } else if (data.can_manage) {
+                            // Assign Role button
+                            btns += '<button type="button" class="app-action-btn bg-brand-500/15 text-brand-500 hover:bg-brand-500 hover:text-white" title="Change Role" onclick="openAssignRoleModal(\'' + data.id + '\', \'' + escapeHtml(data.name) + '\', \'' + escapeHtml(data.email) + '\', \'' + escapeHtml(data.role) + '\')"><i class="ri-shield-user-line"></i></button>';
+
+                            // Edit button
+                            btns += '<a href="' + SITEURL + '/dashboard/users/' + data.id + '/edit" title="Edit" class="app-action-btn bg-sky-500/15 text-sky-500 hover:bg-sky-500 hover:text-white"><i class="ri-edit-line"></i></a>';
+
+                            // Delete button
+                            btns += '<form action="' + SITEURL + '/dashboard/users/' + data.id + '" method="POST" style="display: inline;" onsubmit="return confirm(\'Are you sure you want to remove this employee?\');">' +
+                                '@csrf' +
+                                '@method('DELETE')' +
+                                '<button type="submit" class="app-action-btn bg-red-500/15 text-red-500 hover:bg-red-500 hover:text-white" title="Remove"><i class="ri-delete-bin-2-line"></i></button>' +
+                                '</form>';
+                        } else {
+                            btns += '<span class="text-3xs text-light-muted dark:text-dark-muted font-mono">—</span>';
+                        }
+
+                        btns += '</div>';
+                        return btns;
+                    }
+                }
+            );
+
             table = $('#data-table').DataTable({
                 processing: true,
                 responsive: true,
@@ -123,90 +223,19 @@
                 fixedHeader: true,
                 autoWidth: false,
                 order: [[1, 'asc']],
-                "pageLength": 20,
-                "lengthMenu": [20, 50, 100, 500],
+                pageLength: 20,
+                lengthMenu: [20, 50, 100],
                 ajax: {
                     url: listUrl,
                     type: 'GET'
                 },
-                columns: [
-                    {
-                        data: 'id',
-                        name: 'id',
-                        orderable: false,
-                        searchable: false,
-                        width: '70px',
-                        render: function(data, type, row) {
-                            return `<div class="flex items-center gap-2">
-                                <input type="checkbox" class="app-checkbox app-row-checkbox" data-id="${data}" value="${data}">
-                                <span class="text-2xs text-light-muted dark:text-dark-muted font-mono tabular-nums">${data}</span>
-                            </div>`;
-                        }
-                    },
-                    {
-                        data: 'name',
-                        name: 'name',
-                        orderable: true,
-                        width: '24%'
-                    },
-                    {
-                        data: 'email',
-                        name: 'email',
-                        orderable: true,
-                        width: '24%'
-                    },
-                    {
-                        data: 'phone',
-                        name: 'phone',
-                        orderable: true,
-                        width: '16%'
-                    },
-                    {
-                        data: 'role',
-                        name: 'role',
-                        orderable: false,
-                        width: '14%'
-                    },
-                    {
-                        data: 'action-btn',
-                        orderable: false,
-                        width: '14%',
-                        render: function(data) {
-                            var btns = '';
-                            btns += '<div class="flex items-center justify-end gap-1.5">';
-
-                            // Assign Role button
-                            btns += '<button type="button" class="app-action-btn bg-brand-500/15 text-brand-500 hover:bg-brand-500 hover:text-white" title="Assign Role" onclick="openAssignRoleModal(\'' + data.id + '\', \'' + escapeHtml(data.name) + '\', \'' + escapeHtml(data.email) + '\', \'' + escapeHtml(data.role) + '\')"><i class="ri-shield-user-line"></i></button>';
-
-                            // Edit button
-                            btns += '<a href="' + SITEURL + '/dashboard/users/' + data.id + '/edit" title="Edit" class="app-action-btn bg-sky-500/15 text-sky-500 hover:bg-sky-500 hover:text-white"><i class="ri-edit-line"></i></a>';
-
-                            // Delete button
-                            btns += '<form action="' + SITEURL + '/dashboard/users/' + data.id + '" method="POST" style="display: inline;" onsubmit="return confirm(\'Are you sure to delete this user?\');">' +
-                                '@csrf' +
-                                '@method('DELETE')' +
-                                '<button type="submit" class="app-action-btn bg-red-500/15 text-red-500 hover:bg-red-500 hover:text-white"><i class="ri-delete-bin-2-line"></i></button>' +
-                                '</form>';
-
-                            btns += '</div>';
-                            return btns;
-                        }
-                    }
-                ],
-                order: [
-                    [1, 'asc']
-                ]
+                columns: columns
             });
         });
 
-        function filterUsersByRole(el, role) {
-            document.querySelectorAll('[data-user-role-chip]').forEach(function(chip) {
-                chip.classList.remove('active');
-            });
-            if (el) el.classList.add('active');
-            if (table) {
-                table.column(4).search(role || '').draw();
-            }
+        function htmlspecialchars(str) {
+            if (!str) return '';
+            return $('<div>').text(str).html();
         }
 
         function escapeHtml(text) {
@@ -253,7 +282,12 @@
                 },
                 body: JSON.stringify({ role: role })
             })
-            .then(function(res) { return res.json(); })
+            .then(function(res) { 
+                if (!res.ok) {
+                    return res.json().then(function(json) { throw new Error(json.message || 'Server error ' + res.status); });
+                }
+                return res.json(); 
+            })
             .then(function(data) {
                 btn.disabled = false;
                 btn.innerHTML = '<i class="ri-check-line"></i> Save Role';
@@ -275,8 +309,7 @@
             .catch(function(err) {
                 btn.disabled = false;
                 btn.innerHTML = '<i class="ri-check-line"></i> Save Role';
-                swal("Error", "Something went wrong. Please try again.", "error");
-                console.error(err);
+                swal("Error", err.message || "Something went wrong. Please try again.", "error");
             });
         }
     </script>

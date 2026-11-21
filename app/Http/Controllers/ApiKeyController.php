@@ -15,6 +15,18 @@ use Illuminate\View\View;
 
 class ApiKeyController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware(function ($request, $next) {
+            /** @var User|null $user */
+            $user = Auth::user();
+            if (! $user || (! $user->hasRole(RoleEnum::SUPERADMIN->value) && ! $user->hasRole(RoleEnum::ADMIN->value))) {
+                abort(403, 'Unauthorized. Only workspace business owners can manage API keys.');
+            }
+            return $next($request);
+        });
+    }
+
     /**
      * Display the API Key management page for the current workspace.
      */

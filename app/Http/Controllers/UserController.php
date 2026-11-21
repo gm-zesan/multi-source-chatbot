@@ -19,55 +19,80 @@ class UserController extends Controller
     {
         /** @var User|null $authUser */
         $authUser = Auth::user();
+        $isSuperAdmin = $authUser && $authUser->hasRole(RoleEnum::SUPERADMIN->value);
+        $isBusinessAdmin = $authUser && $authUser->hasRole(RoleEnum::ADMIN->value);
 
         if ($request->ajax()) {
-            if ($authUser && $authUser->hasRole(RoleEnum::SUPERADMIN->value)) {
-                $users = User::with('roles')->get();
+            if ($isSuperAdmin) {
+                $users = User::with(['roles', 'workspace'])->get();
             } else {
                 $workspaceId = $authUser?->workspace_id;
-                $users = User::with('roles')
+                $users = User::with(['roles', 'workspace'])
                     ->where('workspace_id', $workspaceId)
                     ->whereHas('roles', function ($query) {
                         return $query->where('name', '!=', RoleEnum::SUPERADMIN->value);
                     })
-                    ->where('id', '!=', $authUser?->id)
                     ->get();
             }
 
             return DataTables::of($users)
                 ->addIndexColumn()
+                ->addColumn('workspace', function ($row) {
+                    return htmlspecialchars($row->workspace?->name ?? 'N/A');
+                })
                 ->addColumn('role', function ($row) {
                     $role = $row->roles->first();
                     if (! $role) {
-                        return '<span class="badge bg-secondary">No Role</span>';
+                        return '<span class="inline-flex items-center px-2 py-0.5 rounded text-2xs font-mono font-medium bg-slate-500/10 text-slate-500">No Role</span>';
                     }
+
                     $badgeClass = match($role->name) {
-                        'superadmin' => 'bg-danger',
-                        'admin'      => 'bg-primary',
-                        'manager'    => 'bg-info',
-                        default      => 'bg-success',
+                        RoleEnum::SUPERADMIN->value        => 'bg-rose-500/15 text-rose-500 border border-rose-500/30',
+                        RoleEnum::PLATFORM_SUPPORT->value  => 'bg-amber-500/15 text-amber-500 border border-amber-500/30',
+                        RoleEnum::ADMIN->value             => 'bg-indigo-500/15 text-indigo-500 border border-indigo-500/30',
+                        RoleEnum::WORKSPACE_MANAGER->value => 'bg-teal-500/15 text-teal-500 border border-teal-500/30',
+                        RoleEnum::WORKSPACE_AGENT->value   => 'bg-emerald-500/15 text-emerald-500 border border-emerald-500/30',
+                        default                            => 'bg-brand-500/15 text-brand-500 border border-brand-500/30',
                     };
-                    return '<span class="badge ' . $badgeClass . '">' . htmlspecialchars((string) $role->name) . '</span>';
+
+                    $label = match($role->name) {
+                        RoleEnum::SUPERADMIN->value        => 'Super Admin',
+                        RoleEnum::PLATFORM_SUPPORT->value  => 'Platform Support',
+                        RoleEnum::ADMIN->value             => 'Business Owner (Admin)',
+                        RoleEnum::WORKSPACE_MANAGER->value => 'Store Manager',
+                        RoleEnum::WORKSPACE_AGENT->value   => 'Support Agent',
+                        default                            => ucfirst($role->name),
+                    };
+
+                    return '<span class="inline-flex items-center px-2 py-0.5 rounded text-2xs font-semibold ' . $badgeClass . '">' . htmlspecialchars($label) . '</span>';
                 })
-                ->addColumn('action-btn', function ($row) {
+                ->addColumn('action-btn', function ($row) use ($authUser, $isSuperAdmin) {
+                    $roleName = $row->roles->first()?->name ?? '';
+                    $isSelf = $authUser && $authUser->id === $row->id;
+                    $canManage = $isSuperAdmin || ($row->workspace_id === $authUser?->workspace_id && ! $isSelf && $roleName !== RoleEnum::ADMIN->value && $roleName !== RoleEnum::SUPERADMIN->value);
+
                     return [
-                        'id'    => $row->id,
-                        'name'  => $row->name,
-                        'email' => $row->email,
-                        'role'  => $row->roles->first()?->name ?? '',
+                        'id'         => $row->id,
+                        'name'       => $row->name,
+                        'email'      => $row->email,
+                        'role'       => $roleName,
+                        'is_self'    => $isSelf,
+                        'can_manage' => $canManage,
                     ];
                 })
                 ->rawColumns(['role', 'action-btn'])
                 ->make(true);
         }
 
-        $rolesQuery = Role::query();
-        if (! $authUser || ! $authUser->hasRole(RoleEnum::SUPERADMIN->value)) {
-            $rolesQuery->where('name', '!=', RoleEnum::SUPERADMIN->value);
+        if ($isSuperAdmin) {
+            $roles = Role::pluck('name')->all();
+        } elseif ($isBusinessAdmin) {
+            $roles = array_keys(RoleEnum::assignableByBusinessAdmin());
+        } else {
+            $roles = [];
         }
-        $roles = $rolesQuery->pluck('name')->all();
 
-        return view('admin.users.index', compact('roles'));
+        return view('admin.users.index', compact('roles', 'isSuperAdmin', 'isBusinessAdmin'));
     }
 
     /**
@@ -75,26 +100,46 @@ class UserController extends Controller
      */
     public function assignRole(Request $request, User $user)
     {
+        /** @var User|null $authUser */
+        $authUser = Auth::user();
+        $isSuperAdmin = $authUser && $authUser->hasRole(RoleEnum::SUPERADMIN->value);
+        $isBusinessAdmin = $authUser && $authUser->hasRole(RoleEnum::ADMIN->value);
+
+        if (! $isSuperAdmin && ! $isBusinessAdmin) {
+            abort(403, 'Unauthorized.');
+        }
+
         $request->validate([
             'role' => 'required|string|exists:roles,name',
         ]);
 
-        /** @var User|null $authUser */
-        $authUser = Auth::user();
-        if (! $authUser?->hasRole(RoleEnum::SUPERADMIN->value) && $request->role === RoleEnum::SUPERADMIN->value) {
-            abort(403, 'Unauthorized. Cannot assign superadmin role.');
+        if (! $isSuperAdmin) {
+            if ($user->workspace_id !== $authUser?->workspace_id) {
+                abort(403, 'Cannot modify users outside your workspace.');
+            }
+            if ($user->id === $authUser?->id) {
+                abort(403, 'You cannot change your own role.');
+            }
+            if ($user->hasRole(RoleEnum::ADMIN->value) || $user->hasRole(RoleEnum::SUPERADMIN->value)) {
+                abort(403, 'Cannot change business owner or superadmin role.');
+            }
+
+            $allowedRoles = array_keys(RoleEnum::assignableByBusinessAdmin());
+            if (! in_array($request->role, $allowedRoles, true)) {
+                abort(403, 'Unauthorized role assignment. Business owners can only assign Store Manager or Support Agent.');
+            }
         }
 
-        $user->syncRoles($request->role);
+        $user->syncRoles([$request->role]);
 
         if ($request->ajax()) {
             return response()->json([
                 'success' => true,
-                'message' => "Role '{$request->role}' assigned successfully to {$user->name}.",
+                'message' => "Role updated successfully to '{$request->role}' for {$user->name}.",
             ]);
         }
 
-        return back()->with('success', "Role '{$request->role}' assigned successfully to {$user->name}.");
+        return back()->with('success', "Role updated successfully to '{$request->role}' for {$user->name}.");
     }
 
     public function create()
@@ -102,16 +147,22 @@ class UserController extends Controller
         /** @var User|null $authUser */
         $authUser = Auth::user();
         $isSuperAdmin = $authUser && $authUser->hasRole(RoleEnum::SUPERADMIN->value);
+        $isBusinessAdmin = $authUser && $authUser->hasRole(RoleEnum::ADMIN->value);
 
-        $rolesQuery = Role::query();
-        if (! $isSuperAdmin) {
-            $rolesQuery->where('name', '!=', RoleEnum::SUPERADMIN->value);
+        if (! $isSuperAdmin && ! $isBusinessAdmin) {
+            abort(403, 'Unauthorized. Only workspace owners and superadmins can add team members.');
         }
-        $roles = $rolesQuery->get();
+
+        if ($isSuperAdmin) {
+            $roles = Role::whereNotIn('name', [RoleEnum::SUPERADMIN->value])->get();
+        } else {
+            $roles = Role::whereIn('name', array_keys(RoleEnum::assignableByBusinessAdmin()))->get();
+        }
 
         return view('admin.users.create', [
-            'roles' => $roles,
-            'isSuperAdmin' => $isSuperAdmin,
+            'roles'           => $roles,
+            'isSuperAdmin'    => $isSuperAdmin,
+            'isBusinessAdmin' => $isBusinessAdmin,
         ]);
     }
 
@@ -120,11 +171,22 @@ class UserController extends Controller
         /** @var User|null $authUser */
         $authUser = Auth::user();
         $isSuperAdmin = $authUser && $authUser->hasRole(RoleEnum::SUPERADMIN->value);
+        $isBusinessAdmin = $authUser && $authUser->hasRole(RoleEnum::ADMIN->value);
+
+        if (! $isSuperAdmin && ! $isBusinessAdmin) {
+            abort(403, 'Unauthorized. Only workspace owners and superadmins can add team members.');
+        }
+
+        $allowedRoles = $isSuperAdmin
+            ? Role::where('name', '!=', RoleEnum::SUPERADMIN->value)->pluck('name')->all()
+            : array_keys(RoleEnum::assignableByBusinessAdmin());
 
         $this->validate($request, [
             'name'     => 'required|string|max:255',
             'email'    => 'required|email|max:100|unique:users,email',
-            'password' => 'nullable|string|min:8',
+            'password' => 'required|string|min:8|confirmed',
+            'role'     => 'required|string|in:' . implode(',', $allowedRoles),
+            'phone'    => 'nullable|string|max:20',
         ]);
 
         if ($isSuperAdmin && $request->filled('workspace_name')) {
@@ -138,8 +200,6 @@ class UserController extends Controller
             $workspaceId = $authUser?->workspace_id;
         }
 
-        $password = ! empty($request->password) ? bcrypt($request->password) : bcrypt('password');
-
         $user = User::create([
             'workspace_id'      => $workspaceId,
             'name'              => $request->name,
@@ -147,20 +207,19 @@ class UserController extends Controller
             'phone'             => $request->phone ?? null,
             'avatar'            => null,
             'email_verified_at' => now(),
-            'password'          => $password,
+            'password'          => bcrypt($request->password),
             'is_active'         => true,
         ]);
 
-        $roleInput = $request->input('role', RoleEnum::ADMIN->value);
-        if (! $isSuperAdmin && $roleInput === RoleEnum::SUPERADMIN->value) {
-            $roleInput = RoleEnum::ADMIN->value;
-        }
+        $user->assignRole($request->role);
 
-        if (! empty($roleInput)) {
-            $user->assignRole($roleInput);
-        }
+        $roleLabel = match($request->role) {
+            RoleEnum::WORKSPACE_MANAGER->value => 'Store Manager',
+            RoleEnum::WORKSPACE_AGENT->value   => 'Support Agent',
+            default                            => $request->role,
+        };
 
-        return redirect()->route('users.index')->with('success', 'User created successfully');
+        return redirect()->route('users.index')->with('success', "Team member '{$user->name}' added as {$roleLabel} successfully.");
     }
 
     public function edit(string|int $id)
@@ -169,17 +228,31 @@ class UserController extends Controller
         $authUser = Auth::user();
         $user = User::findOrFail($id);
         $isSuperAdmin = $authUser && $authUser->hasRole(RoleEnum::SUPERADMIN->value);
+        $isBusinessAdmin = $authUser && $authUser->hasRole(RoleEnum::ADMIN->value);
 
-        if (! $isSuperAdmin && $user->workspace_id !== $authUser?->workspace_id) {
-            abort(403, 'Unauthorized access to user outside your workspace.');
+        if (! $isSuperAdmin) {
+            if ($user->workspace_id !== $authUser?->workspace_id) {
+                abort(403, 'Unauthorized access to user outside your workspace.');
+            }
+            if ($user->hasRole(RoleEnum::ADMIN->value) && $user->id !== $authUser?->id) {
+                abort(403, 'Unauthorized. Cannot modify other workspace owners.');
+            }
+            if ($user->hasRole(RoleEnum::SUPERADMIN->value)) {
+                abort(403, 'Unauthorized.');
+            }
         }
 
-        if ($user->hasRole(RoleEnum::SUPERADMIN->value) && ! $isSuperAdmin && $authUser?->id !== $user->id) {
-            return redirect()->route('users.index')->with('error', 'Unauthorized.');
+        if ($isSuperAdmin) {
+            $roles = Role::whereNotIn('name', [RoleEnum::SUPERADMIN->value])->get();
+        } else {
+            $roles = Role::whereIn('name', array_keys(RoleEnum::assignableByBusinessAdmin()))->get();
         }
 
         return view('admin.users.edit', [
-            'user' => $user,
+            'user'            => $user,
+            'roles'           => $roles,
+            'isSuperAdmin'    => $isSuperAdmin,
+            'isBusinessAdmin' => $isBusinessAdmin,
         ]);
     }
 
@@ -189,28 +262,57 @@ class UserController extends Controller
         $authUser = Auth::user();
         $user = User::findOrFail($id);
         $isSuperAdmin = $authUser && $authUser->hasRole(RoleEnum::SUPERADMIN->value);
+        $isBusinessAdmin = $authUser && $authUser->hasRole(RoleEnum::ADMIN->value);
 
-        if (! $isSuperAdmin && $user->workspace_id !== $authUser?->workspace_id) {
-            abort(403, 'Unauthorized access to user outside your workspace.');
+        if (! $isSuperAdmin) {
+            if ($user->workspace_id !== $authUser?->workspace_id) {
+                abort(403, 'Unauthorized access to user outside your workspace.');
+            }
+            if ($user->hasRole(RoleEnum::ADMIN->value) && $user->id !== $authUser?->id) {
+                abort(403, 'Unauthorized. Cannot modify other workspace owners.');
+            }
+            if ($user->hasRole(RoleEnum::SUPERADMIN->value)) {
+                abort(403, 'Unauthorized.');
+            }
         }
 
-        $this->validate($request, [
+        $allowedRoles = $isSuperAdmin
+            ? Role::where('name', '!=', RoleEnum::SUPERADMIN->value)->pluck('name')->all()
+            : array_keys(RoleEnum::assignableByBusinessAdmin());
+
+        $rules = [
             'name'  => 'required|string|max:255',
             'email' => 'required|email|max:100|unique:users,email,' . $id,
-        ]);
+            'phone' => 'nullable|string|max:20',
+        ];
+
+        if ($request->filled('password')) {
+            $rules['password'] = 'required|string|min:8|confirmed';
+        }
+
+        if ($user->id !== $authUser?->id && ! $user->hasRole(RoleEnum::ADMIN->value)) {
+            $rules['role'] = 'required|string|in:' . implode(',', $allowedRoles);
+        }
+
+        $this->validate($request, $rules);
 
         $updateData = [
             'name'  => $request->name,
             'email' => $request->email,
+            'phone' => $request->phone ?? $user->phone,
         ];
 
-        if (! empty($request->password)) {
+        if ($request->filled('password')) {
             $updateData['password'] = bcrypt($request->password);
         }
 
         $user->update($updateData);
 
-        return redirect()->route('users.index')->with('success', 'User updated successfully');
+        if ($user->id !== $authUser?->id && $request->filled('role')) {
+            $user->syncRoles([$request->role]);
+        }
+
+        return redirect()->route('users.index')->with('success', "Team member '{$user->name}' updated successfully.");
     }
 
     public function destroy(string|int $id)
@@ -220,8 +322,16 @@ class UserController extends Controller
         $user = User::findOrFail($id);
         $isSuperAdmin = $authUser && $authUser->hasRole(RoleEnum::SUPERADMIN->value);
 
-        if (! $isSuperAdmin && $user->workspace_id !== $authUser?->workspace_id) {
-            abort(403, 'Unauthorized access to user outside your workspace.');
+        if (! $isSuperAdmin) {
+            if ($user->workspace_id !== $authUser?->workspace_id) {
+                abort(403, 'Unauthorized access to user outside your workspace.');
+            }
+            if ($user->hasRole(RoleEnum::ADMIN->value)) {
+                abort(403, 'Cannot delete the Business Owner account.');
+            }
+            if ($user->hasRole(RoleEnum::SUPERADMIN->value)) {
+                abort(403, 'Unauthorized.');
+            }
         }
 
         if ($user->id === $authUser?->id) {
@@ -230,7 +340,7 @@ class UserController extends Controller
 
         $user->delete();
 
-        return redirect()->route('users.index')->with('success', 'User deleted successfully');
+        return redirect()->route('users.index')->with('success', 'User removed successfully.');
     }
 
     /**

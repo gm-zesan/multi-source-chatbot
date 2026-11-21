@@ -14,6 +14,18 @@ use Yajra\DataTables\Facades\DataTables;
 
 class RoleController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware(function ($request, $next) {
+            /** @var User|null $user */
+            $user = Auth::user();
+            if (! $user || ! $user->hasRole(RoleEnum::SUPERADMIN->value)) {
+                abort(403, 'Unauthorized. Only platform superadmin can manage system roles.');
+            }
+            return $next($request);
+        });
+    }
+
     /**
      * Display a listing of the resource.
      *

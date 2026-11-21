@@ -14,7 +14,10 @@ namespace App\Enums;
 enum RoleEnum: string
 {
     case SUPERADMIN = 'superadmin';
+    case PLATFORM_SUPPORT = 'platform_support';
     case ADMIN = 'admin';
+    case WORKSPACE_MANAGER = 'workspace_manager';
+    case WORKSPACE_AGENT = 'workspace_agent';
 
     /**
      * Get all role values as an array.
@@ -33,8 +36,23 @@ enum RoleEnum: string
     {
         return match ($this) {
             self::SUPERADMIN => 'Super Admin',
-            self::ADMIN => 'Admin',
+            self::PLATFORM_SUPPORT => 'Platform Operations Support',
+            self::ADMIN => 'Business Owner (Admin)',
+            self::WORKSPACE_MANAGER => 'Store Manager',
+            self::WORKSPACE_AGENT => 'Support & Sales Agent',
         };
+    }
+
+    /**
+     * Roles assignable by a Business Admin (Businessman).
+     * Strictly restricted to Manager and Agent. Cannot create another admin or superadmin.
+     */
+    public static function assignableByBusinessAdmin(): array
+    {
+        return [
+            self::WORKSPACE_MANAGER->value => 'Store Manager',
+            self::WORKSPACE_AGENT->value   => 'Support & Sales Agent',
+        ];
     }
 
     /**
@@ -44,6 +62,6 @@ enum RoleEnum: string
      */
     public static function hiddenFromNonSuperadmin(): array
     {
-        return [self::SUPERADMIN->value];
+        return [self::SUPERADMIN->value, self::PLATFORM_SUPPORT->value];
     }
 }

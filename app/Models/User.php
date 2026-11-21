@@ -75,6 +75,46 @@ class User extends Authenticatable
     }
 
     /**
+     * Check if user is Platform Support Staff.
+     */
+    public function isPlatformSupport(): bool
+    {
+        return $this->hasRole(\App\Enums\RoleEnum::PLATFORM_SUPPORT->value);
+    }
+
+    /**
+     * Check if user is the Business Owner / Merchant Admin.
+     */
+    public function isBusinessAdmin(): bool
+    {
+        return $this->hasRole(\App\Enums\RoleEnum::ADMIN->value);
+    }
+
+    /**
+     * Check if user is a Store Manager.
+     */
+    public function isWorkspaceManager(): bool
+    {
+        return $this->hasRole(\App\Enums\RoleEnum::WORKSPACE_MANAGER->value);
+    }
+
+    /**
+     * Check if user is a Chat / Support Agent.
+     */
+    public function isWorkspaceAgent(): bool
+    {
+        return $this->hasRole(\App\Enums\RoleEnum::WORKSPACE_AGENT->value);
+    }
+
+    /**
+     * Check if user is an employee / staff member of a workspace.
+     */
+    public function isWorkspaceStaff(): bool
+    {
+        return $this->isWorkspaceManager() || $this->isWorkspaceAgent();
+    }
+
+    /**
      * Get the formatted avatar URL.
      */
     public function getAvatarUrlAttribute(): ?string
