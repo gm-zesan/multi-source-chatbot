@@ -129,11 +129,19 @@ class DashboardController extends Controller
         $progressPercent = (int) round(($completedCount / $totalSteps) * 100);
         $allCompleted = $completedCount === $totalSteps;
 
+        $dailySummary = null;
+        try {
+            $dailySummary = app(\App\Services\AI\LeadIntelligenceService::class)->generateDailyExecutiveSummary($workspaceId);
+        } catch (\Throwable $eSummary) {
+            \Illuminate\Support\Facades\Log::warning('[DashboardController] Daily summary calculation non-fatal: ' . $eSummary->getMessage());
+        }
+
         return view('admin.dashboard', [
             'metrics'       => $metrics,
             'currentRange'  => $range,
             'workspace'     => $workspace,
             'walletBalance' => $walletBalance,
+            'dailySummary'  => $dailySummary,
             'onboarding'    => [
                 'steps'         => $checklist,
                 'completed'     => $completedCount,

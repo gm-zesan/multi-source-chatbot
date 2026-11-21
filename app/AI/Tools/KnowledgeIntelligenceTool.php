@@ -95,7 +95,7 @@ class KnowledgeIntelligenceTool extends AbstractGovernedTool
                 }
             }
 
-            if ($hits === null || $hits->isEmpty()) {
+            if ($hits === null) {
                 $hits = $client->search(
                     query: $query,
                     workspaceId: $workspaceId,

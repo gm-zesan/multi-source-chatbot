@@ -26,6 +26,12 @@ return new class extends Migration
             $table->decimal('order_amount', 10, 2)->nullable();
             $table->decimal('delivery_fee', 8, 2)->default(0.00);
             $table->enum('status', ['pending', 'confirmed', 'shipped', 'delivered', 'cancelled'])->default('pending')->index();
+            $table->string('courier_provider', 50)->nullable()->index(); // steadfast, pathao, redx
+            $table->string('courier_consignment_id', 150)->nullable()->index();
+            $table->string('courier_tracking_code', 150)->nullable()->index();
+            $table->string('courier_status', 100)->nullable();
+            $table->json('courier_response')->nullable();
+            $table->timestamp('courier_dispatched_at')->nullable();
             $table->text('customer_notes')->nullable();
             $table->text('admin_notes')->nullable();
             $table->timestamp('captured_at')->useCurrent();

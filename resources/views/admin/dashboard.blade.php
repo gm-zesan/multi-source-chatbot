@@ -44,6 +44,9 @@
         </div>
     </div>
 
+    {{-- AI Daily Executive Summary & Intelligence Digest --}}
+    @include('admin.dashboard.partials.daily-executive-summary')
+
     {{-- Interactive Workspace Launchpad & Onboarding Checklist --}}
     @if(isset($onboarding))
     <div class="app-card overflow-hidden border border-brand-500/20 shadow-sm" id="onboardingWidget">

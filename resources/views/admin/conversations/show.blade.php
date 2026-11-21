@@ -17,6 +17,7 @@
     {{-- Right Chat Panel --}}
     <div class="inbox-chat-panel flex-1 flex flex-col h-full overflow-hidden">
         @include('admin.conversations.partials.chat-header')
+        @include('admin.conversations.partials.ai-intelligence-banner')
         @include('admin.conversations.partials.messages')
         <emoji-picker id="emoji-picker"></emoji-picker>
         @include('admin.conversations.partials.composer')

@@ -469,6 +469,16 @@ class CustomerSupportService
             Log::warning('[CustomerSupportService] Order capture extraction non-fatal failure: ' . $eOrder->getMessage());
         }
 
+        // Automated AI Lead Classification & Executive Summary
+        try {
+            app(\App\Services\AI\LeadIntelligenceService::class)->classifyAndTagConversation(
+                conversation: $conversation,
+                force: true,
+            );
+        } catch (\Throwable $eIntelligence) {
+            Log::warning('[CustomerSupportService] AI Lead Intelligence non-fatal failure: ' . $eIntelligence->getMessage());
+        }
+
         return $savedMessage;
     }
 

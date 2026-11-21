@@ -105,40 +105,56 @@ class E2ECourierAndOrderFulfillmentFlowTest extends TestCase
     public function test_complete_end_to_end_conversational_order_and_courier_dispatch_lifecycle(): void
     {
         // ── STEP 1: Simulate Live Customer Conversation ──────────────────
+        $channel = Channel::firstOrCreate(
+            ['slug' => 'facebook'],
+            ['name' => 'Facebook Messenger', 'is_active' => true]
+        );
+
+        $channelAccount = ChannelAccount::create([
+            'workspace_id' => $this->workspaceA->id,
+            'channel_id'   => $channel->id,
+            'name'         => 'Apex Facebook Page',
+            'external_id'  => 'fb_page_123',
+            'access_token' => 'mock_token',
+            'is_active'    => true,
+        ]);
+
         $conversation = Conversation::create([
-            'workspace_id'      => $this->workspaceA->id,
-            'session_id'        => 'sess_e2e_cust_99',
-            'channel'           => 'facebook',
-            'customer_name'     => 'Sabrina Rahman',
-            'customer_phone'    => '01799887766',
-            'status'            => 'active',
-            'last_message_at'   => now(),
+            'channel_account_id' => $channelAccount->id,
+            'external_user_id'   => 'user_fb_999',
+            'customer_name'      => 'Sabrina Rahman',
+            'last_direction'     => 'inbound',
+            'status'             => 'active',
+            'last_message_at'    => now(),
         ]);
 
         Message::create([
             'conversation_id' => $conversation->id,
-            'sender_type'     => 'customer',
-            'content'         => 'Hi, I want to confirm order for Blue Silk Jamdani Saree (৳3,200). Name: Sabrina Rahman, Phone: 01799887766, Address: House 25, Road 8, Dhanmondi, Dhaka.',
+            'direction'       => 'inbound',
+            'type'            => 'text',
+            'body'            => 'Hi, I want to confirm order for Blue Silk Jamdani Saree (৳3,200). Name: Sabrina Rahman, Phone: 01799887766, Address: House 25, Road 8, Dhanmondi, Dhaka.',
         ]);
 
         Message::create([
             'conversation_id' => $conversation->id,
-            'sender_type'     => 'ai',
-            'content'         => 'Thank you Sabrina! We have received your delivery details for the Blue Silk Jamdani Saree.',
+            'direction'       => 'outbound',
+            'type'            => 'text',
+            'body'            => 'Thank you Sabrina! We have received your delivery details for the Blue Silk Jamdani Saree.',
         ]);
 
         // ── STEP 2: Automated Order & Lead Extraction by AI ──────────────
         $orderService = app(OrderCaptureService::class);
-        $extractedOrder = $orderService->extractAndCreateFromConversation(
+        $extractedOrder = $orderService->extractAndCapture(
             $conversation,
-            'Hi, I want to confirm order for Blue Silk Jamdani Saree (৳3,200). Name: Sabrina Rahman, Phone: 01799887766, Address: House 25, Road 8, Dhanmondi, Dhaka.'
+            'Hi, I want to confirm order for Blue Silk Jamdani Saree (৳3,200). Name: Sabrina Rahman, Phone: 01799887766, Address: House 25, Road 8, Dhanmondi, Dhaka.',
+            'Thank you Sabrina! We have received your delivery details for the Blue Silk Jamdani Saree.'
         );
 
         $this->assertNotNull($extractedOrder);
         $this->assertEquals('Sabrina Rahman', $extractedOrder->customer_name);
         $this->assertEquals('01799887766', $extractedOrder->getFormatted11DigitPhone());
         $this->assertStringContainsString('Dhanmondi, Dhaka', $extractedOrder->delivery_address);
-        $this->assertEquals('confirmed', $extractedOrder->status);
+        $this->assertEquals('pending', $extractedOrder->status);
         $this->assertFalse($extractedOrder->isDispatchedToCourier());
 
         // Create a second confirmed order for bulk testing

@@ -15,6 +15,12 @@ return new class extends Migration
             $table->id();
             $table->string('name');
             $table->string('slug')->unique();
+            $table->string('currency', 8)->default('BDT');
+            $table->string('support_phone', 32)->nullable();
+            $table->string('support_email', 128)->nullable();
+            $table->text('business_address')->nullable();
+            $table->json('operating_hours')->nullable();
+            $table->json('settings')->nullable();
             $table->boolean('is_active')->default(true);
             $table->timestamps();
         });

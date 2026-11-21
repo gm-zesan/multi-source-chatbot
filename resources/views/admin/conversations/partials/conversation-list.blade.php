@@ -35,6 +35,21 @@
                 {{ Str::limit($lastMsg, 35) }}
             </p>
 
+            {{-- AI Smart Lead Tags Pill (if assigned) --}}
+            @php
+                $aiTags = $conversation->getAiTagObjects();
+            @endphp
+            @if(!empty($aiTags))
+                <div class="flex items-center gap-1 my-1 flex-wrap">
+                    @foreach(array_slice($aiTags, 0, 2) as $tag)
+                        <span class="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded text-3xs font-medium {{ $tag['badge_classes'] }}">
+                            <span>{{ $tag['emoji'] }}</span>
+                            <span>{{ $tag['label'] }}</span>
+                        </span>
+                    @endforeach
+                </div>
+            @endif
+
             <div class="conversation-bottom flex items-center justify-between mt-0.5">
                 @php
                     $slug = $conversation->channelAccount->channel->slug ?? 'default';

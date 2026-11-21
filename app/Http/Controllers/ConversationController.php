@@ -46,6 +46,10 @@ class ConversationController extends Controller
             $query->where('status', (string) $request->input('status'));
         }
 
+        if ($request->filled('tag')) {
+            $query->whereJsonContains('ai_tags', (string) $request->input('tag'));
+        }
+
         if ($request->filled('assigned_to')) {
             $assignedVal = $request->input('assigned_to');
             if ($assignedVal === 'me' && $user) {
@@ -78,6 +82,17 @@ class ConversationController extends Controller
         $conversations = $query->paginate(20);
 
         $workspaceId = $conversation->channelAccount?->workspace_id;
+
+        // Auto-generate AI Intelligence & Summary if not present yet
+        if (empty($conversation->ai_tags) || empty($conversation->ai_summary)) {
+            try {
+                app(\App\Services\AI\LeadIntelligenceService::class)->classifyAndTagConversation($conversation);
+                $conversation->refresh();
+            } catch (\Throwable $e) {
+                Log::warning('[ConversationController] Auto-tagging on show failed safely: ' . $e->getMessage());
+            }
+        }
+
         if ($workspaceId) {
             $teamMembers = User::where(function ($q) use ($workspaceId) {
                 $q->where('workspace_id', $workspaceId)
@@ -274,5 +289,29 @@ class ConversationController extends Controller
         }
 
         return redirect()->back()->with('status', $msg);
+    }
+
+    /**
+     * Regenerate AI Lead Intelligence & Executive Summary on-demand.
+     */
+    public function regenerateIntelligence(\Illuminate\Http\Request $request, Conversation $conversation): \Symfony\Component\HttpFoundation\Response
+    {
+        $this->authorizeConversation($conversation);
+
+        $result = app(\App\Services\AI\LeadIntelligenceService::class)->classifyAndTagConversation(
+            conversation: $conversation,
+            force: true,
+        );
+
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json([
+                'success'     => true,
+                'tags'        => $result['tags'],
+                'summary'     => $result['summary'],
+                'tag_objects' => $result['tag_objects'],
+            ]);
+        }
+
+        return redirect()->back()->with('status', 'AI Lead Tags & Executive Summary regenerated successfully!');
     }
 }

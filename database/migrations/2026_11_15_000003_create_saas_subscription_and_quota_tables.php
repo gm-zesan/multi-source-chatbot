@@ -18,14 +18,22 @@ return new class extends Migration
             $table->id();
             $table->string('name', 64);
             $table->string('slug', 64)->unique();
+            $table->string('badge', 64)->nullable()->comment('e.g. Standard Metered, Free Trial, Most Popular');
+            $table->string('tagline', 255)->nullable()->comment('Short description under plan title');
             $table->decimal('price_monthly', 10, 2)->default(0.00);
             $table->decimal('price_yearly', 10, 2)->default(0.00);
             $table->string('currency', 8)->default('BDT');
+            $table->string('billing_period_text', 64)->nullable()->comment('e.g. / AI reply, Free Credit, / month, Custom Quote');
+            $table->string('price_note', 255)->nullable()->comment('Subtext under price, e.g. Zero monthly commitment');
             $table->integer('max_conversations_monthly')->default(500)->comment('-1 for unlimited');
             $table->integer('max_knowledge_docs')->default(5);
             $table->integer('max_staff_seats')->default(2);
             $table->json('features')->nullable();
             $table->boolean('is_active')->default(true);
+            $table->boolean('is_featured')->default(false);
+            $table->integer('sort_order')->default(0);
+            $table->string('cta_text', 64)->nullable()->comment('Button text');
+            $table->string('cta_url', 255)->nullable()->comment('Target url');
             $table->timestamps();
         });
 

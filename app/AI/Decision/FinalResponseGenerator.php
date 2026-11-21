@@ -161,8 +161,15 @@ class FinalResponseGenerator
                         $businessService = app(\App\Services\Business\BusinessSourceOfTruthService::class);
                         $bContext = $businessService->buildBusinessContext($request->query, $request->conversation, $request->workspaceId);
 
+                        $hasDirectProductOrOrder = !empty($bContext) && (
+                            str_contains($bContext, 'Live Product Catalog Record') ||
+                            str_contains($bContext, 'Live Order #') ||
+                            str_contains($bContext, 'Active Product in Discussion') ||
+                            str_contains($bContext, 'UNAVAILABLE / NOT FOUND')
+                        );
+
                         if ($agentHits->isEmpty()) {
-                            if (!empty($bContext)) {
+                            if ($hasDirectProductOrOrder) {
                                 try {
                                     $agent = new KnowledgeSupportAgent(
                                         conversation: $request->conversation,
@@ -181,9 +188,13 @@ class FinalResponseGenerator
                                     $reports[] = $this->formatAgentReply($cleanReply);
                                 } catch (Throwable $e) {
                                     if (str_contains($bContext, 'UNAVAILABLE / NOT FOUND')) {
-                                        $reports[] = "দুঃখিত, আপনার কাঙ্ক্ষিত পণ্যটি বর্তমানে আমাদের স্টোরে উপলব্ধ নেই। তবে আমাদের কাছে ল্যাপটপ (Laptop Pro 15), ওয়্যারলেস হেডফোন, মেকানিক্যাল কীবোর্ড এবং অফিস চেয়ার পাওয়া যাচ্ছে।";
+                                        if (preg_match('/Available Categories:\s*([^\n]+)/u', $bContext, $mCats)) {
+                                            $reports[] = "দুঃখিত, আপনার কাঙ্ক্ষিত পণ্যটি বর্তমানে আমাদের স্টোরে উপলব্ধ নেই। আমাদের স্টোরে " . trim($mCats[1]) . " পাওয়া যাচ্ছে।";
+                                        } else {
+                                            $reports[] = "দুঃখিত, আপনার কাঙ্ক্ষিত পণ্যটি বর্তমানে আমাদের স্টোরে উপলব্ধ নেই।";
+                                        }
                                     } else {
-                                        $reports[] = "আমাদের স্টোরে প্রযুক্তি ও ইলেকট্রনিক্স সামগ্রী (যেমন Laptop Pro 15, হেডফোন, মেকানিক্যাল কীবোর্ড, স্মার্টওয়াচ) এবং অফিস ফার্নিচার পাওয়া যায়।";
+                                        $reports[] = "আমাদের স্টোরে আপনার কাঙ্ক্ষিত পণ্যটি সম্পর্কিত বিস্তারিত তথ্যের জন্য আমাদের প্রোডাক্ট ক্যাটালগ দেখতে পারেন অথবা কাস্টমার কেয়ারে যোগাযোগ করতে পারেন।";
                                     }
                                 }
                             } else {
