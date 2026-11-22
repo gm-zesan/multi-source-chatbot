@@ -651,6 +651,19 @@ class BusinessSourceOfTruthService
             // Dynamically detects the inquired item/category from the inquiry sentence
             $inquiredItem = !$matchedAny ? ($inquiredItem ?? $this->detectInquiredItemOrCategory($query)) : null;
             if ($inquiredItem !== null) {
+                // If the inquired item is present in the workspace's published FAQs, do not mark as unavailable
+                $hasFaqMatch = \App\Models\FAQ::where('workspace_id', $workspaceId)
+                    ->where('is_published', true)
+                    ->where(function ($q) use ($inquiredItem) {
+                        $q->where('question', 'LIKE', '%' . $inquiredItem . '%')
+                          ->orWhere('answer', 'LIKE', '%' . $inquiredItem . '%');
+                    })->exists();
+
+                if ($hasFaqMatch) {
+                    $inquiredItem = null;
+                }
+            }
+            if ($inquiredItem !== null) {
                 $targetTerm = $inquiredItem;
                 $docsChecked = !empty($allDocNames) ? implode(', ', $allDocNames) : 'uploaded documents and product catalog';
 
@@ -1300,12 +1313,12 @@ class BusinessSourceOfTruthService
         // Bi-directional and phrase-level synonym expansion against full product name
         if (!empty($effectiveCrossMap)) {
             foreach ($effectiveCrossMap as $k => $syns) {
-                if (str_contains($nameLower, (string) $k)) {
+                if (preg_match('/(?:^|[^\p{L}\p{M}\p{N}])' . preg_quote((string) $k, '/') . '(?:$|[^\p{L}\p{M}\p{N}])/ui', $nameLower)) {
                     $keywords[] = (string) $k;
                     $keywords = array_merge($keywords, (array) $syns);
                 }
                 foreach ((array) $syns as $syn) {
-                    if (str_contains($nameLower, (string) $syn)) {
+                    if (preg_match('/(?:^|[^\p{L}\p{M}\p{N}])' . preg_quote((string) $syn, '/') . '(?:$|[^\p{L}\p{M}\p{N}])/ui', $nameLower)) {
                         $keywords[] = (string) $k;
                         $keywords = array_merge($keywords, (array) $syns);
                         break;

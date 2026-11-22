@@ -20,6 +20,11 @@ return Application::configure(basePath: dirname(__DIR__))
             'webhooks/billing/*',
         ]);
 
+        // Append SetLocale to web middleware group
+        $middleware->web(append: [
+            \App\Http\Middleware\SetLocale::class,
+        ]);
+
         // Register middleware aliases
         $middleware->alias([
             'role'               => \Spatie\Permission\Middleware\RoleMiddleware::class,

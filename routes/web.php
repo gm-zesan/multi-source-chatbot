@@ -62,6 +62,15 @@ Route::controller(PublicPageController::class)->group(function () {
     Route::get('/cookies', 'cookies')->name('cookies');
 });
 
+// Bilingual Locale Switcher Route
+Route::get('/locale/{lang}', function (string $lang) {
+    if (in_array($lang, ['bn', 'en'], true)) {
+        session(['locale' => $lang]);
+        cookie()->queue(cookie()->forever('app_locale', $lang));
+    }
+    return redirect()->back();
+})->name('locale.switch');
+
 // Public Contact Form Submission
 Route::post('/contact', [ContactFormController::class, 'store'])->name('contact.store');
 

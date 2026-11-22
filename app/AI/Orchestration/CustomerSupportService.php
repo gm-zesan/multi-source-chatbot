@@ -2173,8 +2173,13 @@ PROMPT;
                     $categoriesNotice = ' আমাদের স্টোরে ' . trim($mCats[1]) . ' পাওয়া যাচ্ছে।';
                 }
 
+                $topHit = $retrievedHits->first();
+                $hasHighQualityHit = $topHit && ($topHit->finalScore ?? 0.0) >= 0.65;
+
                 if (str_contains($businessContext, 'UNAVAILABLE / NOT FOUND')) {
-                    return "দুঃখিত, আপনার কাঙ্ক্ষিত পণ্যটি বর্তমানে আমাদের স্টোরে উপলব্ধ নেই।" . $categoriesNotice;
+                    if (!$hasHighQualityHit) {
+                        return "দুঃখিত, আপনার কাঙ্ক্ষিত পণ্যটি বর্তমানে আমাদের স্টোরে উপলব্ধ নেই।" . $categoriesNotice;
+                    }
                 }
                 if (str_contains($businessContext, 'Central Product Catalog') || str_contains($businessContext, 'Available Products in Store')) {
                     if (!empty($categoriesNotice)) {

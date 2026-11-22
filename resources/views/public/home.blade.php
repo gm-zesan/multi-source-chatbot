@@ -13,38 +13,36 @@
             {{-- Announcement Badge (Minted Chamfer Bevel) --}}
             <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-light-border dark:border-white/[0.1] bg-light-surface/90 dark:bg-dark-surface/90 backdrop-blur-md text-brand-600 dark:text-brand-400 text-xs font-semibold shadow-[inset_0_1px_0_0_rgba(255,255,255,0.08)] hover:border-brand-500/50 transition-colors">
                 <i class="ri-sparkling-fill text-brand-500 text-xs"></i>
-                <span>৩ জন সার্বক্ষণিক এআই কর্মী</span>
+                <span>{{ __('public.home.announcement_badge') }}</span>
                 <span class="hidden sm:inline text-light-border dark:text-dark-border">/</span>
-                <span class="hidden sm:inline text-light-text dark:text-dark-text font-normal">Autonomous 3-Agent Architecture</span>
+                <span class="hidden sm:inline text-light-text dark:text-dark-text font-normal">{{ __('public.home.announcement_sub') }}</span>
                 <i class="ri-arrow-right-line text-xs"></i>
             </div>
 
             {{-- Main Hero Headline (Metallic Minted Typography) --}}
-            <div class="max-w-4xl mx-auto space-y-4">
-                <h1 class="text-[1.35rem] xs:text-2xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight leading-[1.18] sm:leading-[1.12]">
-                    <span class="block sm:inline bg-gradient-to-b from-slate-900 via-slate-800 to-slate-600 dark:from-white dark:via-slate-100 dark:to-slate-400/80 bg-clip-text text-transparent drop-shadow-sm dark:drop-shadow-[0_2px_14px_rgba(255,255,255,0.08)]">
-                        আপনার সম্পূর্ণ ব্যবসা পরিচালনা করবে
+            <div class="max-w-5xl mx-auto space-y-4 sm:space-y-6">
+                <h1 class="text-[1.35rem] xs:text-2xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight leading-[1.45] sm:leading-[1.36] md:leading-[1.32] lg:leading-[1.28]">
+                    <span class="block bg-gradient-to-b from-slate-900 via-slate-800 to-slate-600 dark:from-white dark:via-slate-100 dark:to-slate-400/80 bg-clip-text text-transparent drop-shadow-sm dark:drop-shadow-[0_2px_14px_rgba(255,255,255,0.08)]">
+                        {{ __('public.home.hero_title_1') }}
                     </span>
-                    <span class="block sm:inline bg-gradient-to-r from-brand-500 via-sky-400 to-teal-400 bg-clip-text text-transparent drop-shadow-sm">
-                        ৩ জন বিশেষায়িত এআই কর্মী
+                    <span class="block bg-gradient-to-r from-brand-500 via-sky-400 to-teal-400 bg-clip-text text-transparent drop-shadow-sm">
+                        {{ __('public.home.hero_title_2') }}
                     </span>
                 </h1>
-                <p class="text-xs sm:text-base text-light-text-secondary dark:text-dark-text-secondary max-w-3xl mx-auto leading-relaxed">
-                    <strong>১. বিক্রয় সহকারী:</strong> ২৪/৭ মেসেঞ্জার ও হোয়াটসঅ্যাপে গ্রাহকদের সাথে কথা বলে সেল কনভার্ট করে।<br class="hidden sm:inline">
-                    <strong>২. কুরিয়ার সহকারী:</strong> ইনবক্সের ঠিকানা বুঝে স্বয়ংক্রিয়ভাবে Steadfast/Pathao-তে পার্সেল বুকিং ও ট্র্যাকিং সিঙ্ক করে।<br class="hidden sm:inline">
-                    <strong>৩. হিসাবরক্ষক (Virtual CFO):</strong> ব্যবসায়ীর জন্য লাভ-ক্ষতি, গ্রস মার্জিন ও ইনভেন্টরি অ্যানালিটিক্স তৈরি করে।
+                <p class="text-sm sm:text-base md:text-lg text-light-text-secondary dark:text-dark-text-secondary max-w-2xl mx-auto leading-relaxed pt-1">
+                    {{ __('public.home.hero_subtitle') }}
                 </p>
             </div>
 
             {{-- Dual CTAs with Button Shimmer --}}
             <div class="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
                 <a href="{{ route('register') }}" class="btn-shimmer w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-semibold text-sm shadow-xs hover:shadow-sm transition-all">
-                    <span>Get Started</span>
+                    <span>{{ __('public.home.get_started_btn') }}</span>
                     <i class="ri-arrow-right-line"></i>
                 </a>
                 <a href="{{ route('platform') }}" class="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl border border-light-border dark:border-white/[0.08] bg-light-surface/80 dark:bg-dark-surface/80 hover:bg-light-elevated dark:hover:bg-dark-elevated text-light-text dark:text-dark-text font-semibold text-sm shadow-xs transition-colors">
                     <i class="ri-compass-3-line text-brand-500"></i>
-                    <span>Explore Platform</span>
+                    <span>{{ __('public.home.explore_platform_btn') }}</span>
                 </a>
             </div>
 
@@ -64,15 +62,15 @@
                         <div class="flex items-center gap-1 p-1 rounded-xl bg-light-canvas dark:bg-dark-canvas border border-light-border dark:border-white/[0.08] text-xs">
                             <button type="button" onclick="switchHeroTab('sales')" id="tabBtn-sales" class="hero-tab-btn px-3 py-1.5 rounded-lg text-3xs font-semibold bg-brand-600 text-white shadow-xs transition-all flex items-center gap-1.5">
                                 <i class="ri-customer-service-2-line text-xs"></i>
-                                <span>১. কাস্টমার সেলস এজেন্ট</span>
+                                <span>{{ __('public.home.tab_sales') }}</span>
                             </button>
                             <button type="button" onclick="switchHeroTab('ops')" id="tabBtn-ops" class="hero-tab-btn px-3 py-1.5 rounded-lg text-3xs font-semibold text-light-muted dark:text-dark-muted hover:text-light-text dark:hover:text-dark-text transition-all flex items-center gap-1.5">
                                 <i class="ri-truck-line text-xs"></i>
-                                <span>২. কুরিয়ার ও অর্ডার এজেন্ট</span>
+                                <span>{{ __('public.home.tab_ops') }}</span>
                             </button>
                             <button type="button" onclick="switchHeroTab('cfo')" id="tabBtn-cfo" class="hero-tab-btn px-3 py-1.5 rounded-lg text-3xs font-semibold text-light-muted dark:text-dark-muted hover:text-light-text dark:hover:text-dark-text transition-all flex items-center gap-1.5">
                                 <i class="ri-funds-line text-xs"></i>
-                                <span>৩. মার্চেন্ট CFO এজেন্ট</span>
+                                <span>{{ __('public.home.tab_cfo') }}</span>
                             </button>
                         </div>
                     </div>
@@ -80,18 +78,18 @@
                     {{-- Live Simulation Query Trigger Pills --}}
                     <div id="sandboxPillsBar" class="mb-4 p-2.5 rounded-xl bg-light-canvas dark:bg-dark-canvas border border-light-border dark:border-white/[0.08] flex flex-wrap items-center justify-between gap-2 text-xs">
                         <div class="flex items-center gap-2">
-                            <span class="text-3xs font-mono font-bold uppercase tracking-wider text-light-muted dark:text-dark-muted">লাইভ সিমুলেটর:</span>
-                            <span class="text-3xs text-light-muted dark:text-dark-muted">৩ জন বিশেষায়িত কর্মীর লাইভ কার্যক্রম পরীক্ষা করুন</span>
+                            <span class="text-3xs font-mono font-bold uppercase tracking-wider text-light-muted dark:text-dark-muted">{{ __('public.home.sim_title') }}</span>
+                            <span class="text-3xs text-light-muted dark:text-dark-muted">{{ __('public.home.sim_desc') }}</span>
                         </div>
                         <div class="flex flex-wrap items-center gap-1.5">
                             <button type="button" onclick="runSimulationQuery('sales')" class="sim-btn px-2.5 py-1 rounded-lg text-3xs font-medium border border-brand-500/30 bg-brand-500/10 text-brand-600 dark:text-brand-400 hover:bg-brand-500/20 transition-colors">
-                                "স্টক ও পণ্যের মূল্য কত?" (Sales)
+                                {{ __('public.home.sim_btn_sales') }}
                             </button>
                             <button type="button" onclick="runSimulationQuery('ops')" class="sim-btn px-2.5 py-1 rounded-lg text-3xs font-medium border border-light-border dark:border-white/[0.08] bg-light-surface dark:bg-dark-surface hover:border-brand-500/50 transition-colors">
-                                "অর্ডার কনফার্ম ও কুরিয়ার বুকিং" (Operations)
+                                {{ __('public.home.sim_btn_ops') }}
                             </button>
                             <button type="button" onclick="runSimulationQuery('cfo')" class="sim-btn px-2.5 py-1 rounded-lg text-3xs font-medium border border-light-border dark:border-white/[0.08] bg-light-surface dark:bg-dark-surface hover:border-brand-500/50 transition-colors">
-                                "নেট প্রফিট, মার্জিন ও ডেড স্টক" (CFO)
+                                {{ __('public.home.sim_btn_cfo') }}
                             </button>
                         </div>
                     </div>
@@ -104,37 +102,37 @@
                                 <div class="flex items-center justify-between border-b border-light-border dark:border-white/[0.08] pb-2 mb-3">
                                     <div class="flex items-center gap-2 text-xs font-semibold">
                                         <i class="ri-message-3-line text-brand-500"></i>
-                                        <span>Customer Sales Dialogue</span>
+                                        <span>{{ __('public.home.sales_dialogue_title') }}</span>
                                     </div>
-                                    <span class="px-1.5 py-0.5 rounded text-3xs font-mono bg-brand-500/15 text-brand-500 font-bold uppercase">Front Office</span>
+                                    <span class="px-1.5 py-0.5 rounded text-3xs font-mono bg-brand-500/15 text-brand-500 font-bold uppercase">{{ __('public.home.sales_office_tag') }}</span>
                                 </div>
                                 
                                 <div class="space-y-2.5 text-xs" id="chatDialogueArea">
                                     <div class="p-2.5 rounded-lg bg-light-surface dark:bg-dark-surface border border-light-border dark:border-white/[0.08] space-y-1">
                                         <div class="flex items-center justify-between text-3xs text-light-muted dark:text-dark-muted font-mono">
-                                            <span class="font-semibold text-light-text dark:text-dark-text">Customer (Messenger)</span>
+                                            <span class="font-semibold text-light-text dark:text-dark-text">{{ __('public.home.sales_sim_customer') }}</span>
                                             <span>Just now</span>
                                         </div>
                                         <p class="text-light-text-secondary dark:text-dark-text-secondary text-2xs" id="simCustomerQuestion">
-                                            "আইফোন ১৫ প্রো ম্যাক্স ২৫৬জিবি টাইটানিয়াম কি স্টকে আছে? দাম কত?"
+                                            "{{ __('public.home.sales_sim_q') }}"
                                         </p>
                                     </div>
 
                                     <div class="p-2.5 rounded-lg bg-brand-500/10 border border-brand-500/20 space-y-1 transition-all">
                                         <div class="flex items-center justify-between text-3xs text-brand-500 font-semibold">
-                                            <span class="flex items-center gap-1"><i class="ri-sparkling-fill text-xs"></i> Grounded AI Sales Agent</span>
+                                            <span class="flex items-center gap-1"><i class="ri-sparkling-fill text-xs"></i> {{ __('public.home.sales_agent_label') }}</span>
                                             <span class="font-mono text-3xs" id="simLatency">180ms</span>
                                         </div>
                                         <p class="text-light-text dark:text-dark-text text-2xs leading-relaxed" id="simAiAnswer">
-                                            "জি! আমাদের গুলশান হাবে Natural Titanium 256GB ভ্যারিয়েন্টটি ৪টি স্টকে আছে। অফিসিয়াল ওয়ারেন্টি সহ মূল্য ৳১,৬২,০০০। ক্যাশ অন ডেলিভারিতে অর্ডার করতে আপনার নাম, ফোন ও ঠিকানা জানান।"
+                                            "{{ __('public.home.sales_sim_a') }}"
                                         </p>
                                     </div>
                                 </div>
                             </div>
 
                             <div class="pt-2 border-t border-light-border dark:border-white/[0.08] flex items-center justify-between text-3xs font-mono text-light-muted dark:text-dark-muted">
-                                <span>Multi-Lingual: বাংলা / English</span>
-                                <span class="text-emerald-500 font-semibold">Status: ২৪/৭ সক্রিয়</span>
+                                <span>{{ __('public.home.sales_lang_status') }}</span>
+                                <span class="text-emerald-500 font-semibold">{{ __('public.home.sales_active_status') }}</span>
                             </div>
                         </div>
 
@@ -143,10 +141,10 @@
                             <div class="flex items-center justify-between border-b border-light-border dark:border-white/[0.08] pb-2">
                                 <div class="flex items-center gap-2 text-xs font-semibold">
                                     <i class="ri-database-2-line text-sky-500"></i>
-                                    <span>Knowledge Grounding Pipeline</span>
+                                    <span>{{ __('public.home.sales_pipeline_title') }}</span>
                                 </div>
                                 <span class="text-3xs font-mono text-emerald-500 flex items-center gap-1 font-semibold">
-                                    <i class="ri-checkbox-circle-fill"></i> 0.0% Hallucination
+                                    <i class="ri-checkbox-circle-fill"></i> {{ __('public.home.sales_hallucination_tag') }}
                                 </span>
                             </div>
 
@@ -157,28 +155,28 @@
                                             <i class="ri-file-excel-2-line text-emerald-500 text-sm"></i>
                                             <span class="font-mono font-semibold" id="simSourceName">Product_Catalog_Nov2026.xlsx</span>
                                         </div>
-                                        <span class="font-mono text-3xs text-emerald-500 font-bold" id="simRowMatch">Row #148 matched</span>
+                                        <span class="font-mono text-3xs text-emerald-500 font-bold" id="simRowMatch">{{ __('public.home.sales_row_matched') }}</span>
                                     </div>
                                     <div class="p-1.5 rounded bg-light-canvas dark:bg-dark-canvas font-mono text-3xs text-light-muted dark:text-dark-muted truncate" id="simRowData">
-                                        SKU: IP15P-256-NT | Stock: 4 units | Hub: Gulshan | Price: ৳162,000
+                                        {{ __('public.home.sales_row_data') }}
                                     </div>
                                 </div>
 
                                 <div class="p-2 rounded-lg bg-light-surface dark:bg-dark-surface border border-light-border dark:border-white/[0.08] flex items-center justify-between text-3xs font-mono">
                                     <span class="flex items-center gap-1.5">
                                         <i class="ri-shield-check-line text-brand-500"></i>
-                                        <span>Column Memory: Price & Stock Mapped</span>
+                                        <span>{{ __('public.home.sales_column_memory') }}</span>
                                     </span>
-                                    <span class="text-emerald-500 font-semibold" id="simConfidence">Confidence: 100%</span>
+                                    <span class="text-emerald-500 font-semibold" id="simConfidence">{{ __('public.home.sales_confidence') }}</span>
                                 </div>
 
                                 <div class="p-2.5 rounded-lg bg-light-surface/60 dark:bg-dark-surface/60 border border-dashed border-light-border dark:border-white/[0.08] text-3xs font-mono text-light-muted dark:text-dark-muted space-y-1">
                                     <div class="flex justify-between">
-                                        <span>Quick Stock Status:</span>
-                                        <span class="text-emerald-500 font-semibold" id="simRoute">In Stock (1-Click Toggle Active)</span>
+                                        <span>{{ __('public.home.sales_quick_stock_status') }}</span>
+                                        <span class="text-emerald-500 font-semibold" id="simRoute">{{ __('public.home.sales_in_stock_badge') }}</span>
                                     </div>
                                     <div class="flex justify-between">
-                                        <span>Token Overhead:</span>
+                                        <span>{{ __('public.home.sales_token_overhead') }}</span>
                                         <span class="text-light-text dark:text-dark-text font-semibold">142 In / 48 Out</span>
                                     </div>
                                 </div>
@@ -191,7 +189,7 @@
                                 <div class="flex items-center justify-between border-b border-light-border dark:border-white/[0.08] pb-2 mb-3">
                                     <div class="flex items-center gap-2 text-xs font-semibold">
                                         <i class="ri-bar-chart-2-line text-purple-500"></i>
-                                        <span>Sales Agent Metrics</span>
+                                        <span>{{ __('public.home.sales_metrics_title') }}</span>
                                     </div>
                                     <span class="text-3xs font-mono text-purple-500 font-semibold">Sub-Second</span>
                                 </div>
@@ -199,7 +197,7 @@
                                 <div class="space-y-3">
                                     <div>
                                         <div class="flex justify-between text-3xs font-mono text-light-muted dark:text-dark-muted uppercase">
-                                            <span>Resolution Latency</span>
+                                            <span>{{ __('public.home.sales_latency_label') }}</span>
                                             <span class="text-light-text dark:text-dark-text font-bold">180ms</span>
                                         </div>
                                         <svg class="w-full h-8 mt-1 text-brand-500" viewBox="0 0 100 25" fill="none" stroke="currentColor" stroke-width="2">
@@ -209,7 +207,7 @@
 
                                     <div>
                                         <div class="flex justify-between text-3xs font-mono text-light-muted dark:text-dark-muted uppercase">
-                                            <span>Grounding Precision</span>
+                                            <span>{{ __('public.home.sales_precision_label') }}</span>
                                             <span class="text-emerald-500 font-bold">100.0%</span>
                                         </div>
                                         <div class="w-full h-1.5 bg-light-surface dark:bg-dark-surface rounded-full overflow-hidden mt-1.5">
@@ -219,15 +217,15 @@
 
                                     <div>
                                         <div class="flex justify-between text-3xs font-mono text-light-muted dark:text-dark-muted uppercase">
-                                            <span>Avg Cost / Reply</span>
-                                            <span class="text-brand-500 font-bold font-mono">৳ 0.40 BDT</span>
+                                            <span>{{ __('public.home.sales_cost_label') }}</span>
+                                            <span class="text-brand-500 font-bold font-mono">{{ app()->getLocale() === 'en' ? 'BDT 0.40' : '৳ ০.৪০' }}</span>
                                         </div>
                                     </div>
                                 </div>
                             </div>
 
                             <a href="{{ route('knowledge-engine') }}" class="text-center py-1.5 px-3 rounded-lg border border-light-border dark:border-white/[0.08] text-2xs font-semibold hover:border-brand-500/50 transition-colors">
-                                Explore Sales Engine &rarr;
+                                {{ __('public.home.sales_view_engine_btn') }}
                             </a>
                         </div>
                     </div>
@@ -239,38 +237,38 @@
                             <div class="flex items-center justify-between border-b border-light-border dark:border-white/[0.08] pb-2">
                                 <div class="flex items-center gap-2 text-xs font-semibold">
                                     <i class="ri-file-list-3-line text-amber-500"></i>
-                                    <span>Autonomous Order Intake</span>
+                                    <span>{{ __('public.home.ops_intake_title') }}</span>
                                 </div>
-                                <span class="px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-500 text-3xs font-mono font-bold">Order Captured</span>
+                                <span class="px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-500 text-3xs font-mono font-bold">{{ __('public.home.ops_captured_badge') }}</span>
                             </div>
                             
                             <div class="p-2.5 rounded-lg bg-light-surface dark:bg-dark-surface border border-light-border dark:border-white/[0.08] space-y-1.5 text-2xs">
                                 <div class="text-3xs font-mono text-light-muted dark:text-dark-muted flex justify-between">
-                                    <span>Inbound Message Stream</span>
-                                    <span class="text-emerald-500 font-semibold">Parsed in 0.3s</span>
+                                    <span>{{ __('public.home.ops_stream_title') }}</span>
+                                    <span class="text-emerald-500 font-semibold">{{ __('public.home.ops_parsed_sla') }}</span>
                                 </div>
                                 <p class="text-light-text-secondary dark:text-dark-text-secondary text-2xs font-sans italic bg-light-canvas dark:bg-dark-canvas p-2 rounded">
-                                    "আমি ১ সেট Terracotta Tea Cup নিবো। নাম: ফারহান আহমেদ, ফোন: 01711234567, ঠিকানা: বাড়ি ৪২, রোড ১১, বনানী, ঢাকা।"
+                                    "{{ __('public.home.ops_customer_msg') }}"
                                 </p>
                                 <div class="grid grid-cols-2 gap-2 pt-1 font-mono text-3xs">
                                     <div class="p-1.5 rounded bg-light-canvas dark:bg-dark-canvas">
-                                        <span class="text-light-muted dark:text-dark-muted block">Customer Name</span>
+                                        <span class="text-light-muted dark:text-dark-muted block">{{ __('public.home.ops_customer_name') }}</span>
                                         <span class="font-bold text-light-text dark:text-dark-text">ফারহান আহমেদ</span>
                                     </div>
                                     <div class="p-1.5 rounded bg-light-canvas dark:bg-dark-canvas">
-                                        <span class="text-light-muted dark:text-dark-muted block">Verified Phone</span>
+                                        <span class="text-light-muted dark:text-dark-muted block">{{ __('public.home.ops_phone_verified') }}</span>
                                         <span class="font-bold text-emerald-500 font-mono">01711234567</span>
                                     </div>
                                     <div class="col-span-2 p-1.5 rounded bg-light-canvas dark:bg-dark-canvas">
-                                        <span class="text-light-muted dark:text-dark-muted block">Delivery Address</span>
+                                        <span class="text-light-muted dark:text-dark-muted block">{{ __('public.home.ops_delivery_address') }}</span>
                                         <span class="font-bold text-light-text dark:text-dark-text">বাড়ি ৪২, রোড ১১, বনানী, ঢাকা</span>
                                     </div>
                                 </div>
                             </div>
 
                             <div class="p-2 rounded-lg bg-amber-500/10 border border-amber-500/20 text-3xs text-amber-600 dark:text-amber-400 flex items-center justify-between">
-                                <span class="flex items-center gap-1.5"><i class="ri-time-line"></i> Lead Recovery: Cross-turn buffering active</span>
-                                <span class="font-bold font-mono">Zero Abandoned Leads</span>
+                                <span class="flex items-center gap-1.5"><i class="ri-time-line"></i> {{ __('public.home.ops_lead_recovery') }}</span>
+                                <span class="font-bold font-mono">{{ __('public.home.ops_zero_abandoned') }}</span>
                             </div>
                         </div>
 
@@ -279,40 +277,40 @@
                             <div class="flex items-center justify-between border-b border-light-border dark:border-white/[0.08] pb-2">
                                 <div class="flex items-center gap-2 text-xs font-semibold">
                                     <i class="ri-truck-line text-brand-500"></i>
-                                    <span>Courier API Integration</span>
+                                    <span>{{ __('public.home.ops_courier_title') }}</span>
                                 </div>
-                                <span class="text-3xs font-mono text-emerald-500 font-bold">Steadfast Live</span>
+                                <span class="text-3xs font-mono text-emerald-500 font-bold">{{ __('public.home.ops_steadfast_live') }}</span>
                             </div>
 
                             <div class="space-y-2 text-2xs font-mono">
                                 <div class="p-2.5 rounded-lg bg-light-surface dark:bg-dark-surface border border-light-border dark:border-white/[0.08] space-y-1">
                                     <div class="flex justify-between items-center">
-                                        <span class="text-light-muted dark:text-dark-muted">Consignment ID:</span>
+                                        <span class="text-light-muted dark:text-dark-muted">{{ __('public.home.ops_consignment_id') }}</span>
                                         <span class="text-brand-500 font-bold">#SF-84920194</span>
                                     </div>
                                     <div class="flex justify-between items-center">
-                                        <span class="text-light-muted dark:text-dark-muted">Courier Partner:</span>
+                                        <span class="text-light-muted dark:text-dark-muted">{{ __('public.home.ops_courier_partner') }}</span>
                                         <span class="text-light-text dark:text-dark-text font-bold">Steadfast API v1</span>
                                     </div>
                                     <div class="flex justify-between items-center">
-                                        <span class="text-light-muted dark:text-dark-muted">COD Amount:</span>
-                                        <span class="text-emerald-500 font-bold">৳ 980 BDT</span>
+                                        <span class="text-light-muted dark:text-dark-muted">{{ __('public.home.ops_cod_amount') }}</span>
+                                        <span class="text-emerald-500 font-bold">{{ app()->getLocale() === 'en' ? 'BDT 980' : '৳ ৯৮০' }}</span>
                                     </div>
                                     <div class="flex justify-between items-center">
-                                        <span class="text-light-muted dark:text-dark-muted">Current Status:</span>
-                                        <span class="px-1.5 py-0.5 rounded text-3xs bg-emerald-500/15 text-emerald-500 font-bold">In Review / পার্সেল বুকড</span>
+                                        <span class="text-light-muted dark:text-dark-muted">{{ __('public.home.ops_courier_status') }}</span>
+                                        <span class="px-1.5 py-0.5 rounded text-3xs bg-emerald-500/15 text-emerald-500 font-bold">{{ __('public.home.ops_status_value') }}</span>
                                     </div>
                                 </div>
 
                                 <div class="p-2 rounded-lg bg-light-surface dark:bg-dark-surface border border-light-border dark:border-white/[0.08] text-3xs space-y-1 text-light-muted dark:text-dark-muted">
                                     <div class="flex justify-between">
-                                        <span>Webhook Status Sync:</span>
-                                        <span class="text-emerald-500 font-semibold">Delivered & Return Sync</span>
+                                        <span>{{ __('public.home.ops_webhook_sync') }}</span>
+                                        <span class="text-emerald-500 font-semibold">{{ __('public.home.ops_sync_value') }}</span>
                                     </div>
                                     <div class="flex justify-between">
-                                        <span>Manual Typing Needed:</span>
+                                        <span>{{ __('public.home.ops_manual_typing') }}</span>
                                         <span class="text-rose-500 font-bold line-through">5 Minutes</span>
-                                        <span class="text-emerald-500 font-bold">0 Seconds</span>
+                                        <span class="text-emerald-500 font-bold">{{ __('public.home.ops_typing_zero') }}</span>
                                     </div>
                                 </div>
                             </div>
@@ -324,7 +322,7 @@
                                 <div class="flex items-center justify-between border-b border-light-border dark:border-white/[0.08] pb-2 mb-3">
                                     <div class="flex items-center gap-2 text-xs font-semibold">
                                         <i class="ri-dashboard-line text-amber-500"></i>
-                                        <span>Fulfillment Velocity</span>
+                                        <span>{{ __('public.home.ops_fulfillment_title') }}</span>
                                     </div>
                                     <span class="text-3xs font-mono text-amber-500 font-semibold">Automated</span>
                                 </div>
@@ -332,7 +330,7 @@
                                 <div class="space-y-3">
                                     <div>
                                         <div class="flex justify-between text-3xs font-mono text-light-muted dark:text-dark-muted uppercase">
-                                            <span>Booking Dispatch Time</span>
+                                            <span>{{ __('public.home.ops_dispatch_label') }}</span>
                                             <span class="text-light-text dark:text-dark-text font-bold">0.4 sec</span>
                                         </div>
                                         <div class="w-full h-1.5 bg-light-surface dark:bg-dark-surface rounded-full overflow-hidden mt-1.5">
@@ -342,14 +340,14 @@
 
                                     <div>
                                         <div class="flex justify-between text-3xs font-mono text-light-muted dark:text-dark-muted uppercase">
-                                            <span>Webhook Sync SLA</span>
+                                            <span>{{ __('public.home.ops_webhook_sla') }}</span>
                                             <span class="text-emerald-500 font-bold">&lt; 50ms</span>
                                         </div>
                                     </div>
 
                                     <div>
                                         <div class="flex justify-between text-3xs font-mono text-light-muted dark:text-dark-muted uppercase">
-                                            <span>Supported Couriers</span>
+                                            <span>{{ __('public.home.ops_supported_couriers') }}</span>
                                             <span class="text-brand-500 font-bold font-mono">Steadfast + Pathao</span>
                                         </div>
                                     </div>
@@ -357,7 +355,7 @@
                             </div>
 
                             <a href="{{ route('automation') }}" class="text-center py-1.5 px-3 rounded-lg border border-light-border dark:border-white/[0.08] text-2xs font-semibold hover:border-brand-500/50 transition-colors">
-                                Explore Logistics Flow &rarr;
+                                {{ __('public.home.ops_explore_btn') }}
                             </a>
                         </div>
                     </div>
@@ -369,30 +367,29 @@
                             <div class="flex items-center justify-between border-b border-light-border dark:border-white/[0.08] pb-2">
                                 <div class="flex items-center gap-2 text-xs font-semibold">
                                     <i class="ri-user-star-line text-purple-500"></i>
-                                    <span>Private Merchant Portal</span>
+                                    <span>{{ __('public.home.cfo_portal_title') }}</span>
                                 </div>
-                                <span class="px-2 py-0.5 rounded bg-purple-500/15 text-purple-500 text-3xs font-mono font-bold">Executive Mode</span>
+                                <span class="px-2 py-0.5 rounded bg-purple-500/15 text-purple-500 text-3xs font-mono font-bold">{{ __('public.home.cfo_exec_badge') }}</span>
                             </div>
 
                             <div class="space-y-2.5 text-xs">
                                 <div class="p-2.5 rounded-lg bg-light-surface dark:bg-dark-surface border border-light-border dark:border-white/[0.08] space-y-1">
                                     <div class="flex items-center justify-between text-3xs text-light-muted dark:text-dark-muted font-mono">
-                                        <span class="font-semibold text-light-text dark:text-dark-text">Shop Owner (ব্যবসায়ী)</span>
-                                        <span>Private Session</span>
+                                        <span class="font-semibold text-light-text dark:text-dark-text">{{ __('public.home.cfo_user_label') }}</span>
+                                        <span>{{ __('public.home.cfo_session_label') }}</span>
                                     </div>
                                     <p class="text-light-text-secondary dark:text-dark-text-secondary text-2xs">
-                                        "গত ৭ দিনের নিট প্রফিট আর মার্জিন কত? কোন আইটেমের স্টক শেষ?"
+                                        "{{ __('public.home.cfo_sim_q') }}"
                                     </p>
                                 </div>
 
                                 <div class="p-2.5 rounded-lg bg-purple-500/10 border border-purple-500/20 space-y-1.5">
                                     <div class="flex items-center justify-between text-3xs text-purple-500 font-semibold">
-                                        <span class="flex items-center gap-1"><i class="ri-sparkling-fill"></i> Virtual CFO Intelligence</span>
-                                        <span class="font-mono text-3xs">Verified COGS</span>
+                                        <span class="flex items-center gap-1"><i class="ri-sparkling-fill"></i> {{ __('public.home.cfo_ai_label') }}</span>
+                                        <span class="font-mono text-3xs">{{ __('public.home.cfo_cogs_badge') }}</span>
                                     </div>
                                     <p class="text-light-text dark:text-dark-text text-2xs leading-relaxed">
-                                        "গত ৭ দিনে মোট সেলস <strong>৳১,৮৪,২০০</strong>। পাইকারি খরচ (COGS) ৳১,১২,৪০০ ও কুরিয়ার ফি বাদ দিয়ে নেট প্রফিট <strong>৳৫৫,২৬০</strong> (গ্রস মার্জিন ৩৮.৬%)।<br>
-                                        <span class="text-rose-500 font-semibold">সতর্কতা: Terracotta Tea Cup Set এর স্টক শেষ (০ টি)</span> — দ্রুত রিস্টক করুন।"
+                                        {!! __('public.home.cfo_sim_a') !!}
                                     </p>
                                 </div>
                             </div>
@@ -403,27 +400,27 @@
                             <div class="flex items-center justify-between border-b border-light-border dark:border-white/[0.08] pb-2">
                                 <div class="flex items-center gap-2 text-xs font-semibold">
                                     <i class="ri-funds-line text-emerald-500"></i>
-                                    <span>Profit & Margin Analytics</span>
+                                    <span>{{ __('public.home.cfo_profit_title') }}</span>
                                 </div>
-                                <span class="text-3xs font-mono text-emerald-500 font-bold">7-Day Actuals</span>
+                                <span class="text-3xs font-mono text-emerald-500 font-bold">{{ __('public.home.cfo_actuals_badge') }}</span>
                             </div>
 
                             <div class="space-y-2 text-2xs font-mono">
                                 <div class="p-2 rounded bg-light-surface dark:bg-dark-surface border border-light-border dark:border-white/[0.08] flex justify-between">
-                                    <span class="text-light-muted dark:text-dark-muted">Gross Revenue:</span>
-                                    <span class="font-bold text-light-text dark:text-dark-text">৳ 184,200</span>
+                                    <span class="text-light-muted dark:text-dark-muted">{{ __('public.home.cfo_gross_revenue') }}</span>
+                                    <span class="font-bold text-light-text dark:text-dark-text">{{ app()->getLocale() === 'en' ? 'BDT 184,200' : '৳ ১৮৪,২০০' }}</span>
                                 </div>
                                 <div class="p-2 rounded bg-light-surface dark:bg-dark-surface border border-light-border dark:border-white/[0.08] flex justify-between">
-                                    <span class="text-light-muted dark:text-dark-muted">Wholesale COGS:</span>
-                                    <span class="font-bold text-rose-500">- ৳ 112,400</span>
+                                    <span class="text-light-muted dark:text-dark-muted">{{ __('public.home.cfo_cogs') }}</span>
+                                    <span class="font-bold text-rose-500">{{ app()->getLocale() === 'en' ? '- BDT 112,400' : '- ৳ ১১২,৪০০' }}</span>
                                 </div>
                                 <div class="p-2 rounded bg-light-surface dark:bg-dark-surface border border-light-border dark:border-white/[0.08] flex justify-between">
-                                    <span class="text-light-muted dark:text-dark-muted">Courier / Logistics:</span>
-                                    <span class="font-bold text-amber-500">- ৳ 16,540</span>
+                                    <span class="text-light-muted dark:text-dark-muted">{{ __('public.home.cfo_logistics') }}</span>
+                                    <span class="font-bold text-amber-500">{{ app()->getLocale() === 'en' ? '- BDT 16,540' : '- ৳ ১৬,৫৪০' }}</span>
                                 </div>
                                 <div class="p-2 rounded bg-emerald-500/15 border border-emerald-500/30 flex justify-between font-bold">
-                                    <span class="text-emerald-600 dark:text-emerald-400">Net Margin:</span>
-                                    <span class="text-emerald-600 dark:text-emerald-400">38.6% (৳ 55,260)</span>
+                                    <span class="text-emerald-600 dark:text-emerald-400">{{ __('public.home.cfo_net_margin') }}</span>
+                                    <span class="text-emerald-600 dark:text-emerald-400">{{ app()->getLocale() === 'en' ? '38.6% (BDT 55,260)' : '৩৮.৬% (৳ ৫৫,২৬০)' }}</span>
                                 </div>
                             </div>
                         </div>
@@ -434,29 +431,29 @@
                                 <div class="flex items-center justify-between border-b border-light-border dark:border-white/[0.08] pb-2 mb-2">
                                     <div class="flex items-center gap-2 text-xs font-semibold">
                                         <i class="ri-alert-line text-rose-500"></i>
-                                        <span>Inventory Intelligence</span>
+                                        <span>{{ __('public.home.cfo_inventory_title') }}</span>
                                     </div>
                                     <span class="text-3xs font-mono text-rose-500 font-semibold">Live Alert</span>
                                 </div>
 
                                 <div class="space-y-2 text-2xs">
                                     <div class="p-2 rounded-lg bg-rose-500/10 border border-rose-500/20">
-                                        <div class="text-3xs font-bold text-rose-500 uppercase font-mono">Stock-Out Warning</div>
-                                        <div class="text-light-text dark:text-dark-text font-semibold">Terracotta Tea Cup (0 left)</div>
+                                        <div class="text-3xs font-bold text-rose-500 uppercase font-mono">{{ __('public.home.cfo_stockout_alert') }}</div>
+                                        <div class="text-light-text dark:text-dark-text font-semibold">{{ __('public.home.cfo_stockout_item') }}</div>
                                     </div>
                                     <div class="p-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
-                                        <div class="text-3xs font-bold text-emerald-500 uppercase font-mono">High Velocity SKU</div>
-                                        <div class="text-light-text dark:text-dark-text font-semibold">Silk Handloom Sharee (+42%)</div>
+                                        <div class="text-3xs font-bold text-emerald-500 uppercase font-mono">{{ __('public.home.cfo_velocity_alert') }}</div>
+                                        <div class="text-light-text dark:text-dark-text font-semibold">{{ __('public.home.cfo_velocity_item') }}</div>
                                     </div>
                                     <div class="p-2 rounded-lg bg-amber-500/10 border border-amber-500/20">
-                                        <div class="text-3xs font-bold text-amber-500 uppercase font-mono">Dead Stock Alert</div>
-                                        <div class="text-light-text dark:text-dark-text font-semibold">Ceramic Vase (0 in 30 days)</div>
+                                        <div class="text-3xs font-bold text-amber-500 uppercase font-mono">{{ __('public.home.cfo_deadstock_alert') }}</div>
+                                        <div class="text-light-text dark:text-dark-text font-semibold">{{ __('public.home.cfo_deadstock_item') }}</div>
                                     </div>
                                 </div>
                             </div>
 
                             <a href="{{ route('business-intelligence') }}" class="text-center py-1.5 px-3 rounded-lg border border-light-border dark:border-white/[0.08] text-2xs font-semibold hover:border-purple-500/50 transition-colors">
-                                View Executive CFO Docs &rarr;
+                                {{ __('public.home.cfo_view_docs_btn') }}
                             </a>
                         </div>
                     </div>
@@ -523,12 +520,12 @@
     {{-- ==================== 3. PLATFORM CORE PILLARS (THE 3 SPECIALIZED AI EMPLOYEES) ==================== --}}
     <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
         <div class="text-center space-y-3 max-w-2xl mx-auto">
-            <h2 class="text-2xs font-bold uppercase tracking-wider text-brand-500 font-mono">The 3-Agent Commercial Architecture</h2>
+            <h2 class="text-2xs font-bold uppercase tracking-wider text-brand-500 font-mono">{{ __('public.home.pillars_badge') }}</h2>
             <p class="text-2xl sm:text-3xl font-extrabold text-light-text dark:text-dark-text tracking-tight">
-                ৩ জন সার্বক্ষণিক এআই কর্মী। একটি সমন্বিত ইকোসিস্টেম।
+                {{ __('public.home.pillars_title') }}
             </p>
             <p class="text-xs sm:text-sm text-light-text-secondary dark:text-dark-text-secondary">
-                ম্যানুয়াল কাস্টমার চ্যাটিং, কুরিয়ার এন্ট্রি আর খাতার হিসাবের দিন শেষ। আধুনিক ই-কমার্স ও এফ-কমার্সের জন্য সম্পূর্ণ অটোমেটেড প্ল্যাটফর্ম।
+                {{ __('public.home.pillars_desc') }}
             </p>
         </div>
 
@@ -541,17 +538,17 @@
                         <i class="ri-customer-service-2-line"></i>
                     </div>
                     <div class="space-y-1">
-                        <span class="text-3xs font-mono font-bold uppercase text-brand-500">Agent #1 • Front Office</span>
+                        <span class="text-3xs font-mono font-bold uppercase text-brand-500">{{ __('public.home.pillar_sales_tag') }}</span>
                         <h3 class="font-bold text-sm text-light-text dark:text-dark-text group-hover:text-brand-500 transition-colors">
-                            Customer Sales Agent
+                            {{ __('public.home.pillar_sales_title') }}
                         </h3>
                     </div>
                     <p class="text-2xs text-light-muted dark:text-dark-muted leading-relaxed">
-                        ২৪/৭ মেসেঞ্জার, হোয়াটসঅ্যাপ ও ওয়েবসাইটে কাস্টমার চ্যাট হ্যান্ডেল করে। এক্সেল শিট দেখে ০% হ্যালুসিনেশনে সঠিক সাইজ, দাম ও স্টক জানিয়ে সেল কনভার্ট করে।
+                        {{ __('public.home.pillar_sales_desc') }}
                     </p>
                 </div>
                 <div class="flex items-center gap-1 text-3xs font-semibold text-brand-500">
-                    <span>সেলস ফিচার দেখুন</span>
+                    <span>{{ __('public.home.pillar_sales_btn') }}</span>
                     <i class="ri-arrow-right-line group-hover:translate-x-1 transition-transform"></i>
                 </div>
             </a>
@@ -563,17 +560,17 @@
                         <i class="ri-truck-line"></i>
                     </div>
                     <div class="space-y-1">
-                        <span class="text-3xs font-mono font-bold uppercase text-amber-500">Agent #2 • Back Office</span>
+                        <span class="text-3xs font-mono font-bold uppercase text-amber-500">{{ __('public.home.pillar_ops_tag') }}</span>
                         <h3 class="font-bold text-sm text-light-text dark:text-dark-text group-hover:text-amber-500 transition-colors">
-                            Operations & Courier Agent
+                            {{ __('public.home.pillar_ops_title') }}
                         </h3>
                     </div>
                     <p class="text-2xs text-light-muted dark:text-dark-muted leading-relaxed">
-                        ইনবক্স থেকে কাস্টমারের নাম, ফোন ও ডেলিভারি ঠিকানা নিয়ে ১-ক্লিকে Steadfast ও Pathao কুরিয়ারে বুকিং দেয় এবং রিয়েল-টাইম ডেলিভারি স্ট্যাটাস সিঙ্ক করে।
+                        {{ __('public.home.pillar_ops_desc') }}
                     </p>
                 </div>
                 <div class="flex items-center gap-1 text-3xs font-semibold text-amber-500">
-                    <span>কুরিয়ার অটোমেশন দেখুন</span>
+                    <span>{{ __('public.home.pillar_ops_btn') }}</span>
                     <i class="ri-arrow-right-line group-hover:translate-x-1 transition-transform"></i>
                 </div>
             </a>
@@ -585,17 +582,17 @@
                         <i class="ri-funds-line"></i>
                     </div>
                     <div class="space-y-1">
-                        <span class="text-3xs font-mono font-bold uppercase text-purple-500">Agent #3 • Executive Suite</span>
+                        <span class="text-3xs font-mono font-bold uppercase text-purple-500">{{ __('public.home.pillar_cfo_tag') }}</span>
                         <h3 class="font-bold text-sm text-light-text dark:text-dark-text group-hover:text-purple-500 transition-colors">
-                            Business Owner Agent (CFO)
+                            {{ __('public.home.pillar_cfo_title') }}
                         </h3>
                     </div>
                     <p class="text-2xs text-light-muted dark:text-dark-muted leading-relaxed">
-                        ব্যবসায়ীর ব্যক্তিগত আর্থিক সহকারী। পাইকারি খরচ (COGS) বনাম বিক্রয় মূল্যের নিখুঁত লাভ-ক্ষতি, গ্রস মার্জিন এবং ডেড স্টক ও রিস্টক অ্যালার্ট প্রদান করে।
+                        {{ __('public.home.pillar_cfo_desc') }}
                     </p>
                 </div>
                 <div class="flex items-center gap-1 text-3xs font-semibold text-purple-500">
-                    <span>CFO অ্যানালিটিক্স দেখুন</span>
+                    <span>{{ __('public.home.pillar_cfo_btn') }}</span>
                     <i class="ri-arrow-right-line group-hover:translate-x-1 transition-transform"></i>
                 </div>
             </a>
@@ -607,17 +604,17 @@
                         <i class="ri-file-excel-2-line"></i>
                     </div>
                     <div class="space-y-1">
-                        <span class="text-3xs font-mono font-bold uppercase text-emerald-500">Knowledge Core</span>
+                        <span class="text-3xs font-mono font-bold uppercase text-emerald-500">{{ __('public.home.pillar_core_tag') }}</span>
                         <h3 class="font-bold text-sm text-light-text dark:text-dark-text group-hover:text-emerald-500 transition-colors">
-                            Dynamic Catalog & Stock Toggle
+                            {{ __('public.home.pillar_core_title') }}
                         </h3>
                     </div>
                     <p class="text-2xs text-light-muted dark:text-dark-muted leading-relaxed">
-                        কলামের নাম Price, Rate, মূল্য বা Stock যাই হোক—স্বয়ংক্রিয়ভাবে চিনে মনে রাখে। অ্যাডমিন প্যানেল থেকে ১-ক্লিকেই স্টক আউট/ইন টগল করা যায়।
+                        {{ __('public.home.pillar_core_desc') }}
                     </p>
                 </div>
                 <div class="flex items-center gap-1 text-3xs font-semibold text-emerald-500">
-                    <span>ক্যাটালগ ইঞ্জিন দেখুন</span>
+                    <span>{{ __('public.home.pillar_core_btn') }}</span>
                     <i class="ri-arrow-right-line group-hover:translate-x-1 transition-transform"></i>
                 </div>
             </a>
@@ -632,25 +629,25 @@
                 
                 {{-- Left Text Info --}}
                 <div class="lg:col-span-5 space-y-4">
-                    <span class="text-3xs font-mono font-bold uppercase tracking-wider text-brand-500">Dynamic Column Memory & Quick Stock</span>
+                    <span class="text-3xs font-mono font-bold uppercase tracking-wider text-brand-500">{{ __('public.home.sheet_badge') }}</span>
                     <h3 class="text-xl sm:text-2xl font-bold text-light-text dark:text-dark-text tracking-tight">
-                        যেভাবেই কলামের নাম লিখুন না কেন—এআই ঠিকই চিনে নেবে।
+                        {{ __('public.home.sheet_title') }}
                     </h3>
                     <p class="text-xs text-light-text-secondary dark:text-dark-text-secondary leading-relaxed">
-                        ব্যবসায়ীরা বিভিন্নভাবে এক্সেল ফাইল তৈরি করেন। দামের কলামে <em>Price, Rate, Selling Price, মূল্য, দর</em> কিংবা স্টকের কলামে <em>Stock, Qty, Available, পরিমাণ, মজুদ</em>—যাই থাকুক, আমাদের এআই তা স্বয়ংক্রিয়ভাবে বুঝে নেয় এবং স্টোরের জন্য কলাম মেমোরিতে সংরক্ষণ করে।
+                        {{ __('public.home.sheet_desc') }}
                     </p>
                     <div class="space-y-2 pt-2">
                         <div class="flex items-center gap-2 text-xs">
                             <i class="ri-checkbox-circle-fill text-emerald-500"></i>
-                            <span>স্বয়ংক্রিয় কলাম ম্যাপিং মেমোরি (Automatic Column Alias Learning)</span>
+                            <span>{{ __('public.home.sheet_point_1') }}</span>
                         </div>
                         <div class="flex items-center gap-2 text-xs">
                             <i class="ri-checkbox-circle-fill text-emerald-500"></i>
-                            <span>অ্যাডমিন প্যানেলে ১-ক্লিক কুইক স্টক টগল বোতাম (Instant Stock Toggle)</span>
+                            <span>{{ __('public.home.sheet_point_2') }}</span>
                         </div>
                         <div class="flex items-center gap-2 text-xs">
                             <i class="ri-checkbox-circle-fill text-emerald-500"></i>
-                            <span>বাংলা ও ইংরেজিতে ০.০% হ্যালুসিনেশন সহ সঠিক স্টক নিশ্চিতকরণ</span>
+                            <span>{{ __('public.home.sheet_point_3') }}</span>
                         </div>
                     </div>
                 </div>
@@ -747,12 +744,12 @@
     {{-- ==================== 5. INTERACTIVE OPERATIONAL ROI & EFFICIENCY CALCULATOR ==================== --}}
     <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-10">
         <div class="text-center space-y-3 max-w-2xl mx-auto">
-            <h2 class="text-2xs font-bold uppercase tracking-wider text-brand-500 font-mono">Value & Velocity</h2>
+            <h2 class="text-2xs font-bold uppercase tracking-wider text-brand-500 font-mono">{{ __('public.home.roi_badge') }}</h2>
             <p class="text-2xl sm:text-3xl font-extrabold text-light-text dark:text-dark-text tracking-tight">
-                Calculate Your Support Hours & Operational Savings
+                {{ __('public.home.roi_title') }}
             </p>
             <p class="text-xs sm:text-sm text-light-text-secondary dark:text-dark-text-secondary">
-                See how autonomous grounding transforms operational cost and resolution speed.
+                {{ __('public.home.roi_desc') }}
             </p>
         </div>
 
@@ -761,7 +758,7 @@
                 {{-- Slider Control --}}
                 <div class="space-y-3">
                     <div class="flex items-center justify-between text-xs font-semibold">
-                        <label for="monthlyMessagesRange" class="text-light-text dark:text-dark-text">Monthly Customer Messages:</label>
+                        <label for="monthlyMessagesRange" class="text-light-text dark:text-dark-text">{{ __('public.home.roi_monthly_msgs') }}</label>
                         <span class="px-3 py-1 rounded-lg bg-brand-500/10 text-brand-500 font-mono font-bold text-sm" id="messagesDisplay">
                             5,000 / month
                         </span>
@@ -786,27 +783,27 @@
                 {{-- Calculated Metrics Grid --}}
                 <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-4 border-t border-light-border dark:border-white/[0.08] text-center">
                     <div class="chamfer-card p-3.5 rounded-xl bg-light-canvas dark:bg-dark-canvas border border-light-border dark:border-white/[0.08]">
-                        <div class="text-3xs font-mono uppercase text-light-muted dark:text-dark-muted">Hours Saved</div>
+                        <div class="text-3xs font-mono uppercase text-light-muted dark:text-dark-muted">{{ __('public.home.roi_hours_saved') }}</div>
                         <div class="text-xl sm:text-2xl font-bold font-mono text-brand-500 mt-1" id="hoursSaved">415 hrs</div>
-                        <div class="text-3xs text-light-muted dark:text-dark-muted mt-0.5">per month</div>
+                        <div class="text-3xs text-light-muted dark:text-dark-muted mt-0.5">{{ __('public.home.roi_per_month') }}</div>
                     </div>
 
                     <div class="chamfer-card p-3.5 rounded-xl bg-light-canvas dark:bg-dark-canvas border border-light-border dark:border-white/[0.08]">
-                        <div class="text-3xs font-mono uppercase text-light-muted dark:text-dark-muted">Autonomous Rate</div>
+                        <div class="text-3xs font-mono uppercase text-light-muted dark:text-dark-muted">{{ __('public.home.roi_auto_rate') }}</div>
                         <div class="text-xl sm:text-2xl font-bold font-mono text-emerald-500 mt-1">82%</div>
-                        <div class="text-3xs text-light-muted dark:text-dark-muted mt-0.5">without human rep</div>
+                        <div class="text-3xs text-light-muted dark:text-dark-muted mt-0.5">{{ __('public.home.roi_without_rep') }}</div>
                     </div>
 
                     <div class="chamfer-card p-3.5 rounded-xl bg-light-canvas dark:bg-dark-canvas border border-light-border dark:border-white/[0.08]">
-                        <div class="text-3xs font-mono uppercase text-light-muted dark:text-dark-muted">First Response</div>
+                        <div class="text-3xs font-mono uppercase text-light-muted dark:text-dark-muted">{{ __('public.home.roi_first_response') }}</div>
                         <div class="text-xl sm:text-2xl font-bold font-mono text-sky-500 mt-1">0.38s</div>
-                        <div class="text-3xs text-light-muted dark:text-dark-muted mt-0.5">vs 14m manual</div>
+                        <div class="text-3xs text-light-muted dark:text-dark-muted mt-0.5">{{ __('public.home.roi_vs_manual') }}</div>
                     </div>
 
                     <div class="chamfer-card p-3.5 rounded-xl bg-light-canvas dark:bg-dark-canvas border border-light-border dark:border-white/[0.08]">
-                        <div class="text-3xs font-mono uppercase text-light-muted dark:text-dark-muted">Est. Savings</div>
+                        <div class="text-3xs font-mono uppercase text-light-muted dark:text-dark-muted">{{ __('public.home.roi_est_savings') }}</div>
                         <div class="text-xl sm:text-2xl font-bold font-mono text-teal-400 mt-1" id="costSavings">$2,250</div>
-                        <div class="text-3xs text-light-muted dark:text-dark-muted mt-0.5">support overhead</div>
+                        <div class="text-3xs text-light-muted dark:text-dark-muted mt-0.5">{{ __('public.home.roi_support_overhead') }}</div>
                     </div>
                 </div>
             </div>
@@ -816,42 +813,42 @@
     {{-- ==================== 6. ENTERPRISE SECURITY & TRUST ANCHORS ==================== --}}
     <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
         <div class="text-center space-y-3 max-w-2xl mx-auto">
-            <h2 class="text-2xs font-bold uppercase tracking-wider text-brand-500 font-mono">Enterprise Security</h2>
+            <h2 class="text-2xs font-bold uppercase tracking-wider text-brand-500 font-mono">{{ __('public.home.sec_badge') }}</h2>
             <p class="text-2xl sm:text-3xl font-extrabold text-light-text dark:text-dark-text tracking-tight">
-                Built for Multi-Tenant Isolation & Zero Data Leakage
+                {{ __('public.home.sec_title') }}
             </p>
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div class="chamfer-card spotlight-card p-5 rounded-2xl border border-light-border dark:border-white/[0.08] bg-light-surface dark:bg-dark-surface space-y-3">
                 <i class="ri-building-4-line text-brand-500 text-2xl"></i>
-                <h3 class="font-bold text-sm text-light-text dark:text-dark-text">Workspace Isolation</h3>
+                <h3 class="font-bold text-sm text-light-text dark:text-dark-text">{{ __('public.home.sec_c1_title') }}</h3>
                 <p class="text-2xs text-light-muted dark:text-dark-muted leading-relaxed">
-                    Database-level tenant separation ensures that catalogs, dialogues, and credentials remain private.
+                    {{ __('public.home.sec_c1_desc') }}
                 </p>
             </div>
 
             <div class="chamfer-card spotlight-card p-5 rounded-2xl border border-light-border dark:border-white/[0.08] bg-light-surface dark:bg-dark-surface space-y-3">
                 <i class="ri-shield-user-line text-sky-500 text-2xl"></i>
-                <h3 class="font-bold text-sm text-light-text dark:text-dark-text">Granular RBAC</h3>
+                <h3 class="font-bold text-sm text-light-text dark:text-dark-text">{{ __('public.home.sec_c2_title') }}</h3>
                 <p class="text-2xs text-light-muted dark:text-dark-muted leading-relaxed">
-                    Role-based access control enforces explicit capabilities for SuperAdmin, Admin, Agent, and Viewer roles.
+                    {{ __('public.home.sec_c2_desc') }}
                 </p>
             </div>
 
             <div class="chamfer-card spotlight-card p-5 rounded-2xl border border-light-border dark:border-white/[0.08] bg-light-surface dark:bg-dark-surface space-y-3">
                 <i class="ri-lock-password-line text-emerald-500 text-2xl"></i>
-                <h3 class="font-bold text-sm text-light-text dark:text-dark-text">Encrypted Credentials</h3>
+                <h3 class="font-bold text-sm text-light-text dark:text-dark-text">{{ __('public.home.sec_c3_title') }}</h3>
                 <p class="text-2xs text-light-muted dark:text-dark-muted leading-relaxed">
-                    Channel tokens, webhook secrets, and binary spreadsheets are encrypted and protected with application key cryptography.
+                    {{ __('public.home.sec_c3_desc') }}
                 </p>
             </div>
 
             <div class="chamfer-card spotlight-card p-5 rounded-2xl border border-light-border dark:border-white/[0.08] bg-light-surface dark:bg-dark-surface space-y-3">
                 <i class="ri-forbid-2-line text-purple-500 text-2xl"></i>
-                <h3 class="font-bold text-sm text-light-text dark:text-dark-text">Private Workspace Boundary</h3>
+                <h3 class="font-bold text-sm text-light-text dark:text-dark-text">{{ __('public.home.sec_c4_title') }}</h3>
                 <p class="text-2xs text-light-muted dark:text-dark-muted leading-relaxed">
-                    Multi-tenant workspace partitioning ensures your catalog data, customer inquiries, and conversations are never shared across tenants.
+                    {{ __('public.home.sec_c4_desc') }}
                 </p>
             </div>
         </div>
@@ -867,12 +864,12 @@
     @endphp
     <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-10">
         <div class="text-center space-y-3 max-w-2xl mx-auto">
-            <span class="text-3xs font-mono font-bold uppercase tracking-wider text-brand-500">Simple & Fair Pricing</span>
+            <span class="text-3xs font-mono font-bold uppercase tracking-wider text-brand-500">{{ __('public.home.prepaid_badge') }}</span>
             <h2 class="text-2xl sm:text-3xl font-bold text-light-text dark:text-dark-text tracking-tight">
-                Pay Only For What You Use. ৳ {{ number_format($mRate, 2) }} / Message.
+                {{ __('public.home.prepaid_title', ['rate' => number_format($mRate, 2)]) }}
             </h2>
             <p class="text-xs sm:text-sm text-light-text-secondary dark:text-dark-text-secondary">
-                No expensive recurring commitments or hidden fees. Start with <strong>৳{{ number_format($sBonus, 2) }} free starter balance</strong> ({{ number_format($sMsgs) }} complimentary AI messages) today.
+                {!! __('public.home.prepaid_desc', ['bonus' => number_format($sBonus, 2), 'msgs' => number_format($sMsgs)]) !!}
             </p>
         </div>
 
@@ -883,14 +880,14 @@
                     <i class="ri-wallet-3-line"></i>
                 </div>
                 <div>
-                    <div class="text-2xs uppercase tracking-wider font-semibold text-brand-500 font-mono">Usage-Based</div>
-                    <h3 class="text-xl font-black text-light-text dark:text-dark-text mt-0.5">৳ {{ number_format($mRate, 2) }} <span class="text-xs font-normal text-light-muted dark:text-dark-muted">/ AI reply</span></h3>
+                    <div class="text-2xs uppercase tracking-wider font-semibold text-brand-500 font-mono">{{ __('public.home.prepaid_c1_badge') }}</div>
+                    <h3 class="text-xl font-black text-light-text dark:text-dark-text mt-0.5">{{ __('public.home.prepaid_c1_title', ['rate' => number_format($mRate, 2)]) }} <span class="text-xs font-normal text-light-muted dark:text-dark-muted">{{ __('public.home.prepaid_c1_sub') }}</span></h3>
                 </div>
                 <p class="text-2xs text-light-muted dark:text-dark-muted leading-relaxed">
-                    Balance is only deducted when the AI successfully formulates a verified response to your customer. Zero cost for silent or idle hours.
+                    {{ __('public.home.prepaid_c1_desc') }}
                 </p>
                 <ul class="text-2xs space-y-1.5 text-light-text dark:text-dark-text pt-2 border-t border-light-border dark:border-white/[0.08]">
-                    <li class="flex items-center gap-1.5"><i class="ri-check-line text-emerald-500"></i> Fixed ৳{{ number_format($mRate, 2) }} BDT per response</li>
+                    <li class="flex items-center gap-1.5"><i class="ri-check-line text-emerald-500"></i> {{ app()->getLocale() === 'en' ? 'Fixed BDT ' . number_format($mRate, 2) . ' per response' : 'ফিক্সড প্রতি রেসপন্সে মাত্র ৳ ' . number_format($mRate, 2) }}</li>
                     <li class="flex items-center gap-1.5"><i class="ri-check-line text-emerald-500"></i> Real-time wallet balance deduction</li>
                     <li class="flex items-center gap-1.5"><i class="ri-check-line text-emerald-500"></i> No minimum monthly spend</li>
                 </ul>
@@ -905,11 +902,11 @@
                     <i class="ri-gift-line"></i>
                 </div>
                 <div>
-                    <div class="text-2xs uppercase tracking-wider font-semibold text-emerald-500 font-mono">Free Starter Credit</div>
-                    <h3 class="text-xl font-black text-light-text dark:text-dark-text mt-0.5">৳ {{ number_format($sBonus, 2) }} <span class="text-xs font-normal text-light-muted dark:text-dark-muted">Free</span></h3>
+                    <div class="text-2xs uppercase tracking-wider font-semibold text-emerald-500 font-mono">{{ __('public.home.prepaid_c2_badge') }}</div>
+                    <h3 class="text-xl font-black text-light-text dark:text-dark-text mt-0.5">{{ __('public.home.prepaid_c2_title', ['bonus' => number_format($sBonus, 2)]) }} <span class="text-xs font-normal text-light-muted dark:text-dark-muted">{{ __('public.home.prepaid_c2_sub') }}</span></h3>
                 </div>
                 <p class="text-2xs text-light-muted dark:text-dark-muted leading-relaxed">
-                    Every newly registered business workspace automatically receives ৳{{ number_format($sBonus, 2) }} starter balance to test {{ number_format($sMsgs) }} real customer conversations instantly.
+                    {{ __('public.home.prepaid_c2_desc', ['bonus' => number_format($sBonus, 2), 'msgs' => number_format($sMsgs)]) }}
                 </p>
                 <ul class="text-2xs space-y-1.5 text-light-text dark:text-dark-text pt-2 border-t border-light-border dark:border-white/[0.08]">
                     <li class="flex items-center gap-1.5"><i class="ri-check-line text-emerald-500"></i> {{ number_format($sMsgs) }} Free AI responses</li>
@@ -924,15 +921,15 @@
                     <i class="ri-smartphone-line"></i>
                 </div>
                 <div>
-                    <div class="text-2xs uppercase tracking-wider font-semibold text-pink-500 font-mono">Local Payments</div>
-                    <h3 class="text-xl font-black text-light-text dark:text-dark-text mt-0.5">bKash & Nagad</h3>
+                    <div class="text-2xs uppercase tracking-wider font-semibold text-pink-500 font-mono">{{ __('public.home.prepaid_c3_badge') }}</div>
+                    <h3 class="text-xl font-black text-light-text dark:text-dark-text mt-0.5">{{ __('public.home.prepaid_c3_title') }}</h3>
                 </div>
                 <p class="text-2xs text-light-muted dark:text-dark-muted leading-relaxed">
-                    Recharge wallet balance anytime with flexible local options including bKash, Nagad, and Cards with instant ledger confirmation.
+                    {{ __('public.home.prepaid_c3_desc') }}
                 </p>
                 <ul class="text-2xs space-y-1.5 text-light-text dark:text-dark-text pt-2 border-t border-light-border dark:border-white/[0.08]">
                     <li class="flex items-center gap-1.5"><i class="ri-check-line text-emerald-500"></i> bKash & Nagad support</li>
-                    <li class="flex items-center gap-1.5"><i class="ri-check-line text-emerald-500"></i> Quick top-up from ৳500 to ৳5,000</li>
+                    <li class="flex items-center gap-1.5"><i class="ri-check-line text-emerald-500"></i> {{ app()->getLocale() === 'en' ? 'Quick top-up from BDT 500 to BDT 5,000' : '৳ ৫০০ থেকে ৳ ৫,০০০ পর্যন্ত সহজ টপ-আপ' }}</li>
                     <li class="flex items-center gap-1.5"><i class="ri-check-line text-emerald-500"></i> Automated Order & Lead capture included</li>
                 </ul>
             </div>
@@ -940,7 +937,7 @@
 
         <div class="text-center pt-2">
             <a href="{{ route('register') }}" class="btn-shimmer inline-flex items-center gap-2 px-8 py-3.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-bold text-xs shadow-sm hover:shadow transition-all">
-                <span>Start Free With ৳50 Bonus Credit</span>
+                <span>{{ __('public.home.start_free_btn', ['bonus' => number_format($sBonus, 0)]) }}</span>
                 <i class="ri-arrow-right-line"></i>
             </a>
         </div>
@@ -949,38 +946,38 @@
     {{-- ==================== 7. FREQUENTLY ASKED QUESTIONS ==================== --}}
     <section class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
         <div class="text-center space-y-2">
-            <span class="text-3xs font-mono font-bold uppercase tracking-wider text-brand-500">Clear Answers</span>
-            <h2 class="text-2xl font-bold text-light-text dark:text-dark-text">Frequently Asked Questions</h2>
+            <span class="text-3xs font-mono font-bold uppercase tracking-wider text-brand-500">{{ __('public.home.faq_badge') }}</span>
+            <h2 class="text-2xl font-bold text-light-text dark:text-dark-text">{{ __('public.home.faq_title') }}</h2>
         </div>
 
         <div class="space-y-3" id="faqAccordion">
             <div class="chamfer-card rounded-xl border border-light-border dark:border-white/[0.08] bg-light-surface dark:bg-dark-surface p-4">
                 <button type="button" class="w-full flex items-center justify-between text-left text-xs font-semibold text-light-text dark:text-dark-text" onclick="this.nextElementSibling.classList.toggle('hidden'); this.querySelector('i').classList.toggle('rotate-180');">
-                    <span>How does the AI verify product stock from Excel spreadsheets?</span>
+                    <span>{{ __('public.home.faq_q1') }}</span>
                     <i class="ri-arrow-down-s-line text-sm transition-transform"></i>
                 </button>
                 <div class="pt-2 text-2xs text-light-muted dark:text-dark-muted leading-relaxed">
-                    Our spreadsheet ingestion pipeline parses your columns (SKU, title, stock quantity, price, hub location). When customer inquiries arrive, semantic search pinpoints the exact row in real-time, delivering grounded, accurate answers based strictly on your verified catalog records.
+                    {{ __('public.home.faq_a1') }}
                 </div>
             </div>
 
             <div class="chamfer-card rounded-xl border border-light-border dark:border-white/[0.08] bg-light-surface dark:bg-dark-surface p-4">
                 <button type="button" class="w-full flex items-center justify-between text-left text-xs font-semibold text-light-text dark:text-dark-text" onclick="this.nextElementSibling.classList.toggle('hidden'); this.querySelector('i').classList.toggle('rotate-180');">
-                    <span>Can human support agents intervene in AI conversations?</span>
+                    <span>{{ __('public.home.faq_q2') }}</span>
                     <i class="ri-arrow-down-s-line text-sm transition-transform"></i>
                 </button>
                 <div class="pt-2 text-2xs text-light-muted dark:text-dark-muted leading-relaxed">
-                    Yes. The Unified Customer Inbox includes an instant "Takeover / Human Handoff" switch. Agents can send manual replies, reassign tickets, or leave internal notes while the AI pauses automatically for that customer.
+                    {{ __('public.home.faq_a2') }}
                 </div>
             </div>
 
             <div class="chamfer-card rounded-xl border border-light-border dark:border-white/[0.08] bg-light-surface dark:bg-dark-surface p-4">
                 <button type="button" class="w-full flex items-center justify-between text-left text-xs font-semibold text-light-text dark:text-dark-text" onclick="this.nextElementSibling.classList.toggle('hidden'); this.querySelector('i').classList.toggle('rotate-180');">
-                    <span>What channels are currently available?</span>
+                    <span>{{ __('public.home.faq_q3') }}</span>
                     <i class="ri-arrow-down-s-line text-sm transition-transform"></i>
                 </button>
                 <div class="pt-2 text-2xs text-light-muted dark:text-dark-muted leading-relaxed">
-                    Facebook Messenger, the embeddable Web Chat Widget, and REST API/Webhooks are currently fully functional and available. WhatsApp Business integration is actively in progress, with Shopify, WooCommerce, and Telegram planned on the roadmap.
+                    {{ __('public.home.faq_a3') }}
                 </div>
             </div>
         </div>
@@ -991,20 +988,20 @@
         <div class="chamfer-card relative rounded-3xl border border-brand-500/30 bg-gradient-to-b from-brand-500/15 via-light-surface to-light-surface dark:via-dark-surface dark:to-dark-surface p-8 sm:p-14 text-center space-y-6 overflow-hidden shadow-sm dark:shadow-[0_8px_30px_rgb(0,0,0,0.3)]">
             <div class="max-w-2xl mx-auto space-y-3">
                 <h2 class="text-2xl sm:text-4xl font-extrabold text-light-text dark:text-dark-text tracking-tight">
-                    Bring Your Business Into One Intelligent Ecosystem.
+                    {{ __('public.home.cta_title') }}
                 </h2>
                 <p class="text-xs sm:text-sm text-light-text-secondary dark:text-dark-text-secondary leading-relaxed">
-                    Connect customer operations, ground conversations in verified knowledge, and gain complete visibility.
+                    {{ __('public.home.cta_desc') }}
                 </p>
             </div>
 
             <div class="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
                 <a href="{{ route('register') }}" class="btn-shimmer w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-semibold text-xs shadow-xs hover:shadow-sm transition-all">
-                    <span>Get Started Today</span>
+                    <span>{{ __('public.home.cta_get_started') }}</span>
                     <i class="ri-arrow-right-line"></i>
                 </a>
                 <a href="{{ route('contact') }}" class="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl border border-light-border dark:border-white/[0.08] bg-light-surface dark:bg-dark-surface hover:bg-light-elevated dark:hover:bg-dark-elevated text-light-text dark:text-dark-text font-semibold text-xs shadow-xs transition-colors">
-                    <span>Contact Sales</span>
+                    <span>{{ __('public.home.cta_contact_sales') }}</span>
                 </a>
             </div>
         </div>
@@ -1064,29 +1061,29 @@
         }
     }
 
-    // Simulation queries for Sandbox
+    // Simulation queries for Sandbox (dynamically localized)
     var simulationData = {
         sales: {
             tab: 'sales',
-            q: "আইফোন ১৫ প্রো ম্যাক্স ২৫৬জিবি টাইটানিয়াম কি স্টকে আছে? দাম কত?",
-            a: "জি! আমাদের গুলশান হাবে Natural Titanium 256GB ভ্যারিয়েন্টটি ৪টি স্টকে আছে। অফিসিয়াল ওয়ারেন্টি সহ মূল্য ৳১,৬২,০০০। ক্যাশ অন ডেলিভারিতে অর্ডার করতে আপনার নাম, ফোন ও ঠিকানা জানান।",
+            q: @json(__('public.home.sales_sim_q')),
+            a: @json(__('public.home.sales_sim_a')),
             src: "Product_Catalog_Nov2026.xlsx",
-            row: "Row #148 matched",
-            rowText: "SKU: IP15P-256-NT | Stock: 4 units | Hub: Gulshan | Price: ৳162,000",
+            row: @json(__('public.home.sales_row_matched')),
+            rowText: @json(__('public.home.sales_row_data')),
             latency: "180ms",
-            score: "Confidence: 100%",
-            route: "In Stock (1-Click Toggle Active)"
+            score: @json(__('public.home.sales_confidence')),
+            route: @json(__('public.home.sales_in_stock_badge'))
         },
         stock: {
             tab: 'sales',
-            q: "আইফোন ১৫ প্রো ম্যাক্স ২৫৬জিবি টাইটানিয়াম কি স্টকে আছে? দাম কত?",
-            a: "জি! আমাদের গুলশান হাবে Natural Titanium 256GB ভ্যারিয়েন্টটি ৪টি স্টকে আছে। অফিসিয়াল ওয়ারেন্টি সহ মূল্য ৳১,৬২,০০০। ক্যাশ অন ডেলিভারিতে অর্ডার করতে আপনার নাম, ফোন ও ঠিকানা জানান।",
+            q: @json(__('public.home.sales_sim_q')),
+            a: @json(__('public.home.sales_sim_a')),
             src: "Product_Catalog_Nov2026.xlsx",
-            row: "Row #148 matched",
-            rowText: "SKU: IP15P-256-NT | Stock: 4 units | Hub: Gulshan | Price: ৳162,000",
+            row: @json(__('public.home.sales_row_matched')),
+            rowText: @json(__('public.home.sales_row_data')),
             latency: "180ms",
-            score: "Confidence: 100%",
-            route: "In Stock (1-Click Toggle Active)"
+            score: @json(__('public.home.sales_confidence')),
+            route: @json(__('public.home.sales_in_stock_badge'))
         },
         ops: {
             tab: 'ops'

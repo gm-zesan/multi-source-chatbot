@@ -72,7 +72,7 @@ export default {
                 },
             },
             fontFamily: {
-                sans: ['Inter', ...defaultTheme.fontFamily.sans],
+                sans: ['Inter', 'Noto Sans Bengali', ...defaultTheme.fontFamily.sans],
                 mono: ['JetBrains Mono', 'ui-monospace', 'SFMono-Regular', 'Menlo', 'monospace'],
             },
             fontSize: {
