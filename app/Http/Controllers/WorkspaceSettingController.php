@@ -79,7 +79,31 @@ class WorkspaceSettingController extends Controller
         
         $existingSettings = $workspace->settings ?? [];
         if (isset($validated['settings'])) {
+            if (isset($validated['settings']['fallback_message']) && !isset($validated['settings']['unanswerable_message'])) {
+                $validated['settings']['unanswerable_message'] = $validated['settings']['fallback_message'];
+            }
+
+            if (isset($validated['settings']['custom_synonyms_text'])) {
+                $synonymsText = (string) $validated['settings']['custom_synonyms_text'];
+                $parsed = [];
+                foreach (explode("\n", $synonymsText) as $line) {
+                    $line = trim($line);
+                    if (str_contains($line, ':')) {
+                        [$key, $values] = explode(':', $line, 2);
+                        $key = mb_strtolower(trim($key));
+                        if ($key !== '') {
+                            $parsed[$key] = array_values(array_unique(array_filter(array_map('trim', explode(',', $values)))));
+                        }
+                    }
+                }
+                $validated['settings']['custom_synonyms'] = $parsed;
+            }
+
             $validated['settings'] = array_merge($existingSettings, $validated['settings']);
+
+            \Illuminate\Support\Facades\Cache::forget("ws_{$workspaceId}_custom_synonyms");
+            \Illuminate\Support\Facades\Cache::forget("ws_{$workspaceId}_ood_msg");
+            \Illuminate\Support\Facades\Cache::forget("ws_{$workspaceId}_model");
         }
 
         $workspace->update($validated);

@@ -1082,8 +1082,8 @@ class BusinessSourceOfTruthService
             }
         }
 
-        // Pattern 3: English availability inquiries: "do you have (any)? <item>?", "is <item> available?", "tell me about <item>"
-        if (preg_match('/(?:do\s+you\s+have|is\s+there\s+any|are\s+there\s+any|tell\s+me\s+about)\s+(?:a|an|any)?\s*([\p{L}\p{M}\p{N}\-_]+(?:\s+[\p{L}\p{M}\p{N}\-_]+){0,3})/ui', $q, $m)) {
+        // Pattern 3: English availability inquiries: "do you have (any)? <item>?", "do you sell <item>?", "is <item> available?", "tell me about <item>"
+        if (preg_match('/(?:do\s+you\s+(?:have|sell)|is\s+there\s+any|are\s+there\s+any|tell\s+me\s+about)\s+(?:a|an|any)?\s*([\p{L}\p{M}\p{N}\-_]+(?:\s+[\p{L}\p{M}\p{N}\-_]+){0,3})/ui', $q, $m)) {
             $term = trim($m[1]);
             if (!$this->isGenericFillerTerm($term)) {
                 return $term;
@@ -1283,6 +1283,23 @@ class BusinessSourceOfTruthService
             // Add cross-lingual synonyms if available
             if (isset($effectiveCrossMap[$token])) {
                 $keywords = array_merge($keywords, $effectiveCrossMap[$token]);
+            }
+        }
+
+        // Bi-directional and phrase-level synonym expansion against full product name
+        if (!empty($effectiveCrossMap)) {
+            foreach ($effectiveCrossMap as $k => $syns) {
+                if (str_contains($nameLower, (string) $k)) {
+                    $keywords[] = (string) $k;
+                    $keywords = array_merge($keywords, (array) $syns);
+                }
+                foreach ((array) $syns as $syn) {
+                    if (str_contains($nameLower, (string) $syn)) {
+                        $keywords[] = (string) $k;
+                        $keywords = array_merge($keywords, (array) $syns);
+                        break;
+                    }
+                }
             }
         }
 
@@ -1511,11 +1528,24 @@ class BusinessSourceOfTruthService
 
         $customMap = $this->getMerchantCustomSynonyms($workspaceId);
         if (!empty($customMap)) {
+            $cleanLower = mb_strtolower($cleanQuery);
             foreach ($customMap as $k => $syns) {
                 if (isset($crossMap[$k])) {
                     $crossMap[$k] = array_values(array_unique(array_merge($crossMap[$k], $syns)));
                 } else {
                     $crossMap[$k] = $syns;
+                }
+
+                // Multi-word phrase containment and bi-directional expansion
+                if (str_contains($cleanLower, (string) $k)) {
+                    foreach ($syns as $syn) {
+                        $rawTokens = array_merge($rawTokens, preg_split('/[\s\-_,\/]+/u', (string) $syn, -1, PREG_SPLIT_NO_EMPTY) ?: []);
+                    }
+                }
+                foreach ($syns as $syn) {
+                    if (str_contains($cleanLower, (string) $syn)) {
+                        $rawTokens = array_merge($rawTokens, preg_split('/[\s\-_,\/]+/u', (string) $k, -1, PREG_SPLIT_NO_EMPTY) ?: []);
+                    }
                 }
             }
         }

@@ -28,8 +28,18 @@ class OrderCaptureService
             return null;
         }
 
-        $combinedText = $userMessage . "\n" . ($aiResponse ?? '');
-        $extracted = $this->parseDetails($combinedText, $conversation);
+        // Prioritize extracting directly from customer user message
+        $extracted = $this->parseDetails($userMessage, $conversation);
+
+        // If essential fields are missing from user message, supplement from aiResponse
+        if ((empty($extracted['phone']) || empty($extracted['product'])) && !empty($aiResponse)) {
+            $extractedAi = $this->parseDetails($aiResponse, $conversation);
+            $extracted['phone'] = $extracted['phone'] ?: $extractedAi['phone'];
+            $extracted['name'] = $extracted['name'] ?: $extractedAi['name'];
+            $extracted['address'] = $extracted['address'] ?: $extractedAi['address'];
+            $extracted['product'] = $extracted['product'] ?: $extractedAi['product'];
+            $extracted['amount'] = $extracted['amount'] ?: $extractedAi['amount'];
+        }
 
         if (empty($extracted['phone'])) {
             return null;
@@ -112,7 +122,9 @@ class OrderCaptureService
         }
 
         // 4. Product Detection
-        if (preg_match('/(?:পণ্য|প্রোডাক্ট|Product|Item|আইটেম)\s*[:=\-]?\s*([^\n,\r]+)/iu', $text, $matches)) {
+        if (preg_match('/(?:^|[^\p{L}\p{N}])(?:পণ্য|প্রোডাক্ট|Product|Item|আইটেম)\s*[:=\-]\s*([^\n,\r]+)/iu', $text, $matches)) {
+            $product = trim($matches[1]);
+        } elseif (preg_match('/(?:আমি\s+)?(\d+\s*(?:টি|টা|পিস|pcs|pieces?)?\s*[\p{L}\p{N}\s\-]+?)\s*(?:নিতে\s*চাই|অর্ডার\s*করব|অর্ডার\s*করতে\s*চাই|কিনতে\s*চাই|অর্ডার\s*দিতে\s*চাই|order\s*korte\s*chai)/iu', $text, $matches)) {
             $product = trim($matches[1]);
         }
 

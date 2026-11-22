@@ -675,7 +675,7 @@ class FinalResponseGenerator
     protected function getUnanswerableMessage(int $workspaceId): string
     {
         $workspace = $this->getWorkspace($workspaceId);
-        $custom = $workspace?->settings['unanswerable_message'] ?? null;
+        $custom = $workspace?->settings['unanswerable_message'] ?? $workspace?->settings['fallback_message'] ?? null;
         if (!empty($custom) && is_string($custom)) {
             $msg = trim($custom);
         } else {

@@ -199,7 +199,7 @@
                         {{-- Fallback Message --}}
                         <div class="space-y-1">
                             <label for="fallback_message" class="text-2xs font-semibold text-light-text dark:text-dark-text">
-                                Fallback Response (When Information is Unknown)
+                                Fallback Response (When Information is Unknown / নলেজ বেসে উত্তর না থাকলে)
                             </label>
                             <input 
                                 type="text" 
@@ -207,9 +207,67 @@
                                 name="settings[fallback_message]" 
                                 id="fallback_message" 
                                 value="{{ old('settings.fallback_message', $workspace->getFallbackMessage()) }}" 
-                                placeholder="দুঃখিত, এই বিষয়টি সম্পর্কে আমার কাছে সঠিক তথ্য নেই। আমাদের সাপোর্ট টিম দ্রুত আপনার সাথে যোগাযোগ করবে।"
+                                placeholder="দুঃখিত, আপনার প্রশ্নটি সম্পর্কিত সুনির্দিষ্ট তথ্য আমাদের নলেজ বেসে এই মুহূর্তে পাওয়া যায়নি।"
                             >
-                            <span class="text-3xs text-light-muted dark:text-dark-muted block">Sent when a customer asks a question outside your knowledge base.</span>
+                            <span class="text-3xs text-light-muted dark:text-dark-muted block">Sent when a customer asks an in-domain question that is not answered in your documents.</span>
+                        </div>
+
+                        <div class="space-y-1">
+                            <label for="ood_refusal_message" class="text-2xs font-semibold text-light-text dark:text-dark-text">
+                                Out-of-Domain Refusal Message (অপ্রাসঙ্গিক বা বহিরাগত বিষয়ের উত্তর)
+                            </label>
+                            <input 
+                                type="text" 
+                                class="app-input w-full text-xs" 
+                                name="settings[ood_refusal_message]" 
+                                id="ood_refusal_message" 
+                                value="{{ old('settings.ood_refusal_message', $workspace->settings['ood_refusal_message'] ?? '') }}" 
+                                placeholder="দুঃখিত, এই বিষয়টি আমাদের কাস্টমার সাপোর্ট নলেজ বেসের আওতাভুক্ত নয়।"
+                            >
+                            <span class="text-3xs text-light-muted dark:text-dark-muted block">Sent when a customer asks about politics, recipes, weather, or unrelated topics.</span>
+                        </div>
+
+                        <div class="space-y-1">
+                            <label for="product_unavailable_message" class="text-2xs font-semibold text-light-text dark:text-dark-text">
+                                Product Unavailable Message (পণ্য স্টকে না থাকলে বা ক্যাটালগে না থাকলে)
+                            </label>
+                            <input 
+                                type="text" 
+                                class="app-input w-full text-xs" 
+                                name="settings[product_unavailable_message]" 
+                                id="product_unavailable_message" 
+                                value="{{ old('settings.product_unavailable_message', $workspace->settings['product_unavailable_message'] ?? '') }}" 
+                                placeholder="দুঃখিত, আপনার কাঙ্ক্ষিত পণ্যটি বর্তমানে আমাদের স্টোরে উপলব্ধ নেই।"
+                            >
+                            <span class="text-3xs text-light-muted dark:text-dark-muted block">Available store categories will be automatically appended to this message.</span>
+                        </div>
+
+                        <div class="space-y-1">
+                            <label for="custom_synonyms_text" class="text-2xs font-semibold text-light-text dark:text-dark-text flex items-center justify-between">
+                                <span>Custom Product Synonyms & Keywords (পণ্যের কাস্টম প্রতিশব্দ)</span>
+                                <span class="text-brand-500 text-3xs font-mono">1 per line: keyword: syn1, syn2</span>
+                            </label>
+                            <textarea 
+                                class="app-textarea w-full !h-20 py-2 text-xs font-mono" 
+                                name="settings[custom_synonyms_text]" 
+                                id="custom_synonyms_text" 
+                                rows="3" 
+                                placeholder="যেমন:
+কাঁচাবাজার: শাকসবজি, ডিম, দুধ, চাল, ডাল
+paracetamol: napa, ace, fast
+মাটির_হাড়ি: clay pot, pottery"
+                            >{{ old('settings.custom_synonyms_text', $workspace->settings['custom_synonyms_text'] ?? (function() use ($workspace) {
+                                $syns = $workspace->settings['custom_synonyms'] ?? [];
+                                if (empty($syns) || !is_array($syns)) return '';
+                                $lines = [];
+                                foreach ($syns as $k => $v) {
+                                    $lines[] = $k . ': ' . (is_array($v) ? implode(', ', $v) : (string)$v);
+                                }
+                                return implode("\n", $lines);
+                            })()) }}</textarea>
+                            <span class="text-3xs text-light-muted dark:text-dark-muted block">
+                                Define local or domain-specific synonyms so the search engine connects local slang or brand names to catalog items.
+                            </span>
                         </div>
 
                         {{-- Auto Lead Capture Switch --}}

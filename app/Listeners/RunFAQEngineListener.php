@@ -110,6 +110,27 @@ class RunFAQEngineListener implements ShouldQueue
                     deliveryResponse: $deliveryResponse,
                 );
 
+                // Automated Order & Lead Extraction
+                try {
+                    app(\App\Services\Commerce\OrderCaptureService::class)->extractAndCapture(
+                        conversation: $event->conversation,
+                        userMessage: $event->message->body,
+                        aiResponse: $replyText,
+                    );
+                } catch (\Throwable $eOrder) {
+                    Log::warning('[FAQ Listener] Order capture extraction non-fatal failure: ' . $eOrder->getMessage());
+                }
+
+                // Automated AI Lead Classification & Executive Summary
+                try {
+                    app(\App\Services\AI\LeadIntelligenceService::class)->classifyAndTagConversation(
+                        conversation: $event->conversation,
+                        force: true,
+                    );
+                } catch (\Throwable $eIntelligence) {
+                    Log::warning('[FAQ Listener] AI Lead Intelligence non-fatal failure: ' . $eIntelligence->getMessage());
+                }
+
                 // Telemetry Observer Dispatch (Decoupled & Non-blocking)
                 try {
                     event(new AITelemetryRecorded(

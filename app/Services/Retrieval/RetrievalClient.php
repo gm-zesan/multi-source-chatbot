@@ -954,8 +954,12 @@ class RetrievalClient
         // Detect negated attribute expressions (e.g., "সুতি বাদে", "কটন ছাড়া", "synthetic pochondo na")
         $negatedWords = [];
         if (preg_match_all('/([^\p{L}\p{M}\p{N}\-_]+|^)([\p{L}\p{M}\p{N}\-_]+)\s+(?:pochondo\s+na|pochondo\s*nei|পছন্দ\s*না|পছন্দ\s*নেই|বাদে|ছাড়া|chara|bade|without|except)/ui', $cleanQuery, $negMatches)) {
+            $genericEntities = ['পণ্য', 'প্রোডাক্ট', 'item', 'product', 'মাল', 'জিনিস', 'যদি', 'kono', 'কোনো', 'কোন'];
             foreach ($negMatches[2] as $nw) {
-                $negatedWords[] = mb_strtolower($nw);
+                $nwLower = mb_strtolower(trim($nw));
+                if (!in_array($nwLower, $genericEntities, true)) {
+                    $negatedWords[] = $nwLower;
+                }
             }
         }
 
