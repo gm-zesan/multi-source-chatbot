@@ -476,8 +476,9 @@ class ChatSimulatorController extends Controller
 
     private function resolveSimulatorConversation(Request $request, int $workspaceId): Conversation
     {
-        $sessionId = $request->hasSession() ? $request->session()->getId() : 'default_sim_session';
-        $sessionKey = 'simulator_conv_' . ($sessionId ?: 'default');
+        $currentUser = Auth::user();
+        $userIdentifier = $currentUser?->id ? 'user_' . $currentUser->id : ($request->hasSession() ? 'sess_' . $request->session()->getId() : 'default');
+        $sessionKey = 'simulator_' . $userIdentifier . '_ws_' . $workspaceId;
 
         $channel = Channel::where('slug', 'simulator')->first() ?? Channel::create([
             'name' => 'Simulator Channel',
@@ -495,7 +496,11 @@ class ChatSimulatorController extends Controller
             ]
         );
 
-        $currentUser = Auth::user();
+        if ($channelAccount->channel_id !== $channel->id) {
+            $channelAccount->channel_id = $channel->id;
+            $channelAccount->save();
+        }
+
         $isOwnerOrAdmin = $currentUser?->hasRole('owner')
             || $currentUser?->hasRole('admin')
             || $currentUser?->hasRole('superadmin');
@@ -540,6 +545,11 @@ class ChatSimulatorController extends Controller
         $conversation = $this->resolveSimulatorConversation($request, $workspaceId);
         $conversation->messages()->delete();
         $conversation->update(['metadata' => []]);
+
+        // Clean up any temporary CRM contacts created strictly from simulator testing
+        \App\Models\CRMContact::where('workspace_id', $workspaceId)
+            ->where('source', 'simulator')
+            ->delete();
 
         return response()->json(['success' => true, 'message' => 'Simulator conversation history cleared.']);
     }

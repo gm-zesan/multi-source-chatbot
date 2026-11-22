@@ -36,7 +36,10 @@ class ConversationController extends Controller
     public function index(\Illuminate\Http\Request $request): View
     {
         $user = Auth::user();
-        $query = Conversation::with(['channelAccount.channel', 'assignedTo'])->latest('last_message_at');
+        $query = Conversation::with(['channelAccount.channel', 'assignedTo'])
+            ->where('external_user_id', 'not like', 'simulator_%')
+            ->whereHas('channelAccount.channel', fn ($q) => $q->where('slug', '!=', 'simulator'))
+            ->latest('last_message_at');
 
         if ($user && ! $user->hasRole(RoleEnum::SUPERADMIN->value)) {
             $query->whereHas('channelAccount', fn ($q) => $q->where('workspace_id', (int) $user->workspace_id));
@@ -75,7 +78,10 @@ class ConversationController extends Controller
         $this->authorizeConversation($conversation);
 
         $user = Auth::user();
-        $query = Conversation::with(['channelAccount.channel'])->latest('last_message_at');
+        $query = Conversation::with(['channelAccount.channel'])
+            ->where('external_user_id', 'not like', 'simulator_%')
+            ->whereHas('channelAccount.channel', fn ($q) => $q->where('slug', '!=', 'simulator'))
+            ->latest('last_message_at');
         if ($user && ! $user->hasRole(RoleEnum::SUPERADMIN->value)) {
             $query->whereHas('channelAccount', fn ($q) => $q->where('workspace_id', (int) $user->workspace_id));
         }
