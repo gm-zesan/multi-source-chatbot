@@ -18,7 +18,7 @@ return array (
     'sign_in' => 'Sign In',
     'get_started' => 'Get Started',
     'open_console' => 'Open Console',
-    'the_3_agents' => 'The 3 AI Employees',
+    'the_3_agents' => 'The 3 AI Engines',
     'platform_overview' => 'Platform Overview',
     'platform_overview_desc' => 'The 3-Agent Autonomous Commerce System',
     'agent_sales' => '1. Customer Sales Agent',
@@ -32,10 +32,10 @@ return array (
   ),
   'home' => 
   array (
-    'announcement_badge' => '3 Autonomous AI Employees',
+    'announcement_badge' => '3 Specialized AI Engines',
     'announcement_sub' => 'Autonomous 3-Agent Architecture',
     'hero_title_1' => 'Power Your Business With',
-    'hero_title_2' => '3 Specialized AI Employees',
+    'hero_title_2' => '3 Specialized AI Engines',
     'hero_subtitle' => '24/7 customer sales, automated courier dispatch, and real-time profit analytics—unified in one intelligent platform.',
     'get_started_btn' => 'Get Started Free',
     'explore_platform_btn' => 'Explore Platform',
@@ -43,7 +43,7 @@ return array (
     'tab_ops' => '2. Operations & Courier Agent',
     'tab_cfo' => '3. Business Owner Agent (CFO)',
     'sim_title' => 'Live Simulator:',
-    'sim_desc' => 'Test live operations across all 3 AI employees',
+    'sim_desc' => 'Test live operations across all 3 AI engines',
     'sim_btn_sales' => '"Product stock & price inquiry?" (Sales)',
     'sim_btn_ops' => '"Order confirm & courier booking" (Operations)',
     'sim_btn_cfo' => '"Net profit, margin & dead stock" (CFO)',
@@ -118,7 +118,7 @@ return array (
     'cfo_deadstock_item' => 'Ceramic Vase (0 in 30 days)',
     'cfo_view_docs_btn' => 'View Executive CFO Docs →',
     'pillars_badge' => 'The 3-Agent Commercial Architecture',
-    'pillars_title' => '3 Autonomous AI Employees. One Unified Engine.',
+    'pillars_title' => '3 Autonomous AI Engines. One Unified Architecture.',
     'pillars_desc' => 'End manual inbox chatting, courier copy-pasting, and bookkeeping guesswork. An autonomous commerce platform engineered for high-velocity operations.',
     'pillar_sales_tag' => 'Agent #1 • Front Office',
     'pillar_sales_title' => 'Customer Sales Agent',
@@ -188,14 +188,14 @@ return array (
     'faq_q3' => 'What channels are currently available?',
     'faq_a3' => 'Facebook Messenger, the embeddable Web Chat Widget, and REST API/Webhooks are currently fully functional and available. WhatsApp Business integration is actively in progress, with Shopify, WooCommerce, and Telegram planned on the roadmap.',
     'cta_title' => 'Bring Your Business Into One Intelligent Ecosystem.',
-    'cta_desc' => 'Deploy 3 specialized AI employees to streamline customer service, courier booking, and financial intelligence with zero manual overhead.',
+    'cta_desc' => 'Deploy 3 specialized AI engines to streamline customer service, courier booking, and financial intelligence with zero manual overhead.',
     'cta_get_started' => 'Get Started Today',
     'cta_contact_sales' => 'Contact Sales',
   ),
   'solutions' => 
   array (
     'badge' => 'Tailored for High-Velocity Modern Commerce • The 3-Agent Solutions',
-    'title' => '3 Specialized AI Employees —<br>Dedicated to Your Core Departments.',
+    'title' => '3 Specialized AI Engines —<br>Dedicated to Your Core Departments.',
     'desc' => 'Eliminate the 3 biggest operational bottlenecks for e-commerce & f-commerce merchants: sales response delays, manual courier booking, and accounting guesswork.',
     's1_tag' => 'Agent #1 • Front Office',
     's1_title' => 'Customer Sales & Support Agent',
@@ -225,9 +225,9 @@ return array (
   ),
   'pricing' => 
   array (
-    'badge' => '3 AI Employees • Simple & Transparent Pricing',
+    'badge' => '3 AI Engines • Simple & Transparent Pricing',
     'title' => 'Simple, Fair Pricing. Pay Only<br>BDT :rate / Message.',
-    'subtitle' => 'No monthly lock-in or hidden fees. Start experiencing all 3 AI employees today with <strong>BDT :bonus free bonus credit</strong> (:msgs complimentary AI replies).',
+    'subtitle' => 'No monthly lock-in or hidden fees. Start experiencing all 3 AI engines today with <strong>BDT :bonus free bonus credit</strong> (:msgs complimentary AI replies).',
     'calculator_title' => 'Recharge Estimate Calculator',
     'calculator_subtitle' => 'Flexible top-up packages designed for every store size based on BDT :rate/msg.',
     'starter_topup' => 'Starter Top-Up',
@@ -250,7 +250,7 @@ return array (
   'footer' => 
   array (
     'tagline' => 'Enterprise Autonomous AI Commerce Architecture',
-    'desc' => 'Power your sales, courier dispatch, and business intelligence with 3 specialized 24/7 AI employees.',
+    'desc' => 'Power your sales, courier dispatch, and business intelligence with 3 specialized 24/7 AI engines.',
     'rights' => 'All rights reserved.',
     'col_platform' => 'Platform',
     'col_solutions' => 'Solutions',

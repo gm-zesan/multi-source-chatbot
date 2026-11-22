@@ -21,7 +21,7 @@ class BilingualPublicWebsiteTest extends TestCase
 
         $response->assertStatus(200);
         $this->assertEquals('bn', App::getLocale());
-        $response->assertSee('৩ জন বিশেষায়িত এআই কর্মী', false);
+        $response->assertSee('৩টি শক্তিশালী এআই ইঞ্জিন', false);
         $response->assertSee('lang="bn"', false);
     }
 
@@ -47,7 +47,7 @@ class BilingualPublicWebsiteTest extends TestCase
         $response->assertStatus(200);
         $this->assertEquals('en', App::getLocale());
         $response->assertSee('Power Your Business With', false);
-        $response->assertSee('3 Specialized AI Employees', false);
+        $response->assertSee('3 Specialized AI Engines', false);
         $response->assertSee('Customer Sales Agent', false);
         $response->assertSee('lang="en"', false);
     }
@@ -67,7 +67,7 @@ class BilingualPublicWebsiteTest extends TestCase
         $homeResponse = $this->withSession(['locale' => 'bn'])->get(route('home'));
         $homeResponse->assertStatus(200);
         $this->assertEquals('bn', App::getLocale());
-        $homeResponse->assertSee('৩ জন সার্বক্ষণিক এআই কর্মী', false);
+        $homeResponse->assertSee('৩টি শক্তিশালী এআই ইঞ্জিন', false);
     }
 
     /**
@@ -78,12 +78,12 @@ class BilingualPublicWebsiteTest extends TestCase
         // Default Bangla
         $bnResponse = $this->get(route('solutions'));
         $bnResponse->assertStatus(200);
-        $bnResponse->assertSee('৩ জন এআই কর্মী — আপনার ব্যবসার<br>তিনটি প্রধান বিভাগের দায়িত্বে।', false);
+        $bnResponse->assertSee('৩টি এআই ইঞ্জিন — আপনার ব্যবসার<br>তিনটি প্রধান বিভাগের দায়িত্বে।', false);
 
         // Switch to English
         $enResponse = $this->withSession(['locale' => 'en'])->get(route('solutions'));
         $enResponse->assertStatus(200);
-        $enResponse->assertSee('3 Specialized AI Employees —<br>Dedicated to Your Core Departments.', false);
+        $enResponse->assertSee('3 Specialized AI Engines —<br>Dedicated to Your Core Departments.', false);
     }
 
     /**
@@ -94,7 +94,7 @@ class BilingualPublicWebsiteTest extends TestCase
         // Default Bangla
         $bnResponse = $this->get(route('pricing'));
         $bnResponse->assertStatus(200);
-        $bnResponse->assertSee('৩ জন এআই কর্মী • স্বচ্ছ ও সহজ মূল্যতালিকা', false);
+        $bnResponse->assertSee('৩টি এআই ইঞ্জিন • স্বচ্ছ ও সহজ মূল্যতালিকা', false);
         $bnResponse->assertSee('সহজ ও স্বচ্ছ মূল্যতালিকা', false);
 
         // Switch to English
