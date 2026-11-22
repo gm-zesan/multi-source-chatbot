@@ -13,7 +13,7 @@
                 <i class="ri-book-read-line"></i> {{ __('public.resources.badge') }}
             </div>
             <h1
-                class="text-3xl sm:text-5xl font-extrabold tracking-tight leading-[1.45] sm:leading-[1.36] md:leading-[1.32] lg:leading-[1.28] text-light-text dark:text-dark-text">
+                class="text-3xl sm:text-5xl font-bold tracking-tight leading-[1.45] sm:leading-[1.36] md:leading-[1.32] lg:leading-[1.28] text-light-text dark:text-dark-text">
                 {!! __('public.resources.title') !!}
             </h1>
             <p class="text-sm sm:text-base text-light-text-secondary dark:text-dark-text-secondary leading-relaxed">
@@ -32,7 +32,8 @@
                         <i class="ri-file-excel-2-line"></i>
                     </div>
                     <h3 class="text-base font-bold text-light-text dark:text-dark-text">
-                        {{ __('public.resources.g1_title') }}</h3>
+                        {{ __('public.resources.g1_title') }}
+                    </h3>
                     <p class="text-xs text-light-muted dark:text-dark-muted leading-relaxed">
                         {{ __('public.resources.g1_desc') }}
                     </p>
@@ -51,7 +52,8 @@
                         <i class="ri-code-box-line"></i>
                     </div>
                     <h3 class="text-base font-bold text-light-text dark:text-dark-text">
-                        {{ __('public.resources.g2_title') }}</h3>
+                        {{ __('public.resources.g2_title') }}
+                    </h3>
                     <p class="text-xs text-light-muted dark:text-dark-muted leading-relaxed">
                         {{ __('public.resources.g2_desc') }}
                     </p>
@@ -70,7 +72,8 @@
                         <i class="ri-shield-keyhole-line"></i>
                     </div>
                     <h3 class="text-base font-bold text-light-text dark:text-dark-text">
-                        {{ __('public.resources.g3_title') }}</h3>
+                        {{ __('public.resources.g3_title') }}
+                    </h3>
                     <p class="text-xs text-light-muted dark:text-dark-muted leading-relaxed">
                         {{ __('public.resources.g3_desc') }}
                     </p>
@@ -101,7 +104,8 @@
                         class="text-amber-400">src</span>=<span
                         class="text-emerald-400">"{{ url('/widget/bundle.js') }}"</span> <span
                         class="text-amber-400">data-account</span>=<span class="text-emerald-400">"YOUR_TENANT_KEY"</span>
-                    <span class="text-amber-400">async</span>&gt;&lt;/<span class="text-rose-400">script</span>&gt;</div>
+                    <span class="text-amber-400">async</span>&gt;&lt;/<span class="text-rose-400">script</span>&gt;
+                </div>
             </div>
         </div>
 

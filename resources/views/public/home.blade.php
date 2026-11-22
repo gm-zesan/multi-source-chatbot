@@ -21,7 +21,7 @@
 
             {{-- Main Hero Headline (Metallic Minted Typography) --}}
             <div class="max-w-5xl mx-auto space-y-4 sm:space-y-6">
-                <h1 class="text-[1.35rem] xs:text-2xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight leading-[1.45] sm:leading-[1.36] md:leading-[1.32] lg:leading-[1.28]">
+                <h1 class="text-[1.35rem] xs:text-2xl sm:text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight leading-[1.45] sm:leading-[1.36] md:leading-[1.32] lg:leading-[1.28]">
                     <span class="block bg-gradient-to-b from-slate-900 via-slate-800 to-slate-600 dark:from-white dark:via-slate-100 dark:to-slate-400/80 bg-clip-text text-transparent drop-shadow-sm dark:drop-shadow-[0_2px_14px_rgba(255,255,255,0.08)]">
                         {{ __('public.home.hero_title_1') }}
                     </span>

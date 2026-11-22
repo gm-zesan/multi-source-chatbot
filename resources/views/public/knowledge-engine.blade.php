@@ -13,7 +13,7 @@
                 <i class="ri-database-2-line"></i> {{ __('public.knowledge_engine.badge') }}
             </div>
             <h1
-                class="text-3xl sm:text-5xl font-extrabold tracking-tight leading-[1.45] sm:leading-[1.36] md:leading-[1.32] lg:leading-[1.28] text-light-text dark:text-dark-text">
+                class="text-3xl sm:text-5xl font-bold tracking-tight leading-[1.45] sm:leading-[1.36] md:leading-[1.32] lg:leading-[1.28] text-light-text dark:text-dark-text">
                 {!! __('public.knowledge_engine.title') !!}
             </h1>
             <p class="text-sm sm:text-base text-light-text-secondary dark:text-dark-text-secondary leading-relaxed">
@@ -30,7 +30,8 @@
                     <i class="ri-file-excel-2-line"></i>
                 </div>
                 <h3 class="text-base font-bold text-light-text dark:text-dark-text">
-                    {{ __('public.knowledge_engine.f1_title') }}</h3>
+                    {{ __('public.knowledge_engine.f1_title') }}
+                </h3>
                 <p class="text-xs text-light-muted dark:text-dark-muted leading-relaxed">
                     {{ __('public.knowledge_engine.f1_desc') }}
                 </p>
@@ -43,7 +44,8 @@
                     <i class="ri-file-text-line"></i>
                 </div>
                 <h3 class="text-base font-bold text-light-text dark:text-dark-text">
-                    {{ __('public.knowledge_engine.f2_title') }}</h3>
+                    {{ __('public.knowledge_engine.f2_title') }}
+                </h3>
                 <p class="text-xs text-light-muted dark:text-dark-muted leading-relaxed">
                     {{ __('public.knowledge_engine.f2_desc') }}
                 </p>
@@ -56,7 +58,8 @@
                     <i class="ri-questionnaire-line"></i>
                 </div>
                 <h3 class="text-base font-bold text-light-text dark:text-dark-text">
-                    {{ __('public.knowledge_engine.f3_title') }}</h3>
+                    {{ __('public.knowledge_engine.f3_title') }}
+                </h3>
                 <p class="text-xs text-light-muted dark:text-dark-muted leading-relaxed">
                     {{ __('public.knowledge_engine.f3_desc') }}
                 </p>
@@ -69,7 +72,8 @@
             <div class="flex items-center justify-between pb-4 border-b border-light-border dark:border-dark-border">
                 <div>
                     <h2 class="text-sm font-bold text-light-text dark:text-dark-text">
-                        {{ __('public.knowledge_engine.sim_title') }}</h2>
+                        {{ __('public.knowledge_engine.sim_title') }}
+                    </h2>
                     <p class="text-3xs text-light-muted dark:text-dark-muted">{{ __('public.knowledge_engine.sim_sub') }}
                     </p>
                 </div>

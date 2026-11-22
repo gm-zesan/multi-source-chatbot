@@ -20,7 +20,7 @@
                 <i class="ri-price-tag-3-line"></i> {!! __('public.pricing.badge') !!}
             </div>
             <h1
-                class="text-3xl sm:text-5xl font-extrabold tracking-tight leading-[1.45] sm:leading-[1.36] md:leading-[1.32] lg:leading-[1.28] text-light-text dark:text-dark-text">
+                class="text-3xl sm:text-5xl font-bold tracking-tight leading-[1.45] sm:leading-[1.36] md:leading-[1.32] lg:leading-[1.28] text-light-text dark:text-dark-text">
                 {!! __('public.pricing.title', ['rate' => number_format($mRate, 2)]) !!}
                 <span class="sr-only">Simple, Fair Pricing</span>
             </h1>

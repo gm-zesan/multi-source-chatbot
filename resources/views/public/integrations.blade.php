@@ -13,7 +13,7 @@
                 <i class="ri-links-line"></i> {{ __('public.integrations.badge') }}
             </div>
             <h1
-                class="text-3xl sm:text-5xl font-extrabold tracking-tight leading-[1.45] sm:leading-[1.36] md:leading-[1.32] lg:leading-[1.28] text-light-text dark:text-dark-text">
+                class="text-3xl sm:text-5xl font-bold tracking-tight leading-[1.45] sm:leading-[1.36] md:leading-[1.32] lg:leading-[1.28] text-light-text dark:text-dark-text">
                 {!! __('public.integrations.title') !!}
             </h1>
             <p class="text-sm sm:text-base text-light-text-secondary dark:text-dark-text-secondary leading-relaxed">
@@ -46,7 +46,8 @@
                             class="px-2 py-0.5 rounded text-3xs font-mono font-bold bg-emerald-500/15 text-emerald-500">{{ __('public.integrations.live') }}</span>
                     </div>
                     <h3 class="text-base font-bold text-light-text dark:text-dark-text">
-                        {{ __('public.integrations.fb_title') }}</h3>
+                        {{ __('public.integrations.fb_title') }}
+                    </h3>
                     <p class="text-xs text-light-muted dark:text-dark-muted leading-relaxed">
                         {{ __('public.integrations.fb_desc') }}
                     </p>
@@ -64,7 +65,8 @@
                             class="px-2 py-0.5 rounded text-3xs font-mono font-bold bg-emerald-500/15 text-emerald-500">{{ __('public.integrations.live') }}</span>
                     </div>
                     <h3 class="text-base font-bold text-light-text dark:text-dark-text">
-                        {{ __('public.integrations.widget_title') }}</h3>
+                        {{ __('public.integrations.widget_title') }}
+                    </h3>
                     <p class="text-xs text-light-muted dark:text-dark-muted leading-relaxed">
                         {{ __('public.integrations.widget_desc') }}
                     </p>
@@ -82,7 +84,8 @@
                             class="px-2 py-0.5 rounded text-3xs font-mono font-bold bg-emerald-500/15 text-emerald-500">{{ __('public.integrations.live') }}</span>
                     </div>
                     <h3 class="text-base font-bold text-light-text dark:text-dark-text">
-                        {{ __('public.integrations.api_title') }}</h3>
+                        {{ __('public.integrations.api_title') }}
+                    </h3>
                     <p class="text-xs text-light-muted dark:text-dark-muted leading-relaxed">
                         {{ __('public.integrations.api_desc') }}
                     </p>
@@ -111,7 +114,8 @@
                             class="px-2 py-0.5 rounded text-3xs font-mono font-bold bg-amber-500/15 text-amber-500">{{ __('public.integrations.in_progress') }}</span>
                     </div>
                     <h4 class="text-xs font-bold text-light-text dark:text-dark-text">
-                        {{ __('public.integrations.wa_title') }}</h4>
+                        {{ __('public.integrations.wa_title') }}
+                    </h4>
                     <p class="text-3xs text-light-muted dark:text-dark-muted">{{ __('public.integrations.wa_desc') }}</p>
                 </div>
 
@@ -123,7 +127,8 @@
                             class="px-2 py-0.5 rounded text-3xs font-mono font-bold bg-light-muted/20 text-light-muted dark:text-dark-muted">{{ __('public.integrations.planned') }}</span>
                     </div>
                     <h4 class="text-xs font-bold text-light-text dark:text-dark-text">
-                        {{ __('public.integrations.ig_title') }}</h4>
+                        {{ __('public.integrations.ig_title') }}
+                    </h4>
                     <p class="text-3xs text-light-muted dark:text-dark-muted">{{ __('public.integrations.ig_desc') }}</p>
                 </div>
 
@@ -135,7 +140,8 @@
                             class="px-2 py-0.5 rounded text-3xs font-mono font-bold bg-light-muted/20 text-light-muted dark:text-dark-muted">{{ __('public.integrations.planned') }}</span>
                     </div>
                     <h4 class="text-xs font-bold text-light-text dark:text-dark-text">
-                        {{ __('public.integrations.shopify_title') }}</h4>
+                        {{ __('public.integrations.shopify_title') }}
+                    </h4>
                     <p class="text-3xs text-light-muted dark:text-dark-muted">{{ __('public.integrations.shopify_desc') }}
                     </p>
                 </div>
@@ -148,7 +154,8 @@
                             class="px-2 py-0.5 rounded text-3xs font-mono font-bold bg-light-muted/20 text-light-muted dark:text-dark-muted">{{ __('public.integrations.planned') }}</span>
                     </div>
                     <h4 class="text-xs font-bold text-light-text dark:text-dark-text">
-                        {{ __('public.integrations.woo_title') }}</h4>
+                        {{ __('public.integrations.woo_title') }}
+                    </h4>
                     <p class="text-3xs text-light-muted dark:text-dark-muted">{{ __('public.integrations.woo_desc') }}</p>
                 </div>
             </div>

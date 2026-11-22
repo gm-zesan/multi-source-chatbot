@@ -13,7 +13,7 @@
                 <i class="ri-cpu-line"></i> {{ __('public.platform.badge') }}
             </div>
             <h1
-                class="text-3xl sm:text-5xl font-extrabold tracking-tight leading-[1.45] sm:leading-[1.36] md:leading-[1.32] lg:leading-[1.28] text-light-text dark:text-dark-text">
+                class="text-3xl sm:text-5xl font-bold tracking-tight leading-[1.45] sm:leading-[1.36] md:leading-[1.32] lg:leading-[1.28] text-light-text dark:text-dark-text">
                 {!! __('public.platform.title') !!}
             </h1>
             <p class="text-sm sm:text-base text-light-text-secondary dark:text-dark-text-secondary leading-relaxed">
@@ -87,15 +87,19 @@
                     </div>
                     <div class="p-2.5 rounded bg-light-canvas dark:bg-dark-canvas space-y-1">
                         <div class="text-light-text dark:text-dark-text font-semibold">
-                            {{ __('public.platform.s1_card_src1') }}</div>
+                            {{ __('public.platform.s1_card_src1') }}
+                        </div>
                         <div class="text-light-muted dark:text-dark-muted text-3xs">
-                            {{ __('public.platform.s1_card_src1_sub') }}</div>
+                            {{ __('public.platform.s1_card_src1_sub') }}
+                        </div>
                     </div>
                     <div class="p-2.5 rounded bg-light-canvas dark:bg-dark-canvas space-y-1">
                         <div class="text-light-text dark:text-dark-text font-semibold">
-                            {{ __('public.platform.s1_card_src2') }}</div>
+                            {{ __('public.platform.s1_card_src2') }}
+                        </div>
                         <div class="text-light-muted dark:text-dark-muted text-3xs">
-                            {{ __('public.platform.s1_card_src2_sub') }}</div>
+                            {{ __('public.platform.s1_card_src2_sub') }}
+                        </div>
                     </div>
                 </div>
             </div>
@@ -166,12 +170,14 @@
                     <div class="grid grid-cols-2 gap-2">
                         <div class="p-2.5 rounded bg-light-canvas dark:bg-dark-canvas">
                             <div class="text-3xs text-light-muted dark:text-dark-muted">
-                                {{ __('public.platform.s3_card_c1') }}</div>
+                                {{ __('public.platform.s3_card_c1') }}
+                            </div>
                             <div class="text-base font-bold text-light-text dark:text-dark-text mt-1">94.8%</div>
                         </div>
                         <div class="p-2.5 rounded bg-light-canvas dark:bg-dark-canvas">
                             <div class="text-3xs text-light-muted dark:text-dark-muted">
-                                {{ __('public.platform.s3_card_c2') }}</div>
+                                {{ __('public.platform.s3_card_c2') }}
+                            </div>
                             <div class="text-base font-bold text-emerald-500 mt-1">210ms</div>
                         </div>
                     </div>

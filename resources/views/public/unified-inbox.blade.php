@@ -13,7 +13,7 @@
                 <i class="ri-chat-1-line"></i> {{ __('public.unified_inbox.badge') }}
             </div>
             <h1
-                class="text-3xl sm:text-5xl font-extrabold tracking-tight leading-[1.45] sm:leading-[1.36] md:leading-[1.32] lg:leading-[1.28] text-light-text dark:text-dark-text">
+                class="text-3xl sm:text-5xl font-bold tracking-tight leading-[1.45] sm:leading-[1.36] md:leading-[1.32] lg:leading-[1.28] text-light-text dark:text-dark-text">
                 {!! __('public.unified_inbox.title') !!}
             </h1>
             <p class="text-sm sm:text-base text-light-text-secondary dark:text-dark-text-secondary leading-relaxed">
@@ -27,7 +27,8 @@
                 class="p-6 rounded-2xl border border-light-border dark:border-dark-border bg-light-surface dark:bg-dark-surface space-y-3">
                 <i class="ri-user-shared-line text-brand-500 text-2xl"></i>
                 <h3 class="text-base font-bold text-light-text dark:text-dark-text">
-                    {{ __('public.unified_inbox.f1_title') }}</h3>
+                    {{ __('public.unified_inbox.f1_title') }}
+                </h3>
                 <p class="text-xs text-light-muted dark:text-dark-muted leading-relaxed">
                     {{ __('public.unified_inbox.f1_desc') }}
                 </p>
@@ -37,7 +38,8 @@
                 class="p-6 rounded-2xl border border-light-border dark:border-dark-border bg-light-surface dark:bg-dark-surface space-y-3">
                 <i class="ri-history-line text-sky-500 text-2xl"></i>
                 <h3 class="text-base font-bold text-light-text dark:text-dark-text">
-                    {{ __('public.unified_inbox.f2_title') }}</h3>
+                    {{ __('public.unified_inbox.f2_title') }}
+                </h3>
                 <p class="text-xs text-light-muted dark:text-dark-muted leading-relaxed">
                     {{ __('public.unified_inbox.f2_desc') }}
                 </p>
@@ -47,7 +49,8 @@
                 class="p-6 rounded-2xl border border-light-border dark:border-dark-border bg-light-surface dark:bg-dark-surface space-y-3">
                 <i class="ri-file-download-line text-purple-500 text-2xl"></i>
                 <h3 class="text-base font-bold text-light-text dark:text-dark-text">
-                    {{ __('public.unified_inbox.f3_title') }}</h3>
+                    {{ __('public.unified_inbox.f3_title') }}
+                </h3>
                 <p class="text-xs text-light-muted dark:text-dark-muted leading-relaxed">
                     {{ __('public.unified_inbox.f3_desc') }}
                 </p>
@@ -82,7 +85,8 @@
                                 class="text-3xs text-light-muted dark:text-dark-muted">{{ __('public.unified_inbox.time_1m') }}</span>
                         </div>
                         <div class="text-3xs text-light-muted dark:text-dark-muted truncate">
-                            {{ __('public.unified_inbox.t1_msg') }}</div>
+                            {{ __('public.unified_inbox.t1_msg') }}
+                        </div>
                     </div>
                     <div class="p-2 rounded bg-light-surface/50 dark:bg-dark-surface/50 space-y-0.5">
                         <div class="flex justify-between items-center">
@@ -91,7 +95,8 @@
                                 class="text-3xs text-light-muted dark:text-dark-muted">{{ __('public.unified_inbox.time_12m') }}</span>
                         </div>
                         <div class="text-3xs text-light-muted dark:text-dark-muted truncate">
-                            {{ __('public.unified_inbox.t2_msg') }}</div>
+                            {{ __('public.unified_inbox.t2_msg') }}
+                        </div>
                     </div>
                 </div>
 
@@ -106,7 +111,8 @@
                             <div>
                                 <div class="text-xs font-bold text-light-text dark:text-dark-text">Sabbir Ahmed</div>
                                 <div class="text-3xs text-light-muted dark:text-dark-muted">
-                                    {{ __('public.unified_inbox.channel_label') }}</div>
+                                    {{ __('public.unified_inbox.channel_label') }}
+                                </div>
                             </div>
                         </div>
                         <div class="flex items-center gap-1.5">
@@ -120,13 +126,15 @@
                     <div class="space-y-2 text-2xs">
                         <div class="p-2.5 rounded-lg bg-light-surface dark:bg-dark-surface max-w-[80%]">
                             <div class="text-3xs text-light-muted dark:text-dark-muted mb-0.5">
-                                {{ __('public.unified_inbox.c_timestamp') }}</div>
+                                {{ __('public.unified_inbox.c_timestamp') }}
+                            </div>
                             <p class="text-light-text dark:text-dark-text">{{ __('public.unified_inbox.c_msg') }}</p>
                         </div>
                         <div
                             class="p-2.5 rounded-lg bg-brand-500/15 text-light-text dark:text-dark-text ml-auto max-w-[80%] border border-brand-500/30">
                             <div class="text-3xs text-brand-500 font-bold mb-0.5">
-                                {{ __('public.unified_inbox.ai_timestamp') }}</div>
+                                {{ __('public.unified_inbox.ai_timestamp') }}
+                            </div>
                             <p>{{ __('public.unified_inbox.ai_msg') }}</p>
                         </div>
                     </div>
