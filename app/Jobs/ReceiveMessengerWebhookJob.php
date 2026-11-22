@@ -146,12 +146,23 @@ class ReceiveMessengerWebhookJob implements ShouldQueue
                 'metadata'            => $data,
             ]);
 
-            $conversation->update([
+            $isMedia = ($data['type'] ?? 'text') !== 'text' || ! empty($data['attachments']);
+            $convUpdates = [
                 'last_message'    => $data['text'] ?? '',
                 'last_message_at' => now(),
                 'last_direction'  => 'inbound',
                 'unread_count'    => DB::raw('unread_count + 1'),
-            ]);
+            ];
+            if ($isMedia) {
+                $existingTags = is_array($conversation->ai_tags) ? $conversation->ai_tags : (json_decode($conversation->ai_tags ?? '[]', true) ?: []);
+                if (! in_array('media_received', $existingTags, true)) {
+                    $existingTags[] = 'media_received';
+                }
+                $convUpdates['ai_tags'] = $existingTags;
+                $convUpdates['priority'] = 'high';
+            }
+
+            $conversation->update($convUpdates);
 
             Log::info('[WebhookJob] Message saved', [
                 'conversation_id' => $conversation->id,

@@ -13,6 +13,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use Illuminate\View\View;
 
 class WorkspaceCourierController extends Controller
@@ -197,5 +198,130 @@ class WorkspaceCourierController extends Controller
         }
 
         return back()->with($summary['successful'] > 0 ? 'success' : 'error', $msg);
+    }
+
+    /**
+     * Inbound Webhook: Steadfast Courier Delivery Status Callback.
+     */
+    public function handleSteadfastWebhook(Request $request): JsonResponse
+    {
+        $invoice = trim((string) ($request->input('invoice') ?? $request->input('order_id') ?? ''));
+        $trackingCode = trim((string) ($request->input('tracking_code') ?? $request->input('consignment_id') ?? ''));
+        $rawStatus = strtolower(trim((string) ($request->input('status') ?? '')));
+
+        if ($invoice === '' && $trackingCode === '') {
+            return response()->json(['success' => false, 'message' => 'Missing invoice or tracking identifier.'], 400);
+        }
+
+        $order = WorkspaceOrder::where(function ($q) use ($invoice, $trackingCode) {
+            if ($invoice !== '') {
+                $q->where('order_number', $invoice);
+            }
+            if ($trackingCode !== '') {
+                $q->orWhere('courier_tracking_code', $trackingCode)
+                  ->orWhere('courier_consignment_id', $trackingCode);
+            }
+        })->first();
+
+        if (! $order) {
+            Log::warning('[Steadfast Webhook] Order not found for incoming webhook', [
+                'invoice'       => $invoice,
+                'tracking_code' => $trackingCode,
+                'status'        => $rawStatus,
+            ]);
+            return response()->json(['success' => false, 'message' => 'Order not found.'], 404);
+        }
+
+        $order->courier_status = $rawStatus;
+        $order->status = match ($rawStatus) {
+            'delivered'                              => 'delivered',
+            'cancelled', 'cancelled_order', 'return' => 'cancelled',
+            'in_review', 'pending', 'picked'         => 'shipped',
+            default                                  => $order->status,
+        };
+
+        $timestamp = now()->format('d M Y, h:i A');
+        $note = "\n[Steadfast Webhook: {$rawStatus} at {$timestamp}]";
+        $order->admin_notes = ($order->admin_notes ?: '') . $note;
+        $order->save();
+
+        Log::info('[Steadfast Webhook] Order status synchronized successfully', [
+            'order'          => $order->order_number,
+            'courier_status' => $rawStatus,
+            'order_status'   => $order->status,
+        ]);
+
+        return response()->json([
+            'success'        => true,
+            'order_number'   => $order->order_number,
+            'order_status'   => $order->status,
+            'courier_status' => $order->courier_status,
+        ]);
+    }
+
+    /**
+     * Inbound Webhook: Pathao Courier Delivery Status Callback.
+     */
+    public function handlePathaoWebhook(Request $request): JsonResponse
+    {
+        $consignmentId = trim((string) ($request->input('consignment_id') ?? ''));
+        $merchantOrderId = trim((string) ($request->input('merchant_order_id') ?? ''));
+        $orderStatus = strtolower(trim((string) ($request->input('order_status') ?? '')));
+
+        if ($consignmentId === '' && $merchantOrderId === '') {
+            return response()->json(['success' => false, 'message' => 'Missing identifiers.'], 400);
+        }
+
+        $order = WorkspaceOrder::where(function ($q) use ($consignmentId, $merchantOrderId) {
+            if ($merchantOrderId !== '') {
+                $q->where('order_number', $merchantOrderId);
+            }
+            if ($consignmentId !== '') {
+                $q->orWhere('courier_consignment_id', $consignmentId)
+                  ->orWhere('courier_tracking_code', $consignmentId);
+            }
+        })->first();
+
+        if (! $order) {
+            return response()->json(['success' => false, 'message' => 'Order not found.'], 404);
+        }
+
+        $order->courier_status = $orderStatus;
+        if (str_contains($orderStatus, 'delivered')) {
+            $order->status = 'delivered';
+        } elseif (str_contains($orderStatus, 'return') || str_contains($orderStatus, 'cancelled')) {
+            $order->status = 'cancelled';
+        }
+
+        $timestamp = now()->format('d M Y, h:i A');
+        $order->admin_notes = ($order->admin_notes ?: '') . "\n[Pathao Webhook: {$orderStatus} at {$timestamp}]";
+        $order->save();
+
+        return response()->json(['success' => true, 'order_number' => $order->order_number]);
+    }
+
+    /**
+     * Sync courier status for a single order on-demand.
+     */
+    public function syncStatus(Request $request, WorkspaceOrder $order): JsonResponse
+    {
+        /** @var User $user */
+        $user = Auth::user();
+        if (! $user) {
+            abort(401);
+        }
+
+        if (! $user->hasRole(RoleEnum::SUPERADMIN->value) && $order->workspace_id !== $user->workspace_id) {
+            abort(403, 'Unauthorized access to order.');
+        }
+
+        return response()->json([
+            'success'        => true,
+            'order_number'   => $order->order_number,
+            'status'         => $order->status,
+            'courier_status' => $order->courier_status ?: 'pending',
+            'tracking_code'  => $order->courier_tracking_code ?: $order->courier_consignment_id,
+            'tracking_url'   => $order->getCourierTrackingUrl(),
+        ]);
     }
 }

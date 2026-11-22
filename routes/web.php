@@ -151,6 +151,7 @@ Route::middleware('auth')->prefix('dashboard')->group(function () {
     Route::post('/workspace/courier', [WorkspaceCourierController::class, 'updateSettings'])->name('workspace.courier.update');
     Route::post('/workspace/courier/ping', [WorkspaceCourierController::class, 'ping'])->name('workspace.courier.ping');
     Route::post('/orders/{order}/send-courier', [WorkspaceCourierController::class, 'sendSingle'])->name('orders.send-courier');
+    Route::post('/orders/{order}/sync-courier', [WorkspaceCourierController::class, 'syncStatus'])->name('orders.sync-courier');
     Route::post('/orders/bulk-send-courier', [WorkspaceCourierController::class, 'bulkSend'])->name('orders.bulk-send-courier');
 
     // ── 4.4 AI Chat Simulator (Internal Businessman Diagnostics) ──────
@@ -257,6 +258,19 @@ Route::middleware('auth')->prefix('dashboard')->group(function () {
             ->middleware('permission:' . KnowledgeDocumentPermission::UPDATE->value);
         Route::post('/relationships/reject', [SpreadsheetImportController::class, 'rejectRelationship'])
             ->name('relationships.reject')
+            ->middleware('permission:' . KnowledgeDocumentPermission::UPDATE->value);
+    });
+
+    // Product Catalog & Live Stock Toggle
+    Route::prefix('/knowledge-base/products')->name('knowledge-base.products.')->group(function () {
+        Route::get('/data', [\App\Http\Controllers\ProductCatalogController::class, 'data'])
+            ->name('data')
+            ->middleware('permission:' . KnowledgeDocumentPermission::VIEW->value);
+        Route::post('/{id}/toggle-stock', [\App\Http\Controllers\ProductCatalogController::class, 'toggleStock'])
+            ->name('toggle-stock')
+            ->middleware('permission:' . KnowledgeDocumentPermission::UPDATE->value);
+        Route::post('/{id}/update-stock', [\App\Http\Controllers\ProductCatalogController::class, 'updateQuantity'])
+            ->name('update-stock')
             ->middleware('permission:' . KnowledgeDocumentPermission::UPDATE->value);
     });
 

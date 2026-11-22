@@ -11,6 +11,7 @@ use App\AI\Orchestration\CustomerSupportService;
 use App\Support\ChannelManager;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Queue\InteractsWithQueue;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 
 class RunFAQEngineListener implements ShouldQueue
@@ -71,14 +72,75 @@ class RunFAQEngineListener implements ShouldQueue
         Log::info('[FAQ Listener] Starting AI Customer Support Agent', [
             'conversation_id' => $event->conversation->id,
             'message_id'      => $event->message->id,
+            'type'            => $event->message->type,
         ]);
 
         try {
             $event->account->loadMissing('channel');
             $channelSlug = $event->account->channel?->slug ?? 'web';
 
+            // 1. Media Attachment Fast-Path: Acknowledge payment slips/photos immediately
+            $isMedia = $event->message->type === 'image'
+                || str_starts_with((string) $event->message->body, '[Attachment: Image]')
+                || str_starts_with((string) $event->message->body, '[Attachment: File]');
+
+            if ($isMedia) {
+                $replyText = "ধন্যবাদ! আপনার ছবিটি/পেমেন্ট স্লিপটি গ্রহণ করা হয়েছে। আমাদের টিম খুব দ্রুত এটি যাচাই করে আপনাকে নিশ্চিত করবে।";
+                $deliveryResponse = [];
+                if ($event->account->channel) {
+                    try {
+                        $driver = ChannelManager::driver($event->account->channel->slug);
+                        $deliveryResponse = $driver->send($event->account, $event->conversation, $replyText) ?? [];
+                    } catch (\Throwable $sendError) {
+                        Log::warning('[FAQ Listener] Failed to deliver media acknowledgment', [
+                            'conversation_id' => $event->conversation->id,
+                            'error'           => $sendError->getMessage(),
+                        ]);
+                    }
+                }
+
+                $this->customerSupportService->saveOutboundReply(
+                    conversation: $event->conversation,
+                    replyText: $replyText,
+                    deliveryResponse: $deliveryResponse,
+                );
+                return;
+            }
+
+            // 2. Rapid Multi-Message Debounce & Buffering
+            $convId = $event->conversation->id;
+            $bufferKey = "conv_debounce_msgs_{$convId}";
+            $latestMsgKey = "conv_debounce_latest_{$convId}";
+
+            $buffered = Cache::get($bufferKey, []);
+            $buffered[] = [
+                'id'   => $event->message->id,
+                'text' => $event->message->body,
+            ];
+            Cache::put($bufferKey, $buffered, 30);
+
+            $currentLatest = (int) Cache::get($latestMsgKey, 0);
+            if ($event->message->id >= $currentLatest) {
+                Cache::put($latestMsgKey, $event->message->id, 30);
+            }
+
+            $debounceSeconds = app()->environment('testing') ? 0 : 2;
+            if ($debounceSeconds > 0) {
+                sleep($debounceSeconds);
+            }
+
+            $latestId = Cache::get($latestMsgKey);
+            if ($latestId !== null && (int) $latestId > (int) $event->message->id) {
+                Log::info("[FAQ Debounce] Suppressing intermediate message {$event->message->id} in favor of latest {$latestId}");
+                return;
+            }
+
+            $allBuffered = Cache::pull($bufferKey, []);
+            $allTexts = ! empty($allBuffered) ? array_column($allBuffered, 'text') : [];
+            $effectiveQuery = ! empty($allTexts) ? implode("\n", $allTexts) : (string) $event->message->body;
+
             $result = $this->orchestrator->process(
-                query: $event->message->body,
+                query: $effectiveQuery,
                 workspaceId: (int) $event->account->workspace_id,
                 user: null, // Untrusted customer channel
                 conversation: $event->conversation,
@@ -114,7 +176,7 @@ class RunFAQEngineListener implements ShouldQueue
                 try {
                     app(\App\Services\Commerce\OrderCaptureService::class)->extractAndCapture(
                         conversation: $event->conversation,
-                        userMessage: $event->message->body,
+                        userMessage: $effectiveQuery,
                         aiResponse: $replyText,
                     );
                 } catch (\Throwable $eOrder) {

@@ -65,7 +65,7 @@ class KnowledgeBaseController extends Controller
         $activeTab = $requestedTab;
 
         if ($canViewFaqs && $canViewDocs) {
-            $validTabs = ['faqs', 'policies', 'business_info', 'data_sources'];
+            $validTabs = ['faqs', 'policies', 'business_info', 'data_sources', 'product_catalog'];
             if (! in_array($activeTab, $validTabs, true)) {
                 $activeTab = 'faqs';
             }
@@ -76,7 +76,10 @@ class KnowledgeBaseController extends Controller
             }
         } else {
             // Document-only permission
-            $activeTab = 'data_sources';
+            $validTabs = ['data_sources', 'product_catalog'];
+            if (! in_array($activeTab, $validTabs, true)) {
+                $activeTab = 'data_sources';
+            }
         }
 
         return view('admin.knowledge-base.index', [

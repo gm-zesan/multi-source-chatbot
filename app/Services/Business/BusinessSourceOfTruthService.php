@@ -523,7 +523,13 @@ class BusinessSourceOfTruthService
                     $formattedPrice = isset($product['price']) && (float) $product['price'] > 0
                         ? '৳' . number_format((float) $product['price'], 2)
                         : 'Price on inquiry';
-                    $stockText = isset($product['stock']) && $product['stock'] !== null ? "  * Stock/Qty: {$product['stock']} units\n" : '';
+                    if (isset($product['stock']) && $product['stock'] !== null) {
+                        $stockText = (int) $product['stock'] <= 0
+                            ? "  * Stock/Qty: 0 units (OUT OF STOCK / স্টক আউট)\n"
+                            : "  * Stock/Qty: {$product['stock']} units\n";
+                    } else {
+                        $stockText = '';
+                    }
                     $specsText = !empty($product['specs']) ? "  * Configuration & Specs: {$product['specs']}\n" : '';
                     $descText = !empty($product['description']) ? "  * Description: {$product['description']}\n" : '';
 
@@ -688,13 +694,14 @@ class BusinessSourceOfTruthService
             try {
                 $prods = AnalyticsProduct::where('workspace_id', $workspaceId)
                     ->where('is_active', true)
-                    ->get(['id', 'name', 'category', 'unit_price', 'sku']);
+                    ->get(['id', 'name', 'category', 'unit_price', 'sku', 'stock_quantity']);
                 foreach ($prods as $p) {
                     $catalogProds[] = [
                         'id'          => $p->id,
                         'name'        => $p->name,
                         'category'    => $p->category ?? 'General',
                         'price'       => (float) $p->unit_price,
+                        'stock'       => $p->stock_quantity !== null ? (int) $p->stock_quantity : null,
                         'source'      => 'Product Catalog (Database)',
                         'source_type' => 'catalog',
                     ];
@@ -707,7 +714,7 @@ class BusinessSourceOfTruthService
             try {
                 $srRecords = StructuredRecord::where('workspace_id', $workspaceId)
                     ->whereNotNull('canonical_entity_name')
-                    ->get(['document_id', 'canonical_entity_name', 'canonical_category', 'canonical_amount', 'canonical_quantity', 'mapped_attributes', 'semantic_projections']);
+                    ->get(['id', 'document_id', 'canonical_entity_name', 'canonical_category', 'canonical_amount', 'canonical_quantity', 'canonical_status', 'mapped_attributes', 'semantic_projections']);
                 $seenSr = [];
                 foreach ($srRecords as $sr) {
                     $name = trim((string) $sr->canonical_entity_name);
@@ -718,6 +725,9 @@ class BusinessSourceOfTruthService
 
                     $price = $sr->canonical_amount !== null && (float) $sr->canonical_amount > 0 ? (float) $sr->canonical_amount : null;
                     $stock = $sr->canonical_quantity !== null ? (int) $sr->canonical_quantity : null;
+                    if ($sr->canonical_status === 'out_of_stock') {
+                        $stock = 0;
+                    }
 
                     $specs = null;
                     $desc = null;
@@ -744,6 +754,7 @@ class BusinessSourceOfTruthService
                     }
 
                     $structuredProducts[] = [
+                        'id'          => $sr->id,
                         'name'        => $name,
                         'category'    => $sr->canonical_category ?? 'General',
                         'price'       => $price,

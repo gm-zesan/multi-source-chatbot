@@ -235,7 +235,7 @@ class SpreadsheetInspectorService
      *
      * @return array<string, mixed>
      */
-    public function inspectWorkbook(string $absolutePath, string $originalFilename, ?string $targetSheet = null): array
+    public function inspectWorkbook(string $absolutePath, string $originalFilename, ?string $targetSheet = null, array $customAliases = []): array
     {
         $validation = $this->validateFile($absolutePath, $originalFilename);
         if (! $validation['valid']) {
@@ -249,10 +249,10 @@ class SpreadsheetInspectorService
         $extension = $validation['extension'];
 
         if ($extension === 'csv') {
-            return $this->inspectCsv($absolutePath, $originalFilename);
+            return $this->inspectCsv($absolutePath, $originalFilename, $customAliases);
         }
 
-        return $this->inspectExcel($absolutePath, $originalFilename, $targetSheet);
+        return $this->inspectExcel($absolutePath, $originalFilename, $targetSheet, $customAliases);
     }
 
     /**
@@ -260,7 +260,7 @@ class SpreadsheetInspectorService
      *
      * @return array<string, mixed>
      */
-    private function inspectCsv(string $absolutePath, string $originalFilename): array
+    private function inspectCsv(string $absolutePath, string $originalFilename, array $customAliases = []): array
     {
         $rawRows = [];
         $encoding = $this->detectEncoding($absolutePath);
@@ -290,7 +290,7 @@ class SpreadsheetInspectorService
         }
         fclose($handle);
 
-        $sheetInspection = $this->analyzeSheetData($rawRows, 'Default');
+        $sheetInspection = $this->analyzeSheetData($rawRows, 'Default', $customAliases);
 
         return [
             'success'          => true,
@@ -309,7 +309,7 @@ class SpreadsheetInspectorService
      *
      * @return array<string, mixed>
      */
-    private function inspectExcel(string $absolutePath, string $originalFilename, ?string $targetSheet = null): array
+    private function inspectExcel(string $absolutePath, string $originalFilename, ?string $targetSheet = null, array $customAliases = []): array
     {
         $reader = IOFactory::createReaderForFile($absolutePath);
         $reader->setReadDataOnly(true);
@@ -342,7 +342,7 @@ class SpreadsheetInspectorService
             $rawRows[] = $formattedRow;
         }
 
-        $sheetInspection = $this->analyzeSheetData($rawRows, $activeSheet);
+        $sheetInspection = $this->analyzeSheetData($rawRows, $activeSheet, $customAliases);
 
         return [
             'success'            => true,
@@ -362,7 +362,7 @@ class SpreadsheetInspectorService
      * @param array<int, array<int, string>> $rows
      * @return array<string, mixed>
      */
-    public function analyzeSheetData(array $rows, string $sheetName = 'Sheet1'): array
+    public function analyzeSheetData(array $rows, string $sheetName = 'Sheet1', array $customAliases = []): array
     {
         if (empty($rows)) {
             return [
@@ -409,7 +409,7 @@ class SpreadsheetInspectorService
             }
 
             $profile = $this->profileColumn($headerName, $colValues, $colIdx);
-            $mappingSuggestion = $this->suggestMapping($headerName, $profile);
+            $mappingSuggestion = $this->suggestMapping($headerName, $profile, $customAliases);
 
             $sourceColId = 'col_' . str_pad((string) $colIdx, 3, '0', STR_PAD_LEFT);
             $normalizedHeader = Str::snake(Str::ascii($headerName));
@@ -733,14 +733,45 @@ class SpreadsheetInspectorService
      * Suggest generic semantic category mapping for a column based on header text and data profile.
      *
      * @param array<string, mixed> $profile
+     * @param array<string, string> $customAliases
      * @return array{category: string, confidence: float, evidence: string, is_ambiguous: bool, competing_categories: array<string>}
      */
-    public function suggestMapping(string $header, array $profile): array
+    public function suggestMapping(string $header, array $profile, array $customAliases = []): array
     {
         $rawH = mb_strtolower(trim($header));
         $hNorm = preg_replace('/[\s\-]+/u', '_', $rawH);
         $h = $rawH . ' ' . $hNorm;
         $type = $profile['type'] ?? 'string';
+
+        // 0. Check Workspace-Level Learned Column Aliases
+        if (! empty($customAliases)) {
+            $matchedAlias = $customAliases[$rawH] ?? ($customAliases[$hNorm] ?? null);
+            if (! $matchedAlias) {
+                foreach ($customAliases as $aliasKey => $aliasCat) {
+                    if (mb_strtolower(trim((string) $aliasKey)) === $rawH) {
+                        $matchedAlias = $aliasCat;
+                        break;
+                    }
+                }
+            }
+
+            if ($matchedAlias) {
+                $semanticDetails = $this->inferSemanticDetails($header, $profile, (string) $matchedAlias, 1.0);
+                return [
+                    'category'             => (string) $matchedAlias,
+                    'confidence'           => 1.0,
+                    'evidence'             => 'Workspace-level learned custom header alias',
+                    'is_ambiguous'         => false,
+                    'competing_categories' => [],
+                    'physical_type'        => $semanticDetails['physical_type'],
+                    'semantic_role'        => $semanticDetails['semantic_role'],
+                    'candidate_roles'      => $semanticDetails['candidate_roles'],
+                    'entity_type'          => $semanticDetails['entity_type'],
+                    'unit'                 => $semanticDetails['unit'],
+                    'sensitivity'          => $semanticDetails['sensitivity'],
+                ];
+            }
+        }
 
         $scores = [
             self::CATEGORY_ENTITY_NAME      => 0.0,

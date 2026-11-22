@@ -82,6 +82,9 @@
             <button type="button" class="kb-pill-btn app-btn {{ $activeTab === 'data_sources' ? 'app-btn-primary' : 'app-btn-secondary' }} text-xs" id="tab-btn-data_sources" onclick="switchTab('data_sources')">
                 <i class="ri-bar-chart-2-line"></i> Analytics Data Sources
             </button>
+            <button type="button" class="kb-pill-btn app-btn {{ $activeTab === 'product_catalog' ? 'app-btn-primary' : 'app-btn-secondary' }} text-xs" id="tab-btn-product_catalog" onclick="switchTab('product_catalog')">
+                <i class="ri-store-2-line text-emerald-500"></i> Product Catalog & Live Stock
+            </button>
         @endif
         @can(\App\Enums\Permissions\UnansweredQuestionPermission::VIEW->value)
             <a href="{{ route('unanswered-questions.index') }}" class="kb-pill-btn app-btn app-btn-secondary text-xs">
@@ -186,6 +189,52 @@
                                 <th style="width: 100px;">Uploaded At</th>
                                 <th style="width: 120px;">Status</th>
                                 <th style="width: 120px;" class="no-sort text-right">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {{-- Section 3: Live Store Product Catalog & Inventory Quick Stock Toggle --}}
+    <div id="product-catalog-container" class="{{ $activeTab === 'product_catalog' ? '' : 'hidden' }}">
+        <div class="app-card table-card">
+            <div class="app-card-header flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <div>
+                    <h2 class="text-xs font-semibold text-light-text dark:text-dark-text uppercase tracking-wider flex items-center gap-1.5">
+                        <i class="ri-store-2-line text-emerald-500"></i> Store Products & Live Stock
+                    </h2>
+                    <p class="text-2xs text-light-muted dark:text-dark-muted">Real-time inventory control. Toggle products In/Out of Stock instantly without re-uploading spreadsheets.</p>
+                </div>
+                <div class="flex items-center gap-2 flex-wrap">
+                    <div class="flex items-center gap-2 mr-3 px-2.5 py-1 bg-surface-hover rounded-md border border-border">
+                        <span class="text-2xs text-text-muted">Total: <strong id="product-stat-total" class="text-text-primary">0</strong></span>
+                        <span class="text-border">|</span>
+                        <span class="text-2xs text-emerald-600 dark:text-emerald-400 font-medium">In Stock: <strong id="product-stat-instock">0</strong></span>
+                        <span class="text-border">|</span>
+                        <span class="text-2xs text-rose-600 dark:text-rose-400 font-medium">Out of Stock: <strong id="product-stat-outofstock">0</strong></span>
+                    </div>
+                    <select id="product-status-filter" class="app-select w-36 text-xs" onchange="reloadProductTable()">
+                        <option value="all">All Products</option>
+                        <option value="in_stock">In Stock Only</option>
+                        <option value="out_of_stock">Out of Stock Only</option>
+                    </select>
+                </div>
+            </div>
+            <div class="app-card-body p-0">
+                <div class="overflow-x-auto p-3">
+                    <table class="app-table w-full" id="product-catalog-table">
+                        <thead>
+                            <tr>
+                                <th style="width: 50px;">#</th>
+                                <th>Product Name & Source</th>
+                                <th style="width: 110px;">Category</th>
+                                <th style="width: 110px;">Unit Price</th>
+                                <th>Specifications & Dynamic Attributes</th>
+                                <th style="width: 90px;">Stock</th>
+                                <th style="width: 170px;" class="no-sort text-center">Quick Stock Toggle</th>
                             </tr>
                         </thead>
                         <tbody></tbody>
@@ -518,6 +567,7 @@
             let currentTab = '{{ $activeTab }}';
             let faqDataTable = null;
             let docDataTable = null;
+            let productDataTable = null;
 
             function switchTab(tabName) {
                 currentTab = tabName;
@@ -532,12 +582,126 @@
                 if (['faqs', 'policies', 'business_info'].includes(tabName)) {
                     $('#faq-table-container').removeClass('hidden d-none');
                     $('#doc-table-container').addClass('hidden d-none');
+                    $('#product-catalog-container').addClass('hidden d-none');
                     reloadFaqTable();
+                } else if (tabName === 'product_catalog') {
+                    $('#faq-table-container').addClass('hidden d-none');
+                    $('#doc-table-container').addClass('hidden d-none');
+                    $('#product-catalog-container').removeClass('hidden d-none');
+                    initOrReloadProductTable();
                 } else {
                     $('#faq-table-container').addClass('hidden d-none');
                     $('#doc-table-container').removeClass('hidden d-none');
+                    $('#product-catalog-container').addClass('hidden d-none');
                     reloadDocTable();
                 }
+            }
+
+            function reloadProductTable() {
+                if (productDataTable) {
+                    productDataTable.ajax.reload(null, false);
+                }
+            }
+
+            function initOrReloadProductTable() {
+                if (productDataTable) {
+                    productDataTable.ajax.reload(null, false);
+                    return;
+                }
+
+                productDataTable = $('#product-catalog-table').DataTable({
+                    processing: true,
+                    serverSide: false,
+                    order: [[1, 'asc']],
+                    ajax: {
+                        url: '{{ route("knowledge-base.products.data") }}',
+                        data: function (d) {
+                            d.status_filter = $('#product-status-filter').val();
+                        },
+                        dataSrc: function (json) {
+                            if (json.stats) {
+                                $('#product-stat-total').text(json.stats.total || 0);
+                                $('#product-stat-instock').text(json.stats.in_stock || 0);
+                                $('#product-stat-outofstock').text(json.stats.out_of_stock || 0);
+                            }
+                            return json.data || [];
+                        },
+                        error: function (xhr, error, code) {
+                            console.error('Product Catalog DataTable Error:', error, code, xhr);
+                        }
+                    },
+                    columns: [
+                        {
+                            data: null,
+                            orderable: false,
+                            render: function (data, type, row, meta) {
+                                return `<span class="text-xs text-text-muted font-mono">${meta.row + 1}</span>`;
+                            }
+                        },
+                        {
+                            data: 'name',
+                            render: function (data, type, row) {
+                                return `
+                                    <div class="flex flex-col gap-0.5">
+                                        <span class="text-xs font-semibold text-text-primary">${$('<div>').text(data).html()}</span>
+                                        <div class="flex items-center gap-1.5 flex-wrap">
+                                            <span class="app-badge app-badge-secondary font-mono text-3xs">${$('<div>').text(row.source_document).html()}</span>
+                                            <span class="text-3xs text-text-muted">${row.created_at || ''}</span>
+                                        </div>
+                                    </div>
+                                `;
+                            }
+                        },
+                        {
+                            data: 'category',
+                            render: function (data) {
+                                return `<span class="app-badge app-badge-secondary text-2xs">${$('<div>').text(data || 'General').html()}</span>`;
+                            }
+                        },
+                        {
+                            data: 'price_formatted',
+                            render: function (data) {
+                                return `<span class="text-xs font-semibold text-emerald-600 dark:text-emerald-400 font-mono">${$('<div>').text(data).html()}</span>`;
+                            }
+                        },
+                        {
+                            data: 'specs',
+                            render: function (data) {
+                                return data ? `<span class="text-2xs text-text-secondary">${$('<div>').text(data).html()}</span>` : `<span class="text-3xs text-text-muted">—</span>`;
+                            }
+                        },
+                        {
+                            data: 'stock',
+                            render: function (data, type, row) {
+                                const isZero = !row.is_in_stock || data === 0;
+                                const badgeClass = isZero ? 'bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/30' : 'bg-slate-100 dark:bg-slate-800 text-text-primary border border-border';
+                                return `<span class="app-badge ${badgeClass} text-xs font-mono font-semibold">${data} pcs</span>`;
+                            }
+                        },
+                        {
+                            data: null,
+                            orderable: false,
+                            className: 'text-center',
+                            render: function (data, type, row) {
+                                const inStock = row.is_in_stock;
+                                const btnClass = inStock
+                                    ? 'bg-emerald-500 hover:bg-emerald-600 text-white shadow-xs'
+                                    : 'bg-rose-500 hover:bg-rose-600 text-white shadow-xs';
+                                const icon = inStock ? 'ri-checkbox-circle-line' : 'ri-close-circle-line';
+                                const label = inStock ? 'In Stock (Click to Disable)' : 'Out of Stock (Click to Enable)';
+
+                                return `
+                                    <div class="flex items-center justify-center gap-1.5">
+                                        <button type="button" class="quick-stock-toggle-btn app-btn ${btnClass} !h-7 !px-2.5 !text-2xs flex items-center gap-1 transition-all" data-id="${row.id}" title="${label}">
+                                            <i class="${icon}"></i>
+                                            <span>${inStock ? 'In Stock' : 'Stock Out'}</span>
+                                        </button>
+                                    </div>
+                                `;
+                            }
+                        }
+                    ]
+                });
             }
 
             window.selectFaqStatusFacet = function(el, status) {
@@ -897,6 +1061,40 @@
                 });
                 window.knowledgeDocumentsTable = docDataTable;
                 @endif
+
+                if (currentTab === 'product_catalog') {
+                    initOrReloadProductTable();
+                }
+
+                // Quick Stock Toggle Click Handler
+                $(document).on('click', '.quick-stock-toggle-btn', function (e) {
+                    e.preventDefault();
+                    var $btn = $(this);
+                    var productId = $btn.attr('data-id');
+                    $btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm" role="status"></span> Updating...');
+
+                    $.ajax({
+                        url: `${SITEURL}/dashboard/knowledge-base/products/${productId}/toggle-stock`,
+                        type: 'POST',
+                        headers: {
+                            'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content'),
+                            'Accept': 'application/json'
+                        },
+                        success: function (res) {
+                            $btn.prop('disabled', false);
+                            if (res.success) {
+                                reloadProductTable();
+                            } else {
+                                alert(res.message || 'Failed to update product stock.');
+                            }
+                        },
+                        error: function (xhr) {
+                            $btn.prop('disabled', false);
+                            alert(xhr.responseJSON?.message || 'Error updating product stock.');
+                            reloadProductTable();
+                        }
+                    });
+                });
 
                 // Delegate click on view buttons and title links to open the document details modal
                 $(document).on('click', '.btn-view-doc', function (e) {

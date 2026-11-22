@@ -110,6 +110,21 @@ class Workspace extends Model
         return (bool) ($this->settings['order_auto_capture_enabled'] ?? true);
     }
 
+    public function getColumnAliases(): array
+    {
+        return (array) ($this->settings['column_aliases'] ?? []);
+    }
+
+    public function recordColumnAliases(array $newAliases): void
+    {
+        $current = $this->getColumnAliases();
+        $merged = array_merge($current, $newAliases);
+        $settings = $this->settings ?? [];
+        $settings['column_aliases'] = $merged;
+        $this->settings = $settings;
+        $this->save();
+    }
+
     public function getAiToneInstructions(): string
     {
         $tone = $this->getAiPersonaTone();

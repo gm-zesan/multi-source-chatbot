@@ -209,7 +209,12 @@ class FinalResponseGenerator
                                             $fallbackDetails[] = "মূল্য: " . trim($mPrice[1]);
                                         }
                                         if (preg_match('/\*\s*Stock\/Qty:\s*([^\n]+)/u', $bContext, $mStock)) {
-                                            $fallbackDetails[] = "স্টক: " . trim($mStock[1]);
+                                            $stockVal = trim($mStock[1]);
+                                            if (str_contains($stockVal, 'OUT OF STOCK') || str_contains($stockVal, '0 units') || (int)$stockVal <= 0) {
+                                                $fallbackDetails[] = "স্টক: স্টক আউট";
+                                            } else {
+                                                $fallbackDetails[] = "স্টক: " . $stockVal;
+                                            }
                                         }
                                         if (preg_match('/\*\s*Configuration & Specs:\s*([^\n]+)/u', $bContext, $mSpecs)) {
                                             $fallbackDetails[] = "স্পেসিফিকেশন: " . trim($mSpecs[1]);
@@ -276,7 +281,12 @@ class FinalResponseGenerator
                                             $fallbackDetails[] = "মূল্য: " . trim($mPrice[1]);
                                         }
                                         if (preg_match('/\*\s*Stock\/Qty:\s*([^\n]+)/u', $bContext, $mStock)) {
-                                            $fallbackDetails[] = "স্টক: " . trim($mStock[1]);
+                                            $stockVal = trim($mStock[1]);
+                                            if (str_contains($stockVal, 'OUT OF STOCK') || str_contains($stockVal, '0 units') || (int)$stockVal <= 0) {
+                                                $fallbackDetails[] = "স্টক: স্টক আউট";
+                                            } else {
+                                                $fallbackDetails[] = "স্টক: " . $stockVal;
+                                            }
                                         }
                                         if (preg_match('/\*\s*Configuration & Specs:\s*([^\n]+)/u', $bContext, $mSpecs)) {
                                             $fallbackDetails[] = "স্পেসিফিকেশন: " . trim($mSpecs[1]);

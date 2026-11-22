@@ -55,16 +55,32 @@ class FacebookDriver implements ChannelDriver
             return null;
         }
 
-        // For now only support text
-        if (!isset($message['text'])) {
+        $text = $message['text'] ?? '';
+        $attachments = $message['attachments'] ?? [];
+        $type = 'text';
+
+        if ($text === '' && ! empty($attachments)) {
+            $firstType = $attachments[0]['type'] ?? 'image';
+            $type = $firstType;
+            $text = match ($firstType) {
+                'image' => '[Attachment: Image]',
+                'file'  => '[Attachment: File]',
+                'audio' => '[Attachment: Audio]',
+                'video' => '[Attachment: Video]',
+                default => '[Attachment]',
+            };
+        }
+
+        if ($text === '' && empty($attachments)) {
             return null;
         }
 
         return [
             'external_user_id'    => $messaging['sender']['id'],
             'external_message_id' => $message['mid'] ?? null,
-            'text'                => $message['text'],
-            'attachments'         => $message['attachments'] ?? [],
+            'text'                => $text,
+            'type'                => $type,
+            'attachments'         => $attachments,
         ];
     }
 

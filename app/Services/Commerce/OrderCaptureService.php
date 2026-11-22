@@ -42,6 +42,15 @@ class OrderCaptureService
         }
 
         if (empty($extracted['phone'])) {
+            $hasPurchaseIntent = (bool) preg_match('/(?:নিতে\s*চাই|কিনতে\s*চাই|অর্ডার\s*করব|অর্ডার\s*করতে\s*চাই|অর্ডার\s*দিতে\s*চাই|অর্ডার|order|buy|purchase)/iu', $userMessage);
+            if ($hasPurchaseIntent || ! empty($extracted['product']) || ! empty($extracted['address'])) {
+                $tags = is_array($conversation->ai_tags) ? $conversation->ai_tags : (json_decode($conversation->ai_tags ?? '[]', true) ?: []);
+                $tags = array_values(array_unique(array_merge($tags, ['lead', 'hot_lead', 'needs_phone'])));
+                $conversation->update([
+                    'ai_tags'  => $tags,
+                    'priority' => 'high',
+                ]);
+            }
             return null;
         }
 
@@ -119,6 +128,18 @@ class OrderCaptureService
             $address = trim($matches[1]);
         } elseif (preg_match('/(?:Road|House|Sector|Block|Mirpur|Dhanmondi|Gulshan|Uttara|Dhaka|Chittagong|Khulna|Sylhet|Rajshahi|Barisal|Rangpur|রোড|বাড়ি|বাসা|সেক্টর|মিরপুর|ধানমন্ডি|গুলশান|উত্তরা|ঢাকা|চট্টগ্রাম|খুলনা|সিলেট|থানা|জেলা)\b[^\n\r]*/iu', $text, $matches)) {
             $address = trim($matches[0]);
+        } elseif ($conversation?->relationLoaded('messages')) {
+            foreach ($conversation->messages as $m) {
+                if ($m->direction === 'inbound') {
+                    if (preg_match('/(?:ঠিকানা|Address|ঠিকানাঃ|Address:)\s*[:=\-]?\s*([^\n\r]+)/iu', $m->body, $matches)) {
+                        $address = trim($matches[1]);
+                        break;
+                    } elseif (preg_match('/(?:Road|House|Sector|Block|Mirpur|Dhanmondi|Gulshan|Uttara|Dhaka|Chittagong|Khulna|Sylhet|Rajshahi|Barisal|Rangpur|রোড|বাড়ি|বাসা|সেক্টর|মিরপুর|ধানমন্ডি|গুলশান|উত্তরা|ঢাকা|চট্টগ্রাম|খুলনা|সিলেট|থানা|জেলা)\b[^\n\r]*/iu', $m->body, $matches)) {
+                        $address = trim($matches[0]);
+                        break;
+                    }
+                }
+            }
         }
 
         // 4. Product Detection
@@ -126,6 +147,18 @@ class OrderCaptureService
             $product = trim($matches[1]);
         } elseif (preg_match('/(?:আমি\s+)?(\d+\s*(?:টি|টা|পিস|pcs|pieces?)?\s*[\p{L}\p{N}\s\-]+?)\s*(?:নিতে\s*চাই|অর্ডার\s*করব|অর্ডার\s*করতে\s*চাই|কিনতে\s*চাই|অর্ডার\s*দিতে\s*চাই|order\s*korte\s*chai)/iu', $text, $matches)) {
             $product = trim($matches[1]);
+        } elseif ($conversation?->relationLoaded('messages')) {
+            foreach ($conversation->messages as $m) {
+                if ($m->direction === 'inbound') {
+                    if (preg_match('/(?:^|[^\p{L}\p{N}])(?:পণ্য|প্রোডাক্ট|Product|Item|আইটেম)\s*[:=\-]\s*([^\n,\r]+)/iu', $m->body, $matches)) {
+                        $product = trim($matches[1]);
+                        break;
+                    } elseif (preg_match('/(?:আমি\s+)?(\d+\s*(?:টি|টা|পিস|pcs|pieces?)?\s*[\p{L}\p{N}\s\-]+?)\s*(?:নিতে\s*চাই|অর্ডার\s*করব|অর্ডার\s*করতে\s*চাই|কিনতে\s*চাই|অর্ডার\s*দিতে\s*চাই|order\s*korte\s*chai)/iu', $m->body, $matches)) {
+                        $product = trim($matches[1]);
+                        break;
+                    }
+                }
+            }
         }
 
         // 5. Amount Detection (e.g. ৳500 or 500 taka)

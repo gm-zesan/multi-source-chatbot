@@ -307,4 +307,53 @@ class OmnichannelInboundAndOrderCaptureTest extends TestCase
             ->get();
         $this->assertCount(0, $competitorOrders, 'Multi-tenant leak: Competitor workspace saw primary workspace order.');
     }
+
+    /**
+     * Test 6: Partial order intent without phone number flags hot lead, and captures order when phone is provided.
+     */
+    public function test_missing_phone_flags_lead_and_captures_order_when_phone_provided(): void
+    {
+        $conversation = Conversation::create([
+            'channel_account_id' => $this->facebookAccount->id,
+            'external_user_id'   => 'psid_partial_lead_user',
+            'status'             => 'open',
+            'last_direction'     => 'inbound',
+        ]);
+
+        $orderService = app(\App\Services\Commerce\OrderCaptureService::class);
+
+        // Turn 1: Customer wants to buy Jamdani Sharee, gives address, forgets phone
+        $order1 = $orderService->extractAndCapture(
+            conversation: $conversation,
+            userMessage: "আমি ১টা Jamdani Sharee নিতে চাই, ঠিকানা: ধানমন্ডি ২৭, ঢাকা",
+            aiResponse: "আপনার অর্ডার কনফার্ম করতে মোবাইল নম্বর প্রয়োজন।"
+        );
+
+        $this->assertNull($order1, 'Order must not be created without phone.');
+        $conversation->refresh();
+        $this->assertSame('high', $conversation->priority);
+        $this->assertContains('needs_phone', (array) $conversation->ai_tags);
+        $this->assertContains('hot_lead', (array) $conversation->ai_tags);
+
+        // Record message in conversation history
+        Message::create([
+            'conversation_id' => $conversation->id,
+            'direction'       => 'inbound',
+            'type'            => 'text',
+            'body'            => "আমি ১টা Jamdani Sharee নিতে চাই, ঠিকানা: ধানমন্ডি ২৭, ঢাকা",
+        ]);
+        $conversation->load('messages');
+
+        // Turn 2: Customer provides phone number
+        $order2 = $orderService->extractAndCapture(
+            conversation: $conversation,
+            userMessage: "আমার মোবাইল নম্বর 01799887766",
+            aiResponse: "ধন্যবাদ, আপনার অর্ডারটি গ্রহণ করা হয়েছে।"
+        );
+
+        $this->assertNotNull($order2, 'Order must be captured after customer provides phone number.');
+        $this->assertSame('01799887766', $order2->customer_phone);
+        $this->assertStringContainsString('ধানমন্ডি ২৭', (string) $order2->delivery_address);
+        $this->assertStringContainsString('Jamdani Sharee', (string) $order2->product_summary);
+    }
 }

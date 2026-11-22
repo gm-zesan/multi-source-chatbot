@@ -44,10 +44,12 @@ class SpreadsheetImportController extends Controller
         $absolutePath = Storage::disk('local')->path($filePath);
         $sheetName = $request->query('sheet');
 
+        $workspaceAliases = $document->workspace?->getColumnAliases() ?? [];
         $result = $this->inspector->inspectWorkbook(
             absolutePath: $absolutePath,
             originalFilename: $document->original_filename,
-            targetSheet: $sheetName ? (string) $sheetName : null
+            targetSheet: $sheetName ? (string) $sheetName : null,
+            customAliases: $workspaceAliases,
         );
 
         if (empty($result['success'])) {
@@ -94,7 +96,12 @@ class SpreadsheetImportController extends Controller
             }
 
             $absolutePath = Storage::disk('local')->path($filePath);
-            $inspection = $this->inspector->inspectWorkbook($absolutePath, $document->original_filename);
+            $workspaceAliases = $document->workspace?->getColumnAliases() ?? [];
+            $inspection = $this->inspector->inspectWorkbook(
+                absolutePath: $absolutePath,
+                originalFilename: $document->original_filename,
+                customAliases: $workspaceAliases,
+            );
             $schema = $inspection['inspection'] ?? null;
         }
 
@@ -219,6 +226,17 @@ class SpreadsheetImportController extends Controller
             data: $validated,
             userId: Auth::id()
         );
+
+        // Persist confirmed column mapping aliases to workspace memory
+        $aliasesToSave = [];
+        foreach ($validated['mappings'] ?? [] as $colName => $cat) {
+            if (is_string($cat) && $cat !== '' && $cat !== 'custom_attribute') {
+                $aliasesToSave[mb_strtolower(trim((string) $colName))] = (string) $cat;
+            }
+        }
+        if (! empty($aliasesToSave) && $document->workspace) {
+            $document->workspace->recordColumnAliases($aliasesToSave);
+        }
 
         return response()->json([
             'success'   => true,

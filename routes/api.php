@@ -18,6 +18,10 @@ use Illuminate\Support\Facades\Route;
 Route::post('/v1/widget/chat', [WidgetChatController::class, 'chat'])->middleware('throttle:60,1')->name('api.v1.widget.chat');
 Route::post('/widget/chat', [WidgetChatController::class, 'chat'])->middleware('throttle:60,1')->name('api.widget.chat.v1');
 
+// Inbound Courier Status Webhooks (Steadfast, Pathao)
+Route::post('/v1/courier/webhook/steadfast', [\App\Http\Controllers\WorkspaceCourierController::class, 'handleSteadfastWebhook'])->name('api.courier.webhook.steadfast');
+Route::post('/v1/courier/webhook/pathao', [\App\Http\Controllers\WorkspaceCourierController::class, 'handlePathaoWebhook'])->name('api.courier.webhook.pathao');
+
 // External Developer REST API v1 (Secured via API Key & Rate Limiting)
 Route::prefix('v1')->middleware(['auth.api_key', 'throttle:60,1'])->group(function () {
     // 1. Programmatic AI Chat Completion
