@@ -26,41 +26,42 @@
                     <span>Platform</span>
                     <i class="ri-arrow-down-s-line text-xs transition-transform group-hover:rotate-180"></i>
                 </button>
-                <div class="absolute top-full left-0 pt-2 w-72 hidden group-hover:block transition-all">
+                <div class="absolute top-full left-0 pt-2 w-80 hidden group-hover:block transition-all">
                     <div class="p-2 rounded-xl border border-light-border dark:border-white/[0.08] bg-light-surface dark:bg-dark-surface shadow-dropdown backdrop-blur-md space-y-1">
                         <a href="{{ route('platform') }}" class="flex items-start gap-2.5 p-2 rounded-lg hover:bg-light-elevated dark:hover:bg-dark-elevated transition-colors">
                             <i class="ri-dashboard-3-line text-brand-500 text-sm mt-0.5"></i>
                             <div>
                                 <div class="font-semibold text-xs text-light-text dark:text-dark-text">Platform Overview</div>
-                                <div class="text-3xs text-light-muted dark:text-dark-muted">Complete connected business engine</div>
+                                <div class="text-3xs text-light-muted dark:text-dark-muted">The 3-Agent Autonomous Commerce System</div>
                             </div>
                         </a>
-                        <a href="{{ route('knowledge-engine') }}" class="flex items-start gap-2.5 p-2 rounded-lg hover:bg-light-elevated dark:hover:bg-dark-elevated transition-colors">
-                            <i class="ri-database-2-line text-sky-500 text-sm mt-0.5"></i>
-                            <div>
-                                <div class="font-semibold text-xs text-light-text dark:text-dark-text">AI Knowledge Engine</div>
-                                <div class="text-3xs text-light-muted dark:text-dark-muted">Excel, spreadsheet & doc semantic grounding</div>
-                            </div>
-                        </a>
+                        <div class="my-1 border-t border-light-border/60 dark:border-white/[0.06]"></div>
                         <a href="{{ route('unified-inbox') }}" class="flex items-start gap-2.5 p-2 rounded-lg hover:bg-light-elevated dark:hover:bg-dark-elevated transition-colors">
-                            <i class="ri-chat-1-line text-emerald-500 text-sm mt-0.5"></i>
+                            <i class="ri-customer-service-2-line text-emerald-500 text-sm mt-0.5"></i>
                             <div>
-                                <div class="font-semibold text-xs text-light-text dark:text-dark-text">Unified Customer Inbox</div>
-                                <div class="text-3xs text-light-muted dark:text-dark-muted">Messenger, Web Chat & human handoff</div>
-                            </div>
-                        </a>
-                        <a href="{{ route('business-intelligence') }}" class="flex items-start gap-2.5 p-2 rounded-lg hover:bg-light-elevated dark:hover:bg-dark-elevated transition-colors">
-                            <i class="ri-bar-chart-box-line text-purple-500 text-sm mt-0.5"></i>
-                            <div>
-                                <div class="font-semibold text-xs text-light-text dark:text-dark-text">Business Intelligence</div>
-                                <div class="text-3xs text-light-muted dark:text-dark-muted">Owner-first analytics & query insights</div>
+                                <div class="font-semibold text-xs text-light-text dark:text-dark-text">1. Customer Sales Agent</div>
+                                <div class="text-3xs text-light-muted dark:text-dark-muted">24/7 Front-office replies & Excel grounding</div>
                             </div>
                         </a>
                         <a href="{{ route('automation') }}" class="flex items-start gap-2.5 p-2 rounded-lg hover:bg-light-elevated dark:hover:bg-dark-elevated transition-colors">
-                            <i class="ri-cpu-line text-amber-500 text-sm mt-0.5"></i>
+                            <i class="ri-truck-line text-amber-500 text-sm mt-0.5"></i>
                             <div>
-                                <div class="font-semibold text-xs text-light-text dark:text-dark-text">Intelligent Automation</div>
-                                <div class="text-3xs text-light-muted dark:text-dark-muted">Order workflows & resolution gates</div>
+                                <div class="font-semibold text-xs text-light-text dark:text-dark-text">2. Operations & Courier Agent</div>
+                                <div class="text-3xs text-light-muted dark:text-dark-muted">Order intake & Steadfast/Pathao auto-dispatch</div>
+                            </div>
+                        </a>
+                        <a href="{{ route('business-intelligence') }}" class="flex items-start gap-2.5 p-2 rounded-lg hover:bg-light-elevated dark:hover:bg-dark-elevated transition-colors">
+                            <i class="ri-funds-line text-purple-500 text-sm mt-0.5"></i>
+                            <div>
+                                <div class="font-semibold text-xs text-light-text dark:text-dark-text">3. Business Owner Agent (CFO)</div>
+                                <div class="text-3xs text-light-muted dark:text-dark-muted">Profit/loss, gross margins & inventory alerts</div>
+                            </div>
+                        </a>
+                        <a href="{{ route('knowledge-engine') }}" class="flex items-start gap-2.5 p-2 rounded-lg hover:bg-light-elevated dark:hover:bg-dark-elevated transition-colors">
+                            <i class="ri-file-excel-2-line text-sky-500 text-sm mt-0.5"></i>
+                            <div>
+                                <div class="font-semibold text-xs text-light-text dark:text-dark-text">Spreadsheet Knowledge Engine</div>
+                                <div class="text-3xs text-light-muted dark:text-dark-muted">Dynamic column mapping & live stock toggle</div>
                             </div>
                         </a>
                     </div>
@@ -124,12 +125,12 @@
     {{-- Mobile Dropdown Menu --}}
     <div id="publicMobileMenu" class="hidden lg:hidden border-t border-light-border dark:border-white/[0.08] bg-light-surface/95 dark:bg-dark-canvas/95 backdrop-blur-xl px-4 py-4 space-y-3">
         <div class="space-y-1">
-            <div class="px-2 pb-1 text-3xs font-semibold uppercase tracking-wider text-light-muted dark:text-dark-muted font-mono">Platform Modules</div>
+            <div class="px-2 pb-1 text-3xs font-semibold uppercase tracking-wider text-light-muted dark:text-dark-muted font-mono">The 3 AI Employees</div>
             <a href="{{ route('platform') }}" class="block px-3 py-2 rounded-lg text-xs font-medium hover:bg-light-elevated dark:hover:bg-dark-elevated">Platform Overview</a>
-            <a href="{{ route('knowledge-engine') }}" class="block px-3 py-2 rounded-lg text-xs font-medium hover:bg-light-elevated dark:hover:bg-dark-elevated">AI Knowledge Engine</a>
-            <a href="{{ route('unified-inbox') }}" class="block px-3 py-2 rounded-lg text-xs font-medium hover:bg-light-elevated dark:hover:bg-dark-elevated">Unified Customer Inbox</a>
-            <a href="{{ route('business-intelligence') }}" class="block px-3 py-2 rounded-lg text-xs font-medium hover:bg-light-elevated dark:hover:bg-dark-elevated">Business Intelligence</a>
-            <a href="{{ route('automation') }}" class="block px-3 py-2 rounded-lg text-xs font-medium hover:bg-light-elevated dark:hover:bg-dark-elevated">Intelligent Automation</a>
+            <a href="{{ route('unified-inbox') }}" class="block px-3 py-2 rounded-lg text-xs font-medium hover:bg-light-elevated dark:hover:bg-dark-elevated">1. Customer Sales Agent</a>
+            <a href="{{ route('automation') }}" class="block px-3 py-2 rounded-lg text-xs font-medium hover:bg-light-elevated dark:hover:bg-dark-elevated">2. Operations & Courier Agent</a>
+            <a href="{{ route('business-intelligence') }}" class="block px-3 py-2 rounded-lg text-xs font-medium hover:bg-light-elevated dark:hover:bg-dark-elevated">3. Business Owner Agent (CFO)</a>
+            <a href="{{ route('knowledge-engine') }}" class="block px-3 py-2 rounded-lg text-xs font-medium hover:bg-light-elevated dark:hover:bg-dark-elevated">Spreadsheet Knowledge Engine</a>
         </div>
         <div class="border-t border-light-border dark:border-white/[0.08] pt-2 space-y-1">
             <a href="{{ route('solutions') }}" class="block px-3 py-2 rounded-lg text-xs font-medium hover:bg-light-elevated dark:hover:bg-dark-elevated">Solutions</a>

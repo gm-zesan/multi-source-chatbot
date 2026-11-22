@@ -13,9 +13,9 @@
             {{-- Announcement Badge (Minted Chamfer Bevel) --}}
             <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-light-border dark:border-white/[0.1] bg-light-surface/90 dark:bg-dark-surface/90 backdrop-blur-md text-brand-600 dark:text-brand-400 text-xs font-semibold shadow-[inset_0_1px_0_0_rgba(255,255,255,0.08)] hover:border-brand-500/50 transition-colors">
                 <i class="ri-sparkling-fill text-brand-500 text-xs"></i>
-                <span>Enterprise Platform 2.0</span>
+                <span>৩ জন সার্বক্ষণিক এআই কর্মী</span>
                 <span class="hidden sm:inline text-light-border dark:text-dark-border">/</span>
-                <span class="hidden sm:inline text-light-text dark:text-dark-text font-normal">Autonomous Multi-Source AI</span>
+                <span class="hidden sm:inline text-light-text dark:text-dark-text font-normal">Autonomous 3-Agent Architecture</span>
                 <i class="ri-arrow-right-line text-xs"></i>
             </div>
 
@@ -23,14 +23,16 @@
             <div class="max-w-4xl mx-auto space-y-4">
                 <h1 class="text-[1.35rem] xs:text-2xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight leading-[1.18] sm:leading-[1.12]">
                     <span class="block sm:inline bg-gradient-to-b from-slate-900 via-slate-800 to-slate-600 dark:from-white dark:via-slate-100 dark:to-slate-400/80 bg-clip-text text-transparent drop-shadow-sm dark:drop-shadow-[0_2px_14px_rgba(255,255,255,0.08)]">
-                        Your Business. Connected.
+                        আপনার সম্পূর্ণ ব্যবসা পরিচালনা করবে
                     </span>
                     <span class="block sm:inline bg-gradient-to-r from-brand-500 via-sky-400 to-teal-400 bg-clip-text text-transparent drop-shadow-sm">
-                        Intelligent. Automated.
+                        ৩ জন বিশেষায়িত এআই কর্মী
                     </span>
                 </h1>
-                <p class="text-xs sm:text-base text-light-text-secondary dark:text-dark-text-secondary max-w-2xl mx-auto leading-relaxed">
-                    Bring customer conversations, multi-source business knowledge, and intelligent analytics together in one unified ecosystem.
+                <p class="text-xs sm:text-base text-light-text-secondary dark:text-dark-text-secondary max-w-3xl mx-auto leading-relaxed">
+                    <strong>১. বিক্রয় সহকারী:</strong> ২৪/৭ মেসেঞ্জার ও হোয়াটসঅ্যাপে গ্রাহকদের সাথে কথা বলে সেল কনভার্ট করে।<br class="hidden sm:inline">
+                    <strong>২. কুরিয়ার সহকারী:</strong> ইনবক্সের ঠিকানা বুঝে স্বয়ংক্রিয়ভাবে Steadfast/Pathao-তে পার্সেল বুকিং ও ট্র্যাকিং সিঙ্ক করে।<br class="hidden sm:inline">
+                    <strong>৩. হিসাবরক্ষক (Virtual CFO):</strong> ব্যবসায়ীর জন্য লাভ-ক্ষতি, গ্রস মার্জিন ও ইনভেন্টরি অ্যানালিটিক্স তৈরি করে।
                 </p>
             </div>
 
@@ -58,16 +60,19 @@
                             <span class="text-light-muted dark:text-dark-muted hidden md:inline">entrepreneurs.app/console/unified-operations</span>
                         </div>
 
-                        {{-- Interactive Module Tabs --}}
+                        {{-- Interactive Module Tabs (The 3 Specialized AI Employees) --}}
                         <div class="flex items-center gap-1 p-1 rounded-xl bg-light-canvas dark:bg-dark-canvas border border-light-border dark:border-white/[0.08] text-xs">
-                            <button type="button" onclick="switchHeroTab('grounding')" id="tabBtn-grounding" class="hero-tab-btn px-3 py-1 rounded-lg text-3xs font-semibold bg-brand-600 text-white shadow-xs transition-all">
-                                Catalog Grounding
+                            <button type="button" onclick="switchHeroTab('sales')" id="tabBtn-sales" class="hero-tab-btn px-3 py-1.5 rounded-lg text-3xs font-semibold bg-brand-600 text-white shadow-xs transition-all flex items-center gap-1.5">
+                                <i class="ri-customer-service-2-line text-xs"></i>
+                                <span>১. কাস্টমার সেলস এজেন্ট</span>
                             </button>
-                            <button type="button" onclick="switchHeroTab('inbox')" id="tabBtn-inbox" class="hero-tab-btn px-3 py-1 rounded-lg text-3xs font-semibold text-light-muted dark:text-dark-muted hover:text-light-text dark:hover:text-dark-text transition-all">
-                                Live Takeover
+                            <button type="button" onclick="switchHeroTab('ops')" id="tabBtn-ops" class="hero-tab-btn px-3 py-1.5 rounded-lg text-3xs font-semibold text-light-muted dark:text-dark-muted hover:text-light-text dark:hover:text-dark-text transition-all flex items-center gap-1.5">
+                                <i class="ri-truck-line text-xs"></i>
+                                <span>২. কুরিয়ার ও অর্ডার এজেন্ট</span>
                             </button>
-                            <button type="button" onclick="switchHeroTab('telemetry')" id="tabBtn-telemetry" class="hero-tab-btn px-3 py-1 rounded-lg text-3xs font-semibold text-light-muted dark:text-dark-muted hover:text-light-text dark:hover:text-dark-text transition-all">
-                                Observability
+                            <button type="button" onclick="switchHeroTab('cfo')" id="tabBtn-cfo" class="hero-tab-btn px-3 py-1.5 rounded-lg text-3xs font-semibold text-light-muted dark:text-dark-muted hover:text-light-text dark:hover:text-dark-text transition-all flex items-center gap-1.5">
+                                <i class="ri-funds-line text-xs"></i>
+                                <span>৩. মার্চেন্ট CFO এজেন্ট</span>
                             </button>
                         </div>
                     </div>
@@ -75,61 +80,61 @@
                     {{-- Live Simulation Query Trigger Pills --}}
                     <div id="sandboxPillsBar" class="mb-4 p-2.5 rounded-xl bg-light-canvas dark:bg-dark-canvas border border-light-border dark:border-white/[0.08] flex flex-wrap items-center justify-between gap-2 text-xs">
                         <div class="flex items-center gap-2">
-                            <span class="text-3xs font-mono font-bold uppercase tracking-wider text-light-muted dark:text-dark-muted">Interactive Sandbox:</span>
-                            <span class="text-3xs text-light-muted dark:text-dark-muted">Click a question to test live multi-source retrieval</span>
+                            <span class="text-3xs font-mono font-bold uppercase tracking-wider text-light-muted dark:text-dark-muted">লাইভ সিমুলেটর:</span>
+                            <span class="text-3xs text-light-muted dark:text-dark-muted">৩ জন বিশেষায়িত কর্মীর লাইভ কার্যক্রম পরীক্ষা করুন</span>
                         </div>
                         <div class="flex flex-wrap items-center gap-1.5">
-                            <button type="button" onclick="runSimulationQuery('stock')" class="sim-btn px-2.5 py-1 rounded-lg text-3xs font-medium border border-brand-500/30 bg-brand-500/10 text-brand-600 dark:text-brand-400 hover:bg-brand-500/20 transition-colors">
-                                "iPhone 15 Pro stock?"
+                            <button type="button" onclick="runSimulationQuery('sales')" class="sim-btn px-2.5 py-1 rounded-lg text-3xs font-medium border border-brand-500/30 bg-brand-500/10 text-brand-600 dark:text-brand-400 hover:bg-brand-500/20 transition-colors">
+                                "স্টক ও পণ্যের মূল্য কত?" (Sales)
                             </button>
-                            <button type="button" onclick="runSimulationQuery('warranty')" class="sim-btn px-2.5 py-1 rounded-lg text-3xs font-medium border border-light-border dark:border-white/[0.08] bg-light-surface dark:bg-dark-surface hover:border-brand-500/50 transition-colors">
-                                "Warranty policy?"
+                            <button type="button" onclick="runSimulationQuery('ops')" class="sim-btn px-2.5 py-1 rounded-lg text-3xs font-medium border border-light-border dark:border-white/[0.08] bg-light-surface dark:bg-dark-surface hover:border-brand-500/50 transition-colors">
+                                "অর্ডার কনফার্ম ও কুরিয়ার বুকিং" (Operations)
                             </button>
-                            <button type="button" onclick="runSimulationQuery('delivery')" class="sim-btn px-2.5 py-1 rounded-lg text-3xs font-medium border border-light-border dark:border-white/[0.08] bg-light-surface dark:bg-dark-surface hover:border-brand-500/50 transition-colors">
-                                "Express delivery window?"
+                            <button type="button" onclick="runSimulationQuery('cfo')" class="sim-btn px-2.5 py-1 rounded-lg text-3xs font-medium border border-light-border dark:border-white/[0.08] bg-light-surface dark:bg-dark-surface hover:border-brand-500/50 transition-colors">
+                                "নেট প্রফিট, মার্জিন ও ডেড স্টক" (CFO)
                             </button>
                         </div>
                     </div>
 
-                    {{-- UI MODE: Tab 1 View: Catalog Grounding (Default) --}}
-                    <div id="heroTabView-grounding" class="hero-tab-content grid grid-cols-1 md:grid-cols-12 gap-3.5">
+                    {{-- UI MODE: Tab 1 View: Customer Sales Agent (Front Office) --}}
+                    <div id="heroTabView-sales" class="hero-tab-content grid grid-cols-1 md:grid-cols-12 gap-3.5">
                         {{-- Left: Live Dialogue Stream --}}
                         <div class="chamfer-card md:col-span-4 p-3.5 rounded-xl border border-light-border dark:border-white/[0.08] bg-light-canvas dark:bg-dark-canvas space-y-3 flex flex-col justify-between">
                             <div>
                                 <div class="flex items-center justify-between border-b border-light-border dark:border-white/[0.08] pb-2 mb-3">
                                     <div class="flex items-center gap-2 text-xs font-semibold">
                                         <i class="ri-message-3-line text-brand-500"></i>
-                                        <span>Customer Dialogue</span>
+                                        <span>Customer Sales Dialogue</span>
                                     </div>
-                                    <span class="px-1.5 py-0.5 rounded text-3xs font-mono bg-brand-500/15 text-brand-500 font-bold uppercase">Storefront Chat</span>
+                                    <span class="px-1.5 py-0.5 rounded text-3xs font-mono bg-brand-500/15 text-brand-500 font-bold uppercase">Front Office</span>
                                 </div>
                                 
                                 <div class="space-y-2.5 text-xs" id="chatDialogueArea">
                                     <div class="p-2.5 rounded-lg bg-light-surface dark:bg-dark-surface border border-light-border dark:border-white/[0.08] space-y-1">
                                         <div class="flex items-center justify-between text-3xs text-light-muted dark:text-dark-muted font-mono">
-                                            <span class="font-semibold text-light-text dark:text-dark-text">Customer #8412</span>
+                                            <span class="font-semibold text-light-text dark:text-dark-text">Customer (Messenger)</span>
                                             <span>Just now</span>
                                         </div>
                                         <p class="text-light-text-secondary dark:text-dark-text-secondary text-2xs" id="simCustomerQuestion">
-                                            "Do you have the iPhone 15 Pro Max 256GB in Natural Titanium in stock?"
+                                            "আইফোন ১৫ প্রো ম্যাক্স ২৫৬জিবি টাইটানিয়াম কি স্টকে আছে? দাম কত?"
                                         </p>
                                     </div>
 
                                     <div class="p-2.5 rounded-lg bg-brand-500/10 border border-brand-500/20 space-y-1 transition-all">
                                         <div class="flex items-center justify-between text-3xs text-brand-500 font-semibold">
-                                            <span class="flex items-center gap-1"><i class="ri-sparkling-fill text-xs"></i> Grounded AI Response</span>
+                                            <span class="flex items-center gap-1"><i class="ri-sparkling-fill text-xs"></i> Grounded AI Sales Agent</span>
                                             <span class="font-mono text-3xs" id="simLatency">180ms</span>
                                         </div>
                                         <p class="text-light-text dark:text-dark-text text-2xs leading-relaxed" id="simAiAnswer">
-                                            "Yes, we have 4 units of Natural Titanium 256GB available at our Gulshan Hub for ৳162,000 with official warranty."
+                                            "জি! আমাদের গুলশান হাবে Natural Titanium 256GB ভ্যারিয়েন্টটি ৪টি স্টকে আছে। অফিসিয়াল ওয়ারেন্টি সহ মূল্য ৳১,৬২,০০০। ক্যাশ অন ডেলিভারিতে অর্ডার করতে আপনার নাম, ফোন ও ঠিকানা জানান।"
                                         </p>
                                     </div>
                                 </div>
                             </div>
 
                             <div class="pt-2 border-t border-light-border dark:border-white/[0.08] flex items-center justify-between text-3xs font-mono text-light-muted dark:text-dark-muted">
-                                <span>Channel: Web Widget</span>
-                                <span class="text-emerald-500 font-semibold">Status: Autopilot</span>
+                                <span>Multi-Lingual: বাংলা / English</span>
+                                <span class="text-emerald-500 font-semibold">Status: ২৪/৭ সক্রিয়</span>
                             </div>
                         </div>
 
@@ -141,7 +146,7 @@
                                     <span>Knowledge Grounding Pipeline</span>
                                 </div>
                                 <span class="text-3xs font-mono text-emerald-500 flex items-center gap-1 font-semibold">
-                                    <i class="ri-checkbox-circle-fill"></i> Verified Grounding
+                                    <i class="ri-checkbox-circle-fill"></i> 0.0% Hallucination
                                 </span>
                             </div>
 
@@ -155,22 +160,22 @@
                                         <span class="font-mono text-3xs text-emerald-500 font-bold" id="simRowMatch">Row #148 matched</span>
                                     </div>
                                     <div class="p-1.5 rounded bg-light-canvas dark:bg-dark-canvas font-mono text-3xs text-light-muted dark:text-dark-muted truncate" id="simRowData">
-                                        SKU: IP15P-256-NT | Stock: 4 | Hub: Gulshan | Price: 162,000 BDT
+                                        SKU: IP15P-256-NT | Stock: 4 units | Hub: Gulshan | Price: ৳162,000
                                     </div>
                                 </div>
 
                                 <div class="p-2 rounded-lg bg-light-surface dark:bg-dark-surface border border-light-border dark:border-white/[0.08] flex items-center justify-between text-3xs font-mono">
                                     <span class="flex items-center gap-1.5">
                                         <i class="ri-shield-check-line text-brand-500"></i>
-                                        <span>Hallucination Filter: Passed</span>
+                                        <span>Column Memory: Price & Stock Mapped</span>
                                     </span>
-                                    <span class="text-emerald-500 font-semibold" id="simConfidence">Score: 0.984</span>
+                                    <span class="text-emerald-500 font-semibold" id="simConfidence">Confidence: 100%</span>
                                 </div>
 
                                 <div class="p-2.5 rounded-lg bg-light-surface/60 dark:bg-dark-surface/60 border border-dashed border-light-border dark:border-white/[0.08] text-3xs font-mono text-light-muted dark:text-dark-muted space-y-1">
                                     <div class="flex justify-between">
-                                        <span>Route Strategy:</span>
-                                        <span class="text-light-text dark:text-dark-text font-semibold" id="simRoute">Deterministic Catalog Query</span>
+                                        <span>Quick Stock Status:</span>
+                                        <span class="text-emerald-500 font-semibold" id="simRoute">In Stock (1-Click Toggle Active)</span>
                                     </div>
                                     <div class="flex justify-between">
                                         <span>Token Overhead:</span>
@@ -186,7 +191,7 @@
                                 <div class="flex items-center justify-between border-b border-light-border dark:border-white/[0.08] pb-2 mb-3">
                                     <div class="flex items-center gap-2 text-xs font-semibold">
                                         <i class="ri-bar-chart-2-line text-purple-500"></i>
-                                        <span>Execution Metrics</span>
+                                        <span>Sales Agent Metrics</span>
                                     </div>
                                     <span class="text-3xs font-mono text-purple-500 font-semibold">Sub-Second</span>
                                 </div>
@@ -197,7 +202,6 @@
                                             <span>Resolution Latency</span>
                                             <span class="text-light-text dark:text-dark-text font-bold">180ms</span>
                                         </div>
-                                        {{-- Inline SVG Micro Sparkline --}}
                                         <svg class="w-full h-8 mt-1 text-brand-500" viewBox="0 0 100 25" fill="none" stroke="currentColor" stroke-width="2">
                                             <path d="M0,18 L15,14 L30,16 L45,10 L60,12 L75,8 L90,9 L100,6" stroke-linecap="round"/>
                                         </svg>
@@ -206,87 +210,254 @@
                                     <div>
                                         <div class="flex justify-between text-3xs font-mono text-light-muted dark:text-dark-muted uppercase">
                                             <span>Grounding Precision</span>
-                                            <span class="text-emerald-500 font-bold">99.8%</span>
+                                            <span class="text-emerald-500 font-bold">100.0%</span>
                                         </div>
                                         <div class="w-full h-1.5 bg-light-surface dark:bg-dark-surface rounded-full overflow-hidden mt-1.5">
-                                            <div class="h-full bg-emerald-500 rounded-full" style="width: 99.8%"></div>
+                                            <div class="h-full bg-emerald-500 rounded-full" style="width: 100%"></div>
                                         </div>
                                     </div>
 
                                     <div>
                                         <div class="flex justify-between text-3xs font-mono text-light-muted dark:text-dark-muted uppercase">
-                                            <span>Avg Cost / Answer</span>
-                                            <span class="text-brand-500 font-bold font-mono">$0.00028</span>
+                                            <span>Avg Cost / Reply</span>
+                                            <span class="text-brand-500 font-bold font-mono">৳ 0.40 BDT</span>
                                         </div>
                                     </div>
                                 </div>
                             </div>
 
                             <a href="{{ route('knowledge-engine') }}" class="text-center py-1.5 px-3 rounded-lg border border-light-border dark:border-white/[0.08] text-2xs font-semibold hover:border-brand-500/50 transition-colors">
-                                View Engine Docs &rarr;
+                                Explore Sales Engine &rarr;
                             </a>
                         </div>
                     </div>
 
-                    {{-- UI MODE: Tab 2 View: Live Unified Inbox & Takeover --}}
-                    <div id="heroTabView-inbox" class="hero-tab-content hidden grid grid-cols-1 md:grid-cols-12 gap-3.5">
-                        <div class="chamfer-card md:col-span-5 p-3.5 rounded-xl border border-light-border dark:border-white/[0.08] bg-light-canvas dark:bg-dark-canvas space-y-2">
-                            <div class="text-xs font-semibold border-b border-light-border dark:border-white/[0.08] pb-2 flex justify-between">
-                                <span>Omnichannel Queue</span>
-                                <span class="text-3xs font-mono text-brand-500 font-bold">4 Active</span>
-                            </div>
-                            <div class="space-y-1.5 text-2xs">
-                                <div class="p-2 rounded-lg bg-brand-500/10 border border-brand-500/30 flex justify-between items-center">
-                                    <div>
-                                        <div class="font-bold text-light-text dark:text-dark-text">Tamim Iqbal</div>
-                                        <div class="text-3xs text-light-muted dark:text-dark-muted truncate">"Can I exchange for larger size?"</div>
-                                    </div>
-                                    <span class="px-1.5 py-0.5 rounded text-3xs bg-amber-500 text-white font-bold">Takeover</span>
+                    {{-- UI MODE: Tab 2 View: Operations & Courier Agent (Back Office) --}}
+                    <div id="heroTabView-ops" class="hero-tab-content hidden grid grid-cols-1 md:grid-cols-12 gap-3.5">
+                        {{-- Left: Inbound Order Extraction --}}
+                        <div class="chamfer-card md:col-span-5 p-3.5 rounded-xl border border-light-border dark:border-white/[0.08] bg-light-canvas dark:bg-dark-canvas space-y-3">
+                            <div class="flex items-center justify-between border-b border-light-border dark:border-white/[0.08] pb-2">
+                                <div class="flex items-center gap-2 text-xs font-semibold">
+                                    <i class="ri-file-list-3-line text-amber-500"></i>
+                                    <span>Autonomous Order Intake</span>
                                 </div>
-                                <div class="p-2 rounded-lg bg-light-surface dark:bg-dark-surface border border-light-border dark:border-white/[0.08] flex justify-between items-center">
-                                    <div>
-                                        <div class="font-bold text-light-text dark:text-dark-text">Farhana Yesmin</div>
-                                        <div class="text-3xs text-light-muted dark:text-dark-muted truncate">"Thanks, order received!"</div>
+                                <span class="px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-500 text-3xs font-mono font-bold">Order Captured</span>
+                            </div>
+                            
+                            <div class="p-2.5 rounded-lg bg-light-surface dark:bg-dark-surface border border-light-border dark:border-white/[0.08] space-y-1.5 text-2xs">
+                                <div class="text-3xs font-mono text-light-muted dark:text-dark-muted flex justify-between">
+                                    <span>Inbound Message Stream</span>
+                                    <span class="text-emerald-500 font-semibold">Parsed in 0.3s</span>
+                                </div>
+                                <p class="text-light-text-secondary dark:text-dark-text-secondary text-2xs font-sans italic bg-light-canvas dark:bg-dark-canvas p-2 rounded">
+                                    "আমি ১ সেট Terracotta Tea Cup নিবো। নাম: ফারহান আহমেদ, ফোন: 01711234567, ঠিকানা: বাড়ি ৪২, রোড ১১, বনানী, ঢাকা।"
+                                </p>
+                                <div class="grid grid-cols-2 gap-2 pt-1 font-mono text-3xs">
+                                    <div class="p-1.5 rounded bg-light-canvas dark:bg-dark-canvas">
+                                        <span class="text-light-muted dark:text-dark-muted block">Customer Name</span>
+                                        <span class="font-bold text-light-text dark:text-dark-text">ফারহান আহমেদ</span>
                                     </div>
-                                    <span class="px-1.5 py-0.5 rounded text-3xs bg-emerald-500/20 text-emerald-500 font-bold">Resolved</span>
+                                    <div class="p-1.5 rounded bg-light-canvas dark:bg-dark-canvas">
+                                        <span class="text-light-muted dark:text-dark-muted block">Verified Phone</span>
+                                        <span class="font-bold text-emerald-500 font-mono">01711234567</span>
+                                    </div>
+                                    <div class="col-span-2 p-1.5 rounded bg-light-canvas dark:bg-dark-canvas">
+                                        <span class="text-light-muted dark:text-dark-muted block">Delivery Address</span>
+                                        <span class="font-bold text-light-text dark:text-dark-text">বাড়ি ৪২, রোড ১১, বনানী, ঢাকা</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="p-2 rounded-lg bg-amber-500/10 border border-amber-500/20 text-3xs text-amber-600 dark:text-amber-400 flex items-center justify-between">
+                                <span class="flex items-center gap-1.5"><i class="ri-time-line"></i> Lead Recovery: Cross-turn buffering active</span>
+                                <span class="font-bold font-mono">Zero Abandoned Leads</span>
+                            </div>
+                        </div>
+
+                        {{-- Center: Steadfast & Pathao Courier Auto-Dispatch --}}
+                        <div class="chamfer-card md:col-span-4 p-3.5 rounded-xl border border-light-border dark:border-white/[0.08] bg-light-canvas dark:bg-dark-canvas space-y-3">
+                            <div class="flex items-center justify-between border-b border-light-border dark:border-white/[0.08] pb-2">
+                                <div class="flex items-center gap-2 text-xs font-semibold">
+                                    <i class="ri-truck-line text-brand-500"></i>
+                                    <span>Courier API Integration</span>
+                                </div>
+                                <span class="text-3xs font-mono text-emerald-500 font-bold">Steadfast Live</span>
+                            </div>
+
+                            <div class="space-y-2 text-2xs font-mono">
+                                <div class="p-2.5 rounded-lg bg-light-surface dark:bg-dark-surface border border-light-border dark:border-white/[0.08] space-y-1">
+                                    <div class="flex justify-between items-center">
+                                        <span class="text-light-muted dark:text-dark-muted">Consignment ID:</span>
+                                        <span class="text-brand-500 font-bold">#SF-84920194</span>
+                                    </div>
+                                    <div class="flex justify-between items-center">
+                                        <span class="text-light-muted dark:text-dark-muted">Courier Partner:</span>
+                                        <span class="text-light-text dark:text-dark-text font-bold">Steadfast API v1</span>
+                                    </div>
+                                    <div class="flex justify-between items-center">
+                                        <span class="text-light-muted dark:text-dark-muted">COD Amount:</span>
+                                        <span class="text-emerald-500 font-bold">৳ 980 BDT</span>
+                                    </div>
+                                    <div class="flex justify-between items-center">
+                                        <span class="text-light-muted dark:text-dark-muted">Current Status:</span>
+                                        <span class="px-1.5 py-0.5 rounded text-3xs bg-emerald-500/15 text-emerald-500 font-bold">In Review / পার্সেল বুকড</span>
+                                    </div>
+                                </div>
+
+                                <div class="p-2 rounded-lg bg-light-surface dark:bg-dark-surface border border-light-border dark:border-white/[0.08] text-3xs space-y-1 text-light-muted dark:text-dark-muted">
+                                    <div class="flex justify-between">
+                                        <span>Webhook Status Sync:</span>
+                                        <span class="text-emerald-500 font-semibold">Delivered & Return Sync</span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span>Manual Typing Needed:</span>
+                                        <span class="text-rose-500 font-bold line-through">5 Minutes</span>
+                                        <span class="text-emerald-500 font-bold">0 Seconds</span>
+                                    </div>
                                 </div>
                             </div>
                         </div>
 
-                        <div class="chamfer-card md:col-span-7 p-3.5 rounded-xl border border-light-border dark:border-white/[0.08] bg-light-canvas dark:bg-dark-canvas space-y-3">
-                            <div class="flex items-center justify-between border-b border-light-border dark:border-white/[0.08] pb-2">
-                                <div class="flex items-center gap-2 text-xs font-semibold">
-                                    <i class="ri-user-shared-line text-amber-500"></i>
-                                    <span>Agent Takeover Console</span>
+                        {{-- Right: Operations Metrics --}}
+                        <div class="chamfer-card md:col-span-3 p-3.5 rounded-xl border border-light-border dark:border-white/[0.08] bg-light-canvas dark:bg-dark-canvas space-y-3 flex flex-col justify-between">
+                            <div>
+                                <div class="flex items-center justify-between border-b border-light-border dark:border-white/[0.08] pb-2 mb-3">
+                                    <div class="flex items-center gap-2 text-xs font-semibold">
+                                        <i class="ri-dashboard-line text-amber-500"></i>
+                                        <span>Fulfillment Velocity</span>
+                                    </div>
+                                    <span class="text-3xs font-mono text-amber-500 font-semibold">Automated</span>
                                 </div>
-                                <span class="px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-500 text-3xs font-mono font-bold">AI Co-Pilot Active</span>
+
+                                <div class="space-y-3">
+                                    <div>
+                                        <div class="flex justify-between text-3xs font-mono text-light-muted dark:text-dark-muted uppercase">
+                                            <span>Booking Dispatch Time</span>
+                                            <span class="text-light-text dark:text-dark-text font-bold">0.4 sec</span>
+                                        </div>
+                                        <div class="w-full h-1.5 bg-light-surface dark:bg-dark-surface rounded-full overflow-hidden mt-1.5">
+                                            <div class="h-full bg-amber-500 rounded-full" style="width: 96%"></div>
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <div class="flex justify-between text-3xs font-mono text-light-muted dark:text-dark-muted uppercase">
+                                            <span>Webhook Sync SLA</span>
+                                            <span class="text-emerald-500 font-bold">&lt; 50ms</span>
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <div class="flex justify-between text-3xs font-mono text-light-muted dark:text-dark-muted uppercase">
+                                            <span>Supported Couriers</span>
+                                            <span class="text-brand-500 font-bold font-mono">Steadfast + Pathao</span>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
-                            <p class="text-2xs text-light-muted dark:text-dark-muted leading-relaxed">
-                                When high-touch customers require custom accommodations, human agents click "Take Over" to pause automated replies. The platform suggests grounded policy citations on the right panel while maintaining unbroken conversation context.
-                            </p>
-                            <div class="p-2.5 rounded-lg bg-light-surface dark:bg-dark-surface border border-light-border dark:border-white/[0.08] flex items-center justify-between text-2xs font-mono">
-                                <span>Suggested Response:</span>
-                                <span class="text-brand-500 font-semibold cursor-pointer hover:underline">Insert Policy Ch. 3 &rarr;</span>
-                            </div>
+
+                            <a href="{{ route('automation') }}" class="text-center py-1.5 px-3 rounded-lg border border-light-border dark:border-white/[0.08] text-2xs font-semibold hover:border-brand-500/50 transition-colors">
+                                Explore Logistics Flow &rarr;
+                            </a>
                         </div>
                     </div>
 
-                    {{-- UI MODE: Tab 3 View: Resolution Telemetry & Latency --}}
-                    <div id="heroTabView-telemetry" class="hero-tab-content hidden grid grid-cols-1 md:grid-cols-3 gap-3.5 text-xs">
-                        <div class="chamfer-card p-4 rounded-xl border border-light-border dark:border-white/[0.08] bg-light-canvas dark:bg-dark-canvas space-y-2">
-                            <div class="text-3xs uppercase font-mono text-light-muted dark:text-dark-muted">Peak Query Velocity</div>
-                            <div class="text-2xl font-bold font-mono text-light-text dark:text-dark-text">1,420 <span class="text-xs font-normal">req/min</span></div>
-                            <p class="text-3xs text-light-muted dark:text-dark-muted">Automated scale without concurrency locking or rate limits.</p>
+                    {{-- UI MODE: Tab 3 View: Business Owner Agent / Virtual CFO --}}
+                    <div id="heroTabView-cfo" class="hero-tab-content hidden grid grid-cols-1 md:grid-cols-12 gap-3.5">
+                        {{-- Left: Private Owner Dialogue --}}
+                        <div class="chamfer-card md:col-span-5 p-3.5 rounded-xl border border-light-border dark:border-white/[0.08] bg-light-canvas dark:bg-dark-canvas space-y-3">
+                            <div class="flex items-center justify-between border-b border-light-border dark:border-white/[0.08] pb-2">
+                                <div class="flex items-center gap-2 text-xs font-semibold">
+                                    <i class="ri-user-star-line text-purple-500"></i>
+                                    <span>Private Merchant Portal</span>
+                                </div>
+                                <span class="px-2 py-0.5 rounded bg-purple-500/15 text-purple-500 text-3xs font-mono font-bold">Executive Mode</span>
+                            </div>
+
+                            <div class="space-y-2.5 text-xs">
+                                <div class="p-2.5 rounded-lg bg-light-surface dark:bg-dark-surface border border-light-border dark:border-white/[0.08] space-y-1">
+                                    <div class="flex items-center justify-between text-3xs text-light-muted dark:text-dark-muted font-mono">
+                                        <span class="font-semibold text-light-text dark:text-dark-text">Shop Owner (ব্যবসায়ী)</span>
+                                        <span>Private Session</span>
+                                    </div>
+                                    <p class="text-light-text-secondary dark:text-dark-text-secondary text-2xs">
+                                        "গত ৭ দিনের নিট প্রফিট আর মার্জিন কত? কোন আইটেমের স্টক শেষ?"
+                                    </p>
+                                </div>
+
+                                <div class="p-2.5 rounded-lg bg-purple-500/10 border border-purple-500/20 space-y-1.5">
+                                    <div class="flex items-center justify-between text-3xs text-purple-500 font-semibold">
+                                        <span class="flex items-center gap-1"><i class="ri-sparkling-fill"></i> Virtual CFO Intelligence</span>
+                                        <span class="font-mono text-3xs">Verified COGS</span>
+                                    </div>
+                                    <p class="text-light-text dark:text-dark-text text-2xs leading-relaxed">
+                                        "গত ৭ দিনে মোট সেলস <strong>৳১,৮৪,২০০</strong>। পাইকারি খরচ (COGS) ৳১,১২,৪০০ ও কুরিয়ার ফি বাদ দিয়ে নেট প্রফিট <strong>৳৫৫,২৬০</strong> (গ্রস মার্জিন ৩৮.৬%)।<br>
+                                        <span class="text-rose-500 font-semibold">সতর্কতা: Terracotta Tea Cup Set এর স্টক শেষ (০ টি)</span> — দ্রুত রিস্টক করুন।"
+                                    </p>
+                                </div>
+                            </div>
                         </div>
-                        <div class="chamfer-card p-4 rounded-xl border border-light-border dark:border-white/[0.08] bg-light-canvas dark:bg-dark-canvas space-y-2">
-                            <div class="text-3xs uppercase font-mono text-light-muted dark:text-dark-muted">P95 Response Latency</div>
-                            <div class="text-2xl font-bold font-mono text-emerald-500">220ms</div>
-                            <p class="text-3xs text-light-muted dark:text-dark-muted">Hybrid lexical and vector index delivers answers in under 0.25s.</p>
+
+                        {{-- Center: Financial P&L Breakdown --}}
+                        <div class="chamfer-card md:col-span-4 p-3.5 rounded-xl border border-light-border dark:border-white/[0.08] bg-light-canvas dark:bg-dark-canvas space-y-3">
+                            <div class="flex items-center justify-between border-b border-light-border dark:border-white/[0.08] pb-2">
+                                <div class="flex items-center gap-2 text-xs font-semibold">
+                                    <i class="ri-funds-line text-emerald-500"></i>
+                                    <span>Profit & Margin Analytics</span>
+                                </div>
+                                <span class="text-3xs font-mono text-emerald-500 font-bold">7-Day Actuals</span>
+                            </div>
+
+                            <div class="space-y-2 text-2xs font-mono">
+                                <div class="p-2 rounded bg-light-surface dark:bg-dark-surface border border-light-border dark:border-white/[0.08] flex justify-between">
+                                    <span class="text-light-muted dark:text-dark-muted">Gross Revenue:</span>
+                                    <span class="font-bold text-light-text dark:text-dark-text">৳ 184,200</span>
+                                </div>
+                                <div class="p-2 rounded bg-light-surface dark:bg-dark-surface border border-light-border dark:border-white/[0.08] flex justify-between">
+                                    <span class="text-light-muted dark:text-dark-muted">Wholesale COGS:</span>
+                                    <span class="font-bold text-rose-500">- ৳ 112,400</span>
+                                </div>
+                                <div class="p-2 rounded bg-light-surface dark:bg-dark-surface border border-light-border dark:border-white/[0.08] flex justify-between">
+                                    <span class="text-light-muted dark:text-dark-muted">Courier / Logistics:</span>
+                                    <span class="font-bold text-amber-500">- ৳ 16,540</span>
+                                </div>
+                                <div class="p-2 rounded bg-emerald-500/15 border border-emerald-500/30 flex justify-between font-bold">
+                                    <span class="text-emerald-600 dark:text-emerald-400">Net Margin:</span>
+                                    <span class="text-emerald-600 dark:text-emerald-400">38.6% (৳ 55,260)</span>
+                                </div>
+                            </div>
                         </div>
-                        <div class="chamfer-card p-4 rounded-xl border border-light-border dark:border-white/[0.08] bg-light-canvas dark:bg-dark-canvas space-y-2">
-                            <div class="text-3xs uppercase font-mono text-light-muted dark:text-dark-muted">Deterministic Boundary</div>
-                            <div class="text-2xl font-bold font-mono text-sky-500">100% Gated</div>
-                            <p class="text-3xs text-light-muted dark:text-dark-muted">Unverified inquiries are routed to fallback or human agents.</p>
+
+                        {{-- Right: Inventory Alerts --}}
+                        <div class="chamfer-card md:col-span-3 p-3.5 rounded-xl border border-light-border dark:border-white/[0.08] bg-light-canvas dark:bg-dark-canvas space-y-3 flex flex-col justify-between">
+                            <div>
+                                <div class="flex items-center justify-between border-b border-light-border dark:border-white/[0.08] pb-2 mb-2">
+                                    <div class="flex items-center gap-2 text-xs font-semibold">
+                                        <i class="ri-alert-line text-rose-500"></i>
+                                        <span>Inventory Intelligence</span>
+                                    </div>
+                                    <span class="text-3xs font-mono text-rose-500 font-semibold">Live Alert</span>
+                                </div>
+
+                                <div class="space-y-2 text-2xs">
+                                    <div class="p-2 rounded-lg bg-rose-500/10 border border-rose-500/20">
+                                        <div class="text-3xs font-bold text-rose-500 uppercase font-mono">Stock-Out Warning</div>
+                                        <div class="text-light-text dark:text-dark-text font-semibold">Terracotta Tea Cup (0 left)</div>
+                                    </div>
+                                    <div class="p-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
+                                        <div class="text-3xs font-bold text-emerald-500 uppercase font-mono">High Velocity SKU</div>
+                                        <div class="text-light-text dark:text-dark-text font-semibold">Silk Handloom Sharee (+42%)</div>
+                                    </div>
+                                    <div class="p-2 rounded-lg bg-amber-500/10 border border-amber-500/20">
+                                        <div class="text-3xs font-bold text-amber-500 uppercase font-mono">Dead Stock Alert</div>
+                                        <div class="text-light-text dark:text-dark-text font-semibold">Ceramic Vase (0 in 30 days)</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <a href="{{ route('business-intelligence') }}" class="text-center py-1.5 px-3 rounded-lg border border-light-border dark:border-white/[0.08] text-2xs font-semibold hover:border-purple-500/50 transition-colors">
+                                View Executive CFO Docs &rarr;
+                            </a>
                         </div>
                     </div>
 
@@ -349,92 +520,104 @@
         </div>
     </section>
 
-    {{-- ==================== 3. PLATFORM CORE PILLARS (BENTO GRID WITH SPOTLIGHT GLOW) ==================== --}}
+    {{-- ==================== 3. PLATFORM CORE PILLARS (THE 3 SPECIALIZED AI EMPLOYEES) ==================== --}}
     <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
         <div class="text-center space-y-3 max-w-2xl mx-auto">
-            <h2 class="text-2xs font-bold uppercase tracking-wider text-brand-500 font-mono">Platform Architecture</h2>
+            <h2 class="text-2xs font-bold uppercase tracking-wider text-brand-500 font-mono">The 3-Agent Commercial Architecture</h2>
             <p class="text-2xl sm:text-3xl font-extrabold text-light-text dark:text-dark-text tracking-tight">
-                Four Pillars. One Unified Business Engine.
+                ৩ জন সার্বক্ষণিক এআই কর্মী। একটি সমন্বিত ইকোসিস্টেম।
             </p>
             <p class="text-xs sm:text-sm text-light-text-secondary dark:text-dark-text-secondary">
-                Designed from the ground up for high-volume commerce operators requiring verified factual grounding and full operational visibility.
+                ম্যানুয়াল কাস্টমার চ্যাটিং, কুরিয়ার এন্ট্রি আর খাতার হিসাবের দিন শেষ। আধুনিক ই-কমার্স ও এফ-কমার্সের জন্য সম্পূর্ণ অটোমেটেড প্ল্যাটফর্ম।
             </p>
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             
-            {{-- Pillar 1: AI Knowledge Engine --}}
-            <a href="{{ route('knowledge-engine') }}" class="chamfer-card spotlight-card group p-5 rounded-2xl border border-light-border dark:border-white/[0.08] bg-light-surface dark:bg-dark-surface hover:border-brand-500/50 hover:bg-light-elevated dark:hover:bg-dark-elevated transition-all flex flex-col justify-between space-y-4">
+            {{-- Pillar 1: Customer Sales Agent --}}
+            <a href="{{ route('unified-inbox') }}" class="chamfer-card spotlight-card group p-5 rounded-2xl border border-light-border dark:border-white/[0.08] bg-light-surface dark:bg-dark-surface hover:border-brand-500/50 hover:bg-light-elevated dark:hover:bg-dark-elevated transition-all flex flex-col justify-between space-y-4">
                 <div class="space-y-3">
                     <div class="w-10 h-10 rounded-xl bg-brand-500/10 text-brand-500 flex items-center justify-center text-lg font-bold group-hover:scale-105 transition-transform">
-                        <i class="ri-database-2-line"></i>
+                        <i class="ri-customer-service-2-line"></i>
                     </div>
-                    <h3 class="font-bold text-sm text-light-text dark:text-dark-text group-hover:text-brand-500 transition-colors">
-                        AI Knowledge Engine
-                    </h3>
+                    <div class="space-y-1">
+                        <span class="text-3xs font-mono font-bold uppercase text-brand-500">Agent #1 • Front Office</span>
+                        <h3 class="font-bold text-sm text-light-text dark:text-dark-text group-hover:text-brand-500 transition-colors">
+                            Customer Sales Agent
+                        </h3>
+                    </div>
                     <p class="text-2xs text-light-muted dark:text-dark-muted leading-relaxed">
-                        Ingest complex Excel catalogs, warranty policies, and structured FAQs. Responses are grounded in verified business facts.
+                        ২৪/৭ মেসেঞ্জার, হোয়াটসঅ্যাপ ও ওয়েবসাইটে কাস্টমার চ্যাট হ্যান্ডেল করে। এক্সেল শিট দেখে ০% হ্যালুসিনেশনে সঠিক সাইজ, দাম ও স্টক জানিয়ে সেল কনভার্ট করে।
                     </p>
                 </div>
                 <div class="flex items-center gap-1 text-3xs font-semibold text-brand-500">
-                    <span>Learn more</span>
+                    <span>সেলস ফিচার দেখুন</span>
                     <i class="ri-arrow-right-line group-hover:translate-x-1 transition-transform"></i>
                 </div>
             </a>
 
-            {{-- Pillar 2: Unified Customer Inbox --}}
-            <a href="{{ route('unified-inbox') }}" class="chamfer-card spotlight-card group p-5 rounded-2xl border border-light-border dark:border-white/[0.08] bg-light-surface dark:bg-dark-surface hover:border-sky-500/50 hover:bg-light-elevated dark:hover:bg-dark-elevated transition-all flex flex-col justify-between space-y-4">
+            {{-- Pillar 2: Operations & Courier Agent --}}
+            <a href="{{ route('automation') }}" class="chamfer-card spotlight-card group p-5 rounded-2xl border border-light-border dark:border-white/[0.08] bg-light-surface dark:bg-dark-surface hover:border-amber-500/50 hover:bg-light-elevated dark:hover:bg-dark-elevated transition-all flex flex-col justify-between space-y-4">
                 <div class="space-y-3">
-                    <div class="w-10 h-10 rounded-xl bg-sky-500/10 text-sky-500 flex items-center justify-center text-lg font-bold group-hover:scale-105 transition-transform">
-                        <i class="ri-chat-1-line"></i>
+                    <div class="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-500 flex items-center justify-center text-lg font-bold group-hover:scale-105 transition-transform">
+                        <i class="ri-truck-line"></i>
                     </div>
-                    <h3 class="font-bold text-sm text-light-text dark:text-dark-text group-hover:text-sky-500 transition-colors">
-                        Unified Customer Inbox
-                    </h3>
+                    <div class="space-y-1">
+                        <span class="text-3xs font-mono font-bold uppercase text-amber-500">Agent #2 • Back Office</span>
+                        <h3 class="font-bold text-sm text-light-text dark:text-dark-text group-hover:text-amber-500 transition-colors">
+                            Operations & Courier Agent
+                        </h3>
+                    </div>
                     <p class="text-2xs text-light-muted dark:text-dark-muted leading-relaxed">
-                        Centralize multi-channel dialogues in one interface. Seamlessly transfer between autonomous AI and human support reps.
+                        ইনবক্স থেকে কাস্টমারের নাম, ফোন ও ডেলিভারি ঠিকানা নিয়ে ১-ক্লিকে Steadfast ও Pathao কুরিয়ারে বুকিং দেয় এবং রিয়েল-টাইম ডেলিভারি স্ট্যাটাস সিঙ্ক করে।
                     </p>
                 </div>
-                <div class="flex items-center gap-1 text-3xs font-semibold text-sky-500">
-                    <span>Learn more</span>
+                <div class="flex items-center gap-1 text-3xs font-semibold text-amber-500">
+                    <span>কুরিয়ার অটোমেশন দেখুন</span>
                     <i class="ri-arrow-right-line group-hover:translate-x-1 transition-transform"></i>
                 </div>
             </a>
 
-            {{-- Pillar 3: Business Intelligence --}}
+            {{-- Pillar 3: Business Owner Agent / Virtual CFO --}}
             <a href="{{ route('business-intelligence') }}" class="chamfer-card spotlight-card group p-5 rounded-2xl border border-light-border dark:border-white/[0.08] bg-light-surface dark:bg-dark-surface hover:border-purple-500/50 hover:bg-light-elevated dark:hover:bg-dark-elevated transition-all flex flex-col justify-between space-y-4">
                 <div class="space-y-3">
                     <div class="w-10 h-10 rounded-xl bg-purple-500/10 text-purple-500 flex items-center justify-center text-lg font-bold group-hover:scale-105 transition-transform">
-                        <i class="ri-bar-chart-box-line"></i>
+                        <i class="ri-funds-line"></i>
                     </div>
-                    <h3 class="font-bold text-sm text-light-text dark:text-dark-text group-hover:text-purple-500 transition-colors">
-                        Business Intelligence
-                    </h3>
+                    <div class="space-y-1">
+                        <span class="text-3xs font-mono font-bold uppercase text-purple-500">Agent #3 • Executive Suite</span>
+                        <h3 class="font-bold text-sm text-light-text dark:text-dark-text group-hover:text-purple-500 transition-colors">
+                            Business Owner Agent (CFO)
+                        </h3>
+                    </div>
                     <p class="text-2xs text-light-muted dark:text-dark-muted leading-relaxed">
-                        Owner-first analytics tracking resolution velocity, customer demand clusters, and natural-language insight queries.
+                        ব্যবসায়ীর ব্যক্তিগত আর্থিক সহকারী। পাইকারি খরচ (COGS) বনাম বিক্রয় মূল্যের নিখুঁত লাভ-ক্ষতি, গ্রস মার্জিন এবং ডেড স্টক ও রিস্টক অ্যালার্ট প্রদান করে।
                     </p>
                 </div>
                 <div class="flex items-center gap-1 text-3xs font-semibold text-purple-500">
-                    <span>Learn more</span>
+                    <span>CFO অ্যানালিটিক্স দেখুন</span>
                     <i class="ri-arrow-right-line group-hover:translate-x-1 transition-transform"></i>
                 </div>
             </a>
 
-            {{-- Pillar 4: Intelligent Automation --}}
-            <a href="{{ route('automation') }}" class="chamfer-card spotlight-card group p-5 rounded-2xl border border-light-border dark:border-white/[0.08] bg-light-surface dark:bg-dark-surface hover:border-emerald-500/50 hover:bg-light-elevated dark:hover:bg-dark-elevated transition-all flex flex-col justify-between space-y-4">
+            {{-- Pillar 4: Dynamic Spreadsheet Grounding & Quick Stock Toggle --}}
+            <a href="{{ route('knowledge-engine') }}" class="chamfer-card spotlight-card group p-5 rounded-2xl border border-light-border dark:border-white/[0.08] bg-light-surface dark:bg-dark-surface hover:border-emerald-500/50 hover:bg-light-elevated dark:hover:bg-dark-elevated transition-all flex flex-col justify-between space-y-4">
                 <div class="space-y-3">
                     <div class="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center text-lg font-bold group-hover:scale-105 transition-transform">
-                        <i class="ri-cpu-line"></i>
+                        <i class="ri-file-excel-2-line"></i>
                     </div>
-                    <h3 class="font-bold text-sm text-light-text dark:text-dark-text group-hover:text-emerald-500 transition-colors">
-                        Intelligent Automation
-                    </h3>
+                    <div class="space-y-1">
+                        <span class="text-3xs font-mono font-bold uppercase text-emerald-500">Knowledge Core</span>
+                        <h3 class="font-bold text-sm text-light-text dark:text-dark-text group-hover:text-emerald-500 transition-colors">
+                            Dynamic Catalog & Stock Toggle
+                        </h3>
+                    </div>
                     <p class="text-2xs text-light-muted dark:text-dark-muted leading-relaxed">
-                        Automate order confirmations, return eligibility checks, and lead qualification with sub-second execution speed.
+                        কলামের নাম Price, Rate, মূল্য বা Stock যাই হোক—স্বয়ংক্রিয়ভাবে চিনে মনে রাখে। অ্যাডমিন প্যানেল থেকে ১-ক্লিকেই স্টক আউট/ইন টগল করা যায়।
                     </p>
                 </div>
                 <div class="flex items-center gap-1 text-3xs font-semibold text-emerald-500">
-                    <span>Learn more</span>
+                    <span>ক্যাটালগ ইঞ্জিন দেখুন</span>
                     <i class="ri-arrow-right-line group-hover:translate-x-1 transition-transform"></i>
                 </div>
             </a>
@@ -449,25 +632,25 @@
                 
                 {{-- Left Text Info --}}
                 <div class="lg:col-span-5 space-y-4">
-                    <span class="text-3xs font-mono font-bold uppercase tracking-wider text-brand-500">Deterministic Architecture</span>
+                    <span class="text-3xs font-mono font-bold uppercase tracking-wider text-brand-500">Dynamic Column Memory & Quick Stock</span>
                     <h3 class="text-xl sm:text-2xl font-bold text-light-text dark:text-dark-text tracking-tight">
-                        Transform Raw Spreadsheets into Grounded Business Truth.
+                        যেভাবেই কলামের নাম লিখুন না কেন—এআই ঠিকই চিনে নেবে।
                     </h3>
                     <p class="text-xs text-light-text-secondary dark:text-dark-text-secondary leading-relaxed">
-                        Unlike generic chatbots that hallucinate pricing or specifications, Entrepreneurs Automation parses multi-sheet Excel workbooks, discovers column relationships, and verifies live stock before responding.
+                        ব্যবসায়ীরা বিভিন্নভাবে এক্সেল ফাইল তৈরি করেন। দামের কলামে <em>Price, Rate, Selling Price, মূল্য, দর</em> কিংবা স্টকের কলামে <em>Stock, Qty, Available, পরিমাণ, মজুদ</em>—যাই থাকুক, আমাদের এআই তা স্বয়ংক্রিয়ভাবে বুঝে নেয় এবং স্টোরের জন্য কলাম মেমোরিতে সংরক্ষণ করে।
                     </p>
                     <div class="space-y-2 pt-2">
                         <div class="flex items-center gap-2 text-xs">
                             <i class="ri-checkbox-circle-fill text-emerald-500"></i>
-                            <span>Multi-Sheet Relationships & Automatic Schema Discovery</span>
+                            <span>স্বয়ংক্রিয় কলাম ম্যাপিং মেমোরি (Automatic Column Alias Learning)</span>
                         </div>
                         <div class="flex items-center gap-2 text-xs">
                             <i class="ri-checkbox-circle-fill text-emerald-500"></i>
-                            <span>Real-Time Fallback Gates for Zero Unverified Claims</span>
+                            <span>অ্যাডমিন প্যানেলে ১-ক্লিক কুইক স্টক টগল বোতাম (Instant Stock Toggle)</span>
                         </div>
                         <div class="flex items-center gap-2 text-xs">
                             <i class="ri-checkbox-circle-fill text-emerald-500"></i>
-                            <span>Bilingual Context Engine (English & Bengali script support)</span>
+                            <span>বাংলা ও ইংরেজিতে ০.০% হ্যালুসিনেশন সহ সঠিক স্টক নিশ্চিতকরণ</span>
                         </div>
                     </div>
                 </div>
@@ -857,8 +1040,13 @@
 
 @push('custom-scripts')
 <script>
-    // Tab switching for Hero Showcase
+    // Tab switching for 3-Agent Showcase
     function switchHeroTab(tabName) {
+        // Backwards compatibility mappings
+        if (tabName === 'grounding') tabName = 'sales';
+        if (tabName === 'inbox') tabName = 'ops';
+        if (tabName === 'telemetry') tabName = 'cfo';
+
         document.querySelectorAll('.hero-tab-content').forEach(function(el) {
             el.classList.add('hidden');
         });
@@ -878,35 +1066,36 @@
 
     // Simulation queries for Sandbox
     var simulationData = {
-        stock: {
-            q: "Do you have the iPhone 15 Pro Max 256GB in Natural Titanium in stock?",
-            a: "Yes, we have 4 units of Natural Titanium 256GB available at our Gulshan Hub for ৳162,000 with official warranty.",
+        sales: {
+            tab: 'sales',
+            q: "আইফোন ১৫ প্রো ম্যাক্স ২৫৬জিবি টাইটানিয়াম কি স্টকে আছে? দাম কত?",
+            a: "জি! আমাদের গুলশান হাবে Natural Titanium 256GB ভ্যারিয়েন্টটি ৪টি স্টকে আছে। অফিসিয়াল ওয়ারেন্টি সহ মূল্য ৳১,৬২,০০০। ক্যাশ অন ডেলিভারিতে অর্ডার করতে আপনার নাম, ফোন ও ঠিকানা জানান।",
             src: "Product_Catalog_Nov2026.xlsx",
             row: "Row #148 matched",
-            rowText: "SKU: IP15P-256-NT | Stock: 4 | Hub: Gulshan | Price: 162,000 BDT",
+            rowText: "SKU: IP15P-256-NT | Stock: 4 units | Hub: Gulshan | Price: ৳162,000",
             latency: "180ms",
-            score: "Score: 0.984",
-            route: "Deterministic Catalog Query"
+            score: "Confidence: 100%",
+            route: "In Stock (1-Click Toggle Active)"
         },
-        warranty: {
-            q: "What is your official return and replacement warranty policy?",
-            a: "We offer a 7-day replacement warranty for manufacturing defects and 1-year official brand service warranty across all verified branch locations.",
-            src: "Official_Warranty_Policy.csv",
-            row: "Row #4 matched",
-            rowText: "Coverage: 7-day replacement, 1-yr service warranty",
-            latency: "195ms",
-            score: "Score: 0.991",
-            route: "Semantic Knowledge Search"
+        stock: {
+            tab: 'sales',
+            q: "আইফোন ১৫ প্রো ম্যাক্স ২৫৬জিবি টাইটানিয়াম কি স্টকে আছে? দাম কত?",
+            a: "জি! আমাদের গুলশান হাবে Natural Titanium 256GB ভ্যারিয়েন্টটি ৪টি স্টকে আছে। অফিসিয়াল ওয়ারেন্টি সহ মূল্য ৳১,৬২,০০০। ক্যাশ অন ডেলিভারিতে অর্ডার করতে আপনার নাম, ফোন ও ঠিকানা জানান।",
+            src: "Product_Catalog_Nov2026.xlsx",
+            row: "Row #148 matched",
+            rowText: "SKU: IP15P-256-NT | Stock: 4 units | Hub: Gulshan | Price: ৳162,000",
+            latency: "180ms",
+            score: "Confidence: 100%",
+            route: "In Stock (1-Click Toggle Active)"
         },
-        delivery: {
-            q: "Can I receive express home delivery in Chittagong within 24 hours?",
-            a: "Yes! Orders confirmed before 4:00 PM qualify for next-day priority transit to Chittagong metro via our regional logistics hub for ৳130.",
-            src: "Shipping_Matrix_2026.xlsx",
-            row: "Sheet 2: Metro_SLA (Row #12)",
-            rowText: "Zone: Chittagong Metro | LeadTime: 24h | Cutoff: 16:00 | Fee: 130 BDT",
-            latency: "165ms",
-            score: "Score: 0.978",
-            route: "Multi-Sheet Relational Routing"
+        ops: {
+            tab: 'ops'
+        },
+        courier: {
+            tab: 'ops'
+        },
+        cfo: {
+            tab: 'cfo'
         }
     };
 
@@ -914,23 +1103,27 @@
         var data = simulationData[type];
         if (!data) return;
 
-        switchHeroTab('grounding');
+        switchHeroTab(data.tab);
 
-        document.getElementById('simCustomerQuestion').textContent = '"' + data.q + '"';
-        document.getElementById('simAiAnswer').textContent = '"' + data.a + '"';
-        document.getElementById('simSourceName').textContent = data.src;
-        document.getElementById('simRowMatch').textContent = data.row;
-        document.getElementById('simRowData').textContent = data.rowText;
-        document.getElementById('simLatency').textContent = data.latency;
-        document.getElementById('simConfidence').textContent = data.score;
-        document.getElementById('simRoute').textContent = data.route;
+        if (data.tab === 'sales' && document.getElementById('simCustomerQuestion')) {
+            document.getElementById('simCustomerQuestion').textContent = '"' + data.q + '"';
+            document.getElementById('simAiAnswer').textContent = '"' + data.a + '"';
+            document.getElementById('simSourceName').textContent = data.src;
+            document.getElementById('simRowMatch').textContent = data.row;
+            document.getElementById('simRowData').textContent = data.rowText;
+            document.getElementById('simLatency').textContent = data.latency;
+            document.getElementById('simConfidence').textContent = data.score;
+            document.getElementById('simRoute').textContent = data.route;
 
-        // Visual flash effect on answer
-        var answerCard = document.getElementById('simAiAnswer').parentElement;
-        answerCard.classList.add('ring-2', 'ring-brand-500');
-        setTimeout(function() {
-            answerCard.classList.remove('ring-2', 'ring-brand-500');
-        }, 600);
+            // Visual flash effect on answer
+            var answerCard = document.getElementById('simAiAnswer').parentElement;
+            if (answerCard) {
+                answerCard.classList.add('ring-2', 'ring-brand-500');
+                setTimeout(function() {
+                    answerCard.classList.remove('ring-2', 'ring-brand-500');
+                }, 600);
+            }
+        }
     }
 
     // ROI Calculator updates

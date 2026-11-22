@@ -16,13 +16,13 @@
     {{-- Hero Section --}}
     <div class="text-center space-y-4 max-w-3xl mx-auto">
         <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-mono font-semibold bg-brand-500/10 text-brand-500 border border-brand-500/30">
-            <i class="ri-price-tag-3-line"></i> Transparent Metered Pricing
+            <i class="ri-price-tag-3-line"></i> ৩ জন এআই কর্মী • স্বচ্ছ ও সহজ মূল্যতালিকা
         </div>
         <h1 class="text-3xl sm:text-5xl font-extrabold tracking-tight text-light-text dark:text-dark-text">
             Simple, Fair Pricing. Pay Only ৳ {{ number_format($mRate, 2) }} / Message.
         </h1>
         <p class="text-sm sm:text-base text-light-text-secondary dark:text-dark-text-secondary leading-relaxed">
-            No expensive monthly lock-in contracts or upfront setup fees. Start with <strong>৳{{ number_format($sBonus, 2) }} free starter balance</strong> ({{ number_format($sMsgs) }} complimentary AI replies) today.
+            কোনো মাসিক লক-ইন বা হিডেন ফি নেই। ৩ জন সার্বক্ষণিক এআই কর্মীর সার্ভিস উপভোগ করতে শুরু করুন আজই <strong>৳{{ number_format($sBonus, 2) }} ফ্রি বোনাস ক্রেডিট</strong> ({{ number_format($sMsgs) }} টি ফ্রি AI রিপ্লাই) দিয়ে।
         </p>
     </div>
 

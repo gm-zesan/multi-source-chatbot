@@ -431,21 +431,8 @@ class KnowledgeDocumentService
             throw $e;
         }
 
-        // 6. Dual-Ingestion Pipeline for Spreadsheets:
-        // Spreadsheets (.xlsx, .xls, .csv) are simultaneously processed through:
-        // (a) Analytics Registration: Generates structured SQLite tables for deterministic SQL queries, live stock, prices & cross-file joins.
-        // (b) Knowledge Base Ingestion: Extracts lossless structured row text (including all custom columns) and indexes chunks into Typesense.
-        $isSpreadsheet = in_array($extension, ['xlsx', 'xls', 'csv'], true);
-        if ($isSpreadsheet) {
-            $this->processAnalyticsRegistration($document);
-            try {
-                $this->processKnowledgeBaseIngestion($document);
-            } catch (\Throwable $kbEx) {
-                Log::warning('[KnowledgeDocumentService] Secondary knowledge base ingestion for spreadsheet encountered exception: ' . $kbEx->getMessage(), [
-                    'document_id' => $document->id,
-                ]);
-            }
-        } elseif ($resolvedPurpose === \App\Enums\IngestionPurpose::DATA_ANALYTICS) {
+        // 6. Connect to Python Analytics Source Registration if purpose is data analytics, or ingest for Knowledge Base
+        if ($resolvedPurpose === \App\Enums\IngestionPurpose::DATA_ANALYTICS) {
             $this->processAnalyticsRegistration($document);
         } else {
             $this->processKnowledgeBaseIngestion($document);

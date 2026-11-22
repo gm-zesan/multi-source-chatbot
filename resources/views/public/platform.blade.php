@@ -33,7 +33,7 @@
             <div class="p-4 rounded-xl bg-light-canvas dark:bg-dark-canvas border border-light-border dark:border-dark-border space-y-2">
                 <div class="w-7 h-7 rounded bg-sky-500/15 text-sky-500 flex items-center justify-center font-bold">2</div>
                 <div class="font-bold text-light-text dark:text-dark-text">Context Resolution</div>
-                <div class="text-3xs text-light-muted dark:text-dark-muted">The engine classifies intent and searches uploaded Excel catalogs, PDFs, and FAQs.</div>
+                <div class="text-3xs text-light-muted dark:text-dark-muted">The engine classifies intent and searches uploaded Excel catalogs, CSVs, and structured business FAQs.</div>
             </div>
             <div class="p-4 rounded-xl bg-light-canvas dark:bg-dark-canvas border border-light-border dark:border-dark-border space-y-2">
                 <div class="w-7 h-7 rounded bg-purple-500/15 text-purple-500 flex items-center justify-center font-bold">3</div>
