@@ -85,7 +85,7 @@
   - [x] **Salesperson Performance:** কোন সেলসপার্সন বা সাপোর্ট স্টাফ কতটি অর্ডার হ্যান্ডেল করেছে এবং তাদের টার্গেট বনাম পারফরম্যান্স অ্যানালিটিক্স (`EmployeeAnalyticsTool.php`)।
   - [x] **Customer Retention Analysis:** রিপিট বায়ার রেশিও, ভিআইপি কাস্টমার স্পেন্ডিং কোহোর্ট ও কাস্টমার ড্রপ-অফ বিশ্লেষণ (`CustomerInsightsTool.php`)।
   - [x] **Inventory ও Financial Analysis:** ক্যাশ ফ্লো, অবশিষ্ট বকেয়া এবং ইনভেন্টরি ডেড স্টক থেকে পুঁজি উদ্ধারের আর্থিক অ্যানালিটিক্স (`InventoryAnalyticsTool.php`, `CashFlowAnalyticsTool.php`)।
-  - [x] **Owner Conversational Console & Evidence-based Recommendations:** ওনার বাংলায় সরাসরি প্রশ্ন করতে পারেন এবং ১০টি অ্যানালিটিক্যাল টুলস থেকে পরিসংখ্যান ভিত্তিক সিদ্ধান্ত প্রস্তাব করে (`OwnerAiChatController.php`, "Ask Virtual CFO" ফ্লোটিং উইজেট ও `/dashboard/simulator`)।
+  - [x] **Owner Conversational Console & Evidence-based Recommendations:** ওনার বাংলায় সরাসরি প্রশ্ন করতে পারেন এবং ১০টি অ্যানালিটিক্যাল টুলস থেকে পরিসংখ্যান ভিত্তিক সিদ্ধান্ত প্রস্তাব করে (`OwnerAiChatController.php`, "Ask Virtual CFO" ফ্লোটিং উইজেট ও `/dashboard/simulator`)। মাল্টি-টার্ন কনটেক্সট মেমোরি ও অ্যানাফোরা রেজোলিউশন (যেমন: "এটার স্টক কত?", "আর গতকালের?") স্বয়ংক্রিয়ভাবে কার্যকর।
 
 ---
 

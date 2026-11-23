@@ -55,13 +55,31 @@ class DashboardController extends Controller
 
         $walletBalance = 50.00;
         $hasWallet = true;
+        $totalSpentThisMonth = 0.0;
+        $messagesThisMonth = 0;
+        $remainingMessages = 125;
+        $walletModel = null;
+        $startOfMonth = \Carbon\Carbon::now()->startOfMonth();
+
         try {
             if (\Illuminate\Support\Facades\Schema::hasTable('workspace_wallets')) {
-                $wallet = $workspace?->wallet;
-                if ($wallet) {
-                    $walletBalance = (float) $wallet->balance;
-                    $hasWallet = $walletBalance > 0;
-                }
+                $walletModel = $workspace?->wallet ?? \App\Models\WorkspaceWallet::firstOrCreate(
+                    ['workspace_id' => $workspaceId],
+                    ['balance' => 50.00, 'rate_per_message' => 0.40]
+                );
+                $walletBalance = (float) $walletModel->balance;
+                $remainingMessages = $walletModel->estimatedRemainingMessages();
+
+                $totalSpentThisMonth = (float) \App\Models\WorkspaceWalletTransaction::where('workspace_id', $workspaceId)
+                    ->where('type', 'debit')
+                    ->where('created_at', '>=', $startOfMonth)
+                    ->sum('amount');
+
+                $messagesThisMonth = \App\Models\WorkspaceWalletTransaction::where('workspace_id', $workspaceId)
+                    ->where('category', 'message_usage')
+                    ->where('created_at', '>=', $startOfMonth)
+                    ->count();
+                $hasWallet = $walletBalance > 0;
             }
         } catch (\Throwable) {
             $hasWallet = true;
@@ -139,13 +157,17 @@ class DashboardController extends Controller
         $metaZeroProtection = app(\App\Services\Channels\MetaZeroCostProtectionService::class)->getQuotaTelemetry($workspaceId);
 
         return view('admin.dashboard', [
-            'metrics'            => $metrics,
-            'currentRange'       => $range,
-            'workspace'          => $workspace,
-            'walletBalance'      => $walletBalance,
-            'dailySummary'       => $dailySummary,
-            'metaZeroProtection' => $metaZeroProtection,
-            'onboarding'         => [
+            'metrics'             => $metrics,
+            'currentRange'        => $range,
+            'workspace'           => $workspace,
+            'wallet'              => $walletModel,
+            'walletBalance'       => $walletBalance,
+            'remainingMessages'   => $remainingMessages,
+            'totalSpentThisMonth' => $totalSpentThisMonth,
+            'messagesThisMonth'   => $messagesThisMonth,
+            'dailySummary'        => $dailySummary,
+            'metaZeroProtection'  => $metaZeroProtection,
+            'onboarding'          => [
                 'steps'         => $checklist,
                 'completed'     => $completedCount,
                 'total'         => $totalSteps,
