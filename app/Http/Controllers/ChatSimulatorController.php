@@ -33,10 +33,14 @@ class ChatSimulatorController extends Controller
 
     public function index(Request $request): View
     {
-        $workspaceId = $this->resolveWorkspaceId($request);
         $user = Auth::user();
-        $isSuperAdmin = $this->isSuperAdmin($user);
-        $allWorkspaces = $isSuperAdmin ? Workspace::orderBy('id', 'asc')->get() : collect();
+        if (!$this->isSuperAdmin($user)) {
+            abort(403, 'Unauthorized. The AI Simulator is strictly reserved for Superadmin diagnostics.');
+        }
+
+        $workspaceId = $this->resolveWorkspaceId($request);
+        $isSuperAdmin = true;
+        $allWorkspaces = Workspace::orderBy('id', 'asc')->get();
         $currentWorkspace = Workspace::find($workspaceId);
 
         $conversation = $this->resolveSimulatorConversation($request, $workspaceId);
@@ -122,13 +126,20 @@ class ChatSimulatorController extends Controller
      */
     public function send(Request $request): JsonResponse
     {
+        $currentUser = Auth::user();
+        if (!$this->isSuperAdmin($currentUser)) {
+            abort(403, 'Unauthorized. The AI Simulator is strictly reserved for Superadmin diagnostics.');
+        }
+
         $request->validate([
-            'message' => 'required|string|max:1000',
-            'file_id' => 'nullable|string',
+            'message'    => 'required|string|max:1000',
+            'file_id'    => 'nullable|string',
+            'agent_mode' => 'nullable|string|in:auto,sales,support,cfo,retention',
         ]);
 
         $query = (string) $request->input('message');
         $fileId = $request->input('file_id');
+        $agentMode = (string) $request->input('agent_mode', 'auto');
         $workspaceId = $this->resolveWorkspaceId($request);
         $startTime = microtime(true);
         @set_time_limit(120);
@@ -164,6 +175,119 @@ class ChatSimulatorController extends Controller
             'body' => $query,
         ]);
 
+        // ── Direct Agent Mode Routing for Superadmin Diagnostics ───────
+        if ($agentMode === 'cfo') {
+            $ownerAiController = app(\App\Http\Controllers\OwnerAiChatController::class);
+            $cfoResponse = $ownerAiController->ask(new Request(['question' => $query]));
+            $cfoData = $cfoResponse->getData(true);
+
+            $reply = $cfoData['answer'] ?? 'No response generated.';
+            $toolsExecuted = $cfoData['tools_executed'] ?? ['owner_business_agent'];
+            $totalElapsed = round((microtime(true) - $startTime) * 1000, 2);
+
+            $this->customerSupportService->saveOutboundReply(
+                conversation: $conversation,
+                replyText: $reply,
+                deliveryResponse: [
+                    'route' => 'analytics',
+                    'confidence' => 1.0,
+                    'answered' => true,
+                    'total_time_ms' => $totalElapsed,
+                ],
+            );
+
+            return response()->json([
+                'success' => true,
+                'query' => $query,
+                'reply' => $reply,
+                'route' => 'analytics',
+                'agent_mode' => 'cfo',
+                'agent_tested' => 'OwnerBusinessAgent (Virtual CFO)',
+                'tools_executed' => $toolsExecuted,
+                'suggestions' => [
+                    'আজকের মোট সেলস ও রেভিনিউ কত?',
+                    'কোন প্রোডাক্টটি সবচেয়ে বেশি বিক্রি হচ্ছে?',
+                    'কোন কোন আইটেমের স্টক কম রয়েছে?',
+                ],
+                'sources' => ['Internal Governed Analytics Tools'],
+                'decision_trace' => [
+                    'query' => $query,
+                    'route' => 'ANALYTICS (CFO)',
+                    'agent_tested' => 'OwnerBusinessAgent (Virtual CFO)',
+                    'route_confidence' => 100.0,
+                    'memory_decision' => 'ACTIVE',
+                    'contextual_signal' => 'EXECUTIVE_CFO_QUERY',
+                    'latency_breakdown' => [
+                        'total_ms' => $totalElapsed,
+                        'total_e2e_ms' => $totalElapsed,
+                    ],
+                ],
+                'pipeline_diagnostics' => [
+                    'total_time_ms' => $totalElapsed,
+                    'agent_mode' => 'cfo',
+                    'tools_executed' => $toolsExecuted,
+                ],
+                'confidence' => 100.0,
+                'is_handoff' => false,
+                'answered' => true,
+            ]);
+        }
+
+        if ($agentMode === 'retention') {
+            $retentionService = app(\App\Services\Retention\AbandonedLeadRecoveryService::class);
+            $preview = $retentionService->craftFollowUpMessage($conversation);
+            $metaSafe = $conversation->last_message_at !== null && $conversation->last_message_at->gte(now()->subHours(23));
+            $totalElapsed = round((microtime(true) - $startTime) * 1000, 2);
+
+            $reply = "🔄 **[AI Retention Agent — Diagnostic Simulation]**\n\n"
+                   . "📋 **তৈরিকৃত রিকভারি মেসেজ:**\n\"{$preview}\"\n\n"
+                   . "🛡️ **মেটা ২৪-ঘণ্টা কমপ্লায়েন্স:** " . ($metaSafe ? "✅ নিরাপদ (Within 23h window)" : "⚠️ মেয়াদোত্তীর্ণ (>23h passed)") . "\n"
+                   . "🏷️ **কনভারসেশন ট্যাগস:** " . implode(', ', (array) ($conversation->ai_tags ?? ['none'])) . "\n"
+                   . "📦 **অর্ডার বিদ্যমান কিনা:** " . ($conversation->orders()->exists() ? 'অর্ডার অলরেডি সম্পন্ন (ফলো-আপ বাতিল)' : 'কোনো অর্ডার নেই (রিকভারি প্রযোজ্য)');
+
+            $this->customerSupportService->saveOutboundReply(
+                conversation: $conversation,
+                replyText: $reply,
+                deliveryResponse: [
+                    'route' => 'action',
+                    'confidence' => 1.0,
+                    'answered' => true,
+                    'total_time_ms' => $totalElapsed,
+                ],
+            );
+
+            return response()->json([
+                'success' => true,
+                'query' => $query,
+                'reply' => $reply,
+                'route' => 'action',
+                'agent_mode' => 'retention',
+                'agent_tested' => 'AbandonedLeadRecoveryService (Retention Agent)',
+                'tools_executed' => ['abandoned_lead_recovery_service'],
+                'suggestions' => [],
+                'sources' => ['Meta 24h Retention Engine'],
+                'decision_trace' => [
+                    'query' => $query,
+                    'route' => 'ACTION (RETENTION)',
+                    'agent_tested' => 'AbandonedLeadRecoveryService (Retention Agent)',
+                    'route_confidence' => 100.0,
+                    'memory_decision' => 'ACTIVE',
+                    'contextual_signal' => 'RETENTION_ABANDONED_LEAD',
+                    'latency_breakdown' => [
+                        'total_ms' => $totalElapsed,
+                        'total_e2e_ms' => $totalElapsed,
+                    ],
+                ],
+                'pipeline_diagnostics' => [
+                    'total_time_ms' => $totalElapsed,
+                    'agent_mode' => 'retention',
+                ],
+                'confidence' => 100.0,
+                'is_handoff' => false,
+                'answered' => true,
+            ]);
+        }
+
         // ── 1. CRM Entity Extraction & Contact Persistence ─────────────
         $crm = $this->crmService->processForWorkspace(
             workspaceId: $workspaceId,
@@ -172,14 +296,12 @@ class ChatSimulatorController extends Controller
         );
 
         // ── 2. Unified AI Orchestration Pipeline ─────────────────────────────
-        $currentUser = Auth::user();
-
         $supportResult = $this->orchestrator->process(
             query: $query,
             workspaceId: $workspaceId,
             user: $currentUser,
             conversation: $conversation,
-            channelSlug: 'simulator',
+            channelSlug: ($agentMode === 'sales' ? 'sales_agent' : ($agentMode === 'support' ? 'support_agent' : 'simulator')),
         );
 
         // Save AI outbound response to conversation history for next turn context
@@ -253,8 +375,18 @@ class ChatSimulatorController extends Controller
             ?? $supportResult['routing_telemetry']['intent']
             ?? 'COMMERCE_GENERAL';
 
+        $agentTested = match ($agentMode) {
+            'sales'     => 'AI Sales Agent (ConversationalSupportAgent)',
+            'support'   => 'AI Customer Support Agent (KnowledgeSupportAgent)',
+            'cfo'       => 'AI Virtual CFO Agent (OwnerBusinessAgent)',
+            'retention' => 'AI Retention Agent (AbandonedLeadRecoveryService)',
+            default     => 'Master Unified Orchestrator (Auto Detect)',
+        };
+
         $decisionTrace = [
             'query' => $query,
+            'agent_tested' => $agentTested,
+            'agent_mode' => $agentMode,
             'route' => strtoupper((string) $supportResult['route']),
             'route_confidence' => round($supportResult['confidence'] * 100, 1),
             'memory_decision' => !empty($supportResult['memory_context']) ? 'USED' : 'BYPASSED',
@@ -321,6 +453,8 @@ class ChatSimulatorController extends Controller
             'query' => $query,
             'reply' => $supportResult['reply'],
             'route' => $supportResult['route'],
+            'agent_mode' => $agentMode,
+            'agent_tested' => $agentTested,
             'suggestions' => $supportResult['suggestions'] ?? [],
             'sources' => $supportResult['sources'] ?? [],
             'active_spreadsheet' => [

@@ -25,3 +25,10 @@ Artisan::command('documents:process-pending', function (\App\Services\Knowledge\
     $this->info("Done processing pending documents.");
 })->purpose('Process and activate all documents stuck in pending_ingestion status');
 
+// ── Automated Retention & Abandoned Lead Recovery Scheduler ──────────
+\Illuminate\Support\Facades\Schedule::command('retention:process-abandoned-leads')
+    ->everyFifteenMinutes()
+    ->withoutOverlapping()
+    ->runInBackground();
+
+

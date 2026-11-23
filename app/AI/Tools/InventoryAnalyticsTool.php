@@ -152,6 +152,7 @@ class InventoryAnalyticsTool extends AbstractGovernedTool
 
     /**
      * Fallback report when no physical inventory spreadsheet is ingested.
+     * Evaluates live catalog stock levels from AnalyticsProduct.
      */
     private function fallbackToProductCatalog(
         int $workspaceId,
@@ -165,18 +166,56 @@ class InventoryAnalyticsTool extends AbstractGovernedTool
             $catalogQuery->where('category', $category);
         }
 
-        $skuCount = $catalogQuery->count();
+        $products = (clone $catalogQuery)->get();
+        $skuCount = $products->count();
+
+        $items = [];
+        $outOfStockCount = 0;
+        $lowStockCount = 0;
+        $totalStockUnits = 0.0;
+        $inventoryValuation = 0.0;
+
+        foreach ($products as $product) {
+            $qty = (float) ($product->stock_quantity ?? 0);
+            $reorder = (float) ($product->reorder_threshold ?? 10);
+            $price = (float) ($product->unit_price ?? 0);
+            $cost = (float) ($product->unit_cost ?? $price);
+
+            $totalStockUnits += $qty;
+            $inventoryValuation += ($qty * $cost);
+
+            $isOut = $qty <= 0;
+            $isLow = ! $isOut && $qty <= $reorder;
+
+            if ($isOut) {
+                $outOfStockCount++;
+            }
+            if ($isLow) {
+                $lowStockCount++;
+            }
+
+            if ($isOut || $isLow) {
+                $items[] = [
+                    'product_name'      => $product->name,
+                    'sku'               => $product->sku,
+                    'current_stock'     => $qty,
+                    'is_low_stock'      => $isLow,
+                    'is_out_of_stock'   => $isOut,
+                    'unit_price'        => $price,
+                ];
+            }
+        }
 
         return ToolResult::success([
-            'source'                    => 'catalog_metadata_only',
-            'status'                    => 'no_inventory_data_ingested',
+            'source'                    => 'catalog_product_table',
             'catalog_sku_count'         => $skuCount,
-            'message'                   => 'Product catalog is tracked, but physical inventory and stock levels require an uploaded inventory spreadsheet via the spreadsheet ingestion service.',
-            'total_stock_units'         => null,
-            'low_stock_count'           => 0,
-            'out_of_stock_count'        => 0,
-            'total_inventory_valuation' => null,
-            'items'                     => [],
+            'total_stock_units'         => $totalStockUnits,
+            'low_stock_count'           => $lowStockCount,
+            'out_of_stock_count'        => $outOfStockCount,
+            'total_inventory_cost'      => round($inventoryValuation, 2),
+            'total_inventory_value'     => round($inventoryValuation, 2),
+            'items'                     => $items,
+            'low_stock_products'        => $items,
         ], [
             'execution_time_ms' => $context->getElapsedMs(),
             'tool_name'         => $this->name(),

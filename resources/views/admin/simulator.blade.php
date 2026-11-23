@@ -40,6 +40,19 @@
                             <i class="ri-building-4-line text-brand-500"></i> {{ $currentWorkspace->name }}
                         </span>
                     @endif
+
+                    {{-- Superadmin Agent Mode Testing Selector --}}
+                    <div class="flex items-center gap-1 px-2 py-0.5 rounded-md border border-indigo-500/30 bg-indigo-500/10 text-xs">
+                        <i class="ri-user-star-line text-indigo-500 text-xs"></i>
+                        <span class="text-3xs font-semibold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider hidden sm:inline">Testing Agent:</span>
+                        <select id="simulatorAgentSelect" class="app-select !h-6.5 !py-0 !px-1 !text-2xs !bg-transparent !border-0 text-light-text dark:text-dark-text font-bold outline-none cursor-pointer" title="Select which AI Agent to test">
+                            <option value="auto" class="bg-light-surface dark:bg-dark-surface text-light-text dark:text-dark-text">🔀 Auto-Orchestrator (All)</option>
+                            <option value="sales" class="bg-light-surface dark:bg-dark-surface text-light-text dark:text-dark-text">🛍️ AI Sales Agent (Catalog & Orders)</option>
+                            <option value="support" class="bg-light-surface dark:bg-dark-surface text-light-text dark:text-dark-text">🎧 AI Support Agent (FAQs & Tracking)</option>
+                            <option value="cfo" class="bg-light-surface dark:bg-dark-surface text-light-text dark:text-dark-text">💼 AI Virtual CFO (10 Analytics Tools)</option>
+                            <option value="retention" class="bg-light-surface dark:bg-dark-surface text-light-text dark:text-dark-text">🔄 AI Retention Agent (Follow-up)</option>
+                        </select>
+                    </div>
                 </div>
                 <div class="flex items-center gap-2 shrink-0">
                     <button type="button"
@@ -183,6 +196,10 @@
 
                     {{-- Decision Key Metrics Matrix --}}
                     <div class="grid grid-cols-2 gap-2 mb-2.5 text-xs">
+                        <div class="p-2 rounded-md bg-light-elevated dark:bg-dark-elevated border border-light-border dark:border-dark-border col-span-2">
+                            <span class="text-3xs uppercase tracking-wider text-light-muted dark:text-dark-muted block">Active Agent Tested</span>
+                            <span id="traceAgentBadge" class="app-badge app-badge-primary !text-2xs mt-1">🔀 Auto-Orchestrator</span>
+                        </div>
                         <div class="p-2 rounded-md bg-light-elevated dark:bg-dark-elevated border border-light-border dark:border-dark-border">
                             <span class="text-3xs uppercase tracking-wider text-light-muted dark:text-dark-muted block">Route Decision</span>
                             <span id="traceRouteBadge" class="route-pill chat mt-1">IDLE</span>

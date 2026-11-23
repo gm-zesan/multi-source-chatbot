@@ -292,6 +292,10 @@ async function handleSend(e) {
         if (selectedDocId) {
             requestPayload.file_id = selectedDocId;
         }
+        const agentSelect = document.getElementById('simulatorAgentSelect');
+        if (agentSelect && agentSelect.value) {
+            requestPayload.agent_mode = agentSelect.value;
+        }
 
         const response = await fetch(sendUrl, {
             method: "POST",
@@ -894,6 +898,12 @@ function renderDecisionTrace(trace, turnNum, isLatest = false) {
     }
 
     if (document.getElementById('traceUserQuery')) document.getElementById('traceUserQuery').textContent = `"${trace.query || ''}"`;
+
+    // Agent Tested badge
+    const agentBadge = document.getElementById('traceAgentBadge');
+    if (agentBadge) {
+        agentBadge.textContent = trace.agent_tested || '🔀 Auto-Orchestrator';
+    }
 
     // Route badge
     const routeBadge = document.getElementById('traceRouteBadge');

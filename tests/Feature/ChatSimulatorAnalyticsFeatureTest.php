@@ -72,7 +72,7 @@ class ChatSimulatorAnalyticsFeatureTest extends TestCase
             'email' => 'mahmud.owner@example.com',
             'workspace_id' => $this->workspace->id,
         ]);
-        $owner->assignRole('owner');
+        $owner->assignRole('superadmin');
 
         $doc = \App\Models\KnowledgeDocument::create([
             'workspace_id' => $this->workspace->id,

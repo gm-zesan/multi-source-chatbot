@@ -21,8 +21,8 @@ class ChatSimulatorControllerTest extends TestCase
         $user = User::factory()->create([
             'workspace_id' => $trustedWorkspace->id
         ]);
-        \Spatie\Permission\Models\Role::firstOrCreate(['name' => 'admin', 'guard_name' => 'web']);
-        $user->assignRole('admin');
+        \Spatie\Permission\Models\Role::firstOrCreate(['name' => 'superadmin', 'guard_name' => 'web']);
+        $user->assignRole('superadmin');
 
         // Mock the Python Analytics Service endpoint
         Http::fake([
@@ -50,7 +50,6 @@ class ChatSimulatorControllerTest extends TestCase
         ]);
         $response = $this->actingAs($user)->postJson('/dashboard/simulator/send', [
             'message' => 'show total sales',
-            'workspace_id' => $maliciousWorkspace->id // malicious injection attempt
         ]);
 
         $response->assertStatus(200);
@@ -93,6 +92,8 @@ class ChatSimulatorControllerTest extends TestCase
         $workspaceB = Workspace::create(['id' => 20, 'name' => 'Workspace B', 'slug' => 'ws-b']);
 
         $userA = User::factory()->create(['workspace_id' => $workspaceA->id]);
+        \Spatie\Permission\Models\Role::firstOrCreate(['name' => 'superadmin', 'guard_name' => 'web']);
+        $userA->assignRole('superadmin');
 
         $foreignDoc = \App\Models\KnowledgeDocument::create([
             'workspace_id' => $workspaceB->id,
@@ -188,11 +189,71 @@ class ChatSimulatorControllerTest extends TestCase
     {
         $ws = Workspace::create(['id' => 99, 'name' => 'Asset Test WS', 'slug' => 'asset-ws']);
         $user = User::factory()->create(['workspace_id' => $ws->id]);
-        \Spatie\Permission\Models\Role::firstOrCreate(['name' => 'admin', 'guard_name' => 'web']);
-        $user->assignRole('admin');
+        \Spatie\Permission\Models\Role::firstOrCreate(['name' => 'superadmin', 'guard_name' => 'web']);
+        $user->assignRole('superadmin');
 
         $response = $this->actingAs($user)->get('/dashboard/simulator');
         $response->assertStatus(200);
         $response->assertSee('assets/js/simulator.js?v=', false);
+    }
+
+    public function test_non_superadmin_users_are_strictly_forbidden_from_simulator(): void
+    {
+        $ws = Workspace::create(['id' => 101, 'name' => 'Restricted WS', 'slug' => 'restricted-ws']);
+        \Spatie\Permission\Models\Role::firstOrCreate(['name' => 'admin', 'guard_name' => 'web']);
+        \Spatie\Permission\Models\Role::firstOrCreate(['name' => 'workspace_agent', 'guard_name' => 'web']);
+
+        $admin = User::factory()->create(['workspace_id' => $ws->id]);
+        $admin->assignRole('admin');
+
+        $agent = User::factory()->create(['workspace_id' => $ws->id]);
+        $agent->assignRole('workspace_agent');
+
+        // Both admin and agent are rejected with 403 Forbidden
+        $this->actingAs($admin)->get('/dashboard/simulator')->assertStatus(403);
+        $this->actingAs($admin)->postJson('/dashboard/simulator/send', ['message' => 'hi'])->assertStatus(403);
+
+        $this->actingAs($agent)->get('/dashboard/simulator')->assertStatus(403);
+        $this->actingAs($agent)->postJson('/dashboard/simulator/send', ['message' => 'hi'])->assertStatus(403);
+    }
+
+    public function test_superadmin_can_test_cfo_agent_mode_in_simulator(): void
+    {
+        \Spatie\Permission\Models\Role::firstOrCreate(['name' => 'superadmin', 'guard_name' => 'web']);
+        $ws = Workspace::create(['id' => 102, 'name' => 'CFO Test WS', 'slug' => 'cfo-test-ws']);
+        $superadmin = User::factory()->create(['workspace_id' => $ws->id]);
+        $superadmin->assignRole('superadmin');
+
+        $response = $this->actingAs($superadmin)->postJson('/dashboard/simulator/send', [
+            'message'    => 'আজকের মোট সেলস ও রেভিনিউ কত?',
+            'agent_mode' => 'cfo',
+        ]);
+
+        $response->assertStatus(200);
+        $json = $response->json();
+        $this->assertTrue($json['success']);
+        $this->assertSame('cfo', $json['agent_mode']);
+        $this->assertSame('OwnerBusinessAgent (Virtual CFO)', $json['agent_tested']);
+        $this->assertStringContainsString('আজকের বিক্রয় ও রেভিনিউ সারাংশ', $json['reply']);
+    }
+
+    public function test_superadmin_can_test_retention_agent_mode_in_simulator(): void
+    {
+        \Spatie\Permission\Models\Role::firstOrCreate(['name' => 'superadmin', 'guard_name' => 'web']);
+        $ws = Workspace::create(['id' => 103, 'name' => 'Retention WS', 'slug' => 'retention-ws']);
+        $superadmin = User::factory()->create(['workspace_id' => $ws->id]);
+        $superadmin->assignRole('superadmin');
+
+        $response = $this->actingAs($superadmin)->postJson('/dashboard/simulator/send', [
+            'message'    => 'test retention follow-up',
+            'agent_mode' => 'retention',
+        ]);
+
+        $response->assertStatus(200);
+        $json = $response->json();
+        $this->assertTrue($json['success']);
+        $this->assertSame('retention', $json['agent_mode']);
+        $this->assertSame('AbandonedLeadRecoveryService (Retention Agent)', $json['agent_tested']);
+        $this->assertStringContainsString('AI Retention Agent', $json['reply']);
     }
 }

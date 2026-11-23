@@ -60,6 +60,9 @@
     {{-- Floating Bulk Action Bar --}}
     @include('admin.partials.bulk-action-bar')
 
+    {{-- Floating Owner Virtual CFO AI Chat Widget --}}
+    @include('admin.partials.owner-ai-chat-widget')
+
     @include('admin.partials.scripts')
     @stack('custom-scripts')
 </body>

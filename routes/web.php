@@ -109,7 +109,7 @@ Route::get('/widget/demo', fn () => response()->file(public_path('widget/demo.ht
 | 3. CANONICAL REDIRECTS
 |--------------------------------------------------------------------------
 */
-Route::get('/simulator', fn () => redirect()->route('simulator.index'))->middleware('auth');
+Route::get('/simulator', fn () => redirect()->route('simulator.index'))->middleware(['auth', 'role:' . \App\Enums\RoleEnum::SUPERADMIN->value]);
 Route::get('/knowledge-base', fn () => redirect()->route('knowledge-base.index'))->middleware('auth');
 Route::get('/commercial', fn () => redirect()->route('admin.commercial.index'))->middleware('auth');
 Route::get('/commercial-dashboard', fn () => redirect()->route('admin.commercial.index'))->middleware('auth');
@@ -163,18 +163,23 @@ Route::middleware('auth')->prefix('dashboard')->group(function () {
     Route::post('/orders/{order}/sync-courier', [WorkspaceCourierController::class, 'syncStatus'])->name('orders.sync-courier');
     Route::post('/orders/bulk-send-courier', [WorkspaceCourierController::class, 'bulkSend'])->name('orders.bulk-send-courier');
 
-    // ── 4.4 AI Chat Simulator (Internal Businessman Diagnostics) ──────
-    // Internal portal where businessman can inspect internal business intelligence, cost, COGS, margins
-    Route::get('/simulator', [ChatSimulatorController::class, 'index'])->name('simulator.index');
-    Route::post('/simulator/send', [ChatSimulatorController::class, 'send'])->middleware('throttle:60,1')->name('simulator.send');
-    Route::post('/simulator/clear', [ChatSimulatorController::class, 'clear'])->name('simulator.clear');
-    Route::post('/simulator/clear-excel', [ChatSimulatorController::class, 'clearExcel'])->name('simulator.clear_excel');
-    Route::post('/simulator/select-source', [ChatSimulatorController::class, 'selectSource'])->name('simulator.select_source');
-    Route::post('/simulator/switch-workspace', [ChatSimulatorController::class, 'switchWorkspace'])->name('simulator.switch_workspace');
+    // ── 4.4 AI Chat Simulator (Superadmin Master Diagnostic Laboratory) ──────
+    // Strictly restricted to Superadmin for full pipeline, agent, and tool testing
+    Route::middleware('role:' . \App\Enums\RoleEnum::SUPERADMIN->value)->group(function () {
+        Route::get('/simulator', [ChatSimulatorController::class, 'index'])->name('simulator.index');
+        Route::post('/simulator/send', [ChatSimulatorController::class, 'send'])->middleware('throttle:60,1')->name('simulator.send');
+        Route::post('/simulator/clear', [ChatSimulatorController::class, 'clear'])->name('simulator.clear');
+        Route::post('/simulator/clear-excel', [ChatSimulatorController::class, 'clearExcel'])->name('simulator.clear_excel');
+        Route::post('/simulator/select-source', [ChatSimulatorController::class, 'selectSource'])->name('simulator.select_source');
+        Route::post('/simulator/switch-workspace', [ChatSimulatorController::class, 'switchWorkspace'])->name('simulator.switch_workspace');
+    });
 
     // ── 4.5 Business Intelligence & Analytics ──────────────────────────
     Route::get('/analytics', [AnalyticsDashboardController::class, 'index'])->name('analytics.index');
     Route::get('/analytics/data', [AnalyticsDashboardController::class, 'data'])->name('analytics.data');
+    Route::post('/owner-ai/ask', [\App\Http\Controllers\OwnerAiChatController::class, 'ask'])->name('owner-ai.ask');
+    Route::get('/owner-ai/suggestions', [\App\Http\Controllers\OwnerAiChatController::class, 'suggestions'])->name('owner-ai.suggestions');
+
 
     // ── 4.6 Unified Knowledge Base Engine ──────────────────────────────
     Route::get('/knowledge-base', [KnowledgeBaseController::class, 'index'])

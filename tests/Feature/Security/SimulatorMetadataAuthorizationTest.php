@@ -67,7 +67,7 @@ class SimulatorMetadataAuthorizationTest extends TestCase
             'email' => 'owner@alpha.test',
             'workspace_id' => $this->workspaceA->id,
         ]);
-        $this->ownerA->assignRole('owner');
+        $this->ownerA->assignRole(RoleEnum::SUPERADMIN->value);
 
         $this->managerA = User::factory()->create([
             'name' => 'Manager Alpha',
@@ -157,10 +157,10 @@ class SimulatorMetadataAuthorizationTest extends TestCase
     }
 
     /**
-     * Scenario 2: Authorized MANAGER in Simulator
+     * Scenario 2: Non-Superadmin MANAGER in Simulator is Forbidden
      *
      * Route: POST /dashboard/simulator/send
-     * Expected: HTTP 200, enters UnifiedOrchestrator, authorized as manager, returns owner report.
+     * Expected: HTTP 403 Forbidden (Only Superadmin allowed).
      */
     public function test_scenario_2_authorized_manager_executes_owner_business_assistant(): void
     {
@@ -169,57 +169,23 @@ class SimulatorMetadataAuthorizationTest extends TestCase
                 'message' => 'Total sale koto?',
             ]);
 
-        $response->assertStatus(200);
-        $json = $response->json();
-
-        $this->assertTrue($json['success']);
-        $this->assertSame('analytics', $json['route']);
-        $this->assertStringContainsString('ব্যবসায়িক অ্যানালিটিক্স ইনসাইট', $json['reply']);
+        $response->assertStatus(403);
     }
 
     /**
-     * Scenario 3: STAFF without analytics permission in Simulator
+     * Scenario 3: STAFF user is strictly forbidden from Simulator
      *
      * Route: POST /dashboard/simulator/send
-     * Question: Does staff get blocked, OR does simulator metadata allow execution of BusinessAnalyticsTool?
-     *
-     * When query is routed to ANALYTICS, we observe what actually executes.
+     * Expected: HTTP 403 Forbidden.
      */
     public function test_scenario_3_staff_user_simulator_metadata_execution_behavior(): void
     {
-        // Mock external Python analytics endpoint
-        Http::fake([
-            '*/analytics/query' => Http::response([
-                'success' => true,
-                'engine' => 'semantic',
-                'intent' => 'business_analytics',
-                'report' => 'CONFIDENTIAL FINANCIAL REPORT: Total revenue is 5,000,000 BDT.',
-            ], 200),
-        ]);
-
         $response = $this->actingAs($this->staffA)
             ->postJson('/dashboard/simulator/send', [
                 'message' => 'আজকে মোট বিক্রি কত হয়েছে?',
             ]);
 
-        $response->assertStatus(200);
-        $json = $response->json();
-
-        // ── SECURITY VERIFICATION ──
-        // Verify that the staff user does NOT receive confidential data
-        // and is strictly blocked by the customer analytics security barrier.
-        $receivedConfidentialData = str_contains($json['reply'] ?? '', 'CONFIDENTIAL FINANCIAL REPORT');
-        $receivedDenialMessage = ($json['reply'] ?? '') === CustomerSupportService::CUSTOMER_ANALYTICS_DENIAL_MESSAGE;
-
-        $this->assertFalse(
-            $receivedConfidentialData,
-            'SECURITY FIX VERIFICATION: Staff user in simulator must NEVER receive confidential analytics data!'
-        );
-        $this->assertTrue(
-            $receivedDenialMessage,
-            'SECURITY FIX VERIFICATION: CustomerSupportService must block staff with CUSTOMER_ANALYTICS_DENIAL_MESSAGE.'
-        );
-        $this->assertSame('analytics_denied', $json['route']);
+        $response->assertStatus(403);
     }
 
     /**
@@ -278,15 +244,10 @@ class SimulatorMetadataAuthorizationTest extends TestCase
         $response = $this->actingAs($this->ownerB)
             ->postJson('/dashboard/simulator/send', [
                 'message' => 'আজকে মোট বিক্রি কত হয়েছে?',
-                'workspace_id' => $this->workspaceA->id, // Attempting to target Workspace A
+                'workspace_id' => $this->workspaceA->id,
             ]);
 
-        $response->assertStatus(200);
-        $json = $response->json();
-
-        // Workspace B has NO spreadsheet jobs or structured records.
-        // It must NOT access Workspace A's alpha_financials_2026.xlsx.
-        $this->assertStringNotContainsString('alpha_financials_2026.xlsx', $json['reply'] ?? '');
+        $response->assertStatus(403);
     }
 }
 
