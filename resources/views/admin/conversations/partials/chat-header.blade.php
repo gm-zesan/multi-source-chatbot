@@ -14,6 +14,11 @@
                 @php
                     $currentStatus = $conversation->status ?? 'open';
                     $currentPriority = $conversation->priority ?? 'normal';
+                    $channelSlug = $conversation->channelAccount?->channel?->slug ?? '';
+                    $wsId = (int) ($conversation->channelAccount?->workspace_id ?: 1);
+                    $quota = \App\Models\WorkspaceUsageQuota::currentForWorkspace($wsId);
+                    $isWaExhausted = ($channelSlug === 'whatsapp') && $quota->isWhatsAppQuotaExhausted();
+                    $isFbExpired = ($channelSlug === 'facebook') && optional($conversation->last_message_at)->lt(\Carbon\Carbon::now()->subHours(24));
                 @endphp
                 <span class="app-badge {{ $currentStatus === 'resolved' ? 'app-badge-success' : ($currentStatus === 'closed' ? 'app-badge-secondary' : 'app-badge-primary') }} !text-2xs shrink-0">
                     {{ ucfirst(str_replace('_', ' ', $currentStatus)) }}
@@ -21,6 +26,15 @@
                 <span class="app-badge {{ $currentPriority === 'urgent' ? 'app-badge-danger' : ($currentPriority === 'high' ? 'app-badge-warning' : 'app-badge-secondary') }} !text-2xs shrink-0">
                     {{ ucfirst($currentPriority) }}
                 </span>
+                @if($isWaExhausted)
+                    <span class="app-badge app-badge-danger !text-2xs shrink-0 flex items-center gap-1 font-mono" title="WhatsApp 1,000 free quota exhausted">
+                        <i class="ri-shield-alert-fill"></i> Free Quota Exhausted
+                    </span>
+                @elseif($isFbExpired)
+                    <span class="app-badge app-badge-warning !text-2xs shrink-0 flex items-center gap-1 font-mono" title="Messenger 24-hour free service window expired">
+                        <i class="ri-time-line"></i> 24h Window Expired
+                    </span>
+                @endif
             </div>
 
             <div class="text-2xs text-light-muted dark:text-dark-muted flex items-center gap-1 mt-0.5">

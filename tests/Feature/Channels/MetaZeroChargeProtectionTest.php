@@ -6,6 +6,7 @@ namespace Tests\Feature\Channels;
 
 use App\Channels\Facebook\FacebookDriver;
 use App\Channels\WhatsApp\WhatsAppDriver;
+use App\Enums\Permissions\ConversationPermission;
 use App\Models\Channel;
 use App\Models\ChannelAccount;
 use App\Models\Conversation;
@@ -16,6 +17,7 @@ use App\Services\Channels\MetaZeroCostProtectionService;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
+use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
@@ -36,8 +38,14 @@ class MetaZeroChargeProtectionTest extends TestCase
     {
         parent::setUp();
 
-        Role::firstOrCreate(['name' => 'admin', 'guard_name' => 'web']);
+        $admin = Role::firstOrCreate(['name' => 'admin', 'guard_name' => 'web']);
         Role::firstOrCreate(['name' => 'superadmin', 'guard_name' => 'web']);
+
+        $viewPerm = Permission::firstOrCreate(
+            ['name' => ConversationPermission::VIEW->value, 'guard_name' => 'web'],
+            ['display_name' => 'View Conversation', 'module' => 'conversation']
+        );
+        $admin->givePermissionTo($viewPerm);
 
         $this->workspace = Workspace::create([
             'id'   => 1,
@@ -80,12 +88,15 @@ class MetaZeroChargeProtectionTest extends TestCase
         ]);
 
         $this->whatsappConversation = Conversation::create([
-            'workspace_id'       => $this->workspace->id,
-            'channel_account_id' => $this->whatsappAccount->id,
-            'external_user_id'   => '8801700000000',
-            'status'             => 'active',
-            'last_direction'     => 'inbound',
-            'last_message_at'    => now(),
+            'workspace_id'            => $this->workspace->id,
+            'channel_account_id'      => $this->whatsappAccount->id,
+            'external_user_id'        => '8801700000000',
+            'status'                  => 'active',
+            'last_direction'          => 'inbound',
+            'last_message_at'         => now(),
+            'ai_tags'                 => ['general_inquiry'],
+            'ai_summary'              => 'Test conversation summary',
+            'ai_summary_generated_at' => now(),
         ]);
 
         $this->facebookConversation = Conversation::create([
@@ -233,5 +244,43 @@ class MetaZeroChargeProtectionTest extends TestCase
         $dashResp->assertSee('আপনার হোয়াটসঅ্যাপের এই মাসের ১,০০০টি সম্পূর্ণ ফ্রি মেসেজ কোটা শেষ হয়েছে', false);
         $dashResp->assertSee('পেইড সার্ভিস (Coming Soon)', false);
         $dashResp->assertSee('paidServiceComingSoonModal', false);
+    }
+
+    public function test_blocked_messages_render_visual_zero_charge_status_badge_in_conversation_inbox(): void
+    {
+        // 1. Simulate blocked WhatsApp message due to quota exhaustion
+        $blockedMsg = \App\Models\Message::create([
+            'conversation_id' => $this->whatsappConversation->id,
+            'direction'       => 'outbound',
+            'type'            => 'text',
+            'status'          => 'blocked',
+            'body'            => 'আমাদের নতুন পণ্যের কালেকশন দেখতে পারেন।',
+            'metadata'        => [
+                'status'  => 'blocked_quota_exhausted',
+                'error'   => 'আপনার এই মাসের WhatsApp ফ্রি ১,০০০টি মেসেজের কোটা শেষ হয়েছে। অতিরিক্ত চার্জ এড়াতে স্বয়ংক্রিয় মেসেজ স্থগিত রাখা হয়েছে।',
+                'blocked' => true,
+            ],
+        ]);
+
+        $this->assertTrue($blockedMsg->isBlocked());
+        $this->assertStringContainsString('WhatsApp ফ্রি ১,০০০ মেসেজের কোটা শেষ হওয়ায়', $blockedMsg->getBlockedReason());
+
+        // 2. Set quota to exhausted
+        $quota = WorkspaceUsageQuota::currentForWorkspace($this->workspace->id);
+        $quota->whatsapp_messages_sent = 1000;
+        $quota->save();
+
+        // 3. View conversation in Live Chat Inbox
+        $inboxResp = $this->actingAs($this->owner)->get(route('conversations.show', $this->whatsappConversation));
+        while (ob_get_level() > 1) {
+            ob_end_clean();
+        }
+        $inboxResp->assertStatus(200);
+
+        // Visual blocked badge & alert banner must be present
+        $inboxResp->assertSee('মেটা জিরো-চার্জ প্রটেকশন: বার্তাটি ডেলিভারি হয়নি', false);
+        $inboxResp->assertSee('Blocked (Zero-Charge)', false);
+        $inboxResp->assertSee('Free Quota Exhausted', false);
+        $inboxResp->assertSee('WhatsApp ফ্রি ১,০০০ মেসেজের কোটা শেষ হওয়ায়', false);
     }
 }

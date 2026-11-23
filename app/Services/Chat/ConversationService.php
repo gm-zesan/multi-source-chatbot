@@ -14,11 +14,15 @@ class ConversationService
      */
     public function saveOutgoing(Conversation $conversation, string $message, array $response = []): Message
     {
+        $isBlocked = ! empty($response['blocked']) || str_starts_with((string) ($response['status'] ?? ''), 'blocked_');
+        $status = $isBlocked ? 'blocked' : ($response['status'] ?? 'sent');
+
         $msg = Message::create([
             'conversation_id'     => $conversation->id,
             'external_message_id' => $response['message_id'] ?? null,
             'direction'           => 'outbound',
             'type'                => 'text',
+            'status'              => $status,
             'body'                => $message,
             'metadata'            => $response,
         ]);

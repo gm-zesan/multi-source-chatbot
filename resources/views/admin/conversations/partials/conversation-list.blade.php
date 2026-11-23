@@ -57,6 +57,9 @@
                 <span class="channel-badge inline-flex items-center gap-1 text-2xs text-light-muted dark:text-dark-muted">
                     <i class="{{ \App\Support\ChannelIcon::icon($slug) }}" style="color:{{ \App\Support\ChannelIcon::color($slug) }}"></i>
                     <span>{{ ucfirst($slug) }}</span>
+                    @if(isset($conversation->messages) && $conversation->messages->where('direction', 'outbound')->last()?->isBlocked())
+                        <span class="app-badge app-badge-danger !text-4xs !py-0 font-mono ml-1">Blocked</span>
+                    @endif
                 </span>
 
                 @if ($conversation->unread_count)

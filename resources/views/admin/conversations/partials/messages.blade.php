@@ -65,7 +65,7 @@
 
         <div class="message-row {{ $message->direction }}">
 
-            <div class="message-bubble">
+            <div class="message-bubble {{ $message->isBlocked() ? '!border-2 !border-rose-500/70 !bg-rose-50/95 dark:!bg-rose-950/40 text-slate-900 dark:text-slate-100 shadow-sm' : '' }}">
 
                 @php
                     $displayBody = $message->body;
@@ -84,6 +84,18 @@
                 <div class="message-text">
                     {!! nl2br(e($displayBody)) !!}
                 </div>
+
+                @if($message->isBlocked())
+                    <div class="mt-2.5 p-2 rounded-lg bg-rose-500/15 border border-rose-500/30 text-rose-700 dark:text-rose-300 text-3xs space-y-1">
+                        <div class="flex items-center gap-1.5 font-bold text-rose-800 dark:text-rose-200">
+                            <i class="bi bi-shield-slash-fill text-rose-600 dark:text-rose-400 text-xs"></i>
+                            <span>মেটা জিরো-চার্জ প্রটেকশন: বার্তাটি ডেলিভারি হয়নি</span>
+                        </div>
+                        <p class="text-3xs leading-relaxed opacity-95 mb-0 font-medium">
+                            {{ $message->getBlockedReason() }}
+                        </p>
+                    </div>
+                @endif
 
                 @if(!empty($proposedFollowUp))
                     <div class="mt-2 pt-1.5 border-t border-white/20 text-xs opacity-95">
@@ -116,28 +128,34 @@
 
                     @if($message->direction == 'outbound')
 
-                        @switch($message->status)
+                        @if($message->isBlocked())
+                            <span class="badge bg-danger text-white" style="font-size: 9px; padding: 2px 6px; border-radius: 4px; display: inline-flex; align-items: center; gap: 3px;" title="{{ $message->getBlockedReason() }}">
+                                <i class="bi bi-shield-x"></i> Blocked (Zero-Charge)
+                            </span>
+                        @else
+                            @switch($message->status)
 
-                            @case('sending')
-                                <i class="bi bi-clock"></i>
-                                @break
+                                @case('sending')
+                                    <i class="bi bi-clock"></i>
+                                    @break
 
-                            @case('sent')
-                                <i class="bi bi-check"></i>
-                                @break
+                                @case('sent')
+                                    <i class="bi bi-check"></i>
+                                    @break
 
-                            @case('delivered')
-                                <i class="bi bi-check2-all"></i>
-                                @break
+                                @case('delivered')
+                                    <i class="bi bi-check2-all"></i>
+                                    @break
 
-                            @case('seen')
-                                <i class="bi bi-check2-all text-primary"></i>
-                                @break
+                                @case('seen')
+                                    <i class="bi bi-check2-all text-primary"></i>
+                                    @break
 
-                            @default
-                                <i class="bi bi-x-circle text-danger"></i>
+                                @default
+                                    <i class="bi bi-x-circle text-danger"></i>
 
-                        @endswitch
+                            @endswitch
+                        @endif
 
                     @endif
 
