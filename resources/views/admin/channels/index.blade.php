@@ -39,6 +39,79 @@
         </div>
     @endif
 
+    {{-- Meta Zero-Cost Protection Alert (If Quota Exhausted or Near Limit) --}}
+    @if(!empty($metaZeroProtection['whatsapp']['is_exhausted']))
+        <div class="alert p-4 rounded-xl border border-rose-500/40 bg-rose-500/10 text-rose-500 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm">
+            <div class="flex items-start sm:items-center gap-2.5">
+                <i class="ri-error-warning-fill text-xl text-rose-500 shrink-0 mt-0.5 sm:mt-0"></i>
+                <div>
+                    <h5 class="text-xs font-bold text-rose-600 dark:text-rose-400 mb-0.5">
+                        ⚠️ এই মাসের WhatsApp ফ্রি ১,০০০টি মেসেজের কোটা শেষ হয়েছে!
+                    </h5>
+                    <p class="text-2xs text-rose-600/90 dark:text-rose-300/90 mb-0">
+                        আপনার ক্রেডিট কার্ডে যেন কোনো অতিরিক্ত চার্জ না কাটে, সেজন্য মেটার জিরো-চার্জ প্রোটেকশন গার্ড স্বয়ংক্রিয় মেসেজ সুরক্ষিতভাবে স্থগিত রেখেছে। আগামী মাসের ১ তারিখে আপনার কোটা আবার স্বয়ংক্রিয়ভাবে নবায়ন হবে।
+                    </p>
+                </div>
+            </div>
+            <div class="flex items-center gap-2 shrink-0">
+                <button type="button" onclick="openPaidServiceComingSoonModal()" class="app-btn app-btn-secondary !h-7 !text-2xs flex items-center gap-1 shadow-sm">
+                    <i class="ri-flashlight-line text-amber-500"></i> পেইড মেসেজ প্যাক (Coming Soon)
+                </button>
+                <span class="app-badge app-badge-danger text-3xs font-mono uppercase shrink-0">Zero Charge Guard: Active</span>
+            </div>
+        </div>
+    @elseif(!empty($metaZeroProtection['whatsapp']['is_near_limit']))
+        <div class="alert p-3 rounded-xl border border-amber-500/40 bg-amber-500/10 text-amber-500 text-xs flex items-center justify-between gap-3">
+            <div class="flex items-center gap-2">
+                <i class="ri-alert-line text-base text-amber-500 shrink-0"></i>
+                <span class="text-2xs font-medium text-amber-600 dark:text-amber-400">
+                    <strong>কোটা সতর্কতা:</strong> আপনার WhatsApp ফ্রি কোটার {{ $metaZeroProtection['whatsapp']['percentage'] }}% ({{ $metaZeroProtection['whatsapp']['sent'] }}/{{ $metaZeroProtection['whatsapp']['limit'] }}) ব্যবহৃত হয়েছে। বাকি আছে মাত্র {{ $metaZeroProtection['whatsapp']['remaining'] }}টি।
+                </span>
+            </div>
+            <div class="flex items-center gap-2 shrink-0">
+                <button type="button" onclick="openPaidServiceComingSoonModal()" class="app-badge app-badge-info text-3xs font-mono cursor-pointer hover:opacity-80">
+                    পেইড টপ-আপ (Soon)
+                </button>
+                <span class="app-badge app-badge-warning text-3xs font-mono">Near Limit</span>
+            </div>
+        </div>
+    @endif
+
+    {{-- Meta Free Tier & Zero-Cost Live Quota Card --}}
+    <div class="app-card p-4 border border-emerald-500/20 bg-gradient-to-r from-emerald-500/5 via-light-surface dark:via-dark-surface to-light-surface dark:to-dark-surface">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div class="space-y-1">
+                <div class="flex items-center gap-2">
+                    <span class="app-badge app-badge-success text-3xs font-mono uppercase flex items-center gap-1">
+                        <i class="ri-shield-check-fill text-emerald-400"></i> Zero-Charge Protection Active
+                    </span>
+                    <span class="text-2xs text-light-muted dark:text-dark-muted">১০০% ফ্রি লিমিট পলিসি কার্যকর</span>
+                </div>
+                <h3 class="text-xs font-bold text-light-text dark:text-dark-text flex items-center gap-1.5">
+                    <i class="ri-whatsapp-line text-emerald-500"></i> Meta WhatsApp & Messenger Free Quota Monitor
+                </h3>
+                <p class="text-2xs text-light-text-secondary dark:text-dark-text-secondary max-w-2xl">
+                    মেটার অফিসিয়াল পলিসি অনুযায়ী প্রতি মাসে প্রথম ১,০০০টি WhatsApp কাস্টমার সার্ভিস মেসেজ এবং Facebook Messenger-এ ২৪ ঘণ্টার সকল রিপ্লাই সম্পূর্ণ ফ্রি ($০.০০ চার্জ)।
+                </p>
+            </div>
+            <div class="flex flex-wrap items-center gap-3 sm:gap-4 flex-shrink-0">
+                <button type="button" onclick="openPaidServiceComingSoonModal()" class="app-btn app-btn-secondary !h-7 !text-3xs flex items-center gap-1 shadow-sm">
+                    <i class="ri-vip-crown-line text-amber-500"></i> পেইড প্যাকেজ (Coming Soon)
+                </button>
+                <div class="text-right">
+                    <div class="text-xs font-mono font-bold {{ (!empty($metaZeroProtection['whatsapp']['is_exhausted'])) ? 'text-rose-500' : 'text-emerald-500' }}">
+                        {{ $metaZeroProtection['whatsapp']['sent'] ?? 0 }} / {{ $metaZeroProtection['whatsapp']['limit'] ?? 1000 }}
+                    </div>
+                    <div class="text-3xs text-light-muted dark:text-dark-muted">WhatsApp Free Messages Used</div>
+                </div>
+                <div class="w-24 sm:w-32 bg-light-border dark:bg-dark-border h-2 rounded-full overflow-hidden">
+                    <div class="h-full {{ (!empty($metaZeroProtection['whatsapp']['is_exhausted'])) ? 'bg-rose-500' : ((!empty($metaZeroProtection['whatsapp']['is_near_limit'])) ? 'bg-amber-500' : 'bg-emerald-500') }}"
+                        style="width: {{ $metaZeroProtection['whatsapp']['percentage'] ?? 0 }}%"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     {{-- Meta / Webhook Endpoint Reference Card --}}
     <div class="app-card p-4 bg-gradient-to-r from-brand-500/10 via-light-surface dark:via-dark-surface to-light-surface dark:to-dark-surface border border-brand-500/20">
         <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">

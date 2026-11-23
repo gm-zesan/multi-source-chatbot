@@ -65,18 +65,20 @@ class ChannelIntegrationController extends Controller
             ->groupBy(fn($item) => $item->channel?->slug);
 
         $verifyToken = config('services.facebook.verify_token') ?: 'ea_webhook_verify_token_2026';
+        $metaZeroProtection = app(\App\Services\Channels\MetaZeroCostProtectionService::class)->getQuotaTelemetry($workspace->id);
 
         return view('admin.channels.index', [
-            'workspace'         => $workspace,
-            'channels'          => $channels,
-            'connectedAccounts' => $connectedAccounts,
-            'webhookUrls'       => [
+            'workspace'          => $workspace,
+            'channels'           => $channels,
+            'connectedAccounts'  => $connectedAccounts,
+            'webhookUrls'        => [
                 'facebook' => url('/webhook/facebook'),
                 'whatsapp' => url('/webhook/whatsapp'),
                 'telegram' => url('/webhook/telegram'),
                 'tiktok'   => url('/webhook/tiktok'),
             ],
-            'verifyToken'       => $verifyToken,
+            'verifyToken'        => $verifyToken,
+            'metaZeroProtection' => $metaZeroProtection,
         ]);
     }
 

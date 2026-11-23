@@ -32,41 +32,60 @@
 
 ---
 
-## ২. মডিউলভিত্তিক বিস্তারিত বাস্তবায়ন বিবরণী (Detailed Code Mapping)
+## ২. ৪টি প্রধান AI এজেন্টের পূর্ণাঙ্গ অডিট ও বাস্তবায়ন ম্যাপিং (The 4 Core AI Agents Status)
 
-### ১. AI Sales & Customer Support Agent (কাস্টমার ডায়ালগ)
-* **স্ট্যাটাস:** `Production-Ready (90%)`
-* **বাস্তবায়িত ফাইলসমূহ:**
-  - `app/AI/Orchestration/CustomerSupportService.php` (ইনটেন্ট ক্লাসিফিকেশন, মাল্টি-টার্ন মেমরি, কনটেক্সট রেজোলিউশন, সিলেক্টভ ফলো-আপ)
-  - `app/AI/Agents/ConversationalSupportAgent.php` ও `KnowledgeSupportAgent.php` (প্রোডাক্ট কোয়ালিফিকেশন ও সাপোর্ট রেজোলিউশন)
-  - `app/Services/Business/BusinessSourceOfTruthService.php` (স্প্রেডশিট থেকে সঠিক পণ্য, দাম ও লাইভ স্টক বের করার সিঙ্গেল সোর্স অব ট্রুথ)
-* **বাস্তব সক্ষমতা:**
-  - কাস্টমার বাংলায়/ইংরেজিতে/বাংলিশে দাম বা সাইজ জানতে চাইলে এক্সেল ক্যাটালগ থেকে ০% হ্যালুসিনেশনে সঠিক উত্তর প্রদান।
-  - ১-ক্লিক হিউম্যান টেকওভার ও লাইভ কনসোল।
-
----
-
-### ২. Order Capture & Courier Logistics (অর্ডার ও কুরিয়ার ইঞ্জিন)
-* **স্ট্যাটাস:** `Production-Ready (95%)`
-* **বাস্তবায়িত ফাইলসমূহ:**
-  - `app/Services/Commerce/OrderCaptureService.php` (চ্যাট থেকে নাম, ফোন ও ঠিকানা স্বয়ংক্রিয়ভাবে এক্সট্র্যাক্ট করে `WorkspaceOrder` তৈরি)
-  - `app/Services/Courier/CourierManager.php` (Steadfast ও Pathao কুরিয়ার এপিআই সংযোগ)
-  - `app/Services/Courier/Drivers/SteadfastCourierDriver.php` (অটো পার্সেল কনসাইনমেন্ট বুকিং ও ট্র্যাকিং সিঙ্ক)
-* **বাস্তব সক্ষমতা:**
-  - কাস্টমার ইনবক্সে ডেলিভারি তথ্য দেওয়ার সাথে সাথে সিস্টেম স্বয়ংক্রিয়ভাবে লিড ট্যাগ (`hot_lead`, `needs_phone`) যুক্ত করে এবং অর্ডার প্রস্তুত করে।
+### ১. AI Sales Agent (Sales & Conversion)
+* **সামগ্রিক অবস্থা:** `Production-Ready (95%)`
+* **সাব-ফিচার ভিত্তিক বাস্তবায়ন ম্যাপিং:**
+  - [x] **Customer inquiry পরিচালনা:** ক্যাটালগ স্প্রেডশিট থেকে সঠিক পণ্য, স্পেসিফিকেশন, কালার/সাইজ ও লাইভ স্টক যাচাই করে ০% হ্যালুসিনেশন সহ রেসপন্স (`KnowledgeSupportAgent.php`, `CustomerSupportService.php`)।
+  - [x] **Product/Service recommendation ও comparison:** কাস্টমারের বাজেট ও চাহিদা অনুযায়ী প্রাসঙ্গিক পণ্য প্রস্তাব এবং বিকল্প পণ্যের মধ্যে তুলনা (`KnowledgeSupportAgent.php`)।
+  - [x] **Customer buying intent বোঝা:** কাস্টমারের মেসেজ বিশ্লেষণ করে কেনার ইনটেন্ট শনাক্তকরণ ও `proposed_follow_up: "purchase_interest"` ট্রিগার (`UnifiedDecisionEngine.php`)।
+  - [~] **Lead qualification ও scoring:** নাম, ফোন নম্বর ও কেনার আগ্রহ দেখে লিড হিসেবে চিহ্নিতকরণ ও ট্যাগিং (`lead`, `hot_lead`, `needs_phone`)। *(০-১০০ স্কেলের গাণিতিক স্কোরিং অ্যালগরিদম ফিউচার এনহান্সমেন্ট)*।
+  - [x] **Price objection handling:** নির্ধারিত মার্জিনের মধ্যে ডিসকাউন্ট নীতিমালা, অফিশিয়াল কুপন ও শর্তাবলী উপস্থাপন।
+  - [x] **CRM-এ Lead তৈরি:** চ্যাট থেকে স্বয়ংক্রিয়ভাবে কাস্টমার প্রোফাইল তৈরি ও ডেটাবেজে সংরক্ষণ (`CRMService.php`, `IdentityResolver.php`, `CRMContact`)।
+  - [x] **অনুমোদিত Order বা Appointment তৈরি:** চ্যাট থেকে স্বয়ংক্রিয় নাম, ফোন ও ঠিকানা বের করে `WorkspaceOrder` তৈরি ও কুরিয়ার বুকিং (`OrderCaptureService.php`)। স্প্রেডশিটে `appointment_date` স্কিমা সাপোর্ট আছে।
+  - [x] **Human Salesperson Handoff:** বাল্ক বা কাস্টমাইজড বিটুবি অর্ডারে ১-ক্লিকে হিউম্যান প্রতিনিধির কাছে হস্তান্তর (`HandoffToHumanTool.php`, `is_handoff`)।
 
 ---
 
-### ৩. AI Business Intelligence Agent (ভার্চুয়াল সিএফও)
-* **স্ট্যাটাস:** `Production-Ready (85%)`
-* **বাস্তবায়িত ফাইলসমূহ:**
-  - `app/AI/Agents/OwnerBusinessAgent.php` (১০টি গভর্ন্ড অ্যানালিটিক্যাল টুল সহ ওনার বিজনেস এজেন্ট)
-  - `app/AI/Tools/SalesAnalyticsTool.php` (দৈনিক ও সাপ্তাহিক সেলস অ্যানালিটিক্স)
-  - `app/AI/Tools/FinancialAnalyticsTool.php` (COGS বনাম বিক্রয়মূল্য থেকে রিয়েল-টাইম নিট প্রফিট ও মার্জিন বিশ্লেষণ)
-  - `app/AI/Tools/ProductPerformanceTool.php` (টপ সেলিং SKU বনাম ডেড স্টক সতর্কতা)
-  - `app/AI/Tools/CustomerInsightsTool.php` (কাস্টমার ট্রেন্ড ও ডিমান্ড ক্লাস্টার)
-* **বাস্তব সক্ষমতা:**
-  - ব্যবসার মালিক ব্যাকএন্ডে ন্যাচারাল ল্যাঙ্গুয়েজে প্রশ্ন করে লাভ-ক্ষতি ও ইনভেন্টরির রিপোর্ট দেখতে পারেন।
+### ২. AI Customer Support Agent (Customer Experience)
+* **সামগ্রিক অবস্থা:** `Production-Ready (100%)`
+* **সাব-ফিচার ভিত্তিক বাস্তবায়ন ম্যাপিং:**
+  - [x] **24/7 Customer Support:** ফেসবুক মেসেঞ্জার, হোয়াটসঅ্যাপ ও ওয়েব উইজেটে ২৪/৭ স্বয়ংক্রিয় গ্রাহক সেবা।
+  - [x] **Product, Service ও Policy সম্পর্কিত উত্তর:** রিটার্ন পলিসি, রিপ্লেসমেন্ট শর্ত, অফিস সময় ও পেমেন্ট মেথড সংক্রান্ত প্রশ্নের ০.০% হ্যালুসিনেশন সহ সঠিক উত্তর (`KnowledgeDocument`, `FAQ`)।
+  - [x] **Order, Payment ও Delivery Status:** কুরিয়ার এপিআই (Steadfast/Pathao) থেকে সরাসরি লাইভ পার্সেল ট্র্যাকিং স্ট্যাটাস প্রদান (`CustomerOrderStatusTool.php`, `CourierManager.php`)।
+  - [x] **Return, Refund ও Complaint Management:** কাস্টমার অভিযোগ চিহ্নিতকরণ, টিকিট ক্যাটাগরাইজেশন এবং উচ্চ গুরুত্বের ইস্যু ফ্ল্যাগ করা।
+  - [x] **Conversation Context বোঝা:** মাল্টি-টার্ন দীর্ঘ কথোপকথনেও আগের কথা, রেফারেন্স ও কাস্টমার প্রিফারেন্স স্মরণ রাখা (গ্রাফ মেমরি ও কনটেক্সট ট্র্যাকিং)।
+  - [x] **Human Support Agent-এর কাছে Handoff:** জটিল বা সংবেদনশীল অভিযোগে ১-ক্লিক হিউম্যান টেকওভার ও অ্যাডমিন অ্যালার্ট।
+
+---
+
+### ৩. AI Follow-up & Retention Agent (Retention & Engagement)
+* **সামগ্রিক অবস্থা:** `Production-Ready (90%)`
+* **সাব-ফিচার ভিত্তিক বাস্তবায়ন ম্যাপিং:**
+  - [x] **Unconverted Lead Follow-up:** যারা দাম জেনেও অর্ডার করেনি, নির্দিষ্ট সময় বিরতিতে তাদের সাথে সৌহার্দ্যপূর্ণ ফলো-আপ বার্তা প্রেরণ (`AbandonedLeadRecoveryService.php`)।
+  - [x] **Abandoned Cart Recovery:** নাম-পণ্য উল্লেখ করে কিন্তু ফোন বা ঠিকানা না দেওয়া ক্রেতাদের ড্রপ-অফ স্মরণ করিয়ে দেওয়া (মেটার ২৩-ঘণ্টার নিরাপদ উইন্ডোর মধ্যে)।
+  - [~] **পুরোনো Customer Reactivation:** ২৪ ঘণ্টা পার হয়ে যাওয়া ক্রেতাদের জন্য ডাটাবেজ প্রস্তুত। *(মেটা পলিসি অনুযায়ী সরাসরি ফ্রি মেসেজ নিষিদ্ধ; মেটা অনুমোদিত টেমপ্লেট মেকানিজম রোডম্যাপে)*।
+  - [~] **Repeat Purchase Campaign:** পূর্ববর্তী অর্ডারের ডেলিভারি সম্পন্ন হওয়ার পর কাস্টমার সন্তুষ্টি যাচাই এবং নতুন কালেকশন অফার।
+  - [x] **Payment Reminder:** ক্যাশ অন ডেলিভারি বা অগ্রিম পেমেন্টের স্থিতি জানিয়ে আশ্বস্তকরণ ও বকেয়া রিমাইন্ডার।
+  - [x] **Order Confirmation ও Reminder:** অর্ডার নেওয়া মাত্র কনফার্মেশন সামারি এবং কুরিয়ারে ডেলিভারি হওয়া মাত্র CSAT রেটিং রিকোয়েস্ট।
+  - [x] **Customer Segmentation:** হাই-ভ্যালু ক্রেতা, নিয়মিত ক্রেতা এবং ড্রপ-আউট ক্রেতাদের আলাদা ক্লাস্টারে ভাগ করা (`CRMContact`)।
+  - [x] **Retention ও Engagement Analysis:** ১-৫ স্টার রেটিং এবং বাংলা সেন্টিমেন্ট অ্যানালাইসিস করে রিয়েল-টাইম CSAT ও কাস্টমার স্যাটিসফ্যাকশন অ্যানালিটিক্স (`PostDeliveryFeedbackService.php`)।
+  - [x] **Follow-up Campaign Scheduling:** লারাভেল ক্রন ও কিউ ওয়ার্কার (`retention:process-abandoned-leads`) দিয়ে স্বয়ংক্রিয়ভাবে ব্যাকগ্রাউন্ডে ফলো-আপ শিডিউলিং।
+
+---
+
+### ৪. AI Business Intelligence Agent (Executive Virtual CFO)
+* **সামগ্রিক অবস্থা:** `Production-Ready (100%)`
+* **সাব-ফিচার ভিত্তিক বাস্তবায়ন ম্যাপিং:**
+  - [x] **Daily, Weekly ও Monthly Business Reports:** মোট সেলস, ডেলিভারি রেশিও এবং চ্যানেলভিত্তিক রেভিনিউ ব্রিফিং (`SalesAnalyticsTool.php`, `BusinessOverviewTool.php`)।
+  - [x] **Sales ও Revenue Analysis:** পাইকারি খরচ (COGS), ডিসকাউন্ট ও লজিস্টিকস ফি বাদ দিয়ে রিয়েল-টাইম গ্রস ও নিট প্রফিট হিসাব (`FinancialAnalyticsTool.php`)।
+  - [x] **Product Performance Analysis:** কোন SKU সবচেয়ে বেশি বিক্রি হচ্ছে এবং কোন আইটেম দীর্ঘ ৩০ দিন ধরে বিক্রি না হয়ে ডেড স্টকে আটকে আছে তার সতর্কতা (`ProductPerformanceTool.php`)।
+  - [x] **Lead-to-Sale Conversion Analysis:** মোট ইনকামিং চ্যাট ও লিড বনাম সফল অর্ডারের শতকরা হার ও কনভার্সন অ্যানালাইসিস (`BusinessOverviewTool.php`)।
+  - [x] **Salesperson Performance:** কোন সেলসপার্সন বা সাপোর্ট স্টাফ কতটি অর্ডার হ্যান্ডেল করেছে এবং তাদের টার্গেট বনাম পারফরম্যান্স অ্যানালিটিক্স (`EmployeeAnalyticsTool.php`)।
+  - [x] **Customer Retention Analysis:** রিপিট বায়ার রেশিও, ভিআইপি কাস্টমার স্পেন্ডিং কোহোর্ট ও কাস্টমার ড্রপ-অফ বিশ্লেষণ (`CustomerInsightsTool.php`)।
+  - [x] **Inventory ও Financial Analysis:** ক্যাশ ফ্লো, অবশিষ্ট বকেয়া এবং ইনভেন্টরি ডেড স্টক থেকে পুঁজি উদ্ধারের আর্থিক অ্যানালিটিক্স (`InventoryAnalyticsTool.php`, `CashFlowAnalyticsTool.php`)।
+  - [x] **Owner Conversational Console & Evidence-based Recommendations:** ওনার বাংলায় সরাসরি প্রশ্ন করতে পারেন এবং ১০টি অ্যানালিটিক্যাল টুলস থেকে পরিসংখ্যান ভিত্তিক সিদ্ধান্ত প্রস্তাব করে (`OwnerAiChatController.php`, "Ask Virtual CFO" ফ্লোটিং উইজেট ও `/dashboard/simulator`)।
 
 ---
 
@@ -99,3 +118,9 @@
 6. **Superadmin Diagnostic Simulator — Phase 3 Scenario Lab (Option 3 — 100% Production Ready):**
    - *বাস্তবায়িত:* `/dashboard/simulator`, `app/Http/Controllers/ChatSimulatorController.php`, `resources/views/admin/simulator.blade.php`, `public/assets/js/simulator.js`, `tests/Feature/ChatSimulatorOption3Test.php`।
    - *সক্ষমতা:* সুপারঅ্যাডমিন সরাসরি সিমুলেটরে 1-ক্লিকে WhatsApp Interactive Button & Image Attachment, Courier Delivered -> CSAT Request Dispatch & 5-Star/1-Star Review Sentiment Ingestion, এবং Shopify & WooCommerce Webhook Sync পরীক্ষা ও পাইপলাইন ট্রেস ইন্সপেক্ট করতে পারছেন।
+7. **Meta Zero-Cost Protection & Free Quota Guard (সম্পূর্ণ — 100% Production Ready):**
+   - *বাস্তবায়িত:* `app/Services/Channels/MetaZeroCostProtectionService.php`, `database/migrations/2026_11_23_000002_add_zero_charge_protection_to_quotas.php`, `app/Channels/WhatsApp/WhatsAppDriver.php`, `app/Channels/Facebook/FacebookDriver.php`, `tests/Feature/Channels/MetaZeroChargeProtectionTest.php`।
+   - *সক্ষমতা:* ব্যবসায়ীর কার্ডে যেন মেটার কোনো অনাকাঙ্ক্ষিত চার্জ না কাটে, সেজন্য প্রতি মাসে WhatsApp-এর প্রথম ১,০০০টি ফ্রি মেসেজ এবং মেসেঞ্জারের ২৪-ঘণ্টা উইন্ডো কঠোরভাবে ট্র্যাক করা হয়। ১,০০০ কোটা শেষ হলে স্বয়ংক্রিয়ভাবে চার্জিং রোধ করা হয় এবং ড্যাশবোর্ড ও চ্যানেলে ব্যবসায়ীকে তাৎক্ষণিক নোটিফিকেশন প্রদান করা হয়।
+8. **পেইড মেসেজিং ও গেটওয়ে সার্ভিস "Coming Soon" রোডম্যাপ (Active & Communicated):**
+   - *বাস্তবায়িত:* `resources/views/admin/partials/paid-service-coming-soon-modal.blade.php`, `resources/views/admin/billing/index.blade.php`, `resources/views/admin/dashboard.blade.php`, `resources/views/admin/channels/index.blade.php`, `resources/views/admin/partials/sidebar.blade.php`।
+   - *সক্ষমতা:* কোনো ব্যবসায়ী যদি ১,০০০ ফ্রি কোটা শেষ হওয়ার পর পেইড সার্ভিস বা টপ-আপ নিতে চান, তবে তাকে পরিষ্কার ও প্রফেশনাল "Coming Soon / শীঘ্রই আসছে" পপআপ ও নোটিশ প্রদর্শিত হয়। সেখানে স্পষ্ট উল্লেখ থাকে যে বর্তমানে প্ল্যাটফর্মটি শতভাগ ফ্রি লিমিটে চলছে, কোনো কার্ড চার্জ কাটবে না এবং বিকাশ/নগদ অটো-পেমেন্ট ও আনলিমিটেড মার্কেটিং টেমপ্লেট প্যাক শীঘ্রই উন্মুক্ত করা হবে।

@@ -42,6 +42,23 @@ class WhatsAppDriver implements ChannelDriver
      */
     public function send(ChannelAccount $account, Conversation $conversation, string $message): array
     {
+        // ── Meta Zero-Cost Protection Guard ────────────────────────────
+        $protection = app(\App\Services\Channels\MetaZeroCostProtectionService::class);
+        $check = $protection->checkOutbound($account, $conversation, $message);
+        if (! $check['allowed']) {
+            Log::warning('[WhatsAppDriver] Outbound blocked by Zero-Charge Protection Guard', [
+                'workspace_id' => $account->workspace_id,
+                'status'       => $check['status'],
+                'reason'       => $check['reason'],
+            ]);
+
+            return [
+                'status'  => $check['status'],
+                'error'   => $check['reason'],
+                'blocked' => true,
+            ];
+        }
+
         $phoneNumberId = $account->settings['phone_number_id'] ?? $account->external_id;
 
         $response = Http::withToken($account->access_token)
@@ -64,6 +81,8 @@ class WhatsAppDriver implements ChannelDriver
                 'status'          => $response->status(),
                 'response'        => $json,
             ]);
+        } else {
+            $protection->recordOutboundSent((int) $account->workspace_id, 'whatsapp');
         }
 
         return $json ?: ['status' => $response->status()];

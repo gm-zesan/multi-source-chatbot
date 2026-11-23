@@ -44,6 +44,48 @@
         </div>
     </div>
 
+    {{-- Meta Zero-Cost Protection Alert for Business Owner --}}
+    @if(!empty($metaZeroProtection['whatsapp']['is_exhausted']))
+        <div class="alert p-4 rounded-xl border border-rose-500/40 bg-rose-500/10 text-rose-500 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm">
+            <div class="flex items-start sm:items-center gap-2.5">
+                <i class="ri-error-warning-fill text-xl text-rose-500 shrink-0 mt-0.5 sm:mt-0"></i>
+                <div>
+                    <h5 class="text-xs font-bold text-rose-600 dark:text-rose-400 mb-0.5">
+                        ⚠️ আপনার হোয়াটসঅ্যাপের এই মাসের ১,০০০টি সম্পূর্ণ ফ্রি মেসেজ কোটা শেষ হয়েছে!
+                    </h5>
+                    <p class="text-2xs text-rose-600/90 dark:text-rose-300/90 mb-0">
+                        আপনার ক্রেডিট কার্ডে কোনো অনাকাঙ্ক্ষিত চার্জ যেন না কাটে, সেজন্য মেটার জিরো-চার্জ প্রোটেকশন গার্ড স্বয়ংক্রিয় মেসেজ সুরক্ষিতভাবে স্থগিত রেখেছে। আগামী মাসের ১ তারিখে কোটা স্বয়ংক্রিয়ভাবে নবায়ন হবে।
+                    </p>
+                </div>
+            </div>
+            <div class="flex items-center gap-2 shrink-0">
+                <button type="button" onclick="openPaidServiceComingSoonModal()" class="app-btn app-btn-secondary !h-7 !text-2xs flex items-center gap-1 shadow-sm">
+                    <i class="ri-flashlight-line text-amber-500"></i> পেইড সার্ভিস (Coming Soon)
+                </button>
+                <a href="{{ route('channels.index') }}" class="app-btn app-btn-danger !h-7 !text-2xs shrink-0 flex items-center gap-1">
+                    <i class="ri-shield-keyhole-line"></i> চ্যানেল কোটা দেখুন
+                </a>
+            </div>
+        </div>
+    @elseif(!empty($metaZeroProtection['whatsapp']['is_near_limit']))
+        <div class="alert p-3 rounded-xl border border-amber-500/40 bg-amber-500/10 text-amber-500 text-xs flex items-center justify-between gap-3">
+            <div class="flex items-center gap-2">
+                <i class="ri-alert-line text-base text-amber-500 shrink-0"></i>
+                <span class="text-2xs font-medium text-amber-600 dark:text-amber-400">
+                    <strong>কোটা সতর্কতা:</strong> আপনার WhatsApp ফ্রি কোটার {{ $metaZeroProtection['whatsapp']['percentage'] }}% ({{ $metaZeroProtection['whatsapp']['sent'] }}/{{ $metaZeroProtection['whatsapp']['limit'] }}) ব্যবহৃত হয়েছে। বাকি আছে মাত্র {{ $metaZeroProtection['whatsapp']['remaining'] }}টি।
+                </span>
+            </div>
+            <div class="flex items-center gap-2 shrink-0">
+                <button type="button" onclick="openPaidServiceComingSoonModal()" class="app-badge app-badge-info text-3xs font-mono cursor-pointer hover:opacity-80">
+                    পেইড সার্ভিস (Soon)
+                </button>
+                <a href="{{ route('channels.index') }}" class="app-badge app-badge-warning text-3xs font-mono">
+                    ম্যানেজ কোটা
+                </a>
+            </div>
+        </div>
+    @endif
+
     {{-- AI Daily Executive Summary & Intelligence Digest --}}
     @include('admin.dashboard.partials.daily-executive-summary')
 

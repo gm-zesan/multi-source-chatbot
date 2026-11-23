@@ -22,17 +22,39 @@ class FacebookDriver implements ChannelDriver
     }
 
 
-    public function send(ChannelAccount $account,Conversation $conversation,string $message): array {
-        $response = Http::withToken($account->access_token)->post('https://graph.facebook.com/v25.0/me/messages',
-        [
+    public function send(ChannelAccount $account, Conversation $conversation, string $message): array
+    {
+        // ── Meta Zero-Cost Protection Guard ────────────────────────────
+        $protection = app(\App\Services\Channels\MetaZeroCostProtectionService::class);
+        $check = $protection->checkOutbound($account, $conversation, $message);
+        if (! $check['allowed']) {
+            \Illuminate\Support\Facades\Log::warning('[FacebookDriver] Outbound blocked by Zero-Charge Protection Guard', [
+                'workspace_id' => $account->workspace_id,
+                'status'       => $check['status'],
+                'reason'       => $check['reason'],
+            ]);
+
+            return [
+                'status'  => $check['status'],
+                'error'   => $check['reason'],
+                'blocked' => true,
+            ];
+        }
+
+        $response = Http::withToken($account->access_token)->post('https://graph.facebook.com/v25.0/me/messages', [
             'recipient' => [
-                'id' => $conversation->external_user_id
+                'id' => $conversation->external_user_id,
             ],
             'message' => [
-                'text' => $message
-            ]
+                'text' => $message,
+            ],
         ]);
-        return $response->json();
+
+        if ($response->successful()) {
+            $protection->recordOutboundSent((int) $account->workspace_id, 'facebook');
+        }
+
+        return $response->json() ?? [];
     }
 
     public function parseWebhook(array $payload): ?array

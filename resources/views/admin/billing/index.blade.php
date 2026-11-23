@@ -17,9 +17,36 @@
             </p>
         </div>
         <div class="flex items-center gap-2">
+            <button type="button" onclick="openPaidServiceComingSoonModal()" class="app-btn app-btn-secondary flex items-center gap-1.5 shadow-sm !text-xs">
+                <i class="ri-flashlight-line text-amber-500"></i>
+                <span>পেইড সার্ভিস (Coming Soon)</span>
+            </button>
             <button type="button" class="app-btn app-btn-primary flex items-center gap-2 shadow-sm" data-bs-toggle="modal" data-bs-target="#rechargeWalletModal">
                 <i class="ri-add-circle-line text-base"></i>
                 <span>Recharge Wallet</span>
+            </button>
+        </div>
+    </div>
+
+    {{-- Meta Zero-Cost Protection & Paid Service Coming Soon Banner --}}
+    <div class="p-4 rounded-xl border border-amber-500/30 bg-gradient-to-r from-amber-500/10 via-light-surface dark:via-dark-surface to-light-surface dark:to-dark-surface flex flex-col md:flex-row md:items-center justify-between gap-3 shadow-sm">
+        <div class="flex items-start gap-3">
+            <div class="w-9 h-9 rounded-lg bg-amber-500/10 text-amber-500 border border-amber-500/20 flex items-center justify-center flex-shrink-0 text-lg">
+                <i class="ri-time-line"></i>
+            </div>
+            <div>
+                <div class="flex items-center gap-2 mb-0.5">
+                    <span class="app-badge app-badge-warning text-3xs font-mono uppercase font-bold">Coming Soon</span>
+                    <h4 class="text-xs font-bold text-light-text dark:text-dark-text">পেইড মেসেজিং ও স্বয়ংক্রিয় গেটওয়ে রিচার্জ সার্ভিস শীঘ্রই আসছে</h4>
+                </div>
+                <p class="text-2xs text-light-text-secondary dark:text-dark-text-secondary">
+                    বর্তমানে কোনো প্রকার পেমেন্ট বা ক্রেডিট কার্ড চার্জ ছাড়াই সিস্টেমটি মেটার ১০০% ফ্রি লিমিট দিয়ে চলছে। বিকাশ, নগদ ও আনলিমিটেড পেইড মেসেজ প্যাক খুব শীঘ্রই যুক্ত হচ্ছে।
+                </p>
+            </div>
+        </div>
+        <div class="flex items-center gap-2 flex-shrink-0">
+            <button type="button" onclick="openPaidServiceComingSoonModal()" class="app-btn app-btn-secondary !text-2xs flex items-center gap-1.5 shadow-sm">
+                <i class="ri-information-line text-amber-500"></i> পেইড সার্ভিসের বিবরণ দেখুন
             </button>
         </div>
     </div>
@@ -332,6 +359,17 @@
             <form action="{{ route('billing.recharge') }}" method="POST">
                 @csrf
                 <input type="hidden" name="workspace_id" value="{{ $workspace->id }}">
+
+                {{-- Coming Soon Notice inside Modal --}}
+                <div class="p-3 mb-4 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-700 dark:text-amber-300 text-2xs flex items-start gap-2.5">
+                    <i class="ri-information-fill text-base shrink-0 text-amber-500 mt-0.5"></i>
+                    <div>
+                        <strong class="font-bold block">পেইড রিচার্জ ফিচারটি শীঘ্রই আসছে (Coming Soon)</strong>
+                        <p class="text-3xs text-light-text-secondary dark:text-dark-text-secondary mt-0.5">
+                            বর্তমানে সিস্টেমটি সম্পূর্ণ বিনামূল্যে মেটার ফ্রি লিমিট দিয়ে চলছে। আপনার কোনো আসল বিকাশ বা কার্ড থেকে চার্জ কাটা হবে না।
+                        </p>
+                    </div>
+                </div>
 
                 <div class="space-y-4">
                     {{-- Amount Input --}}

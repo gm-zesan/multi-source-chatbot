@@ -182,6 +182,8 @@ class WorkspaceWalletTest extends TestCase
         $response->assertSee('50.00'); // Starter bonus balance
         $response->assertSee('125');   // Estimated messages
         $response->assertSee('0.40');  // Rate per message
+        $response->assertSee('পেইড মেসেজিং ও স্বয়ংক্রিয় গেটওয়ে রিচার্জ সার্ভিস শীঘ্রই আসছে', false);
+        $response->assertSee('Coming Soon', false);
     }
 
     public function test_recharge_endpoint_validates_and_credits_wallet(): void

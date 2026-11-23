@@ -136,13 +136,16 @@ class DashboardController extends Controller
             \Illuminate\Support\Facades\Log::warning('[DashboardController] Daily summary calculation non-fatal: ' . $eSummary->getMessage());
         }
 
+        $metaZeroProtection = app(\App\Services\Channels\MetaZeroCostProtectionService::class)->getQuotaTelemetry($workspaceId);
+
         return view('admin.dashboard', [
-            'metrics'       => $metrics,
-            'currentRange'  => $range,
-            'workspace'     => $workspace,
-            'walletBalance' => $walletBalance,
-            'dailySummary'  => $dailySummary,
-            'onboarding'    => [
+            'metrics'            => $metrics,
+            'currentRange'       => $range,
+            'workspace'          => $workspace,
+            'walletBalance'      => $walletBalance,
+            'dailySummary'       => $dailySummary,
+            'metaZeroProtection' => $metaZeroProtection,
+            'onboarding'         => [
                 'steps'         => $checklist,
                 'completed'     => $completedCount,
                 'total'         => $totalSteps,

@@ -63,6 +63,9 @@
     {{-- Floating Owner Virtual CFO AI Chat Widget --}}
     @include('admin.partials.owner-ai-chat-widget')
 
+    {{-- Paid Messaging & Commercial Packages Coming Soon Modal --}}
+    @include('admin.partials.paid-service-coming-soon-modal')
+
     @include('admin.partials.scripts')
     @stack('custom-scripts')
 </body>
