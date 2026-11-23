@@ -111,9 +111,22 @@ class OrderCaptureService
         $product = null;
         $amount = null;
 
-        // 1. Phone Number Detection (BD Mobile: 013-019)
-        if (preg_match('/(?:\+?880|0)?(1[3-9]\d{8})\b/', $text, $matches)) {
-            $phone = '0' . $matches[1];
+        // 0. Convert Bengali numerals (০-৯) to standard English digits (0-9)
+        $bnToEn = ['০' => '0', '১' => '1', '২' => '2', '৩' => '3', '৪' => '4', '৫' => '5', '৬' => '6', '৭' => '7', '৮' => '8', '৯' => '9'];
+        $normalizedText = strtr($text, $bnToEn);
+
+        // 1. Phone Number Detection (BD Mobile: 013-019 supporting spaces, hyphens, and +880 prefix)
+        if (preg_match('/(?:\+?88\s*0?|0)\s*1[3-9](?:[\s\-]*\d){8}/u', $normalizedText, $m)) {
+            $clean = preg_replace('/[^\d]/', '', $m[0]);
+            if (str_starts_with($clean, '8801') && strlen($clean) === 13) {
+                $phone = '0' . substr($clean, 3);
+            } elseif (str_starts_with($clean, '881') && strlen($clean) === 12) {
+                $phone = '0' . substr($clean, 2);
+            } elseif (str_starts_with($clean, '01') && strlen($clean) === 11) {
+                $phone = $clean;
+            } elseif (str_starts_with($clean, '1') && strlen($clean) === 10) {
+                $phone = '0' . $clean;
+            }
         }
 
         // 2. Name Detection

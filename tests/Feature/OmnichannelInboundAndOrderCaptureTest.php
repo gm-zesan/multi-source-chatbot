@@ -356,4 +356,46 @@ class OmnichannelInboundAndOrderCaptureTest extends TestCase
         $this->assertStringContainsString('ধানমন্ডি ২৭', (string) $order2->delivery_address);
         $this->assertStringContainsString('Jamdani Sharee', (string) $order2->product_summary);
     }
+
+    public function test_order_capture_successfully_extracts_bengali_digits_and_spaced_phone_numbers(): void
+    {
+        $conversation = Conversation::create([
+            'workspace_id'       => $this->workspace->id,
+            'channel_account_id' => $this->websiteAccount->id,
+            'external_user_id'   => 'web_visitor_bn_num',
+            'status'             => 'open',
+            'last_direction'     => 'inbound',
+        ]);
+
+        $orderService = app(\App\Services\Commerce\OrderCaptureService::class);
+
+        // Bengali digits test: ০১৭১২৩৪৫৬৭৮
+        $orderBn = $orderService->extractAndCapture(
+            conversation: $conversation,
+            userMessage: "নাম: রফিক, মোবাইল: ০১৭১২৩৪৫৬৭৮, ঠিকানা: মিরপুর ১০, আমি ১টি টি-শার্ট নিতে চাই"
+        );
+
+        $this->assertNotNull($orderBn);
+        $this->assertSame('01712345678', $orderBn->customer_phone);
+        $this->assertSame('রফিক', $orderBn->customer_name);
+        $this->assertStringContainsString('মিরপুর ১০', $orderBn->delivery_address);
+
+        // Spaced phone test: 01811 223344
+        $conversation2 = Conversation::create([
+            'workspace_id'       => $this->workspace->id,
+            'channel_account_id' => $this->websiteAccount->id,
+            'external_user_id'   => 'web_visitor_spaced_num',
+            'status'             => 'open',
+            'last_direction'     => 'inbound',
+        ]);
+
+        $orderSpaced = $orderService->extractAndCapture(
+            conversation: $conversation2,
+            userMessage: "আমার নাম রনি, ফোন 01811 223344, গুলশান ১"
+        );
+
+        $this->assertNotNull($orderSpaced);
+        $this->assertSame('01811223344', $orderSpaced->customer_phone);
+        $this->assertSame('রনি', $orderSpaced->customer_name);
+    }
 }

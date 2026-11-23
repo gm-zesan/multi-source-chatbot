@@ -136,6 +136,15 @@ class AbandonedLeadRecoveryService
             return ['success' => false, 'reason' => 'channel_delivery_failed: ' . $e->getMessage()];
         }
 
+        // If message was blocked by Zero-Charge Protection Guard (e.g. WhatsApp quota exhausted)
+        if (! empty($driverResponse['blocked'])) {
+            Log::info('[AbandonedLeadRecovery] Follow-up skipped: Channel outbound blocked by zero-charge protection', [
+                'conversation_id' => $conversation->id,
+                'status'          => $driverResponse['status'] ?? 'blocked',
+            ]);
+            return ['success' => false, 'reason' => 'outbound_blocked_zero_charge: ' . ($driverResponse['status'] ?? '')];
+        }
+
         // 6. Persist Outbound Message and Update Conversation State in Transaction
         $message = DB::transaction(function () use ($conversation, $followUpText, $driverResponse) {
             $msg = Message::create([
