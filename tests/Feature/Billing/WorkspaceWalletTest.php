@@ -218,49 +218,4 @@ class WorkspaceWalletTest extends TestCase
             'amount'       => 0.40,
         ]);
     }
-
-    public function test_merchant_can_purchase_messaging_package_with_sufficient_wallet_balance(): void
-    {
-        // Give merchant 500 BDT in wallet
-        $wallet = $this->walletService->getOrCreateWallet($this->workspace);
-        $wallet->balance = 500.00;
-        $wallet->save();
-
-        $response = $this->actingAs($this->merchant)
-            ->post(route('billing.purchase-package'), [
-                'package' => 'growth', // 1,000 messages for 400 BDT
-            ]);
-
-        $response->assertSessionHas('success');
-
-        // Check wallet balance deducted
-        $wallet->refresh();
-        $this->assertEquals(100.00, (float) $wallet->balance); // 500 - 400 = 100
-
-        // Check transaction recorded
-        $this->assertDatabaseHas('workspace_wallet_transactions', [
-            'workspace_id' => $this->workspace->id,
-            'category'     => 'package_purchase',
-            'amount'       => 400.00,
-        ]);
-
-        // Check usage quota incremented
-        $quota = \App\Models\WorkspaceUsageQuota::currentForWorkspace($this->workspace->id);
-        $this->assertEquals(2000, $quota->whatsapp_free_limit); // 1000 base + 1000 pack
-        $this->assertNull($quota->quota_exhausted_sent_at);
-    }
-
-    public function test_purchasing_messaging_package_fails_when_wallet_balance_is_insufficient(): void
-    {
-        // Merchant has only 50 BDT starter bonus
-        $response = $this->actingAs($this->merchant)
-            ->post(route('billing.purchase-package'), [
-                'package' => 'growth', // 400 BDT
-            ]);
-
-        $response->assertSessionHas('error');
-
-        $wallet = $this->walletService->getOrCreateWallet($this->workspace);
-        $this->assertEquals(50.00, (float) $wallet->balance); // Untouched
-    }
 }

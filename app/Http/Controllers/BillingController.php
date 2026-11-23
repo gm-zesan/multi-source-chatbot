@@ -102,37 +102,4 @@ class BillingController extends Controller
         return redirect()->route('billing.index', $user->hasRole(RoleEnum::SUPERADMIN->value) ? ['workspace_id' => $workspace->id] : [])
             ->with('success', "৳ " . number_format((float) $validated['amount'], 2) . " successfully added to your wallet via " . strtoupper($validated['gateway']) . "!");
     }
-
-    /**
-     * Purchase an additional messaging package with prepaid wallet balance.
-     */
-    public function purchasePackage(Request $request): RedirectResponse
-    {
-        /** @var User $user */
-        $user = Auth::user();
-
-        if (! $user || (! $user->hasRole(RoleEnum::SUPERADMIN->value) && ! $user->hasRole(RoleEnum::ADMIN->value))) {
-            abort(403, 'Unauthorized. Only workspace business owners can purchase messaging packages.');
-        }
-
-        $validated = $request->validate([
-            'package'      => ['required', 'string', 'in:starter,growth,scale'],
-            'workspace_id' => ['nullable', 'integer', 'exists:workspaces,id'],
-        ]);
-
-        $workspaceId = ($user->hasRole(RoleEnum::SUPERADMIN->value) && ! empty($validated['workspace_id']))
-            ? (int) $validated['workspace_id']
-            : (int) ($user->workspace_id ?: 1);
-
-        $workspace = Workspace::findOrFail($workspaceId);
-
-        $res = $this->walletService->purchaseMessagingPackage($workspace, $validated['package']);
-
-        if (! $res['success']) {
-            return back()->with('error', $res['error']);
-        }
-
-        $pack = $res['package'];
-        return back()->with('success', "🎉 সফলভাবে {$pack['title']} সক্রিয় করা হয়েছে! আপনার একাউন্টে " . number_format($pack['messages']) . "টি অতিরিক্ত WhatsApp মেসেজ কোটা যুক্ত হয়েছে।");
-    }
 }

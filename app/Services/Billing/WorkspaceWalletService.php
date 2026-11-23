@@ -15,31 +15,6 @@ use Illuminate\Support\Str;
 class WorkspaceWalletService
 {
     /**
-     * Predefined messaging packages available for instant merchant purchase.
-     *
-     * @var array<string, array{messages: int, price: float, title: string, description: string}>
-     */
-    public const MESSAGING_PACKAGES = [
-        'starter' => [
-            'messages'    => 500,
-            'price'       => 200.0,
-            'title'       => 'স্টার্টার প্যাক (Starter Pack)',
-            'description' => '৫০০টি অতিরিক্ত WhatsApp মেসেজ কোটা',
-        ],
-        'growth' => [
-            'messages'    => 1000,
-            'price'       => 400.0,
-            'title'       => 'গ্রোথ প্যাক (Growth Pack)',
-            'description' => '১,০০০টি অতিরিক্ত WhatsApp মেসেজ কোটা',
-        ],
-        'scale' => [
-            'messages'    => 2500,
-            'price'       => 900.0,
-            'title'       => 'স্কেল প্যাক (Scale Pack)',
-            'description' => '২,৫০০টি অতিরিক্ত WhatsApp মেসেজ কোটা',
-        ],
-    ];
-    /**
      * Get or initialize a workspace prepaid wallet.
      */
     public function getOrCreateWallet(Workspace $workspace): WorkspaceWallet
@@ -250,70 +225,6 @@ class WorkspaceWalletService
                 'reference_id'  => 'adj_' . Str::random(8),
                 'description'   => "Admin Adjustment: {$reason}" . ($adminUser ? " by {$adminUser->name}" : ''),
             ]);
-        });
-    }
-
-    /**
-     * Purchase a messaging package using workspace wallet balance.
-     *
-     * @return array{success: bool, package?: array, wallet?: WorkspaceWallet, quota?: \App\Models\WorkspaceUsageQuota, error?: string}
-     */
-    public function purchaseMessagingPackage(Workspace $workspace, string $packageKey): array
-    {
-        if (! isset(self::MESSAGING_PACKAGES[$packageKey])) {
-            return ['success' => false, 'error' => 'Invalid messaging package selected.'];
-        }
-
-        $pack = self::MESSAGING_PACKAGES[$packageKey];
-        $price = (float) $pack['price'];
-        $messages = (int) $pack['messages'];
-
-        return DB::transaction(function () use ($workspace, $packageKey, $pack, $price, $messages) {
-            $wallet = $this->getOrCreateWallet($workspace);
-            $wallet = WorkspaceWallet::where('id', $wallet->id)->lockForUpdate()->first();
-
-            if ((float) $wallet->balance < $price) {
-                $deficit = round($price - (float) $wallet->balance, 2);
-                return [
-                    'success' => false,
-                    'error'   => "ওয়ালেটে পর্যাপ্ত ব্যালেন্স নেই। প্যাকেজটির মূল্য ৳" . number_format($price, 2) . " BDT, আপনার ব্যালেন্স ৳" . number_format((float) $wallet->balance, 2) . " BDT (ঘাটতি: ৳" . number_format($deficit, 2) . " BDT)। অনুগ্রহ করে ওয়ালেট রিচার্জ করুন।",
-                ];
-            }
-
-            $newBalance = round((float) $wallet->balance - $price, 2);
-            $wallet->balance = $newBalance;
-            $wallet->save();
-
-            // Record transaction
-            WorkspaceWalletTransaction::create([
-                'wallet_id'     => $wallet->id,
-                'workspace_id'  => $workspace->id,
-                'type'          => 'debit',
-                'category'      => 'package_purchase',
-                'amount'        => $price,
-                'balance_after' => $newBalance,
-                'reference_id'  => 'pkg_' . Str::upper(Str::random(10)),
-                'description'   => "Purchased {$pack['title']} ({$messages} Extra WhatsApp Messages)",
-                'meta'          => [
-                    'package_key' => $packageKey,
-                    'messages'    => $messages,
-                    'price'       => $price,
-                ],
-            ]);
-
-            // Update Workspace Usage Quota: increment WhatsApp limit & clear exhausted guard
-            $quota = \App\Models\WorkspaceUsageQuota::currentForWorkspace($workspace->id);
-            $quota->increment('whatsapp_free_limit', $messages);
-            $quota->quota_exhausted_sent_at = null;
-            $quota->quota_warning_sent_at = null;
-            $quota->save();
-
-            return [
-                'success' => true,
-                'package' => $pack,
-                'wallet'  => $wallet,
-                'quota'   => $quota,
-            ];
         });
     }
 }

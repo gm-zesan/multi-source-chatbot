@@ -351,7 +351,6 @@ Route::middleware('auth')->prefix('dashboard')->group(function () {
 
     Route::get('/billing', [BillingController::class, 'index'])->name('billing.index');
     Route::post('/billing/recharge', [BillingController::class, 'recharge'])->name('billing.recharge');
-    Route::post('/billing/purchase-package', [BillingController::class, 'purchasePackage'])->name('billing.purchase-package');
 
     // ── 4.10 Observability, Exports & User Profile ─────────────────────
     Route::get('/observability', [ObservabilityController::class, 'index'])->name('observability.index');
