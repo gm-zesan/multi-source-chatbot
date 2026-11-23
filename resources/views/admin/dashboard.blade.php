@@ -39,10 +39,17 @@
                     <i class="ri-code-s-slash-line text-xs"></i>
                     <span>Web Widget</span>
                 </a>
-                <a href="{{ route('simulator.index') }}" class="app-btn app-btn-primary">
-                    <i class="ri-robot-2-line text-xs"></i>
-                    <span>Simulator</span>
-                </a>
+                @if(Auth::user()?->hasRole('superadmin'))
+                    <a href="{{ route('simulator.index') }}" class="app-btn app-btn-primary">
+                        <i class="ri-robot-2-line text-xs"></i>
+                        <span>AI Simulator</span>
+                    </a>
+                @else
+                    <a href="{{ route('widget.manage') }}" class="app-btn app-btn-primary">
+                        <i class="ri-robot-2-line text-xs"></i>
+                        <span>Live AI Widget</span>
+                    </a>
+                @endif
             </div>
         </div>
 
