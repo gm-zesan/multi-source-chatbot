@@ -245,6 +245,10 @@ class WorkspaceCourierController extends Controller
         $order->admin_notes = ($order->admin_notes ?: '') . $note;
         $order->save();
 
+        if ($order->status === 'delivered') {
+            app(\App\Services\Retention\PostDeliveryFeedbackService::class)->dispatchFeedbackRequest($order);
+        }
+
         Log::info('[Steadfast Webhook] Order status synchronized successfully', [
             'order'          => $order->order_number,
             'courier_status' => $rawStatus,
@@ -296,6 +300,10 @@ class WorkspaceCourierController extends Controller
         $timestamp = now()->format('d M Y, h:i A');
         $order->admin_notes = ($order->admin_notes ?: '') . "\n[Pathao Webhook: {$orderStatus} at {$timestamp}]";
         $order->save();
+
+        if ($order->status === 'delivered') {
+            app(\App\Services\Retention\PostDeliveryFeedbackService::class)->dispatchFeedbackRequest($order);
+        }
 
         return response()->json(['success' => true, 'order_number' => $order->order_number]);
     }

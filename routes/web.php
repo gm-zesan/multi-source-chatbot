@@ -172,6 +172,9 @@ Route::middleware('auth')->prefix('dashboard')->group(function () {
         Route::post('/simulator/clear-excel', [ChatSimulatorController::class, 'clearExcel'])->name('simulator.clear_excel');
         Route::post('/simulator/select-source', [ChatSimulatorController::class, 'selectSource'])->name('simulator.select_source');
         Route::post('/simulator/switch-workspace', [ChatSimulatorController::class, 'switchWorkspace'])->name('simulator.switch_workspace');
+        Route::post('/simulator/scenario/whatsapp', [ChatSimulatorController::class, 'simulateWhatsAppScenario'])->name('simulator.scenario.whatsapp');
+        Route::post('/simulator/scenario/delivery-csat', [ChatSimulatorController::class, 'simulateDeliveryCsatScenario'])->name('simulator.scenario.delivery_csat');
+        Route::post('/simulator/scenario/catalog-sync', [ChatSimulatorController::class, 'simulateCatalogSyncScenario'])->name('simulator.scenario.catalog_sync');
     });
 
     // ── 4.5 Business Intelligence & Analytics ──────────────────────────
@@ -287,6 +290,10 @@ Route::middleware('auth')->prefix('dashboard')->group(function () {
             ->name('update-stock')
             ->middleware('permission:' . KnowledgeDocumentPermission::UPDATE->value);
     });
+
+    // 1-Click External E-Commerce Catalog Bridge (Shopify & WooCommerce)
+    Route::post('/integrations/catalog-sync', [\App\Http\Controllers\StoreCatalogBridgeController::class, 'oneClickSync'])
+        ->name('integrations.catalog-sync');
 
     // Unanswered Questions (Merchant Visibility & 1-Click FAQ Conversion)
     Route::resource('/unanswered-questions', UnansweredQuestionController::class)->only(['index', 'update', 'destroy'])

@@ -93,6 +93,10 @@ class WorkspaceOrderController extends Controller
         }
         $order->save();
 
+        if ($order->status === 'delivered') {
+            app(\App\Services\Retention\PostDeliveryFeedbackService::class)->dispatchFeedbackRequest($order);
+        }
+
         return redirect()->back()->with('success', "Order #{$order->order_number} status updated to " . strtoupper($order->status) . ".");
     }
 

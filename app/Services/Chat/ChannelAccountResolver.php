@@ -14,7 +14,12 @@ class ChannelAccountResolver
 
         $channel = Channel::where('slug',$channelSlug)->firstOrFail();
 
-        $account = ChannelAccount::where('channel_id',$channel->id)->where('external_id',$externalId)->first();
+        $account = ChannelAccount::where('channel_id', $channel->id)
+            ->where(function ($q) use ($externalId) {
+                $q->where('external_id', $externalId)
+                  ->orWhere('settings->phone_number_id', $externalId);
+            })
+            ->first();
 
         if (!$account) {
             throw new RuntimeException(

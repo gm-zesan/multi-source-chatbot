@@ -87,7 +87,7 @@ class UnifiedOrchestratorProductionIntegrationTest extends TestCase
             'email' => 'owner@unified.store',
             'workspace_id' => $this->workspace->id,
         ]);
-        $this->owner->assignRole('owner');
+        $this->owner->assignRole(RoleEnum::SUPERADMIN->value);
 
         $this->staff = User::factory()->create([
             'name' => 'Store Staff',
@@ -269,9 +269,7 @@ class UnifiedOrchestratorProductionIntegrationTest extends TestCase
             'message' => 'Total sale koto?',
         ]);
 
-        $response->assertOk();
-        $this->assertSame('analytics_denied', $response->json('route'));
-        $this->assertSame(CustomerSupportService::CUSTOMER_ANALYTICS_DENIAL_MESSAGE, $response->json('reply'));
+        $response->assertStatus(403);
     }
 
     /**

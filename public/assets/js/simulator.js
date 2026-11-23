@@ -1347,6 +1347,89 @@ window.escapeHtml = escapeHtml;
 window.escapeJs = escapeJs;
 window.renderFormattedMessage = renderFormattedMessage;
 
+// ── ⚡ 1-Click Scenario Testing Runner (Superadmin Diagnostic Lab) ──
+window.runScenario = async function(scenarioType, payload) {
+    payload = payload || {};
+    const config = getSimulatorConfig();
+    const sendBtn = document.getElementById('sendBtn');
+    let scenarioUrl = '';
+
+    if (scenarioType === 'whatsapp') {
+        scenarioUrl = (config.routes && config.routes.scenarioWhatsapp) || '/dashboard/simulator/scenario/whatsapp';
+    } else if (scenarioType === 'delivery-csat' || scenarioType === 'csat') {
+        scenarioUrl = (config.routes && config.routes.scenarioDeliveryCsat) || '/dashboard/simulator/scenario/delivery-csat';
+    } else if (scenarioType === 'catalog-sync' || scenarioType === 'catalog') {
+        scenarioUrl = (config.routes && config.routes.scenarioCatalogSync) || '/dashboard/simulator/scenario/catalog-sync';
+    } else {
+        console.error('Unknown scenario type:', scenarioType);
+        return;
+    }
+
+    const csrfToken = config.csrfToken || '';
+    if (sendBtn) sendBtn.disabled = true;
+
+    // Determine readable query label for user chat bubble
+    let queryLabel = 'Simulating scenario: ' + scenarioType;
+    if (scenarioType === 'whatsapp') {
+        if (payload.type === 'button') {
+            queryLabel = '⚡ [WhatsApp Button] "অর্ডার কনফার্ম করুন" (Button Reply ID: btn_sim_1)';
+        } else if (payload.type === 'media') {
+            queryLabel = '⚡ [WhatsApp Media] 📷 Image Attachment: "এই শার্টটির প্রাইস কত?"';
+        } else {
+            queryLabel = '⚡ [WhatsApp Message] "আপনাদের ক্যাশ অন ডেলিভারি চার্জ কত?"';
+        }
+    } else if (scenarioType === 'delivery-csat' || scenarioType === 'csat') {
+        if (payload.action === 'rating_5') {
+            queryLabel = '⭐ [CSAT Review] "৫ স্টার, অনেক ভালো সার্ভিস!" (5/5 Rating)';
+        } else if (payload.action === 'rating_1') {
+            queryLabel = '⚠️ [CSAT Review] "১ স্টার - সাইজ মিলেনি, বাজে ডেলিভারি" (1/5 Rating)';
+        } else {
+            queryLabel = '🚚 [Courier Webhook] Steadfast / Pathao Status: Delivered (#ORD-SIM)';
+        }
+    } else if (scenarioType === 'catalog-sync' || scenarioType === 'catalog') {
+        if (payload.platform === 'woocommerce') {
+            queryLabel = '🏬 [Catalog Bridge] WooCommerce Product Webhook (REST API publish)';
+        } else {
+            queryLabel = '🛍️ [Catalog Bridge] Shopify Product Webhook (products/create)';
+        }
+    }
+
+    appendMessage(queryLabel, 'user');
+    const typingId = appendTypingIndicator();
+
+    try {
+        const response = await fetch(scenarioUrl, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "X-CSRF-TOKEN": csrfToken,
+                "Accept": "application/json"
+            },
+            body: JSON.stringify(payload)
+        });
+
+        const data = await response.json();
+        removeElement(typingId);
+        if (sendBtn) sendBtn.disabled = false;
+
+        if (data.success) {
+            data.userQuery = queryLabel;
+            appendMessage(data.reply, 'bot', data);
+            recordTurnDecisionTrace(data);
+            updateDiagnostics(data);
+            // Automatically open Pipeline Inspector to visualize execution trace
+            window.toggleDiagnosticsDrawer(true);
+        } else {
+            appendMessage('<i class="ri-error-warning-line text-rose-500 me-1"></i>Scenario Error: ' + (data.message || "Failed to execute scenario"), 'bot');
+        }
+    } catch (err) {
+        removeElement(typingId);
+        if (sendBtn) sendBtn.disabled = false;
+        console.error("Scenario execution error:", err);
+        appendMessage('<i class="ri-error-warning-line text-rose-500 me-1"></i>Network Error executing scenario.', 'bot');
+    }
+};
+
 // ── Page Initialization & History Re-hydration ──
 window.addEventListener('load', function () {
     const chatMessages = document.getElementById('chatMessages');

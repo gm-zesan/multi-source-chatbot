@@ -22,6 +22,10 @@ Route::post('/widget/chat', [WidgetChatController::class, 'chat'])->middleware('
 Route::post('/v1/courier/webhook/steadfast', [\App\Http\Controllers\WorkspaceCourierController::class, 'handleSteadfastWebhook'])->name('api.courier.webhook.steadfast');
 Route::post('/v1/courier/webhook/pathao', [\App\Http\Controllers\WorkspaceCourierController::class, 'handlePathaoWebhook'])->name('api.courier.webhook.pathao');
 
+// External E-Commerce Catalog Webhooks (Shopify, WooCommerce)
+Route::post('/v1/integrations/shopify/webhook', [\App\Http\Controllers\StoreCatalogBridgeController::class, 'handleShopifyWebhook'])->name('api.integrations.shopify.webhook');
+Route::post('/v1/integrations/woocommerce/webhook', [\App\Http\Controllers\StoreCatalogBridgeController::class, 'handleWooCommerceWebhook'])->name('api.integrations.woocommerce.webhook');
+
 // External Developer REST API v1 (Secured via API Key & Rate Limiting)
 Route::prefix('v1')->middleware(['auth.api_key', 'throttle:60,1'])->group(function () {
     // 1. Programmatic AI Chat Completion

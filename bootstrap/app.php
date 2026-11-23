@@ -18,6 +18,8 @@ return Application::configure(basePath: dirname(__DIR__))
             'widget/*',
             'api/v1/widget/*',
             'webhooks/billing/*',
+            'api/v1/integrations/*',
+            'api/v1/courier/webhook/*',
         ]);
 
         // Append SetLocale to web middleware group

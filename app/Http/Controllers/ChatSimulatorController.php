@@ -134,7 +134,7 @@ class ChatSimulatorController extends Controller
         $request->validate([
             'message'    => 'required|string|max:1000',
             'file_id'    => 'nullable|string',
-            'agent_mode' => 'nullable|string|in:auto,sales,support,cfo,retention',
+            'agent_mode' => 'nullable|string|in:auto,sales,support,cfo,retention,whatsapp,csat,catalog_sync',
         ]);
 
         $query = (string) $request->input('message');
@@ -285,6 +285,284 @@ class ChatSimulatorController extends Controller
                 'confidence' => 100.0,
                 'is_handoff' => false,
                 'answered' => true,
+            ]);
+        }
+
+        // ── WhatsApp Cloud API Channel Simulator ──────────────────────
+        if ($agentMode === 'whatsapp') {
+            $isButton = str_contains($query, '[Interactive Button:') || str_starts_with(strtolower($query), 'button:');
+            $isMedia = str_contains($query, '[Attachment:') || str_starts_with(strtolower($query), 'image:');
+
+            $simulatedMessage = [
+                'from' => '8801700000000',
+                'id'   => 'wamid.SIM_' . uniqid(),
+                'type' => $isButton ? 'interactive' : ($isMedia ? 'image' : 'text'),
+            ];
+
+            if ($isButton) {
+                $cleanTitle = trim(str_replace(['[Interactive Button:', 'button:', ']'], '', $query));
+                $simulatedMessage['interactive'] = [
+                    'type'         => 'button_reply',
+                    'button_reply' => ['id' => 'btn_sim_1', 'title' => $cleanTitle],
+                ];
+            } elseif ($isMedia) {
+                $caption = trim(str_replace(['[Attachment: Image]', '[Attachment:', 'image:'], '', $query));
+                $simulatedMessage['image'] = ['caption' => $caption ?: 'Sample product picture'];
+            } else {
+                $simulatedMessage['text'] = ['body' => $query];
+            }
+
+            $driver = new \App\Channels\WhatsApp\WhatsAppDriver();
+            $parsed = $driver->parseWebhook([
+                'entry' => [
+                    [
+                        'changes' => [
+                            [
+                                'value' => [
+                                    'metadata' => ['phone_number_id' => 'wa_sim_phone_001'],
+                                    'contacts' => [['profile' => ['name' => 'Simulated WhatsApp User']]],
+                                    'messages' => [$simulatedMessage],
+                                ],
+                            ],
+                        ],
+                    ],
+                ],
+            ]);
+
+            $supportResult = $this->orchestrator->process(
+                query: $parsed['text'] ?: $query,
+                workspaceId: $workspaceId,
+                user: $currentUser,
+                conversation: $conversation,
+                channelSlug: 'whatsapp',
+            );
+
+            $reply = $supportResult['reply'] ?? 'WhatsApp message processed.';
+            $totalElapsed = round((microtime(true) - $startTime) * 1000, 2);
+
+            $whatsappOutboundPayload = [
+                'messaging_product' => 'whatsapp',
+                'recipient_type'    => 'individual',
+                'to'                => '8801700000000',
+                'type'              => 'text',
+                'text'              => ['preview_url' => false, 'body' => $reply],
+            ];
+
+            $this->customerSupportService->saveOutboundReply(
+                conversation: $conversation,
+                replyText: $reply,
+                deliveryResponse: [
+                    'route'         => $supportResult['route'] ?? 'knowledge',
+                    'confidence'    => $supportResult['confidence'] ?? 1.0,
+                    'answered'      => true,
+                    'total_time_ms' => $totalElapsed,
+                ],
+            );
+
+            return response()->json([
+                'success'              => true,
+                'query'                => $query,
+                'reply'                => $reply,
+                'route'                => $supportResult['route'] ?? 'knowledge',
+                'agent_mode'           => 'whatsapp',
+                'agent_tested'         => 'WhatsAppCloudApiConnector (WhatsAppDriver)',
+                'whatsapp_outbound'    => $whatsappOutboundPayload,
+                'suggestions'          => $supportResult['suggestions'] ?? [],
+                'sources'              => array_merge(['WhatsApp Cloud API v20.0'], (array) ($supportResult['sources'] ?? [])),
+                'decision_trace'       => [
+                    'query'             => $query,
+                    'route'             => 'WHATSAPP_LIVE_CHANNEL',
+                    'agent_tested'      => 'WhatsApp Cloud API Connector',
+                    'route_confidence'  => 100.0,
+                    'memory_decision'   => 'ACTIVE',
+                    'contextual_signal' => 'INBOUND_WHATSAPP_WEBHOOK',
+                    'latency_breakdown' => [
+                        'total_ms'     => $totalElapsed,
+                        'total_e2e_ms' => $totalElapsed,
+                    ],
+                ],
+                'pipeline_diagnostics' => [
+                    'total_time_ms' => $totalElapsed,
+                    'agent_mode'    => 'whatsapp',
+                    'inbound_type'  => $simulatedMessage['type'],
+                ],
+                'confidence'           => 100.0,
+                'is_handoff'           => false,
+                'answered'             => true,
+            ]);
+        }
+
+        // ── Post-Delivery CSAT Feedback Simulator ──────────────────────
+        if ($agentMode === 'csat') {
+            $feedbackService = app(\App\Services\Retention\PostDeliveryFeedbackService::class);
+            $totalElapsed = round((microtime(true) - $startTime) * 1000, 2);
+
+            $recordedFeedback = $feedbackService->recordFeedbackFromMessage($conversation, $query);
+
+            if ($recordedFeedback) {
+                $csatStats = $feedbackService->getCSATStats($workspaceId);
+                $reply = "⭐ **[CSAT Feedback Engine — Rating Recorded!]**\n\n"
+                    . "- **গ্রাহক রেটিং:** " . str_repeat('⭐', $recordedFeedback->rating) . " ({$recordedFeedback->rating}/5 Stars)\n"
+                    . "- **ফিডব্যাক মন্তব্য:** \"{$recordedFeedback->review_text}\"\n"
+                    . "- **অর্ডার রেফারেন্স:** #{$recordedFeedback->order?->order_number}\n\n"
+                    . "📊 **ওয়ার্কস্পেস CSAT মেট্রিক্স আপডেট:**\n"
+                    . "- **গড় সন্তুষ্টি রেটিং:** {$csatStats['average_rating']} / 5.0 ⭐\n"
+                    . "- **পজিটিভ রেটিং শতাংশ:** {$csatStats['csat_percentage']}%\n"
+                    . "- **মোট সংগৃহীত ফিডব্যাক:** {$csatStats['total_received']} টি\n\n"
+                    . "💬 *কাস্টমারকে তাৎক্ষণিক কৃতজ্ঞতাসূচক ধন্যবাদ বার্তা পাঠানো হয়েছে।*";
+
+                return response()->json([
+                    'success'              => true,
+                    'query'                => $query,
+                    'reply'                => $reply,
+                    'route'                => 'action',
+                    'agent_mode'           => 'csat',
+                    'agent_tested'         => 'PostDeliveryFeedbackService (CSAT Rating)',
+                    'csat_recorded'        => [
+                        'rating' => $recordedFeedback->rating,
+                        'review' => $recordedFeedback->review_text,
+                        'stats'  => $csatStats,
+                    ],
+                    'decision_trace'       => [
+                        'query'             => $query,
+                        'route'             => 'CSAT_FEEDBACK_RECORDED',
+                        'agent_tested'      => 'PostDeliveryFeedbackService',
+                        'route_confidence'  => 100.0,
+                        'latency_breakdown' => ['total_ms' => $totalElapsed],
+                    ],
+                    'pipeline_diagnostics' => ['total_time_ms' => $totalElapsed, 'agent_mode' => 'csat'],
+                    'confidence'           => 100.0,
+                    'is_handoff'           => false,
+                    'answered'             => true,
+                ]);
+            }
+
+            // Otherwise, trigger courier delivered feedback request
+            $order = \App\Models\WorkspaceOrder::where('workspace_id', $workspaceId)->latest()->first();
+            if (! $order) {
+                $order = \App\Models\WorkspaceOrder::create([
+                    'workspace_id'    => $workspaceId,
+                    'conversation_id' => $conversation->id,
+                    'order_number'    => 'ORD-SIM-' . rand(1000, 9999),
+                    'channel'         => 'whatsapp',
+                    'customer_name'   => 'Superadmin Tester',
+                    'customer_phone'  => '01700000000',
+                    'status'          => 'delivered',
+                    'courier_status'  => 'delivered',
+                    'order_amount'    => 2500.00,
+                ]);
+            } else {
+                $order->status = 'delivered';
+                $order->courier_status = 'delivered';
+                $order->conversation_id = $conversation->id;
+                $order->save();
+            }
+
+            $feedback = $feedbackService->dispatchFeedbackRequest($order);
+
+            $reply = "📦 **[Post-Delivery CSAT Simulation — Feedback Dispatched]**\n\n"
+                . "🚚 **কুরিয়ার স্ট্যাটাস:** Delivered (Steadfast/Pathao)\n"
+                . "📋 **অর্ডার নম্বর:** #{$order->order_number}\n\n"
+                . "📨 **কাস্টমারকে প্রেরিত বার্তা:**\n"
+                . "\"আসসালামু আলাইকুম {$order->customer_name}! আপনার অর্ডারটি সফলভাবে ডেলিভারি সম্পন্ন হয়েছে।\n"
+                . "আমাদের পণ্য ও ডেলিভারি সেবা কেমন লেগেছে? ১ থেকে ৫ এর মধ্যে রেটিং দিন (যেমন: 5 = চমৎকার, 1 = অসন্তুষ্ট)।\"\n\n"
+                . "💡 *সিমুলেট করতে নিচে '5', '৫ স্টার', অথবা 'অসাধারণ প্রডাক্ট' লিখে সেন্ড করুন!*";
+
+            return response()->json([
+                'success'              => true,
+                'query'                => $query,
+                'reply'                => $reply,
+                'route'                => 'action',
+                'agent_mode'           => 'csat',
+                'agent_tested'         => 'PostDeliveryFeedbackService (CSAT Dispatch)',
+                'suggestions'          => ['5 star', 'অসাধারণ প্রোডাক্ট, অনেক সুন্দর হয়েছে!', '১ - সাইজ মিলেনি, বাজে সার্ভিস'],
+                'decision_trace'       => [
+                    'query'             => $query,
+                    'route'             => 'CSAT_FEEDBACK_DISPATCHED',
+                    'agent_tested'      => 'PostDeliveryFeedbackService',
+                    'route_confidence'  => 100.0,
+                    'latency_breakdown' => ['total_ms' => $totalElapsed],
+                ],
+                'pipeline_diagnostics' => ['total_time_ms' => $totalElapsed, 'agent_mode' => 'csat'],
+                'confidence'           => 100.0,
+                'is_handoff'           => false,
+                'answered'             => true,
+            ]);
+        }
+
+        // ── Shopify & WooCommerce Catalog Bridge Simulator ────────────
+        if ($agentMode === 'catalog_sync') {
+            $bridgeService = app(\App\Services\Catalog\ExternalStoreCatalogBridgeService::class);
+            $totalElapsed = round((microtime(true) - $startTime) * 1000, 2);
+
+            $isWoo = str_contains(strtolower($query), 'woo') || str_contains(strtolower($query), 'woocommerce');
+            $simSku = $isWoo ? ('WOO-TEST-' . rand(100, 999)) : ('SH-TEST-' . rand(100, 999));
+            $simName = $isWoo ? 'WooCommerce Ergonomic Office Chair' : 'Shopify Silk Embroidered Panjabi';
+
+            if ($isWoo) {
+                $product = $bridgeService->syncWooCommerceProduct($workspaceId, [
+                    'id'             => rand(5000, 9999),
+                    'name'           => $simName,
+                    'sku'            => $simSku,
+                    'price'          => '3850.00',
+                    'stock_quantity' => 15,
+                    'stock_status'   => 'instock',
+                    'status'         => 'publish',
+                    'categories'     => [['name' => 'Premium Office Furniture']],
+                    'images'         => [['src' => 'https://via.placeholder.com/400?text=Chair']],
+                ]);
+            } else {
+                $product = $bridgeService->syncShopifyProduct($workspaceId, [
+                    'id'           => rand(80000, 99999),
+                    'title'        => $simName,
+                    'vendor'       => 'Apex Heritage',
+                    'product_type' => 'Traditional Clothing',
+                    'status'       => 'active',
+                    'variants'     => [
+                        ['sku' => $simSku, 'price' => '2950.00', 'inventory_quantity' => 20],
+                    ],
+                    'images'       => [['src' => 'https://via.placeholder.com/400?text=Panjabi']],
+                ]);
+            }
+
+            $reply = "🌐 **[External Store Catalog Bridge — Webhook Ingestion OK]**\n\n"
+                . "- **প্ল্যাটফর্ম:** " . ($isWoo ? 'WooCommerce REST API' : 'Shopify Webhook (products/create)') . "\n"
+                . "- **পণ্যের নাম:** {$product->name}\n"
+                . "- **SKU কোড:** `{$product->sku}`\n"
+                . "- **মূল্য:** ৳ {$product->unit_price}\n"
+                . "- **লাইভ স্টক:** {$product->stock_quantity} টি\n"
+                . "- **স্ট্যাটাস:** " . ($product->is_active ? '✅ Active (In Stock)' : '❌ Inactive') . "\n\n"
+                . "🚀 **এআই ক্যাটালগ সিঙ্ক:** প্রডাক্টটি তৎক্ষণাৎ সেন্ট্রাল এআই নলেজ বেসে লাইভ অন্তর্ভুক্ত হয়েছে।\n"
+                . "💡 *পরীক্ষা করতে জিজ্ঞেস করুন: \"{$product->name} কি স্টকে আছে?\" অথবা \"দাম কত?\"*";
+
+            return response()->json([
+                'success'              => true,
+                'query'                => $query,
+                'reply'                => $reply,
+                'route'                => 'catalog_bridge',
+                'agent_mode'           => 'catalog_sync',
+                'agent_tested'         => 'ExternalStoreCatalogBridgeService',
+                'synced_product'       => [
+                    'name'  => $product->name,
+                    'sku'   => $product->sku,
+                    'stock' => $product->stock_quantity,
+                    'price' => $product->unit_price,
+                ],
+                'suggestions'          => [
+                    "{$product->name} কি স্টকে আছে?",
+                    "{$product->name} এর দাম কত?",
+                ],
+                'decision_trace'       => [
+                    'query'             => $query,
+                    'route'             => 'EXTERNAL_CATALOG_SYNC',
+                    'agent_tested'      => 'ExternalStoreCatalogBridgeService',
+                    'route_confidence'  => 100.0,
+                    'latency_breakdown' => ['total_ms' => $totalElapsed],
+                ],
+                'pipeline_diagnostics' => ['total_time_ms' => $totalElapsed, 'agent_mode' => 'catalog_sync'],
+                'confidence'           => 100.0,
+                'is_handoff'           => false,
+                'answered'             => true,
             ]);
         }
 
@@ -826,6 +1104,79 @@ class ChatSimulatorController extends Controller
             'message' => 'Active simulator workspace switched successfully.',
             'workspace_id' => $workspaceId,
         ]);
+    }
+
+    /**
+     * 1-Click WhatsApp Cloud API Scenario Simulator.
+     */
+    public function simulateWhatsAppScenario(Request $request): JsonResponse
+    {
+        $user = Auth::user();
+        if (!$this->isSuperAdmin($user)) {
+            abort(403, 'Unauthorized.');
+        }
+
+        $type = (string) $request->input('type', 'text');
+        $query = match ($type) {
+            'button' => '[Interactive Button: অর্ডার কনফার্ম করুন]',
+            'media'  => '[Attachment: Image] এই শার্টটির প্রাইস কত?',
+            default  => 'আপনাদের ক্যাশ অন ডেলিভারি চার্জ কত?',
+        };
+
+        $request->merge([
+            'message'    => $query,
+            'agent_mode' => 'whatsapp',
+        ]);
+
+        return $this->send($request);
+    }
+
+    /**
+     * 1-Click Post-Delivery CSAT Feedback Scenario Simulator.
+     */
+    public function simulateDeliveryCsatScenario(Request $request): JsonResponse
+    {
+        $user = Auth::user();
+        if (!$this->isSuperAdmin($user)) {
+            abort(403, 'Unauthorized.');
+        }
+
+        $action = (string) $request->input('action', 'trigger_delivery');
+        $query = match ($action) {
+            'rating_5' => '৫ স্টার, অনেক ভালো সার্ভিস!',
+            'rating_1' => '১ স্টার - সাইজ মিলেনি, বাজে ডেলিভারি',
+            default    => 'Steadfast Courier Delivered #ORD-SIM',
+        };
+
+        $request->merge([
+            'message'    => $query,
+            'agent_mode' => 'csat',
+        ]);
+
+        return $this->send($request);
+    }
+
+    /**
+     * 1-Click Shopify / WooCommerce Catalog Sync Scenario Simulator.
+     */
+    public function simulateCatalogSyncScenario(Request $request): JsonResponse
+    {
+        $user = Auth::user();
+        if (!$this->isSuperAdmin($user)) {
+            abort(403, 'Unauthorized.');
+        }
+
+        $platform = (string) $request->input('platform', 'shopify');
+        $query = $platform === 'woocommerce'
+            ? 'Sync WooCommerce Store Catalog Product'
+            : 'Sync Shopify Store Catalog Product';
+
+        $request->merge([
+            'message'    => $query,
+            'agent_mode' => 'catalog_sync',
+        ]);
+
+        return $this->send($request);
     }
 }
 

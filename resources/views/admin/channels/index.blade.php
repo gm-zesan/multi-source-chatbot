@@ -495,6 +495,19 @@
                         </label>
                         <textarea id="wa_access_token" name="access_token" required rows="3" placeholder="EAAB..." class="app-textarea w-full text-xs font-mono"></textarea>
                     </div>
+
+                    <div>
+                        <label for="wa_waba_id" class="block text-xs font-semibold text-light-text dark:text-dark-text mb-1">
+                            WhatsApp Business Account (WABA) ID <span class="text-3xs text-light-muted">(Optional)</span>
+                        </label>
+                        <input type="text" id="wa_waba_id" name="settings[waba_id]" placeholder="e.g. 109283746500000" class="app-input w-full text-xs font-mono">
+                    </div>
+
+                    <div class="p-2.5 rounded-lg bg-light-canvas/70 dark:bg-dark-canvas/70 border border-light-border dark:border-dark-border text-3xs space-y-1">
+                        <div class="font-semibold text-light-text dark:text-dark-text">Meta App Credentials Configured:</div>
+                        <div class="text-light-muted dark:text-dark-muted font-mono">App ID: 1769498847715600 | Secret: ••••••••</div>
+                        <div class="text-light-muted dark:text-dark-muted font-mono">Webhook URL: <span class="text-brand-500 select-all">{{ $webhookUrls['whatsapp'] }}</span></div>
+                    </div>
                 </div>
 
                 <div class="mt-5 pt-3 border-t border-light-border dark:border-dark-border flex justify-end gap-2">

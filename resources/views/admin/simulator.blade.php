@@ -51,10 +51,17 @@
                             <option value="support" class="bg-light-surface dark:bg-dark-surface text-light-text dark:text-dark-text">🎧 AI Support Agent (FAQs & Tracking)</option>
                             <option value="cfo" class="bg-light-surface dark:bg-dark-surface text-light-text dark:text-dark-text">💼 AI Virtual CFO (10 Analytics Tools)</option>
                             <option value="retention" class="bg-light-surface dark:bg-dark-surface text-light-text dark:text-dark-text">🔄 AI Retention Agent (Follow-up)</option>
+                            <option value="whatsapp" class="bg-light-surface dark:bg-dark-surface text-light-text dark:text-dark-text">💬 WhatsApp Cloud API Channel</option>
+                            <option value="csat" class="bg-light-surface dark:bg-dark-surface text-light-text dark:text-dark-text">⭐ Post-Delivery CSAT Feedback</option>
+                            <option value="catalog_sync" class="bg-light-surface dark:bg-dark-surface text-light-text dark:text-dark-text">🌐 Shopify / WooCommerce Bridge</option>
                         </select>
                     </div>
                 </div>
                 <div class="flex items-center gap-2 shrink-0">
+                    <button type="button" class="app-btn app-btn-secondary !h-7.5 !text-xs flex items-center gap-1 text-amber-500 hover:text-amber-600"
+                        data-bs-toggle="modal" data-bs-target="#quickScenariosModal" title="1-Click Scenario Testing Lab">
+                        <i class="ri-flashlight-line text-amber-500 text-xs"></i> <span class="hidden sm:inline">Scenarios</span>
+                    </button>
                     <button type="button"
                         class="app-btn app-btn-outline !h-7.5 !text-xs !border-rose-500/30 text-rose-500 hover:bg-rose-500/10"
                         onclick="clearSimulatorChat()">
@@ -127,6 +134,44 @@
                             </a>
                         </div>
                     </div>
+                </div>
+
+                <!-- Phase 3 Quick Scenario Chips Bar -->
+                <div class="quick-scenarios-bar mb-2 flex flex-wrap items-center gap-1.5 px-2 py-1 rounded-md border border-amber-500/20 bg-amber-500/5 text-2xs">
+                    <span class="text-3xs font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wider flex items-center gap-1 shrink-0">
+                        <i class="ri-flashlight-fill text-amber-500"></i> Quick Scenarios:
+                    </span>
+                    <button type="button" class="app-badge app-badge-secondary hover:!bg-emerald-500/20 hover:text-emerald-500 cursor-pointer transition-colors !text-3xs flex items-center gap-1"
+                        onclick="runScenario('whatsapp', {type: 'button'})" title="Simulate WhatsApp Inbound Interactive Button Click">
+                        <i class="ri-whatsapp-line text-emerald-500"></i> WA Button
+                    </button>
+                    <button type="button" class="app-badge app-badge-secondary hover:!bg-emerald-500/20 hover:text-emerald-500 cursor-pointer transition-colors !text-3xs flex items-center gap-1"
+                        onclick="runScenario('whatsapp', {type: 'media'})" title="Simulate WhatsApp Inbound Product Image Attachment">
+                        <i class="ri-image-line text-emerald-500"></i> WA Image
+                    </button>
+                    <button type="button" class="app-badge app-badge-secondary hover:!bg-amber-500/20 hover:text-amber-500 cursor-pointer transition-colors !text-3xs flex items-center gap-1"
+                        onclick="runScenario('delivery-csat', {action: 'trigger_delivery'})" title="Simulate Courier Delivered Event & Automated CSAT Dispatch">
+                        <i class="ri-truck-line text-amber-500"></i> CSAT Delivered
+                    </button>
+                    <button type="button" class="app-badge app-badge-secondary hover:!bg-amber-500/20 hover:text-amber-500 cursor-pointer transition-colors !text-3xs flex items-center gap-1"
+                        onclick="runScenario('delivery-csat', {action: 'rating_5'})" title="Simulate Customer 5-Star CSAT Feedback Reply">
+                        <i class="ri-star-fill text-amber-400"></i> CSAT 5★
+                    </button>
+                    <button type="button" class="app-badge app-badge-secondary hover:!bg-rose-500/20 hover:text-rose-500 cursor-pointer transition-colors !text-3xs flex items-center gap-1"
+                        onclick="runScenario('delivery-csat', {action: 'rating_1'})" title="Simulate Customer 1-Star CSAT Feedback Reply">
+                        <i class="ri-star-line text-rose-400"></i> CSAT 1★
+                    </button>
+                    <button type="button" class="app-badge app-badge-secondary hover:!bg-indigo-500/20 hover:text-indigo-500 cursor-pointer transition-colors !text-3xs flex items-center gap-1"
+                        onclick="runScenario('catalog-sync', {platform: 'shopify'})" title="Simulate 1-Click Shopify Webhook Catalog Ingestion">
+                        <i class="ri-shopping-bag-3-line text-indigo-400"></i> Shopify Sync
+                    </button>
+                    <button type="button" class="app-badge app-badge-secondary hover:!bg-purple-500/20 hover:text-purple-500 cursor-pointer transition-colors !text-3xs flex items-center gap-1"
+                        onclick="runScenario('catalog-sync', {platform: 'woocommerce'})" title="Simulate 1-Click WooCommerce Webhook Catalog Ingestion">
+                        <i class="ri-store-2-line text-purple-400"></i> Woo Sync
+                    </button>
+                    <button type="button" class="text-brand-500 hover:underline ms-auto !text-3xs font-semibold" data-bs-toggle="modal" data-bs-target="#quickScenariosModal">
+                        All Scenarios <i class="ri-arrow-right-s-line"></i>
+                    </button>
                 </div>
 
                 <form id="chatForm" onsubmit="handleSend(event); return false;" class="flex gap-2 items-center">
@@ -609,6 +654,102 @@
                 </div>
             </div>
         </div>
+
+        <!-- ⚡ Superadmin Phase 3 Quick Scenario Lab Modal -->
+        <div class="modal hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-xs overflow-y-auto" id="quickScenariosModal" tabindex="-1" aria-labelledby="quickScenariosLabel" aria-hidden="true" style="display: none;">
+            <div class="modal-dialog w-full max-w-3xl app-card shadow-modal overflow-hidden transition-all duration-200 my-auto">
+                <div class="modal-content border-0 bg-transparent flex flex-col max-h-[90vh]">
+                    <!-- Header -->
+                    <div class="app-card-header flex items-center justify-between border-b border-light-border dark:border-dark-border px-4 py-3 bg-light-surface dark:bg-dark-surface shrink-0">
+                        <div class="flex items-center gap-2.5">
+                            <div class="w-8 h-8 rounded-md bg-amber-500/10 text-amber-500 flex items-center justify-center shrink-0">
+                                <i class="ri-flashlight-line text-base"></i>
+                            </div>
+                            <div>
+                                <h5 class="text-xs font-semibold text-light-text dark:text-dark-text mb-0 flex items-center gap-1.5" id="quickScenariosLabel">
+                                    ⚡ Superadmin Scenario Diagnostic Lab
+                                </h5>
+                                <small class="text-2xs text-light-muted dark:text-dark-muted block">1-Click simulation of Omnichannel WhatsApp, CSAT Sentiment Feedback, and Store Webhooks</small>
+                            </div>
+                        </div>
+                        <button type="button" class="text-light-muted dark:text-dark-muted hover:text-light-text dark:hover:text-dark-text text-sm p-1" data-bs-dismiss="modal" aria-label="Close">
+                            <i class="ri-close-line"></i>
+                        </button>
+                    </div>
+
+                    <!-- Body -->
+                    <div class="modal-body p-4 overflow-y-auto space-y-4 text-xs bg-light-surface dark:bg-dark-surface">
+                        <!-- Group 1: WhatsApp Cloud API -->
+                        <div class="border border-emerald-500/20 bg-emerald-500/5 rounded-lg p-3 space-y-2">
+                            <div class="flex items-center justify-between">
+                                <h6 class="text-xs font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5 mb-0">
+                                    <i class="ri-whatsapp-line text-sm"></i> WhatsApp Official Cloud API Channels
+                                </h6>
+                                <span class="app-badge app-badge-success !text-3xs font-mono">Meta Graph v20.0</span>
+                            </div>
+                            <p class="text-2xs text-light-muted dark:text-dark-muted mb-0">Simulates real incoming webhooks including Meta contact profile, message payload parsing, and validates outbound Graph API response schema.</p>
+                            <div class="flex flex-wrap gap-2 pt-1">
+                                <button type="button" class="app-btn app-btn-secondary !h-7 !text-2xs flex items-center gap-1" data-bs-dismiss="modal" onclick="runScenario('whatsapp', {type: 'text'})">
+                                    <i class="ri-chat-3-line text-emerald-500"></i> Standard Text Message
+                                </button>
+                                <button type="button" class="app-btn app-btn-secondary !h-7 !text-2xs flex items-center gap-1" data-bs-dismiss="modal" onclick="runScenario('whatsapp', {type: 'button'})">
+                                    <i class="ri-checkbox-circle-line text-emerald-500"></i> Quick-Reply Button Click
+                                </button>
+                                <button type="button" class="app-btn app-btn-secondary !h-7 !text-2xs flex items-center gap-1" data-bs-dismiss="modal" onclick="runScenario('whatsapp', {type: 'media'})">
+                                    <i class="ri-image-line text-emerald-500"></i> Media Image Attachment
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Group 2: Post-Delivery CSAT Feedback -->
+                        <div class="border border-amber-500/20 bg-amber-500/5 rounded-lg p-3 space-y-2">
+                            <div class="flex items-center justify-between">
+                                <h6 class="text-xs font-bold text-amber-600 dark:text-amber-400 flex items-center gap-1.5 mb-0">
+                                    <i class="ri-star-half-line text-sm"></i> Post-Delivery Customer Satisfaction (CSAT)
+                                </h6>
+                                <span class="app-badge app-badge-warning !text-3xs font-mono">Retention Engine</span>
+                            </div>
+                            <p class="text-2xs text-light-muted dark:text-dark-muted mb-0">Tests automatic courier delivery triggers (Steadfast/Pathao), customer 1-5 rating NLP parser (Bangla digits & sentiment), and live workspace CSAT statistics updates.</p>
+                            <div class="flex flex-wrap gap-2 pt-1">
+                                <button type="button" class="app-btn app-btn-secondary !h-7 !text-2xs flex items-center gap-1" data-bs-dismiss="modal" onclick="runScenario('delivery-csat', {action: 'trigger_delivery'})">
+                                    <i class="ri-truck-line text-amber-500"></i> Courier Delivered (Dispatch CSAT)
+                                </button>
+                                <button type="button" class="app-btn app-btn-secondary !h-7 !text-2xs flex items-center gap-1" data-bs-dismiss="modal" onclick="runScenario('delivery-csat', {action: 'rating_5'})">
+                                    <i class="ri-star-fill text-amber-400"></i> 5-Star Rating ("৫ স্টার, অসাধারণ!")
+                                </button>
+                                <button type="button" class="app-btn app-btn-secondary !h-7 !text-2xs flex items-center gap-1" data-bs-dismiss="modal" onclick="runScenario('delivery-csat', {action: 'rating_1'})">
+                                    <i class="ri-thumb-down-line text-rose-500"></i> 1-Star Rating ("১ স্টার - বাজে সার্ভিস")
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Group 3: External Catalog Bridge -->
+                        <div class="border border-indigo-500/20 bg-indigo-500/5 rounded-lg p-3 space-y-2">
+                            <div class="flex items-center justify-between">
+                                <h6 class="text-xs font-bold text-indigo-600 dark:text-indigo-400 flex items-center gap-1.5 mb-0">
+                                    <i class="ri-shopping-cart-2-line text-sm"></i> External Store Catalog Bridge (Webhooks)
+                                </h6>
+                                <span class="app-badge app-badge-primary !text-3xs font-mono">Real-Time Ingestion</span>
+                            </div>
+                            <p class="text-2xs text-light-muted dark:text-dark-muted mb-0">Simulates real-time e-commerce webhook ingestion for Shopify & WooCommerce products, immediate cache invalidation, and instant availability in AI sales inquiries.</p>
+                            <div class="flex flex-wrap gap-2 pt-1">
+                                <button type="button" class="app-btn app-btn-secondary !h-7 !text-2xs flex items-center gap-1" data-bs-dismiss="modal" onclick="runScenario('catalog-sync', {platform: 'shopify'})">
+                                    <i class="ri-shopping-bag-line text-indigo-500"></i> Shopify Product Sync Webhook
+                                </button>
+                                <button type="button" class="app-btn app-btn-secondary !h-7 !text-2xs flex items-center gap-1" data-bs-dismiss="modal" onclick="runScenario('catalog-sync', {platform: 'woocommerce'})">
+                                    <i class="ri-store-2-line text-purple-500"></i> WooCommerce Product Sync Webhook
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Footer -->
+                    <div class="app-card-footer flex items-center justify-end px-4 py-3 border-t border-light-border dark:border-dark-border bg-light-surface dark:bg-dark-surface shrink-0">
+                        <button type="button" class="app-btn app-btn-secondary !h-7.5 !text-xs" data-bs-dismiss="modal">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 @endsection
 
@@ -622,6 +763,9 @@
                 clear: @json(route('simulator.clear')),
                 exportAnalytics: @json(route('export.analytics')),
                 switchWorkspace: @json(route('simulator.switch_workspace')),
+                scenarioWhatsapp: @json(route('simulator.scenario.whatsapp')),
+                scenarioDeliveryCsat: @json(route('simulator.scenario.delivery_csat')),
+                scenarioCatalogSync: @json(route('simulator.scenario.catalog_sync')),
             },
             workspaceId: @json($workspaceId ?? 1),
             csrfToken: @json(csrf_token()),

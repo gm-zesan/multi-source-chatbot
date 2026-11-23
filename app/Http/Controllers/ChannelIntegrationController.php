@@ -198,6 +198,26 @@ class ChannelIntegrationController extends Controller
                 return redirect()->back()->with('success', "Channel '{$name}' webhook listener is healthy and ready for live messages ({$latency}ms).");
             }
 
+            if ($channelSlug === 'whatsapp') {
+                $token = $channelAccount->access_token;
+                $phoneId = $channelAccount->settings['phone_number_id'] ?? $channelAccount->external_id;
+                if (! empty($token) && ! str_starts_with($token, 'dummy_') && ! str_starts_with($token, 'EAAB_wa_mock')) {
+                    $resp = \Illuminate\Support\Facades\Http::timeout(5)->withToken($token)
+                        ->get("https://graph.facebook.com/v21.0/{$phoneId}", [
+                            'fields' => 'verified_name,display_phone_number,quality_rating',
+                        ]);
+                    $latency = round((microtime(true) - $startTime) * 1000);
+                    if ($resp->successful()) {
+                        $data = $resp->json();
+                        $displayName = $data['verified_name'] ?? $data['display_phone_number'] ?? $phoneId;
+                        return redirect()->back()->with('success', "Live WhatsApp Ping OK! Verified: '{$displayName}' (Phone ID: {$phoneId}) in {$latency}ms.");
+                    }
+                    return redirect()->back()->with('error', "WhatsApp Cloud API error: " . ($resp->json('error.message') ?? 'Invalid token or phone ID.'));
+                }
+                $latency = round((microtime(true) - $startTime) * 1000);
+                return redirect()->back()->with('success', "WhatsApp channel '{$name}' webhook listener is healthy and ready ({$latency}ms).");
+            }
+
             if ($channelSlug === 'telegram') {
                 $token = $channelAccount->access_token;
                 if (! empty($token) && ! str_starts_with($token, 'dummy_')) {

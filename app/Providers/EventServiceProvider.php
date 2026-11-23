@@ -24,6 +24,7 @@ class EventServiceProvider extends ServiceProvider
         IncomingMessageReceived::class => [
             ExtractCRMEntitiesListener::class,  // crm queue
             RunFAQEngineListener::class,         // faq queue
+            \App\Listeners\ProcessPostDeliveryFeedbackListener::class, // retention queue
         ],
 
         AITelemetryRecorded::class => [

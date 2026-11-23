@@ -216,6 +216,10 @@
                         <span class="text-border">|</span>
                         <span class="text-2xs text-rose-600 dark:text-rose-400 font-medium">Out of Stock: <strong id="product-stat-outofstock">0</strong></span>
                     </div>
+                    <button type="button" class="app-btn app-btn-secondary text-2xs flex items-center gap-1.5" data-bs-toggle="modal" data-bs-target="#externalStoreSyncModal">
+                        <i class="ri-refresh-line text-brand-500"></i>
+                        <span>Shopify / WooCommerce Sync</span>
+                    </button>
                     <select id="product-status-filter" class="app-select w-36 text-xs" onchange="reloadProductTable()">
                         <option value="all">All Products</option>
                         <option value="in_stock">In Stock Only</option>
@@ -244,6 +248,90 @@
         </div>
     </div>
     @endif
+
+    {{-- Modal: 1-Click Shopify / WooCommerce Catalog Sync --}}
+    <div class="modal fade" id="externalStoreSyncModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content rounded-2xl border border-light-border dark:border-dark-border bg-light-surface dark:bg-dark-surface shadow-2xl p-5">
+                <div class="flex items-center justify-between pb-3 border-b border-light-border dark:border-dark-border mb-4">
+                    <h3 class="text-sm font-bold text-light-text dark:text-dark-text flex items-center gap-2">
+                        <i class="ri-store-2-fill text-brand-500"></i>
+                        <span>1-Click External Catalog Bridge</span>
+                    </h3>
+                    <button type="button" class="text-light-muted hover:text-light-text dark:text-dark-muted dark:hover:text-dark-text" data-bs-dismiss="modal">
+                        <i class="ri-close-line text-lg"></i>
+                    </button>
+                </div>
+
+                <form action="{{ route('integrations.catalog-sync') }}" method="POST">
+                    @csrf
+                    <div class="space-y-3.5 text-xs">
+                        <div>
+                            <label class="block font-semibold text-light-text dark:text-dark-text mb-1">
+                                Store Platform <span class="text-rose-500">*</span>
+                            </label>
+                            <select name="platform" id="sync_platform" class="app-select w-full text-xs" onchange="toggleStoreCredentials(this.value)">
+                                <option value="shopify">Shopify Store</option>
+                                <option value="woocommerce">WooCommerce Store</option>
+                            </select>
+                        </div>
+
+                        {{-- Shopify Fields --}}
+                        <div id="shopify_fields" class="space-y-3">
+                            <div>
+                                <label class="block font-semibold text-light-text dark:text-dark-text mb-1">
+                                    Store Domain <span class="text-rose-500">*</span>
+                                </label>
+                                <input type="text" name="credentials[shop_domain]" placeholder="e.g. apex-brand.myshopify.com" class="app-input w-full text-xs font-mono">
+                            </div>
+                            <div>
+                                <label class="block font-semibold text-light-text dark:text-dark-text mb-1">
+                                    Admin API Access Token <span class="text-rose-500">*</span>
+                                </label>
+                                <input type="password" name="credentials[access_token]" placeholder="shpat_..." class="app-input w-full text-xs font-mono">
+                            </div>
+                        </div>
+
+                        {{-- WooCommerce Fields --}}
+                        <div id="woocommerce_fields" class="space-y-3 hidden">
+                            <div>
+                                <label class="block font-semibold text-light-text dark:text-dark-text mb-1">
+                                    Store URL <span class="text-rose-500">*</span>
+                                </label>
+                                <input type="url" name="credentials[store_url]" placeholder="https://myfashionstore.com" class="app-input w-full text-xs font-mono">
+                            </div>
+                            <div>
+                                <label class="block font-semibold text-light-text dark:text-dark-text mb-1">
+                                    Consumer Key <span class="text-rose-500">*</span>
+                                </label>
+                                <input type="text" name="credentials[consumer_key]" placeholder="ck_..." class="app-input w-full text-xs font-mono">
+                            </div>
+                            <div>
+                                <label class="block font-semibold text-light-text dark:text-dark-text mb-1">
+                                    Consumer Secret <span class="text-rose-500">*</span>
+                                </label>
+                                <input type="password" name="credentials[consumer_secret]" placeholder="cs_..." class="app-input w-full text-xs font-mono">
+                            </div>
+                        </div>
+
+                        <div class="p-2.5 rounded-lg bg-light-canvas/70 dark:bg-dark-canvas/70 border border-light-border dark:border-dark-border text-3xs space-y-1">
+                            <div class="font-semibold text-light-text dark:text-dark-text">Automated Real-Time Webhooks:</div>
+                            <div>Shopify: <code class="text-brand-500 select-all">{{ url('/api/v1/integrations/shopify/webhook') }}</code></div>
+                            <div>WooCommerce: <code class="text-brand-500 select-all">{{ url('/api/v1/integrations/woocommerce/webhook') }}</code></div>
+                        </div>
+                    </div>
+
+                    <div class="mt-5 pt-3 border-t border-light-border dark:border-dark-border flex justify-end gap-2">
+                        <button type="button" class="app-btn app-btn-secondary text-xs" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="app-btn app-btn-primary text-xs flex items-center gap-1.5">
+                            <i class="ri-refresh-line"></i>
+                            <span>Sync Products & Stock Now</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
 </div>
         <!-- Document Preview & Metadata Details Modal -->
         <div class="modal hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-xs overflow-y-auto" id="documentDetailsModal" tabindex="-1" aria-labelledby="documentDetailsModalLabel" aria-hidden="true" style="display: none;">
@@ -1584,5 +1672,15 @@
                     }
                 });
             });
+
+            window.toggleStoreCredentials = function(platform) {
+                if (platform === 'shopify') {
+                    $('#shopify_fields').removeClass('hidden');
+                    $('#woocommerce_fields').addClass('hidden');
+                } else {
+                    $('#shopify_fields').addClass('hidden');
+                    $('#woocommerce_fields').removeClass('hidden');
+                }
+            };
         </script>
     @endpush

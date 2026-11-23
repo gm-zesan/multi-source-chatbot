@@ -49,6 +49,11 @@ class WorkspaceOrder extends Model
         return $this->belongsTo(Workspace::class);
     }
 
+    public function feedback(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(OrderFeedback::class, 'workspace_order_id');
+    }
+
     public function conversation(): BelongsTo
     {
         return $this->belongsTo(Conversation::class);

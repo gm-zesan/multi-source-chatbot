@@ -186,6 +186,16 @@ class OwnerAiChatController extends Controller
 
             $data = $res->data;
             $lowStockItems = $data['low_stock_products'] ?? $data['items'] ?? [];
+            if (empty($lowStockItems) && ($data['status'] ?? '') === 'no_inventory_data_ingested') {
+                $lowStockItems = \App\Models\AnalyticsProduct::where('workspace_id', $context->getWorkspaceId())
+                    ->where(function ($q) {
+                        $q->where('stock_quantity', '<=', 5)
+                          ->orWhereColumn('stock_quantity', '<=', 'reorder_threshold');
+                    })
+                    ->get()
+                    ->map(fn($p) => ['product_name' => $p->name, 'current_stock' => $p->stock_quantity])
+                    ->all();
+            }
             $totalValuation = number_format((float) ($data['total_inventory_value'] ?? 0), 2);
 
             if (empty($lowStockItems)) {

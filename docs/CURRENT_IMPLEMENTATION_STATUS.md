@@ -18,13 +18,15 @@
 │ Capability Domain                 │ Status       │ Completion %         │
 ├───────────────────────────────────┼──────────────┼──────────────────────┤
 │ 1. AI Knowledge & Catalog Grounding│ Production   │ 100%                 │
-│ 2. AI Sales & Support Pipeline    │ Production   │ 95%                  │
+│ 2. AI Sales & Support Pipeline    │ Production   │ 100%                 │
 │ 3. Courier Logistics (Steadfast)  │ Production   │ 100%                 │
-│ 4. Order & Lead Capture           │ Production   │ 95%                  │
+│ 4. Order & Lead Capture           │ Production   │ 100%                 │
 │ 5. Business Intelligence (CFO)    │ Production   │ 100%                 │
-│ 6. Multi-Tenant SaaS & Billing    │ Production   │ 95%                  │
-│ 7. Omnichannel (Messenger + Web)  │ Production   │ 90%                  │
+│ 6. Multi-Tenant SaaS & Billing    │ Production   │ 100%                 │
+│ 7. Omnichannel (Messenger, WA, Web) Production   │ 100%                 │
 │ 8. Automated Follow-up Scheduler  │ Production   │ 100%                 │
+│ 9. Post-Delivery Feedback (CSAT)  │ Production   │ 100%                 │
+│ 10. Shopify & WooCommerce Bridge  │ Production   │ 100%                 │
 └───────────────────────────────────┴──────────────┴──────────────────────┘
 ```
 
@@ -85,5 +87,15 @@
 2. **Owner Chat UI Console (সম্পূর্ণ — 100% Production Ready):**
    - *বাস্তবায়িত:* `app/Http/Controllers/OwnerAiChatController.php` ও `resources/views/admin/partials/owner-ai-chat-widget.blade.php`।
    - *ইন্টারফেস:* অ্যাডমিন ড্যাশবোর্ডের সব পেজে ফ্লোটিং "Ask Virtual CFO" উইজেট যুক্ত হয়েছে। ওনার বাংলায় সরাসরি প্রশ্ন করে ১০টি অ্যানালিটিক্যাল টুল থেকে রিয়েল-টাইম সেলস, স্টক, প্রফিট ও বাকি জানতে পারছেন।
-3. **WhatsApp Cloud API Connector (পরবর্তী ধাপ — Phase 3):**
-   - *বর্তমান অবস্থা:* আর্কিটেকচার রেডি; মেটা মেসেঞ্জার সক্রিয়। হোয়াটসঅ্যাপ ক্লাউড এপিআই টেস্ট ক্রেডেনশিয়াল লাইভ করা পরবর্তী ধাপের কাজ।
+3. **WhatsApp Cloud API Connector (সম্পূর্ণ — 100% Production Ready):**
+   - *বাস্তবায়িত:* `app/Channels/WhatsApp/WhatsAppDriver.php`, `config/services.php`, `app/Http/Controllers/ChannelIntegrationController.php`, `tests/Feature/Channels/WhatsAppWebhookAndDeliveryTest.php`।
+   - *সক্ষমতা:* মেটা ক্লাউড এপিআই হ্যান্ডশেক, টেক্সট, বাটন, অডিও, ভিডিও, ডকুমেন্ট ও লোকেশন পার্সিং, গ্রাফ এপিআই মেসেজ ডেলিভারি ও রিয়েল-টাইম পিং টেস্ট সম্পন্ন।
+4. **Post-Delivery CSAT Feedback Automation (সম্পূর্ণ — 100% Production Ready):**
+   - *বাস্তবায়িত:* `app/Services/Retention/PostDeliveryFeedbackService.php`, `app/Jobs/SendPostDeliveryFeedbackJob.php`, `app/Listeners/ProcessPostDeliveryFeedbackListener.php`।
+   - *সক্ষমতা:* কুরিয়ারে পার্সেল ডেলিভারি হওয়া মাত্র কাস্টমারকে স্বয়ংক্রিয় বাংলা/ইংরেজি ফিডব্যাক মেসেজ প্রেরণ, ১-৫ রেটিং ডিজিট ও সেন্টিমেন্ট ক্লাসিফিকেশন করে `order_feedbacks` টেবিলে CSAT সংরক্ষণ।
+5. **Shopify & WooCommerce 1-Click Catalog Bridge (সম্পূর্ণ — 100% Production Ready):**
+   - *বাস্তবায়িত:* `app/Services/Catalog/ExternalStoreCatalogBridgeService.php`, `app/Http/Controllers/StoreCatalogBridgeController.php`, `resources/views/admin/knowledge-base/index.blade.php`।
+   - *সক্ষমতা:* রিয়েল-টাইম ওয়েববুক ও ১-ক্লিক রেস্ট এপিআই ইমপোর্ট দিয়ে এক্সটার্নাল স্টোর থেকে পণ্য ও লাইভ স্টক এআই ক্যাটালগে সিঙ্ক।
+6. **Superadmin Diagnostic Simulator — Phase 3 Scenario Lab (Option 3 — 100% Production Ready):**
+   - *বাস্তবায়িত:* `/dashboard/simulator`, `app/Http/Controllers/ChatSimulatorController.php`, `resources/views/admin/simulator.blade.php`, `public/assets/js/simulator.js`, `tests/Feature/ChatSimulatorOption3Test.php`।
+   - *সক্ষমতা:* সুপারঅ্যাডমিন সরাসরি সিমুলেটরে 1-ক্লিকে WhatsApp Interactive Button & Image Attachment, Courier Delivered -> CSAT Request Dispatch & 5-Star/1-Star Review Sentiment Ingestion, এবং Shopify & WooCommerce Webhook Sync পরীক্ষা ও পাইপলাইন ট্রেস ইন্সপেক্ট করতে পারছেন।

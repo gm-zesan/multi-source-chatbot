@@ -50,6 +50,12 @@ return [
         'page_access_token' => env('FB_PAGE_ACCESS_TOKEN'),
     ],
 
+    'whatsapp' => [
+        'client_id' => env('WHATSAPP_CLIENT_ID', '1769498847715600'),
+        'client_secret' => env('WHATSAPP_CLIENT_SECRET', '6670f37de58ce5cca554a1e2dfe719ee'),
+        'verify_token' => env('WHATSAPP_VERIFY_TOKEN', env('FB_VERIFY_TOKEN', 'entrepreneurs_automation_whatsapp_webhook')),
+    ],
+
     'memory_service' => [
         'url' => env('PYTHON_MEMORY_SERVICE_URL', 'http://127.0.0.1:8002'),
         'timeout' => (int) env('MEMORY_SERVICE_TIMEOUT', 3),
