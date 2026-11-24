@@ -102,6 +102,9 @@ class DeterministicExecutionController
                     $args = $toolCall->arguments;
                     // Ensure LLM cannot override trusted workspace_id
                     unset($args['workspace_id'], $args['tenant_id'], $args['user_id']);
+                    if (empty($args['query']) && !empty($request->query)) {
+                        $args['query'] = $request->query;
+                    }
 
                     $toolResult = $tool->execute($args, $context);
 

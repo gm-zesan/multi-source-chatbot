@@ -135,4 +135,64 @@ class Workspace extends Model
             default => "Tone & Persona: Friendly, warm, and natural conversational e-commerce style (জনপ্রিয় ফ্রেন্ডলি বাংলা ও বাংলিশ). Welcoming and helpful (e.g. 'জি ভাইয়া/আপু', 'আপনার জন্য কীভাবে সাহায্য করতে পারি?').",
         };
     }
+
+    /**
+     * Check if the emergency AI kill switch is engaged for this workspace.
+     */
+    public function isAiKillSwitchActive(): bool
+    {
+        return (bool) ($this->settings['ai_kill_switch'] ?? false);
+    }
+
+    /**
+     * Engage or disengage the emergency AI kill switch.
+     */
+    public function setAiKillSwitch(bool $active): void
+    {
+        $settings = $this->settings ?? [];
+        $settings['ai_kill_switch'] = $active;
+        $this->settings = $settings;
+        $this->save();
+    }
+
+    /**
+     * Verify whether this workspace is authorized to receive AI responses under the rollout mode.
+     */
+    public function isAiRolloutEnabled(): bool
+    {
+        // 1. Emergency Workspace Kill Switch takes absolute precedence
+        if ($this->isAiKillSwitchActive()) {
+            return false;
+        }
+
+        // 2. Global Rollout Mode Check
+        $rolloutMode = config('ai.rollout_mode', 'limited_canary');
+        if ($rolloutMode === 'disabled') {
+            return false;
+        }
+
+        if ($rolloutMode === 'all') {
+            return true;
+        }
+
+        // 3. Limited Canary Mode: check config whitelist or workspace-specific canary authorization
+        $canaryWorkspaces = (array) config('ai.canary_workspaces', []);
+        $canaryInts = array_map(fn($val) => (int) $val, $canaryWorkspaces);
+        if (in_array((int) $this->id, $canaryInts, true)) {
+            return true;
+        }
+
+        return (bool) ($this->settings['ai_canary_enabled'] ?? false);
+    }
+
+    /**
+     * Authorize or revoke canary rollout access for this workspace.
+     */
+    public function enableAiCanary(bool $enable = true): void
+    {
+        $settings = $this->settings ?? [];
+        $settings['ai_canary_enabled'] = $enable;
+        $this->settings = $settings;
+        $this->save();
+    }
 }

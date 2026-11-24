@@ -72,7 +72,29 @@ class KnowledgeIntelligenceTool extends AbstractGovernedTool
         }
 
         $workspaceId = $context->getWorkspaceId();
-        $query = trim((string) ($arguments['query'] ?? $arguments['question'] ?? ''));
+        $query = trim((string) (
+            $arguments['query']
+            ?? $arguments['question']
+            ?? $arguments['product_name']
+            ?? $arguments['product']
+            ?? $arguments['search']
+            ?? $arguments['keyword']
+            ?? $arguments['search_query']
+            ?? ''
+        ));
+
+        if ($query === '') {
+            foreach ($arguments as $key => $val) {
+                if (is_string($val) && trim($val) !== '' && !in_array($key, ['document_type', 'operation', 'limit', 'top_k'])) {
+                    $query = trim($val);
+                    break;
+                }
+            }
+        }
+
+        if ($query === '' && $context->conversation !== null) {
+            $query = trim((string) ($context->conversation->messages()->latest('id')->value('body') ?? ''));
+        }
 
         if ($query === '') {
             return ToolResult::failure('Query parameter cannot be empty.');

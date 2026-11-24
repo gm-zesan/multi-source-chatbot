@@ -31,10 +31,6 @@
                     <i class="ri-wallet-3-line text-xs text-brand-500"></i>
                     <span>Wallet: <strong>৳{{ number_format($walletBalance ?? 50, 2) }}</strong></span>
                 </a>
-                <a href="{{ route('analytics.index') }}" class="app-btn app-btn-secondary">
-                    <i class="ri-bar-chart-2-line text-xs"></i>
-                    <span>BI Analytics</span>
-                </a>
                 <a href="{{ route('widget.manage') }}" class="app-btn app-btn-secondary">
                     <i class="ri-code-s-slash-line text-xs"></i>
                     <span>Web Widget</span>
@@ -106,6 +102,74 @@
 
         {{-- AI Daily Executive Summary & Intelligence Digest --}}
         <!-- @include('admin.dashboard.partials.daily-executive-summary') -->
+
+        {{-- Interactive Workspace Launchpad & Onboarding Checklist --}}
+        @if(isset($onboarding))
+        <div class="app-card overflow-hidden border border-brand-500/20 shadow-sm" id="onboardingWidget">
+            <div class="p-3.5 sm:p-4 bg-gradient-to-r from-brand-500/10 via-transparent to-transparent border-b border-light-border dark:border-dark-border flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                    <div class="flex items-center gap-2">
+                        <h2 class="text-xs sm:text-sm font-bold text-light-text dark:text-dark-text flex items-center gap-1.5">
+                            <i class="ri-rocket-2-line text-brand-500"></i>
+                            <span>Tenant Launchpad & Onboarding Checklist</span>
+                        </h2>
+                    </div>
+                    <p class="text-2xs text-light-text-secondary dark:text-dark-text-secondary mt-0.5">
+                        Follow these {{ $onboarding['total'] ?? 6 }} recommended setup steps to prime your AI assistant for customer deployment.
+                    </p>
+                </div>
+                <div class="flex items-center gap-3">
+                    <div class="text-right">
+                        <div class="text-2xs font-semibold text-light-text dark:text-dark-text">
+                            {{ $onboarding['completed'] }} of {{ $onboarding['total'] }} Complete
+                        </div>
+                        <div class="w-32 sm:w-40 h-2 rounded-full bg-light-surface dark:bg-dark-surface border border-light-border dark:border-dark-border overflow-hidden mt-1">
+                            <div class="h-full rounded-full transition-all duration-500 {{ $onboarding['all_completed'] ? 'bg-emerald-500' : 'bg-brand-500' }}" style="width: {{ $onboarding['percent'] }}%;"></div>
+                        </div>
+                    </div>
+                    <button type="button" class="app-btn app-btn-secondary !h-7 !px-2 text-2xs text-light-muted hover:text-light-text dark:text-dark-muted dark:hover:text-dark-text" onclick="document.getElementById('onboardingStepsContainer').classList.toggle('hidden'); this.querySelector('i').classList.toggle('rotate-180');" title="Toggle Checklist">
+                        <i class="ri-arrow-up-s-line transition-transform duration-200"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div id="onboardingStepsContainer" class="p-3 sm:p-4 grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-2.5">
+                @foreach($onboarding['steps'] as $idx => $step)
+                    <div class="p-3 rounded-xl border {{ $step['completed'] ? 'border-emerald-500/20 bg-emerald-500/5' : 'border-light-border dark:border-dark-border bg-light-canvas/40 dark:bg-dark-canvas/40 hover:border-brand-500/40' }} flex flex-col justify-between transition-all">
+                        <div>
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="w-6 h-6 rounded-lg {{ $step['completed'] ? 'bg-emerald-500 text-white' : 'bg-brand-500/15 text-brand-500 font-bold' }} flex items-center justify-center text-xs">
+                                    @if($step['completed'])
+                                        <i class="ri-check-line"></i>
+                                    @else
+                                        {{ $idx + 1 }}
+                                    @endif
+                                </span>
+                                @if($step['completed'])
+                                    <span class="app-badge app-badge-success !text-3xs uppercase">Done</span>
+                                @else
+                                    <span class="app-badge app-badge-warning !text-3xs uppercase">Pending</span>
+                                @endif
+                            </div>
+                            <h3 class="text-xs font-semibold text-light-text dark:text-dark-text leading-snug">
+                                {{ $step['title'] }}
+                            </h3>
+                            <p class="text-3xs text-light-muted dark:text-dark-muted mt-1 leading-relaxed">
+                                {{ $step['description'] }}
+                            </p>
+                        </div>
+
+                        <div class="mt-3 pt-2 border-t border-light-border/60 dark:border-dark-border/60">
+                            <a href="{{ $step['action_url'] }}" class="app-btn {{ $step['completed'] ? 'app-btn-outline' : 'app-btn-primary' }} !h-6.5 !px-2 w-full text-3xs flex items-center justify-center gap-1">
+                                <span>{{ $step['action_text'] }}</span>
+                                <i class="ri-arrow-right-line"></i>
+                            </a>
+                        </div>
+                    </div>
+                @endforeach
+            </div>
+        </div>
+        @endif
 
         {{-- Top 4 Executive KPI Cards with Sparklines & % Growth --}}
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">

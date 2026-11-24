@@ -1,0 +1,17 @@
+{
+    "timestamp": "2026-11-24T03:24:46+00:00",
+    "concurrency": 5,
+    "total_requests": 20,
+    "success_rate": 100,
+    "throughput_rps": 0.26,
+    "latency_min_ms": 2713.87,
+    "latency_p50_ms": 3870.97,
+    "latency_p90_ms": 4936.92,
+    "latency_p95_ms": 5191.65,
+    "latency_p99_ms": 5191.65,
+    "latency_max_ms": 5191.65,
+    "latency_avg_ms": 3776.57,
+    "total_tokens": 1260,
+    "avg_tokens": 63,
+    "cost_per_1k_usd": 0.0126
+}

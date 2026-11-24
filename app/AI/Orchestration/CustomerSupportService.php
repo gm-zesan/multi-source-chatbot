@@ -1929,15 +1929,20 @@ PROMPT;
             return true;
         }
 
-        // 5. Employee salary, commission, or performance targets
-        if (preg_match('/(?:বেতন|salary|commission|কমিশন|sales\s*target|টার্গেট)\b/ui', $q)) {
-            if (preg_match('/(?:employee|staff|salesman|worker|কর্মী|কর্মচারী|সেলসম্যান)/ui', $q)) {
+        // 5. Employee salary, commission, performance targets, or private details
+        if (preg_match('/(?:বেতন|salary|commission|কমিশন|sales\s*target|টার্গেট|private\s*details|গোপন\s*তথ্য|ব্যক্তিগত\s*তথ্য)\b/ui', $q)) {
+            if (preg_match('/(?:employee|staff|salesman|salesperson|worker|hasan|karim|rahim|কর্মী|কর্মচারী|সেলসম্যান)/ui', $q)) {
                 return true;
             }
         }
 
+        // 5.5 Customer PII Snooping (Phone, address, order values of other customers)
+        if (preg_match('/customer\s+[a-z0-9]/ui', $q) && preg_match('/(?:phone|mobile|ফোন|নম্বর|address|ঠিকানা|order\s*value|টাকা|total\s*order)/ui', $q)) {
+            return true;
+        }
+
         // 6. Adversarial prompt injection, system jailbreak, and financial reconnaissance
-        if (preg_match('/(?:ignore\s+(?:all\s+)?previous\s+instructions|developer\s+mode|system\s+override|repeat\s+(?:your\s+)?(?:exact\s+)?system\s+instructions|act\s+as\s+(?:a\s+)?business|database\s+schema|secret\s+keys?|drop\s+table|select\s+\*\s+from)/ui', $q)) {
+        if (preg_match('/(?:ignore\s+(?:all\s+)?previous\s+instructions|developer\s+mode|system\s+override|repeat\s+(?:your\s+)?(?:exact\s+)?system\s+instructions|act\s+as\s+(?:a\s+)?business|database\s+schema|secret\s+keys?|drop\s+table|select\s+\*\s+from|prompt\s*injection|system\s*prompt|jailbreak|say\s+only\s+the\s+word|pwned)\b/ui', $q)) {
             return true;
         }
 

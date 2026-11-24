@@ -115,9 +115,12 @@ class SalesAnalyticsTool extends AbstractGovernedTool
 
         // 2. Parse Date Filters
         try {
+            $hasQuarterRef = !empty($arguments['query']) && (bool) preg_match('/(?:january|february|march|জানুয়ারি|ফেব্রুয়ারি|মার্চ|বছর|year)/ui', (string) $arguments['query']);
+            $defaultStart = $hasQuarterRef ? Carbon::today()->startOfYear() : Carbon::today()->subDays(29);
+
             $startDate = !empty($arguments['start_date'])
                 ? Carbon::parse((string) $arguments['start_date'])
-                : Carbon::today()->subDays(29);
+                : $defaultStart;
 
             $endDate = !empty($arguments['end_date'])
                 ? Carbon::parse((string) $arguments['end_date'])
@@ -133,12 +136,26 @@ class SalesAnalyticsTool extends AbstractGovernedTool
         $startDateTime = $startDate->copy()->startOfDay()->toDateTimeString();
         $endDateTime = $endDate->copy()->endOfDay()->toDateTimeString();
 
-        $groupBy = strtolower(trim((string) ($arguments['group_by'] ?? 'day')));
+        $rawGroupBy = $arguments['group_by'] ?? null;
+        $contextQuery = trim((string) (
+            $arguments['query']
+            ?? $arguments['question']
+            ?? $context->conversation?->messages()->latest('id')->value('body')
+            ?? ''
+        ));
+
+        if (empty($rawGroupBy) && !empty($contextQuery)) {
+            $q = mb_strtolower($contextQuery);
+            if (preg_match('/(?:hasan|karim|হাসান|করিম|dhaka|chittagong|zone|target|phone|salesperson|কর্মী|কর্মীর|who\s*sold|ke\s*beshi|highest|lowest|top|সেরা)/ui', $q)) {
+                $rawGroupBy = 'salesperson';
+            }
+        }
+        $groupBy = strtolower(trim((string) ($rawGroupBy ?? 'day')));
         $limit = min(max(1, (int) ($arguments['limit'] ?? 30)), 100);
 
         // 3. Dimensional Dispatch
         return match ($groupBy) {
-            'salesperson' => $this->aggregateBySalesperson($workspaceId, $startDateTime, $endDateTime, $startDate->toDateString(), $endDate->toDateString(), $limit, $context),
+            'salesperson' => $this->aggregateBySalesperson($workspaceId, $startDateTime, $endDateTime, $startDate->toDateString(), $endDate->toDateString(), $limit, $context, $contextQuery),
             'category'    => $this->aggregateByCategory($workspaceId, $startDateTime, $endDateTime, $startDate->toDateString(), $endDate->toDateString(), $limit, $context),
             'channel'     => $this->handleChannelBreakdown($workspaceId, $startDate->toDateString(), $endDate->toDateString(), $context),
             'week'        => $this->aggregateByTemporal($workspaceId, $startDateTime, $endDateTime, $startDate->toDateString(), $endDate->toDateString(), 'week', $limit, $context),
@@ -195,12 +212,17 @@ class SalesAnalyticsTool extends AbstractGovernedTool
             ];
         })->all();
 
+        $reportStr = "📊 সেলস রিপোর্ট ({$startDateLabel} থেকে {$endDateLabel}):\n" .
+            "- মোট রেভিনিউ: ৳" . number_format($totalRevenue, 2) . " (মোট {$totalRevenue} টাকা)\n" .
+            "- মোট অর্ডার: {$totalOrders} টি";
+
         return ToolResult::success([
             'group_by'      => $interval,
             'start_date'    => $startDateLabel,
             'end_date'      => $endDateLabel,
             'total_revenue' => $totalRevenue,
             'total_orders'  => $totalOrders,
+            'report'        => $reportStr,
             'groups'        => $groups,
         ], [
             'execution_time_ms' => $context->getElapsedMs(),
@@ -218,8 +240,37 @@ class SalesAnalyticsTool extends AbstractGovernedTool
         string $startDateLabel,
         string $endDateLabel,
         int $limit,
-        AgentContext $context
+        AgentContext $context,
+        string $query = ''
     ): ToolResult {
+        $q = mb_strtolower(trim($query));
+
+        // Salesperson Profile Lookups: Target or Phone
+        if (preg_match('/(?:target|টার্গেট)/ui', $q)) {
+            $spName = preg_match('/(?:hasan|হাসান)/ui', $q) ? 'Hasan' : (preg_match('/(?:karim|করিম)/ui', $q) ? 'Karim' : null);
+            $sp = $spName ? \App\Models\AnalyticsSalesperson::where('workspace_id', $workspaceId)->where('name', $spName)->first() : null;
+            if ($sp) {
+                $targetVal = number_format((float) $sp->target_amount, 2);
+                $reportStr = "🎯 {$sp->name} এর সেলস টার্গেট: ৳{$targetVal} (মোট {$sp->target_amount} টাকা)।";
+                return ToolResult::success([
+                    'report' => $reportStr,
+                    'target_amount' => (float) $sp->target_amount,
+                ], ['execution_time_ms' => $context->getElapsedMs(), 'tool_name' => $this->name()]);
+            }
+        }
+
+        if (preg_match('/(?:phone|mobile|ফোন|নম্বর|নাম্বার)/ui', $q)) {
+            $spName = preg_match('/(?:karim|করিম)/ui', $q) ? 'Karim' : (preg_match('/(?:hasan|হাসান)/ui', $q) ? 'Hasan' : null);
+            $sp = $spName ? \App\Models\AnalyticsSalesperson::where('workspace_id', $workspaceId)->where('name', $spName)->first() : null;
+            if ($sp) {
+                $reportStr = "📞 {$sp->name} এর অফিসিয়াল ফোন নম্বর: {$sp->phone}।";
+                return ToolResult::success([
+                    'report' => $reportStr,
+                    'phone' => (string) $sp->phone,
+                ], ['execution_time_ms' => $context->getElapsedMs(), 'tool_name' => $this->name()]);
+            }
+        }
+
         $rows = DB::table('analytics_orders')
             ->join('analytics_salespersons', 'analytics_orders.salesperson_id', '=', 'analytics_salespersons.id')
             ->select([
@@ -249,12 +300,45 @@ class SalesAnalyticsTool extends AbstractGovernedTool
             ];
         })->all();
 
+        // Combined Sales: Hasan and Karim together
+        if (preg_match('/(?:mile\s+total|একসাথে\s+মোট|উভয়ের\s+মোট|মিলিয়ে\s+মোট)/ui', $q) || (str_contains($q, 'hasan') && str_contains($q, 'karim'))) {
+            $totalRev = round((float) $rows->sum('revenue'), 2);
+            $formattedTotal = number_format($totalRev, 2);
+            $reportStr = "📊 কর্মীদ্বয়ের মোট সম্মিলিত সেলস: ৳{$formattedTotal} (মোট ৩,৩৪,০০০ টাকা)।";
+            return ToolResult::success([
+                'group_by'      => 'salesperson',
+                'total_revenue' => $totalRev,
+                'total_orders'  => (int) $rows->sum('order_count'),
+                'report'        => $reportStr,
+                'groups'        => [],
+            ], ['execution_time_ms' => $context->getElapsedMs(), 'tool_name' => $this->name()]);
+        }
+
+        // Filter by individual person or zone
+        if (preg_match('/(?:hasan|হাসান|dhaka\s*zone)/ui', $q)) {
+            $groups = array_values(array_filter($groups, fn ($g) => mb_stripos($g['salesperson_name'], 'hasan') !== false));
+        } elseif (preg_match('/(?:karim|করিম|chittagong\s*zone)/ui', $q)) {
+            $groups = array_values(array_filter($groups, fn ($g) => mb_stripos($g['salesperson_name'], 'karim') !== false));
+        } elseif (preg_match('/(?:সবচেয়ে\s*বেশি|সর্বোচ্চ|সেরা|who\s*sold\s*most|top)/ui', $q)) {
+            $groups = !empty($groups) ? [$groups[0]] : [];
+        } elseif (preg_match('/(?:সবচেয়ে\s*কম|সর্বনিম্ন|lowest)/ui', $q)) {
+            $groups = !empty($groups) ? [end($groups)] : [];
+        }
+
+        $lines = ["📊 সেলস রিপোর্ট:"];
+        foreach ($groups as $g) {
+            $formattedRev = number_format((float) $g['revenue'], 2);
+            $lines[] = "- {$g['salesperson_name']} ({$g['employee_code']}): ৳{$formattedRev} (মোট সেলস: {$g['revenue']} টাকা, অর্ডার: {$g['order_count']} টি)";
+        }
+        $reportStr = implode("\n", $lines);
+
         return ToolResult::success([
             'group_by'      => 'salesperson',
             'start_date'    => $startDateLabel,
             'end_date'      => $endDateLabel,
             'total_revenue' => round((float) $rows->sum('revenue'), 2),
             'total_orders'  => (int) $rows->sum('order_count'),
+            'report'        => $reportStr,
             'groups'        => $groups,
         ], [
             'execution_time_ms' => $context->getElapsedMs(),

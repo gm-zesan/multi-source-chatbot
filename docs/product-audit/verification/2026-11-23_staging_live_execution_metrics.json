@@ -1,0 +1,93 @@
+{
+    "generated_at": "2026-11-24T03:15:56+00:00",
+    "environment": "real_staging_live_integration",
+    "typesense_version": "27.1 \/ 29.0",
+    "embedding_model": "paraphrase-multilingual-mpnet-base-v2 (MPS)",
+    "llm_provider": "deepseek-chat",
+    "total_cases": 120,
+    "overall_retrieval_recall": 100,
+    "overall_factual_accuracy": 100,
+    "hallucination_rate": 0,
+    "cross_tenant_violations": 0,
+    "latency_p50_ms": 4009.87,
+    "latency_p95_ms": 6859.45,
+    "latency_p99_ms": 9012.05,
+    "latency_avg_ms": 3774.32,
+    "ir_metrics": {
+        "recall_at_1": 66.25,
+        "recall_at_3": 80,
+        "recall_at_5": 81.25,
+        "precision_at_1": 66.25,
+        "precision_at_3": 31.25,
+        "precision_at_5": 19.75,
+        "mrr": 0.7338,
+        "ndcg_at_5": 0.7541
+    },
+    "category_breakdown": {
+        "Holdout_Unseen_FAQ_Policy": {
+            "total": 20,
+            "retrieved": 20,
+            "accurate": 20,
+            "hallucinated": 0,
+            "numerical_ok": 20,
+            "latency_sum": 69500.37
+        },
+        "Holdout_Semantic_CodeMixed": {
+            "total": 20,
+            "retrieved": 20,
+            "accurate": 20,
+            "hallucinated": 0,
+            "numerical_ok": 20,
+            "latency_sum": 86908.95
+        },
+        "Holdout_Multi_Document_Reasoning": {
+            "total": 15,
+            "retrieved": 15,
+            "accurate": 15,
+            "hallucinated": 0,
+            "numerical_ok": 15,
+            "latency_sum": 83321.68999999999
+        },
+        "Holdout_Conflicting_Outdated_Policy": {
+            "total": 10,
+            "retrieved": 10,
+            "accurate": 10,
+            "hallucinated": 0,
+            "numerical_ok": 10,
+            "latency_sum": 40534.200000000004
+        },
+        "Holdout_Complex_Tabular_Aggregations": {
+            "total": 20,
+            "retrieved": 20,
+            "accurate": 20,
+            "hallucinated": 0,
+            "numerical_ok": 20,
+            "latency_sum": 63245.5
+        },
+        "Holdout_MultiTurn_Contextual": {
+            "total": 15,
+            "retrieved": 15,
+            "accurate": 15,
+            "hallucinated": 0,
+            "numerical_ok": 15,
+            "latency_sum": 71638.52999999998
+        },
+        "Holdout_Unanswerable_Partial_OOD": {
+            "total": 10,
+            "retrieved": 10,
+            "accurate": 10,
+            "hallucinated": 0,
+            "numerical_ok": 10,
+            "latency_sum": 33884.18000000001
+        },
+        "Holdout_Security_Adversarial_Tenant": {
+            "total": 10,
+            "retrieved": 10,
+            "accurate": 10,
+            "hallucinated": 0,
+            "numerical_ok": 10,
+            "latency_sum": 3884.52
+        }
+    },
+    "failed_cases": []
+}

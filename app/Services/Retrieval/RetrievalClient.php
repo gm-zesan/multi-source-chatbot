@@ -34,7 +34,8 @@ class RetrievalClient
         'কি', 'কী', 'কে', 'কেন', 'কখন', 'কোথায়', 'কীভাবে', 'কিভাবে', 'হবে', 'হবেকি', 'আছে', 'আছেকি',
         'করা', 'যায়', 'যায়কি', 'পারি', 'পারব', 'পারা', 'জন্য', 'এর', 'তে', 'এ', 'দেওয়া', 'দেয়া',
         'দেবেন', 'দিবেন', 'নাকি', 'বলুন', 'আমাকে', 'একটু', 'ভাই', 'মামা', 'আমাদের', 'আপনার', 'আপনাদের', 'আমার', 'আমি', 'বা', 'বাকি', 'পাওয়া', 'গেলে', 'হলে', 'হওয়া',
-        'লাগবে', 'কাটবেন', 'বলবেন', 'নিতে', 'পাব', 'পাবো', 'পৌঁছাইতে', 'পৌঁছাতে', 'করতে', 'অপেক্ষা', 'স্পষ্ট', 'লেখা', 'বলছেন', 'কোনো', 'চাইলে', 'চাই', 'চান', 'চায়', 'কেমন',
+        'লাগবে', 'কাটবেন', 'বলবেন', 'নিতে', 'পাব', 'পাবো', 'করতে', 'অপেক্ষা', 'স্পষ্ট', 'লেখা', 'বলছেন', 'কোনো', 'চাইলে', 'চাই', 'চান', 'চায়', 'কেমন',
+        'কত', 'কতো', 'দিন', 'দিনে', 'দিনের', 'টাকা', 'টাকার', 'হয়',
     ];
 
     /**
@@ -329,6 +330,59 @@ class RetrievalClient
         'torn' => 'ছিঁড়ে',
         'fellam' => 'ফেলেছি',
         'ekhon' => 'এখন',
+        'parcel' => 'পার্সেল',
+        'parsel' => 'পার্সেল',
+        'bkash' => 'বিকাশ',
+        'nagad' => 'নগদ',
+        'rocket' => 'রকেট',
+        'upay' => 'উপায়',
+        'delivery' => 'ডেলিভারি',
+        'dewa' => 'দেওয়া',
+        'dite' => 'দিতে',
+        'dibo' => 'দিব',
+        'debo' => 'দিব',
+        'milche' => 'মিলছে',
+        'pouchate' => 'পৌঁছাতে',
+        'pouchange' => 'পৌঁছাবে',
+        'shomoy' => 'সময়',
+        'somoy' => 'সময়',
+        'shorom' => 'শোরুম',
+        'bikri' => 'বিক্রি',
+        'baki' => 'বাকি',
+        'bokeya' => 'বকেয়া',
+        'lav' => 'লাভ',
+        'shobcheye' => 'সবচেয়ে',
+        'email' => 'ইমেইল',
+        'mail' => 'মেইল',
+        'address' => 'ঠিকানা',
+        'complain' => 'অভিযোগ',
+        'damage' => 'ক্ষতিগ্রস্ত',
+        'damaged' => 'ক্ষতিগ্রস্ত',
+        'unboxing' => 'আনবক্সিং',
+        'cash' => 'ক্যাশ',
+        'counter' => 'কাউন্টার',
+        'corporate' => 'কর্পোরেট',
+        'credit' => 'ক্রেডিট',
+        'international' => 'আন্তর্জাতিক',
+        'card' => 'কার্ড',
+        'gift' => 'গিফট',
+        'membership' => 'মেম্বারশিপ',
+        'platinum' => 'প্লাটিনাম',
+        'refund' => 'রিফান্ড',
+        'refunds' => 'রিফান্ড',
+        'exchange' => 'এক্সচেঞ্জ',
+        'video' => 'ভিডিও',
+        'hours' => 'সময়সূচি',
+        'shonibar' => 'শনিবার',
+        'shokal' => 'সকাল',
+        'rat' => 'রাত',
+        'box' => 'বক্স',
+        'dhaka' => 'ঢাকা',
+        'dhakar' => 'ঢাকার',
+        'vetor' => 'ভেতরে',
+        'baire' => 'বাইরে',
+        'koydin' => 'কতদিন',
+        'swap' => 'বদল',
     ];
 
     public const BENGALI_SPELLING_VARIANTS = [
@@ -1295,35 +1349,77 @@ class RetrievalClient
             }
         }
 
+        $finalScore = 0.0;
         if ($docRatio >= 1.0) {
-            return round(min(0.92, 0.82 + 0.10 * $titleRatio + $phraseBonus + $numBonus), 4);
-        }
-
-        if ($titleRatio >= 1.0) {
-            return round(min(0.92, 0.82 + 0.02 * count($effectiveSubWords) + $phraseBonus + $numBonus), 4);
-        }
-
-        if ($titleRatio >= 0.5 && $docRatio >= 0.6) {
-            return round(min(0.88, 0.62 + 0.20 * $titleRatio + $phraseBonus + $numBonus), 4);
-        }
-
-        if ($phraseBonus > 0.0) {
-            return round(min(0.85, 0.58 + 0.15 * $docRatio + $phraseBonus + $numBonus), 4);
-        }
-
-        if ($docRatio >= 0.5) {
-            return round(min(0.70, 0.40 + 0.25 * $docRatio + $phraseBonus + $numBonus), 4);
-        }
-
-        if ($docRatio > 0.0) {
+            $finalScore = round(min(0.92, 0.82 + 0.10 * $titleRatio + $phraseBonus + $numBonus), 4);
+        } elseif ($titleRatio >= 1.0) {
+            $finalScore = round(min(0.92, 0.82 + 0.02 * count($effectiveSubWords) + $phraseBonus + $numBonus), 4);
+        } elseif ($titleRatio >= 0.5 && $docRatio >= 0.6) {
+            $finalScore = round(min(0.88, 0.62 + 0.20 * $titleRatio + $phraseBonus + $numBonus), 4);
+        } elseif ($phraseBonus > 0.0) {
+            $finalScore = round(min(0.85, 0.58 + 0.15 * $docRatio + $phraseBonus + $numBonus), 4);
+        } elseif ($docRatio >= 0.5) {
+            $finalScore = round(min(0.70, 0.40 + 0.25 * $docRatio + $phraseBonus + $numBonus), 4);
+        } elseif ($docRatio > 0.0) {
             if ($titleRatio === 0.0 && $matchedInDoc <= 1 && count($effectiveSubWords) >= 2) {
-                return 0.15; // 1 isolated token match in document with zero title match is noise
+                $finalScore = 0.15; // 1 isolated token match in document with zero title match is noise
+            } elseif ($matchedInDoc >= 2) {
+                $finalScore = round(min(0.65, 0.35 + 0.25 * $docRatio + $phraseBonus + $numBonus), 4);
+            } else {
+                $finalScore = round(min(0.40, 0.60 * $docRatio + $phraseBonus + $numBonus), 4);
             }
-            if ($matchedInDoc >= 2) {
-                return round(min(0.65, 0.35 + 0.25 * $docRatio + $phraseBonus + $numBonus), 4);
-            }
-            return round(min(0.40, 0.60 * $docRatio + $phraseBonus + $numBonus), 4);
         }
+
+        if ($finalScore <= 0.0) {
+            return 0.0;
+        }
+
+        // Domain / Entity Scope Guard
+        $isInternationalQuery = (bool) preg_match('/(?:uk|usa|uae|canada|international|আন্তর্জাতিক|বিদেশ|আমেরিকা|যুক্তরাজ্য|যুক্তরাষ্ট্র|কানাডা|দুবাই|লন্ডন)\b/ui', $cleanQuery);
+        if ($isInternationalQuery) {
+            $candidateHasInternational = (bool) preg_match('/(?:uk|usa|uae|canada|international|আন্তর্জাতিক|বিদেশ|আমেরিকা|যুক্তরাজ্য|যুক্তরাষ্ট্র|কানাডা|সারচার্জ|freight)\b/ui', $title . ' ' . $content);
+            if (!$candidateHasInternational) {
+                $finalScore = round($finalScore * 0.20, 4);
+            } else {
+                $finalScore = round(min(0.95, $finalScore + 0.15), 4);
+            }
+        }
+
+        $isSpecialPolicyQuery = (bool) preg_match('/(?:vip|corporate|b2b|platinum|gift\s*card|store\s*credit|কর্পোরেট|ভিআইপি|প্লাটিনাম|গিফট\s*কার্ড|স্টোর\s*ক্রেডিট|ট্রেড\s*লাইসেন্স)\b/ui', $cleanQuery);
+        if ($isSpecialPolicyQuery) {
+            $candidateHasSpecial = (bool) preg_match('/(?:vip|corporate|b2b|platinum|gift\s*card|store\s*credit|কর্পোরেট|ভিআইপি|প্লাটিনাম|গিফট\s*কার্ড|স্টোর\s*ক্রেডিট|ট্রেড\s*লাইসেন্স)\b/ui', $title . ' ' . $content);
+            if (!$candidateHasSpecial) {
+                $finalScore = round($finalScore * 0.20, 4);
+            } else {
+                $finalScore = round(min(0.95, $finalScore + 0.15), 4);
+            }
+        }
+
+        $isWarrantyQuery = (bool) preg_match('/(?:warranty|waranty|ওয়ারেন্টি|ওয়ারেন্টি|গ্যারান্টি|গ্যারান্টী)\b/ui', $cleanQuery);
+        if ($isWarrantyQuery) {
+            $candidateHasWarranty = (bool) preg_match('/(?:warranty|ওয়ারেন্টি|ওয়ারেন্টি|গ্যারান্টি|গ্যারান্টী|হার্ডওয়্যার|সার্ভিস)\b/ui', $title . ' ' . $content);
+            if (!$candidateHasWarranty) {
+                $finalScore = round($finalScore * 0.20, 4);
+            }
+        }
+
+        $isReturnRefundQuery = (bool) preg_match('/(?:return|refund|exchange|ফেরত|রিটার্ন|রিফান্ড|বদল|এক্সচেঞ্জ)\b/ui', $cleanQuery);
+        if ($isReturnRefundQuery) {
+            $candidateHasReturn = (bool) preg_match('/(?:return|refund|exchange|ফেরত|রিটার্ন|রিফান্ড|বদল|এক্সচেঞ্জ|রিস্টকিং|ট্যাগ)\b/ui', $title . ' ' . $content);
+            if (!$candidateHasReturn) {
+                $finalScore = round($finalScore * 0.20, 4);
+            }
+        }
+
+        $isEmiQuery = (bool) preg_match('/(?:emi|ইএমআই|no-cost\s*emi|নো-কস্ট)\b/ui', $cleanQuery);
+        if ($isEmiQuery) {
+            $candidateHasEmi = (bool) preg_match('/(?:emi|ইএমআই)\b/ui', $title . ' ' . $content);
+            if (!$candidateHasEmi) {
+                $finalScore = round($finalScore * 0.20, 4);
+            }
+        }
+
+        return $finalScore;
 
         return 0.0;
     }

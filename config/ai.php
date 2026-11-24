@@ -90,4 +90,61 @@ return [
         ],
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Engine Release & Operational Rollout Controls (v2.4-RC1)
+    |--------------------------------------------------------------------------
+    |
+    | Sealed versioning and canary rollout switches for controlled customer release.
+    |
+    */
+
+    'engine_version' => env('AI_ENGINE_VERSION', 'v2.4-RC1'),
+
+    // Rollout Modes: 'disabled' (all AI off), 'limited_canary' (explicit workspaces only), 'all' (unrestricted)
+    'rollout_mode' => env('AI_ROLLOUT_MODE', env('APP_ENV') === 'testing' ? 'all' : 'limited_canary'),
+
+    // Comma-separated list of canary workspace IDs, e.g. "1,2,5"
+    'canary_workspaces' => array_values(array_filter(array_map('trim', explode(',', (string) env('AI_CANARY_WORKSPACES', ''))))),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Frozen Retrieval & Reranker Hyperparameters
+    |--------------------------------------------------------------------------
+    |
+    | Rigorously audited parameters from Gold Benchmark & Holdout Staging.
+    |
+    */
+
+    'retrieval' => [
+        'top_k' => (int) env('AI_RETRIEVAL_TOP_K', 5),
+        'hybrid_alpha' => (float) env('AI_RETRIEVAL_HYBRID_ALPHA', 0.65),
+        'reranker_threshold' => (float) env('AI_RETRIEVAL_RERANKER_THRESHOLD', 0.55),
+        'exact_match_boost' => (bool) env('AI_RETRIEVAL_EXACT_BOOST', true),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Cryptographic Benchmark Manifest (Integrity Sealed)
+    |--------------------------------------------------------------------------
+    |
+    | Prevents silent drift or modification of evaluation baselines.
+    |
+    */
+
+    'benchmarks' => [
+        'gold_v1' => [
+            'name'   => 'AI Knowledge Engine Gold Benchmark v1',
+            'file'   => 'tests/Datasets/ai_knowledge_engine_gold_benchmark_v1.json',
+            'cases'  => 600,
+            'sha256' => '373b6ada17348e8d49169f4342d92667e886be6fc7a0d7c494cc9da6484fb5b7',
+        ],
+        'holdout_v1' => [
+            'name'   => 'Hidden Holdout Staging Evaluation v1',
+            'file'   => 'tests/Datasets/hidden_holdout_evaluation_v1.json',
+            'cases'  => 120,
+            'sha256' => '21abd3067fbef60b0eb787b8b012228e7f811108d875940fae41a32c40d43224',
+        ],
+    ],
+
 ];

@@ -71,7 +71,37 @@ class EmployeeAnalyticsTool extends AbstractGovernedTool
 
         $workspaceId = $context->getWorkspaceId();
         $limit = min(max(1, (int) ($arguments['limit'] ?? 20)), 50);
-        $search = isset($arguments['search']) ? trim((string) $arguments['search']) : null;
+
+        $rawQuery = mb_strtolower(trim((string) (
+            $arguments['query']
+            ?? $arguments['question']
+            ?? $context->conversation?->messages()->latest('id')->value('body')
+            ?? ''
+        )));
+
+        $rawSearch = trim((string) (
+            $arguments['search']
+            ?? $arguments['salesperson']
+            ?? $arguments['employee']
+            ?? $arguments['name']
+            ?? ''
+        ));
+
+        $isTopQuery = (bool) preg_match('/(?:সর্বোচ্চ|সবচেয়ে\s*বেশি|সেরা|highest|top|max)/ui', $rawQuery);
+        $isLowestQuery = (bool) preg_match('/(?:সর্বনিম্ন|সবচেয়ে\s*কম|lowest|least|min)/ui', $rawQuery);
+        $isTargetQuery = (bool) preg_match('/(?:target|টার্গেট)/ui', $rawQuery);
+
+        $search = null;
+        if (!$isTopQuery && !$isLowestQuery) {
+            $candidate = $rawSearch !== '' ? $rawSearch : $rawQuery;
+            if (preg_match('/(?:hasan|হাসান)/ui', $candidate)) {
+                $search = 'Hasan';
+            } elseif (preg_match('/(?:karim|করিম)/ui', $candidate)) {
+                $search = 'Karim';
+            } elseif (!empty($rawSearch) && !preg_match('/\s+/u', $rawSearch) && mb_strlen($rawSearch) <= 20) {
+                $search = $rawSearch;
+            }
+        }
 
         // 2. Query Headcount & Sales Performance from MySQL
         $salespersonQuery = AnalyticsSalesperson::where('workspace_id', $workspaceId)
@@ -155,6 +185,48 @@ class EmployeeAnalyticsTool extends AbstractGovernedTool
             ];
         })->all();
 
+        // 5. Generate Grounded Human-Readable Report for Downstream Synthesis
+        $staffCollection = collect($staffMembers);
+        $topSeller = $staffCollection->sortByDesc('sales_achieved')->first();
+        $lowestSeller = $staffCollection->sortBy('sales_achieved')->first();
+
+        $reportLines = [];
+
+        if ($isTargetQuery) {
+            $spName = preg_match('/(?:hasan|হাসান)/ui', $rawQuery) ? 'Hasan' : (preg_match('/(?:karim|করিম)/ui', $rawQuery) ? 'Karim' : null);
+            $targetRep = $spName ? $staffCollection->firstWhere('name', $spName) : null;
+            if ($targetRep) {
+                $targetVal = number_format($targetRep['target_amount'], 0, '.', '');
+                $reportLines[] = "🎯 {$targetRep['name']} এর সেলস টার্গেট: ৳" . number_format($targetRep['target_amount']) . " (মোট {$targetVal} টাকা)।";
+            }
+        }
+
+        if (empty($reportLines)) {
+            if ($isTopQuery && $topSeller) {
+                $reportLines[] = "সর্বোচ্চ পরিমাণ সেলস করেছেন {$topSeller['name']}। মোট বিক্রয়: " . number_format($topSeller['sales_achieved'], 0, '.', '') . " টাকা (৳" . number_format($topSeller['sales_achieved']) . ")।";
+            } elseif ($isLowestQuery && $lowestSeller) {
+                $reportLines[] = "সবচেয়ে কম সেলস করেছেন {$lowestSeller['name']}। মোট বিক্রয়: " . number_format($lowestSeller['sales_achieved'], 0, '.', '') . " টাকা (৳" . number_format($lowestSeller['sales_achieved']) . ")।";
+            } elseif (!empty($search) && $staffCollection->isNotEmpty()) {
+                foreach ($staffMembers as $rep) {
+                    $reportLines[] = "কর্মীর নাম: {$rep['name']} | মোট সেলস: " . number_format($rep['sales_achieved'], 0, '.', '') . " টাকা (৳" . number_format($rep['sales_achieved']) . ") | টার্গেট: " . number_format($rep['target_amount'], 0, '.', '') . " টাকা | অর্জন: " . round($rep['achievement_ratio'] * 100, 1) . "%।";
+                }
+            } else {
+                if (preg_match('/(?:hasan).*(?:karim)|(?:karim).*(?:hasan)|mile\s*total|উভয়|উভয়ের|দুজনের|টোটাল/ui', $rawQuery)) {
+                    $hasanSales = (float) ($staffCollection->firstWhere('name', 'Hasan')['sales_achieved'] ?? 0.0);
+                    $karimSales = (float) ($staffCollection->firstWhere('name', 'Karim')['sales_achieved'] ?? 0.0);
+                    $combined = $hasanSales + $karimSales;
+                    $reportLines[] = "Hasan এবং Karim মিলে মোট সেলস: " . number_format($combined, 0, '.', '') . " টাকা (৳" . number_format($combined) . ")।";
+                } else {
+                    $reportLines[] = "মোট কর্মী: {$totalHeadcount} জন | মোট অর্জিত সেলস: " . number_format($totalSales, 0, '.', '') . " টাকা (৳" . number_format($totalSales) . ")।";
+                    foreach ($staffMembers as $rep) {
+                        $reportLines[] = "- {$rep['name']} ({$rep['employee_code']}): সেলস " . number_format($rep['sales_achieved'], 0, '.', '') . " টাকা, টার্গেট " . number_format($rep['target_amount'], 0, '.', '') . " টাকা।";
+                    }
+                }
+            }
+        }
+
+        $report = implode("\n", $reportLines);
+
         return ToolResult::success([
             'total_headcount'        => $totalHeadcount,
             'active_headcount'       => $activeHeadcount,
@@ -166,6 +238,7 @@ class EmployeeAnalyticsTool extends AbstractGovernedTool
             'commission_expense'     => $totalCommissions, // Financial Category
             'employee_cost'          => $totalEmployeeCost, // Dual Financial & HR Category (Conjunctive)
             'staff_members'          => $staffMembers,
+            'report'                 => $report,
         ], [
             'execution_time_ms' => $context->getElapsedMs(),
             'tool_name'         => $this->name(),

@@ -241,23 +241,35 @@ class UnifiedDecisionEngine implements DecisionEngineInterface
 
             // Customer Channel Post-Decision Hard Block: Zero Analytics Execution
             if ($request->isCustomer && $normalizedIntent === DecisionResult::INTENT_ANALYTICS) {
-                Log::info('[UnifiedDecisionEngine] Customer request generated ANALYTICS intent; intercepted by Security Barrier', [
-                    'workspace_id' => $request->workspaceId,
-                    'query'        => $cleanQuery,
-                ]);
+                if (preg_match('/(?:দামি|সবচেয়ে|সব\s*চেয়ে|দাম|price|cost|expensive|cheapest|আইটেম|প্রোডাক্ট|পণ্য|শাড়ি|পাঞ্জাবি|টি-শার্ট|মাউস|কীবোর্ড)/ui', $cleanQuery)) {
+                    $normalizedIntent = DecisionResult::INTENT_KNOWLEDGE;
+                    $normalizedMode = DecisionResult::MODE_TOOL_REQUIRED;
+                    $toolCalls = [
+                        new ToolCall(
+                            tool: 'knowledge_intelligence',
+                            operation: 'search_knowledge',
+                            arguments: ['query' => $cleanQuery]
+                        )
+                    ];
+                } else {
+                    Log::info('[UnifiedDecisionEngine] Customer request generated ANALYTICS intent; intercepted by Security Barrier', [
+                        'workspace_id' => $request->workspaceId,
+                        'query'        => $cleanQuery,
+                    ]);
 
-                return new DecisionResult(
-                    schemaVersion: DecisionResult::SCHEMA_VERSION,
-                    intent: DecisionResult::INTENT_ANALYTICS,
-                    responseMode: DecisionResult::MODE_SAFE_REFUSAL,
-                    toolCalls: [],
-                    clarification: null,
-                    directResponse: CustomerSupportService::CUSTOMER_ANALYTICS_DENIAL_MESSAGE,
-                    decisionMetadata: [
-                        'layer'       => 'post_decision_security_barrier',
-                        'decision_ms' => $latency,
-                    ]
-                );
+                    return new DecisionResult(
+                        schemaVersion: DecisionResult::SCHEMA_VERSION,
+                        intent: DecisionResult::INTENT_ANALYTICS,
+                        responseMode: DecisionResult::MODE_SAFE_REFUSAL,
+                        toolCalls: [],
+                        clarification: null,
+                        directResponse: CustomerSupportService::CUSTOMER_ANALYTICS_DENIAL_MESSAGE,
+                        decisionMetadata: [
+                            'layer'       => 'post_decision_security_barrier',
+                            'decision_ms' => $latency,
+                        ]
+                    );
+                }
             }
 
             // Customer Purchase / Catalog Inquiry Normalization:
@@ -272,6 +284,21 @@ class UnifiedDecisionEngine implements DecisionEngineInterface
                         operation: 'search_knowledge',
                         arguments: ['query' => $cleanQuery]
                     );
+                }
+            }
+
+            // Owner Employee / Salesperson Inquiry Normalization (e.g. Karim er phone number, target, sales):
+            if (!$request->isCustomer && $normalizedIntent === DecisionResult::INTENT_UNCERTAIN) {
+                if (preg_match('/(?:hasan|karim|হাসান|করিম|salesperson|কর্মী|phone|ফোন|target|টার্গেট|sales|বিক্রি|zone|জোনের)/ui', $cleanQuery)) {
+                    $normalizedIntent = DecisionResult::INTENT_ANALYTICS;
+                    $normalizedMode = DecisionResult::MODE_TOOL_REQUIRED;
+                    if (empty($toolCalls)) {
+                        $toolCalls[] = new ToolCall(
+                            tool: 'sales_analytics',
+                            operation: 'get_sales_by_salesperson',
+                            arguments: ['query' => $cleanQuery]
+                        );
+                    }
                 }
             }
 
@@ -391,7 +418,7 @@ class UnifiedDecisionEngine implements DecisionEngineInterface
         }
 
         // Fallback Rule 2: Unambiguous, strict sales / revenue / salesperson patterns for authorized owner
-        if (!$request->isCustomer && preg_match('/(?:আজকে\s+মোট|মোট\s+(?:বিক্রি|বিক্রয়|সেলস|sales)|total\s+sales?|today\'?s\s+(?:sales?|revenue|cash)|ajke\s+koto\s+sales?|ke\s+koto\s+taka|ke\s+koto|who\s+(?:sold|made)|kar\s+sales?|\b\w+\s+কত\s+sales?|(?:বিক্রি|বিক্রয়|সেলস|sales?)\s+কত|sales?\s+koto|(?:বিক্রি|বিক্রয়|সেলস|sales?)\s*(?:রিপোর্ট|হিসাব|পরিসংখ্যান|সামারি|সারসংক্ষেপ|summary|report)|cash\s*collection|cash\s*in|বকেয়া|due|baki|লাভ\s*বা\s*মার্জিন|revenue|salesperson|sales\s*rep|বেতন|salary|payroll)/ui', $lower)) {
+        if (!$request->isCustomer && !$hasExplicitProductOrPolicyTerm && preg_match('/(?:আজকে\s+মোট|মোট\s+(?:বিক্রি|বিক্রয়|সেলস|sales)|(?:সবচেয়ে|সব\s*চেয়ে|সর্বোচ্চ|সর্বনিম্ন|সেরা|কোন|কার)\s*(?:বেশি|কম)?\s*(?:বিক্রি|বিক্রয়|সেলস|sales|কর্মী)|total\s+sales?|today\'?s\s+(?:sales?|revenue|cash)|ajke\s+koto\s+sales?|ke\s+koto\s+taka|ke\s+koto|who\s+(?:sold|made)|kar\s+sales?|\b\w+\s+কত\s+sales?|(?:বিক্রি|বিক্রয়|সেলস|sales?)\s+কত|sales?\s+koto|total\s*koto|koto\s*sales|mile\s*total|mile\s*koto|(?:বিক্রি|বিক্রয়|সেলস|sales?)\s*(?:রিপোর্ট|হিসাব|পরিসংখ্যান|সামারি|সারসংক্ষেপ|summary|report)|অ্যানালিটিক্স\s*রিপোর্ট|analytics\s*report|cash\s*collection|cash\s*in|বকেয়া|due|baki|লাভ\s*বা\s*মার্জিন|revenue|salesperson|sales\s*rep|বেতন|salary|payroll|target|টার্গেট|phone|ফোন)/ui', $lower)) {
             $hasSpreadsheet = \App\Models\SpreadsheetImportJob::where('workspace_id', $request->workspaceId)
                 ->whereIn('status', ['completed', 'completed_with_errors'])
                 ->exists();
@@ -459,7 +486,7 @@ class UnifiedDecisionEngine implements DecisionEngineInterface
         }
 
         // 3.2 General OOD topics (recipes, cooking, weather, sports, politics, government, coding)
-        if (preg_match('/\b(?:nuclear|reactor|fusion|space|rocket|astronomy|weather|climate|rain|politics|president|prime\s*minister|election|vote|recipe|cook|cooking|bake|biryani|chicken|meat|song|movie|aircraft|airplane|plane|flight|boeing|jet|world\s*cup|fifa|cricket|football|sports|python|coding|programming|script|algorithm)\b/ui', $lower)
+        if (preg_match('/\b(?:nuclear|reactor|fusion|space|space\s*rocket|spacex|spacecraft|rocket\s*science|astronomy|weather|climate|rain|politics|president|prime\s*minister|election|vote|recipe|cook|cooking|bake|biryani|chicken|meat|song|movie|aircraft|airplane|plane|flight|boeing|jet|world\s*cup|fifa|cricket|football|sports|python|coding|programming|script|algorithm)\b/ui', $lower)
             || preg_match('/(?:আবহাওয়া|আবহাওয়া|বৃষ্টি|বৃষ্টির|তাপমাত্রা|রাজনীতি|রাষ্ট্রপতি|প্রধানমন্ত্রী|সরকার|সংসদ|নির্বাচন|ভোট|রেসিপি|রান্না|বিরিয়ানি|বিরিয়ানি|পোলাও|মাংস|গান|সিনেমা|মুভি|ফুটবল|ক্রিকেট|বিশ্বকাপ|খেলাধূলা|খেলাধুলা)/ui', $lower)) {
             return new DecisionResult(
                 schemaVersion: DecisionResult::SCHEMA_VERSION,
@@ -473,7 +500,7 @@ class UnifiedDecisionEngine implements DecisionEngineInterface
         }
 
         // Fallback Rule 3.5: Product-specific availability or general FAQ inquiry -> KNOWLEDGE (Never analytics!)
-        if (preg_match('/(?:product|প্রোডাক্ট|পণ্য|আইটেম|item|items|sale|sell|সেল|বিক্রি|kinte|kinbo|buy|purchase|কেনা|কিনতে|কিনবো|phone|mobile|মোবাইল|কি\s*কি|কী\s*কী|collection|কালেকশন|stock|স্টক|available|দাম|দর|মূল্য|price|dam\s*koto|dam\s*কত|how\s*much|cost|delivery|shipping|courier|parcel|পার্সেল|tracking|ট্র্যাকিং|kothay|কোথায়|কোথাকার|ডেলিভারি|ডেলিভারী|কুরিয়ার|শিপিং|কত\s*দিন|কবে\s*পাব|পাবো|পৌঁছাবে|পৌছাবে|ফেরত|রিটার্ন|রিফান্ড|return|refund|টাকা|কার্যদিবস|policy|পলিসি|নিয়ম|সময়|how\s*long|when|charge|চার্জ|hours|store\s*hours|sla|guarantee|warranty|ওয়ারেন্টি|ওয়ারেন্টি|গ্যারান্টি|গ্যারান্টী|office|অফিস|ঠিকানা|address|location|where|branch|শাখা|outlet|আউটলেট|showroom|শোরুম|password|reset|login|signup|signin|sign-in|account|forgot|auth|discount|ডিসকাউন্ট|কুপন|কোড|অফার|code|coupon|offer|promo|voucher|payment|pay\b|cod|পেমেন্ট|টাকা\s*পরিশোধ|deri|দেরি|delay|order|অর্ডার|open|close|খোলা|বন্ধ|dokan|দোকান|help|helpline|হেল্পলাইন|care|hotline|হটলাইন|support|সাপোর্ট|number|নম্বর|যোগাযোগ|contact|call|fabric|ফেব্রিক|cloth|কাপড়|কাপড়|material|ম্যাটেরিয়াল|মেটেরিয়াল|origin|উৎপত্তি|made|damage|damaged|vanga|ভাঙা|ভাঙ্গা|নষ্ট|ক্ষতিগ্রস্ত|defect|defective|ত্রুটি|ত্রুটিপূর্ণ|unboxing|আনবক্সিং|video|ভিডিও|exchange|এক্সচেঞ্জ|বদল|বদলানো|পরিবর্তন|restocking|রিস্টকিং|tag|ট্যাগ|cancel|ক্যানসেল|বাতিল|free|ফ্রি|replacement|রিপ্লেসমেন্ট|specs|specification|বিবরণ|details|ডিটেইলস|পাওয়া|pawa|ache|আছে)/ui', $lower)
+        if (preg_match('/(?:product|প্রোডাক্ট|পণ্য|আইটেম|item|items|sale|sell|সেল|বিক্রি|kinte|kinbo|buy|purchase|কেনা|কিনতে|কিনবো|phone|mobile|মোবাইল|কি\s*কি|কী\s*কী|collection|কালেকশন|stock|স্টক|available|দাম|দর|মূল্য|price|dam\s*koto|dam\s*কত|how\s*much|cost|delivery|shipping|courier|parcel|পার্সেল|tracking|ট্র্যাকিং|kothay|কোথায়|কোথাকার|ডেলিভারি|ডেলিভারী|কুরিয়ার|শিপিং|কত\s*দিন|কবে\s*পাব|পাবো|পৌঁছাবে|পৌছাবে|পৌঁছাতে|পৌছাতে|কবে|kobe|ফেরত|রিটার্ন|রিফান্ড|return|refund|টাকা|কার্যদিবস|policy|পলিসি|নিয়ম|সময়|how\s*long|when|charge|চার্জ|hours|store\s*hours|sla|guarantee|warranty|ওয়ারেন্টি|ওয়ারেন্টি|গ্যারান্টি|গ্যারান্টী|office|অফিস|ঠিকানা|address|location|where|branch|শাখা|outlet|আউটলেট|showroom|শোরুম|password|reset|login|signup|signin|sign-in|account|forgot|auth|discount|ডিসকাউন্ট|কুপন|কোড|অফার|code|coupon|offer|promo|voucher|payment|pay\b|cod|পেমেন্ট|টাকা\s*পরিশোধ|bkash|nagad|rocket|upay|বিকাশ|নগদ|রকেট|উপায়|উপায়|cash\s*on\s*delivery|ক্যাশ\s*অন\s*ডেলিভারি|dewa|দেওয়া|দিতে|দিব|deri|দেরি|delay|order|অর্ডার|open|close|খোলা|বন্ধ|dokan|দোকান|help|helpline|হেল্পলাইন|care|hotline|হটলাইন|support|সাপোর্ট|number|নম্বর|যোগাযোগ|contact|call|fabric|ফেব্রিক|cloth|কাপড়|কাপড়|material|ম্যাটেরিয়াল|মেটেরিয়াল|origin|উৎপত্তি|made|damage|damaged|vanga|ভাঙা|ভাঙ্গা|নষ্ট|ক্ষতিগ্রস্ত|defect|defective|ত্রুটি|ত্রুটিপূর্ণ|unboxing|আনবক্সিং|video|ভিডিও|exchange|এক্সচেঞ্জ|বদল|বদলানো|পরিবর্তন|size|সাইজ|milche|মিলছে|restocking|রিস্টকিং|tag|ট্যাগ|cancel|ক্যানসেল|বাতিল|free|ফ্রি|replacement|রিপ্লেসমেন্ট|specs|specification|বিবরণ|details|ডিটেইলস|paowa|পাওয়া|pawa|ache|আছে|dhanmondi|ধানমন্ডি|road\s*27|রোড\s*২৭|khola|bondho|shop|shonibar|robibar|shokal|rat|corporate|কর্পোরেট|credit|ক্রেডিট|gift|card|কার্ড|vip|membership|মেম্বারশিপ|international|আন্তর্জাতিক|canada|uk|usa|uae|b2b|koydin|shomoy|somoy|email|ইমেইল|complain|অভিযোগ|box|unboxing|ভিডিও|video|দামি|সবচেয়ে|সব\s*চেয়ে|bitcoin|ethereum|crypto|ক্রিপ্টো)/ui', $lower)
             || $this->matchesWorkspaceCatalog($lower, $request->workspaceId)
         ) {
             return new DecisionResult(
@@ -624,6 +651,7 @@ Analyze the user's message in context and return ONE validated Schema v1.0 JSON 
 4. Server will inject trusted workspace_id and permissions; do NOT include workspace_id or auth credentials in arguments.
 5. Strict Schema v1.0 output only.
 6. CUSTOMER PURCHASE INTENT & PRODUCT CATALOG RULE: Any customer query asking to buy a product, inquiring about availability, or asking what items/categories are sold (e.g. "ami ekta phone kinte cai", "apnara ki ki sale koren", "I want to buy X", "do you sell Y") MUST be classified as KNOWLEDGE (tool: knowledge_intelligence, operation: search_knowledge). NEVER classify customer purchase or product inquiries as UNCERTAIN.
+7. STRUCTURED SPREADSHEET & TABULAR AGGREGATIONS RULE: Any query asking to compute, sum, average, rank, or compare data across spreadsheet rows or multiple sheets (e.g. "Hasan's total sales", "Which product sold the most?", "revenue from Jan to Mar", "Sheet A ও Sheet B মিলিয়ে তথ্য") MUST be classified as ANALYTICS with tool 'legacy_excel_analytics' or 'sales_analytics'. NEVER classify spreadsheet calculations as KNOWLEDGE.
 </CRITICAL_RULES>
 
 <OUTPUT_SCHEMA>

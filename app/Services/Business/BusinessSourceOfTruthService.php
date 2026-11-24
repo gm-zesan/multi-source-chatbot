@@ -455,6 +455,21 @@ class BusinessSourceOfTruthService
             $matchedProduct = null;
 
             $matchedCatalogItems = [];
+
+            // Extreme Price Queries (Most expensive, cheapest)
+            $isMostExpensiveQuery = (bool) preg_match('/(?:সব\s*চে[^\s]*\s*দামি|সর্বোচ্চ\s*দাম|most\s*expensive|highest\s*pric)/ui', $qLower);
+            $isCheapestQuery = (bool) preg_match('/(?:সব\s*চে[^\s]*\s*কম|সর্বনিম্ন\s*দাম|cheapest|lowest\s*pric)/ui', $qLower);
+            if ($isMostExpensiveQuery || $isCheapestQuery) {
+                $pricedProducts = array_filter($allProducts, fn ($p) => isset($p['price']) && (float) $p['price'] > 0);
+                if (preg_match('/(?:clothing|পোশাক|জামা|শার্ট|sharee|panjabi)/ui', $qLower)) {
+                    $pricedProducts = array_filter($pricedProducts, fn ($p) => strtolower($p['category'] ?? '') === 'clothing');
+                }
+                if (!empty($pricedProducts)) {
+                    usort($pricedProducts, fn ($a, $b) => ((float) $b['price']) <=> ((float) $a['price']));
+                    $targetProd = $isMostExpensiveQuery ? $pricedProducts[0] : end($pricedProducts);
+                    $matchedCatalogItems[] = ['product' => $targetProd, 'score' => 100, 'isDirect' => true];
+                }
+            }
             foreach ($allProducts as $product) {
                 $pNameLower = mb_strtolower($product['name']);
                 $pCatLower = mb_strtolower($product['category'] ?? '');
@@ -591,7 +606,7 @@ class BusinessSourceOfTruthService
                         "  * To place an order, instruct the customer to provide the name of the desired product, their Name, Mobile Phone Number, and complete Delivery Address in the chat.";
                 }
             } elseif (!$matchedAny && $activeProduct && !empty($activeProduct['name']) && ($inquiredItem === null || $isSameProductAsActive)) {
-                if (preg_match('/(দাম\s*কত|কত\s*দাম|dam\s*koto|price\s*koto|how\s*much|স্টকে\s*আছে|available\s*ache|stock\s*ache|details|বিস্তারিত|বিবরণ|জানাও|বলো|বলুন|bolo|bolen|tell\s*me|specification|specs?|configuration|features?|বৈশিষ্ট্য|তথ্য|info)/ui', $query)) {
+                if (preg_match('/(দাম\s*কত|কত\s*দাম|dam\s*koto|price\s*koto|how\s*much|স্টকে\s*আছে|available\s*ache|stock\s*ache|stock|স্টক|koyta|কয়টা|কয়টা|details|বিস্তারিত|বিবরণ|জানাও|বলো|বলুন|bolo|bolen|tell\s*me|specification|specs?|configuration|features?|বৈশিষ্ট্য|তথ্য|info|fabric|material|ফেব্রিক|মেটেরিয়াল|উপাদান|কাপড়|warranty|guarantee|ওয়ারেন্টি|ওয়ারেন্টি|গ্যারান্টি|origin|অরিজিন|কোথায়\s*তৈরি|তৈরি\s*কোথায়)/ui', $query)) {
                     $formattedPrice = number_format((float) ($activeProduct['unit_price'] ?? 0), 2);
                     $stockLine = isset($activeProduct['stock']) && $activeProduct['stock'] !== null ? "  * Stock/Qty: {$activeProduct['stock']} units\n" : '';
                     $specsLine = !empty($activeProduct['specs'])
@@ -860,6 +875,12 @@ class BusinessSourceOfTruthService
                             }
 
                             foreach ($tables as $tbl) {
+                                $tblLower = mb_strtolower((string) $tbl);
+                                // Relational tables holding orders, sales, salespersons, or customers are never sellable product catalogs
+                                if (in_array($tblLower, ['sales', 'salespersons', 'customers', 'orders', 'transactions', 'users'], true)) {
+                                    continue;
+                                }
+
                                 $colsStmt = $pdo->query("PRAGMA table_info(\"{$tbl}\")");
                                 $cols = $colsStmt ? array_map(fn ($c) => mb_strtolower((string) $c), array_column($colsStmt->fetchAll(PDO::FETCH_ASSOC), 'name')) : [];
 
@@ -877,6 +898,9 @@ class BusinessSourceOfTruthService
                                 }
                                 if (!$prodCol) {
                                     foreach ($cols as $colName) {
+                                        if (preg_match('/(?:customer|client|buyer|salesperson|employee|seller|user|agent|admin|ক্রেতা|গ্রাহক|বিক্রেতা|কর্মী)/ui', $colName)) {
+                                            continue;
+                                        }
                                         if (str_contains($colName, 'name') || str_contains($colName, 'title') || str_contains($colName, 'item') || str_contains($colName, 'নাম') || str_contains($colName, 'পণ্য')) {
                                             $prodCol = $colName;
                                             break;
@@ -1619,8 +1643,27 @@ class BusinessSourceOfTruthService
                 $tables = $tablesStmt ? $tablesStmt->fetchAll(PDO::FETCH_COLUMN) : [];
 
                 foreach ($tables as $tbl) {
+                    $tblLower = mb_strtolower((string) $tbl);
+                    if (in_array($tblLower, ['sales', 'salespersons', 'customers', 'orders', 'transactions', 'users', 'analytics_orders', 'analytics_salespersons'], true)) {
+                        continue;
+                    }
+                    if (preg_match('/(?:salesperson|customer|employee|user|transaction|invoice|order)/i', $tblLower)) {
+                        continue;
+                    }
+
                     $colsStmt = $pdo->query("PRAGMA table_info(\"{$tbl}\")");
                     $cols = $colsStmt ? array_map(fn ($c) => mb_strtolower((string) $c), array_column($colsStmt->fetchAll(PDO::FETCH_ASSOC), 'name')) : [];
+
+                    $hasPersonalEntityCol = false;
+                    foreach (['customer_name', 'salesperson_id', 'customer_id', 'employee_code', 'phone', 'email', 'salary'] as $pc) {
+                        if (in_array($pc, $cols, true)) {
+                            $hasPersonalEntityCol = true;
+                            break;
+                        }
+                    }
+                    if ($hasPersonalEntityCol) {
+                        continue;
+                    }
 
                     $prodCol = null;
                     foreach (['product_name', 'product', 'item_name', 'item', 'title', 'name', 'model', 'পণ্যের_নাম', 'পণ্য', 'আইটেম'] as $c) {

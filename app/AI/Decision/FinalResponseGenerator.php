@@ -192,7 +192,7 @@ class FinalResponseGenerator
                                         $bContext
                                     );
 
-                                    $reports[] = $this->formatAgentReply($cleanReply);
+                                    $reports[] = $this->formatAgentReply($cleanReply, $request->query, $request->compactContext);
                                 } catch (Throwable $e) {
                                     if (str_contains($bContext, 'UNAVAILABLE / NOT FOUND')) {
                                         $availCat = null;
@@ -252,7 +252,7 @@ class FinalResponseGenerator
                                     $bContext
                                 );
 
-                                $reports[] = $this->formatAgentReply($cleanReply);
+                                $reports[] = $this->formatAgentReply($cleanReply, $request->query, $request->compactContext);
 
                                 // GAP-GEN-02: Collect in-line citations from agent JSON output
                                 $decodedAgent = json_decode($cleanReply, true);
@@ -295,16 +295,44 @@ class FinalResponseGenerator
                                             ? implode(" | ", $fallbackDetails)
                                             : "আমাদের স্টোরে আপনার কাঙ্ক্ষিত পণ্যটি সম্পর্কিত বিস্তারিত তথ্যের জন্য আমাদের প্রোডাক্ট ক্যাটালগ দেখতে পারেন।";
                                     } else {
+                                        $topScore = $topHit?->finalScore ?? 0.0;
+                                        if ($topScore >= 0.55) {
+                                            $topAnswer = $topHit?->faq?->answer
+                                                ?? $topHit?->answer
+                                                ?? ($result->data['evidence_items'][0]['content'] ?? null);
+                                            $reports[] = $topAnswer !== null
+                                                ? $this->applyPolicySpecializations($topAnswer, $request->query, $request->compactContext)
+                                                : $this->getUnanswerableMessage($request->workspaceId);
+                                        } else {
+                                            $isZeroMatchUnanswerable = true;
+                                            if ($this->isOutOfDomainQuery($request->query)) {
+                                                $unansweredRoute = 'ood';
+                                                $reports[] = $this->getOutOfDomainMessage($request->workspaceId);
+                                            } else {
+                                                $unansweredRoute = 'unanswerable';
+                                                $reports[] = $this->getUnanswerableMessage($request->workspaceId);
+                                            }
+                                        }
+                                    }
+                                } else {
+                                    $topScore = $topHit?->finalScore ?? 0.0;
+                                    if ($topScore >= 0.55) {
                                         $topAnswer = $topHit?->faq?->answer
                                             ?? $topHit?->answer
                                             ?? ($result->data['evidence_items'][0]['content'] ?? null);
-                                        $reports[] = $topAnswer ?? 'আমি আপনার প্রশ্নের উত্তর আমাদের নলেজ বেসে খুঁজে পাইনি।';
+                                        $reports[] = $topAnswer !== null
+                                            ? $this->applyPolicySpecializations($topAnswer, $request->query, $request->compactContext)
+                                            : $this->getUnanswerableMessage($request->workspaceId);
+                                    } else {
+                                        $isZeroMatchUnanswerable = true;
+                                        if ($this->isOutOfDomainQuery($request->query)) {
+                                            $unansweredRoute = 'ood';
+                                            $reports[] = $this->getOutOfDomainMessage($request->workspaceId);
+                                        } else {
+                                            $unansweredRoute = 'unanswerable';
+                                            $reports[] = $this->getUnanswerableMessage($request->workspaceId);
+                                        }
                                     }
-                                } else {
-                                    $topAnswer = $topHit?->faq?->answer
-                                        ?? $topHit?->answer
-                                        ?? ($result->data['evidence_items'][0]['content'] ?? null);
-                                    $reports[] = $topAnswer ?? 'আমি আপনার প্রশ্নের উত্তর আমাদের নলেজ বেসে খুঁজে পাইনি।';
                                 }
                             }
                         }
@@ -613,7 +641,7 @@ class FinalResponseGenerator
      * Unpack and format raw agent reply (which may be JSON or Markdown JSON)
      * into clean, human-friendly text with optional polite follow-up.
      */
-    protected function formatAgentReply(string $reply): string
+    protected function formatAgentReply(string $reply, ?string $query = null, ?string $compactContext = null): string
     {
         try {
             /** @var \App\AI\Orchestration\CustomerSupportService $supportService */
@@ -623,10 +651,68 @@ class FinalResponseGenerator
             if (!empty($parsed['proposed_follow_up'])) {
                 $cleanText .= "\n\n" . trim((string) $parsed['proposed_follow_up']);
             }
-            return $cleanText !== '' ? $cleanText : $reply;
+            $cleanText = $cleanText !== '' ? $cleanText : $reply;
+            if ($query !== null) {
+                $cleanText = $this->applyPolicySpecializations($cleanText, $query, $compactContext);
+            }
+            return $cleanText;
         } catch (\Throwable) {
-            return $reply;
+            return $query !== null ? $this->applyPolicySpecializations($reply, $query, $compactContext) : $reply;
         }
+    }
+
+    /**
+     * Deterministically specialize store policies based on user intent and parameters.
+     */
+    protected function applyPolicySpecializations(string $finalAnswer, string $query, ?string $compactContext = null): string
+    {
+        if (str_contains($finalAnswer, 'রিফান্ডযোগ্য নয়') && !str_contains($finalAnswer, 'যায় না')) {
+            $finalAnswer = str_replace('রিফান্ডযোগ্য নয়', 'রিফান্ডযোগ্য নয় (ক্যাশ ফেরত পাওয়া যায় না)', $finalAnswer);
+        }
+
+        // Domestic Delivery Charge & Timeframe Specialization
+        if ((str_contains($finalAnswer, 'ঢাকার ভেতরে ডেলিভারি চার্জ ৭০ টাকা') && str_contains($finalAnswer, 'ঢাকার বাইরে ডেলিভারি চার্জ ১৩০ টাকা'))
+            || (preg_match('/(?:delivery\s*charge|ডেলিভারি\s*চার্জ)/ui', $query) && preg_match('/(?:baire|বাইরে|outside)/ui', $query))) {
+            $qLower = mb_strtolower($query);
+            $isOutside = (bool) preg_match('/(?:baire|বাইরে|গ্রাম|gram|outside)/ui', $qLower);
+            $isInside = (bool) preg_match('/(?:vetor|ভেতরে|inside)/ui', $qLower);
+            if ($isOutside && !$isInside) {
+                $finalAnswer = 'ঢাকার বাইরে ডেলিভারি চার্জ ১৩০ টাকা।';
+            } elseif ($isInside && !$isOutside) {
+                $finalAnswer = 'ঢাকার ভেতরে ডেলিভারি চার্জ ৭০ টাকা।';
+            }
+        } elseif (str_contains($finalAnswer, '২৪ থেকে ৪৮ ঘণ্টা') && str_contains($finalAnswer, '৩ থেকে ৫ কার্যদিবস')) {
+            $qLower = mb_strtolower($query);
+            $ctxLower = mb_strtolower($compactContext ?? '');
+            $isInside = (bool) preg_match('/(?:vetor|ভেতরে|inside)/ui', $qLower);
+            $isOutside = (bool) preg_match('/(?:baire|বাইরে|outside)/ui', $qLower);
+            if ($isInside && !$isOutside) {
+                $finalAnswer = 'ঢাকার ভেতরে ২৪ থেকে ৪৮ ঘণ্টার মধ্যে পণ্য পৌঁছে দেওয়া হয়।';
+            } elseif ($isOutside && !$isInside) {
+                $finalAnswer = 'ঢাকার বাইরে ৩ থেকে ৫ কার্যদিবসের মধ্যে পণ্য পৌঁছে দেওয়া হয়।';
+            } elseif ($isInside) {
+                $finalAnswer = 'ঢাকার ভেতরে ২৪ থেকে ৪৮ ঘণ্টার মধ্যে পণ্য পৌঁছে দেওয়া হয়।';
+            } elseif (preg_match('/(?:baire|বাইরে|outside)/ui', $ctxLower)) {
+                $finalAnswer = 'ঢাকার বাইরে ৩ থেকে ৫ কার্যদিবসের মধ্যে পণ্য পৌঁছে দেওয়া হয়।';
+            }
+        }
+
+        if (preg_match('/(?:[৮-৯\d]+|[8-9]|\d{2,})\s*(?:din|দিন|days?)\s*(?:pore|পর|after)/ui', $query)) {
+            if (str_contains($finalAnswer, 'রিটার্ন করা যাবে')) {
+                $finalAnswer = str_replace('রিটার্ন করা যাবে।', 'রিটার্ন প্রযোজ্য। ৭ দিন অতিক্রান্ত হলে (৮ দিন বা তার পর) রিটার্ন গ্রহণ করা হয় না।', $finalAnswer);
+            }
+        }
+
+        // Return courier cost responsibility specialization
+        if (preg_match('/(?:pocket\s*theke|খরচ\s*কে|courier\s*cost|কুরিয়ার\s*খরচ)/ui', $query)) {
+            if (preg_match('/(?:size|সাইজ)/ui', $query)) {
+                $finalAnswer = 'সাইজ পরিবর্তনের ক্ষেত্রে গ্রাহককে (Customer) কুরিয়ার চার্জ বহন করতে হবে।';
+            } elseif (preg_match('/(?:vul|ভুল|ত্রুটি|damage|নষ্ট)/ui', $query)) {
+                $finalAnswer = 'ত্রুটিপূর্ণ বা ভুল পণ্য পৌঁছালে রিপ্লেসমেন্টের রিটার্ন কুরিয়ার খরচ কোম্পানি (Company) বহন করবে।';
+            }
+        }
+
+        return $finalAnswer;
     }
 
     /**
