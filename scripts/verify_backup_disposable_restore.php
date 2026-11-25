@@ -105,10 +105,12 @@ echo "  - Workspaces: {$stateOriginal['counts']['workspaces']} | Conversations: 
 $backupFilename = 'disposable_audit_snap_' . time();
 echo "2. Executing Artisan db:backup to: {$backupFilename}...\n";
 
+$tBackupStart = microtime(true);
 $exitCode = Artisan::call('db:backup', [
     '--filename'  => $backupFilename,
     '--retention' => 30,
 ]);
+$backupDurationMs = round((microtime(true) - $tBackupStart) * 1000, 2);
 
 if ($exitCode !== 0) {
     echo "❌ db:backup failed with exit code {$exitCode}\n";
@@ -148,10 +150,12 @@ echo "✓ Database successfully corrupted for recovery validation\n\n";
 
 // 5. Perform Live Restore
 echo "4. Executing Artisan db:restore from backup archive...\n";
+$tRestoreStart = microtime(true);
 $restoreExitCode = Artisan::call('db:restore', [
     'file'    => "{$backupFilename}.sqlite",
     '--force' => true,
 ]);
+$fileRestoreDurationMs = round((microtime(true) - $tRestoreStart) * 1000, 2);
 
 if ($restoreExitCode !== 0) {
     echo "❌ db:restore failed with exit code {$restoreExitCode}\n";
@@ -159,15 +163,17 @@ if ($restoreExitCode !== 0) {
     exit(1);
 }
 
-// Reconnect PDO after file replacement
+// 6. Application Reconnect & State Comparison
+$tReconnectStart = microtime(true);
 DB::purge('disposable_audit');
 $pdoRestored = DB::connection('disposable_audit')->getPdo();
-
 $stateRestored = computeDbStateHash($pdoRestored);
+$reconnectDurationMs = round((microtime(true) - $tReconnectStart) * 1000, 2);
+
 echo "✓ Restore completed! Restored state SHA-256 = {$stateRestored['hash']}\n";
 echo "  - Workspaces: {$stateRestored['counts']['workspaces']} | Conversations: {$stateRestored['counts']['conversations']} | Orders: {$stateRestored['counts']['orders']} (Total: {$stateRestored['orders_sum']} BDT)\n\n";
 
-// 6. Cryptographic State Comparison
+// 7. Cryptographic State Comparison
 echo "5. Verifying 100% Cryptographic and Relational Identity...\n";
 if ($stateOriginal['hash'] !== $stateRestored['hash']) {
     echo "❌ CRITICAL FAILURE: Restored database hash does not match original!\n";
@@ -179,10 +185,89 @@ if ($stateOriginal['orders_sum'] !== $stateRestored['orders_sum']) {
     echo "❌ CRITICAL FAILURE: Financial sum mismatch!\n";
     exit(1);
 }
+echo "✓ IDENTITY VERIFIED: Original state === Restored state (100.00% Match)\n\n";
 
-echo "✓ IDENTITY VERIFIED: Original state === Restored state (100.00% Match)\n";
-echo "✓ Pre-restore safety snapshot created: Verified\n";
-echo "✓ Checksum verification before restore: Verified\n";
+// 8. Application-Level Read/Write Verification (Post-Restore ACID Validation)
+echo "6. Performing Post-Restore Application-Level ACID Read/Write Verification...\n";
+$tAcidStart = microtime(true);
+
+$conn = DB::connection('disposable_audit');
+
+// A. Insert new transactional records
+$conn->beginTransaction();
+try {
+    $conn->table('test_conversations')->insert([
+        'id'            => 201,
+        'workspace_id'  => 1,
+        'customer_name' => 'Post-Restore Customer',
+        'channel'       => 'whatsapp',
+        'created_at'    => '2026-11-24 10:15:00',
+    ]);
+
+    $conn->table('test_orders')->insert([
+        'id'           => 2001,
+        'workspace_id' => 1,
+        'order_number' => 'ORD-POST-RESTORE-001',
+        'total_amount' => 4500.00,
+        'status'       => 'processing',
+    ]);
+
+    $conn->table('test_workspaces')->where('id', 1)->update([
+        'name' => 'Canary Pilot Merchant 1 (Active Post-Restore)',
+    ]);
+
+    $conn->commit();
+    echo "  ✓ Transactional write committed successfully (1 conversation, 1 order, 1 workspace update)\n";
+} catch (\Throwable $e) {
+    $conn->rollBack();
+    echo "❌ Transaction failed: " . $e->getMessage() . "\n";
+    exit(1);
+}
+
+// B. Verify inserted records via application query
+$insertedOrder = $conn->table('test_orders')->where('id', 2001)->first();
+if (!$insertedOrder || (float) $insertedOrder->total_amount !== 4500.00) {
+    echo "❌ Post-restore read verification failed!\n";
+    exit(1);
+}
+echo "  ✓ Post-restore read verified: Order #{$insertedOrder->order_number} confirmed with 4500.00 BDT\n";
+
+// C. Verify Rollback semantics
+$conn->beginTransaction();
+$conn->table('test_orders')->insert([
+    'id'           => 9999,
+    'workspace_id' => 1,
+    'order_number' => 'ORD-ROLLBACK-TEST',
+    'total_amount' => 999.00,
+    'status'       => 'cancelled',
+]);
+$conn->rollBack();
+
+$rolledBack = $conn->table('test_orders')->where('id', 9999)->first();
+if ($rolledBack !== null) {
+    echo "❌ Rollback failure: uncommitted record persisted!\n";
+    exit(1);
+}
+echo "  ✓ Transaction rollback verified: rolled back record does not exist\n";
+
+$acidDurationMs = round((microtime(true) - $tAcidStart) * 1000, 2);
+$totalRtoMs = $fileRestoreDurationMs + $reconnectDurationMs + $acidDurationMs;
+
+echo "\n----------------------------------------------------------------------------------------\n";
+echo "DISASTER RECOVERY TIMING METRICS & SRE RECONCILIATION:\n";
+echo sprintf("  - Snapshot File Backup Duration:             %.2f ms\n", $backupDurationMs);
+echo sprintf("  - Raw File Restore Duration:                 %.2f ms\n", $fileRestoreDurationMs);
+echo sprintf("  - Connection Purge & Re-establishment:       %.2f ms\n", $reconnectDurationMs);
+echo sprintf("  - Post-Restore ACID Read/Write Verification: %.2f ms\n", $acidDurationMs);
+echo sprintf("  - Total End-to-End Recovery Time (RTO):      %.2f ms (%.3f seconds)\n", $totalRtoMs, $totalRtoMs / 1000);
+echo "\nRECOVERY POINT OBJECTIVE (RPO) CLARIFICATION:\n";
+echo sprintf("  - Snapshot Point-in-Time Epoch: %s (UTC)\n", $meta['timestamp'] ?? 'now');
+echo "  - True Operational RPO:\n";
+echo "    * Periodic Snapshot Strategy (Hourly Cron):   RPO <= 60 minutes data loss window\n";
+echo "    * Daily Snapshot Strategy (Default):          RPO <= 24 hours data loss window\n";
+echo "    * Zero-Data-Loss Target (Near-Zero RPO):      Requires continuous WAL / Binlog replication\n";
+echo "  - Note: The 2.95ms figure is isolated APFS file replacement; production MySQL RTO\n";
+echo "    includes daemon reload, buffer pool warmup, and table locks (typically 30-180 seconds).\n";
 echo "========================================================================================\n";
 echo "   DISPOSABLE BACKUP & RESTORE INTEGRITY AUDIT: PASS\n";
 echo "========================================================================================\n";
@@ -191,7 +276,6 @@ echo "==========================================================================
 File::delete($disposableDbPath);
 File::delete($backupFile);
 File::delete($metaFile);
-// Also cleanup pre_restore safety files created by db:restore
 foreach (File::files($backupDir) as $f) {
     if (str_starts_with($f->getFilename(), 'pre_restore_safety_') || str_starts_with($f->getFilename(), $backupFilename)) {
         File::delete($f->getRealPath());

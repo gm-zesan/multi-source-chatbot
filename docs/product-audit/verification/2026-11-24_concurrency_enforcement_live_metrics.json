@@ -1,0 +1,213 @@
+{
+    "timestamp": "2026-11-25T03:31:20+00:00",
+    "phase1_workspace_concurrency": {
+        "cap": 5,
+        "dispatched": 7,
+        "admitted": 5,
+        "rejected": 2,
+        "wall_clock_s": 8.783,
+        "overlap_window_start": 1795577467.078403,
+        "overlap_window_end": 1795577473.673436,
+        "overlap_duration_ms": 6595.03,
+        "all_rejected_inside_overlap": false,
+        "results": [
+            {
+                "worker_id": "worker_ws1_1",
+                "workspace_id": 1,
+                "route": "knowledge",
+                "halt_reason": null,
+                "answered": true,
+                "start_epoch": 1795577467.073446,
+                "end_epoch": 1795577473.673436,
+                "duration_ms": 6599.99
+            },
+            {
+                "worker_id": "worker_ws1_2",
+                "workspace_id": 1,
+                "route": "knowledge",
+                "halt_reason": null,
+                "answered": true,
+                "start_epoch": 1795577467.072636,
+                "end_epoch": 1795577474.291673,
+                "duration_ms": 7219.04
+            },
+            {
+                "worker_id": "worker_ws1_3",
+                "workspace_id": 1,
+                "route": "human_handoff",
+                "halt_reason": "canary_workspace_concurrency_exceeded",
+                "answered": false,
+                "start_epoch": 1795577467.076764,
+                "end_epoch": 1795577467.099241,
+                "duration_ms": 22.48
+            },
+            {
+                "worker_id": "worker_ws1_4",
+                "workspace_id": 1,
+                "route": "knowledge",
+                "halt_reason": null,
+                "answered": true,
+                "start_epoch": 1795577467.077107,
+                "end_epoch": 1795577475.611657,
+                "duration_ms": 8534.55
+            },
+            {
+                "worker_id": "worker_ws1_5",
+                "workspace_id": 1,
+                "route": "knowledge",
+                "halt_reason": null,
+                "answered": true,
+                "start_epoch": 1795577467.078403,
+                "end_epoch": 1795577474.081869,
+                "duration_ms": 7003.47
+            },
+            {
+                "worker_id": "worker_ws1_6",
+                "workspace_id": 1,
+                "route": "human_handoff",
+                "halt_reason": "canary_workspace_concurrency_exceeded",
+                "answered": false,
+                "start_epoch": 1795577467.072387,
+                "end_epoch": 1795577467.099138,
+                "duration_ms": 26.75
+            },
+            {
+                "worker_id": "worker_ws1_7",
+                "workspace_id": 1,
+                "route": "knowledge",
+                "halt_reason": null,
+                "answered": true,
+                "start_epoch": 1795577467.076549,
+                "end_epoch": 1795577473.890611,
+                "duration_ms": 6814.06
+            }
+        ]
+    },
+    "phase2_global_concurrency": {
+        "cap": 10,
+        "dispatched": 11,
+        "admitted": 10,
+        "rejected": 1,
+        "wall_clock_s": 4.718,
+        "overlap_window_start": 1795577476.065307,
+        "overlap_window_end": 1795577479.213714,
+        "overlap_duration_ms": 3148.41,
+        "results": [
+            {
+                "worker_id": "p2_ws1_1",
+                "workspace_id": 1,
+                "route": "knowledge",
+                "halt_reason": null,
+                "answered": true,
+                "start_epoch": 1795577475.997115,
+                "end_epoch": 1795577479.386982,
+                "duration_ms": 3389.87
+            },
+            {
+                "worker_id": "p2_ws1_2",
+                "workspace_id": 1,
+                "route": "knowledge",
+                "halt_reason": null,
+                "answered": true,
+                "start_epoch": 1795577476.004178,
+                "end_epoch": 1795577480.241771,
+                "duration_ms": 4237.59
+            },
+            {
+                "worker_id": "p2_ws1_3",
+                "workspace_id": 1,
+                "route": "knowledge",
+                "halt_reason": null,
+                "answered": true,
+                "start_epoch": 1795577476.009588,
+                "end_epoch": 1795577479.242274,
+                "duration_ms": 3232.69
+            },
+            {
+                "worker_id": "p2_ws1_4",
+                "workspace_id": 1,
+                "route": "knowledge",
+                "halt_reason": null,
+                "answered": true,
+                "start_epoch": 1795577476.037294,
+                "end_epoch": 1795577480.330907,
+                "duration_ms": 4293.61
+            },
+            {
+                "worker_id": "p2_ws1_5",
+                "workspace_id": 1,
+                "route": "knowledge",
+                "halt_reason": null,
+                "answered": true,
+                "start_epoch": 1795577476.065307,
+                "end_epoch": 1795577479.510126,
+                "duration_ms": 3444.82
+            },
+            {
+                "worker_id": "p2_ws2_1",
+                "workspace_id": 2,
+                "route": "knowledge",
+                "halt_reason": null,
+                "answered": true,
+                "start_epoch": 1795577476.04295,
+                "end_epoch": 1795577480.237726,
+                "duration_ms": 4194.78
+            },
+            {
+                "worker_id": "p2_ws2_2",
+                "workspace_id": 2,
+                "route": "knowledge",
+                "halt_reason": null,
+                "answered": true,
+                "start_epoch": 1795577476.032009,
+                "end_epoch": 1795577479.427808,
+                "duration_ms": 3395.8
+            },
+            {
+                "worker_id": "p2_ws2_3",
+                "workspace_id": 2,
+                "route": "knowledge",
+                "halt_reason": null,
+                "answered": true,
+                "start_epoch": 1795577475.996752,
+                "end_epoch": 1795577479.213714,
+                "duration_ms": 3216.96
+            },
+            {
+                "worker_id": "p2_ws2_4",
+                "workspace_id": 2,
+                "route": "knowledge",
+                "halt_reason": null,
+                "answered": true,
+                "start_epoch": 1795577476.064995,
+                "end_epoch": 1795577479.770782,
+                "duration_ms": 3705.79
+            },
+            {
+                "worker_id": "p2_ws2_5",
+                "workspace_id": 2,
+                "route": "knowledge",
+                "halt_reason": null,
+                "answered": true,
+                "start_epoch": 1795577475.997635,
+                "end_epoch": 1795577480.235665,
+                "duration_ms": 4238.03
+            },
+            {
+                "worker_id": "p2_ws2_6",
+                "workspace_id": 2,
+                "route": "human_handoff",
+                "halt_reason": "canary_global_concurrency_exceeded",
+                "answered": false,
+                "start_epoch": 1795577476.080013,
+                "end_epoch": 1795577476.098615,
+                "duration_ms": 18.6
+            }
+        ]
+    },
+    "post_test_counters": {
+        "ai_in_flight_ws_1": 0,
+        "ai_in_flight_ws_2": 0,
+        "ai_in_flight_global": 0
+    }
+}

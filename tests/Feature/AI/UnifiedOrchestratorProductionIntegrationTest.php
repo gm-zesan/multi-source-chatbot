@@ -58,6 +58,8 @@ class UnifiedOrchestratorProductionIntegrationTest extends TestCase
     {
         parent::setUp();
 
+        config(['ai.rollout_mode' => 'all']);
+
         // Seed roles & permissions
         Role::firstOrCreate(['name' => RoleEnum::SUPERADMIN->value, 'guard_name' => 'web']);
         $adminRole = Role::firstOrCreate(['name' => RoleEnum::ADMIN->value, 'guard_name' => 'web']);
@@ -76,11 +78,13 @@ class UnifiedOrchestratorProductionIntegrationTest extends TestCase
         $adminRole->givePermissionTo([$permUpdate, $permView]);
         $ownerRole->givePermissionTo([$permUpdate, $permView]);
 
-        $this->workspace = Workspace::create([
+        $this->workspace = (new Workspace())->forceFill([
+            'id' => 8888,
             'name' => 'Unified Production Store',
-            'slug' => 'unified-store',
+            'slug' => 'unified-store-8888',
             'is_active' => true,
         ]);
+        $this->workspace->save();
 
         $this->owner = User::factory()->create([
             'name' => 'Store Owner',

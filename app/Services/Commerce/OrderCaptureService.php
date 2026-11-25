@@ -54,19 +54,97 @@ class OrderCaptureService
             return null;
         }
 
-        // Avoid re-capturing duplicate pending orders for the same phone within 1 hour in the same conversation
+        // Catalog matching: Validate product against workspace catalog if available
+        try {
+            $catalogProducts = \App\Models\AnalyticsProduct::where('workspace_id', $workspace->id)
+                ->where('is_active', true)
+                ->get();
+
+            if ($catalogProducts->isNotEmpty()) {
+                $searchHaystack = mb_strtolower($userMessage . ' ' . ($extracted['product'] ?? ''));
+                $matchedCatalogProduct = null;
+
+                foreach ($catalogProducts as $catItem) {
+                    $catName = mb_strtolower(trim($catItem->name));
+                    $catNameBase = trim(preg_replace('/\s*\([^)]*\)/u', '', $catName));
+                    $catSku = mb_strtolower(trim((string) $catItem->sku));
+                    $extractedClean = trim(preg_replace('/^(?:[0-9০-৯]+|\b(?:one|two|a|an)\b)\s*(?:টা|টি|পিস|pcs|pieces?)\s*/iu', '', mb_strtolower((string) ($extracted['product'] ?? ''))));
+
+                    if (! empty($catSku) && str_contains($searchHaystack, $catSku)) {
+                        $matchedCatalogProduct = $catItem;
+                        break;
+                    }
+                    if (str_contains($searchHaystack, $catName) || ($catNameBase !== '' && str_contains($searchHaystack, $catNameBase))) {
+                        $matchedCatalogProduct = $catItem;
+                        break;
+                    }
+                    if ($extractedClean !== '' && (str_contains($catName, $extractedClean) || ($catNameBase !== '' && str_contains($extractedClean, $catNameBase)))) {
+                        $matchedCatalogProduct = $catItem;
+                        break;
+                    }
+                }
+
+                if ($matchedCatalogProduct !== null) {
+                    $sizeSuffix = '';
+                    if (! empty($extracted['product']) && preg_match('/(?:সাইজ|size)\s*[:=\-]?\s*([a-zA-Z0-9]+)/iu', $extracted['product'], $mSize)) {
+                        $sizeSuffix = ', সাইজ ' . strtoupper($mSize[1]);
+                    }
+                    $extracted['product'] = $matchedCatalogProduct->name . $sizeSuffix;
+                    if (empty($extracted['amount']) || (float) $extracted['amount'] <= 0) {
+                        $extracted['amount'] = (float) $matchedCatalogProduct->unit_price;
+                    }
+                }
+            }
+        } catch (\Throwable $eCatalog) {
+            Log::warning('[OrderCaptureService] Catalog matching bypassed: ' . $eCatalog->getMessage());
+        }
+
+        // Idempotency & Retry Deduplication:
+        // Compute message fingerprint combining normalized user message, customer phone, and normalized product
+        $fingerprintPayload = trim($userMessage) . '|' . ($extracted['phone'] ?? '') . '|' . ($extracted['product'] ?? '');
+        $requestFingerprint = hash('sha256', $fingerprintPayload);
+        $extractedProductNorm = mb_strtolower(trim((string) ($extracted['product'] ?? '')));
+
+        // Check if an existing pending order matches this customer within 1 hour
         $existing = WorkspaceOrder::where('workspace_id', $workspace->id)
-            ->where('conversation_id', $conversation->id)
             ->where('customer_phone', $extracted['phone'])
-            ->where('created_at', '>=', Carbon::now()->subHour())
+            ->where('status', 'pending')
+            ->where('created_at', '>=', Carbon::now()->subHours(1))
+            ->where(function ($q) use ($requestFingerprint, $extractedProductNorm, $conversation) {
+                $q->where('admin_notes', 'LIKE', "%FP:{$requestFingerprint}%");
+                if ($extractedProductNorm !== '' && $extractedProductNorm !== 'general order inquiry') {
+                    $q->orWhere(function ($sub) use ($extractedProductNorm) {
+                        $sub->whereRaw('LOWER(product_summary) = ?', [$extractedProductNorm])
+                            ->orWhere('product_summary', 'LIKE', "%{$extractedProductNorm}%");
+                    });
+                } else {
+                    $q->orWhere('conversation_id', $conversation->id);
+                }
+            })
             ->first();
 
         if ($existing) {
-            // Update address or notes if newly provided
-            if (empty($existing->delivery_address) && ! empty($extracted['address'])) {
+            // Update address or notes if newly provided in the retry
+            if (! empty($extracted['address'])) {
                 $existing->delivery_address = $extracted['address'];
                 $existing->save();
             }
+
+            // Ensure lifecycle CRM tags are present
+            $tags = is_array($conversation->ai_tags) ? $conversation->ai_tags : (json_decode($conversation->ai_tags ?? '[]', true) ?: []);
+            $tags = array_values(array_diff($tags, ['needs_phone']));
+            $tags = array_values(array_unique(array_merge($tags, ['lead', 'hot_lead', 'order_placed'])));
+            $conversation->update([
+                'ai_tags'  => $tags,
+                'priority' => 'high',
+            ]);
+
+            Log::info('[OrderCaptureService] Deduplicated retry request using fingerprint: existing order returned', [
+                'order_id'    => $existing->id,
+                'fingerprint' => $requestFingerprint,
+                'product'     => $existing->product_summary,
+            ]);
+
             return $existing;
         }
 
@@ -84,8 +162,29 @@ class OrderCaptureService
             'order_amount'     => $extracted['amount'] ?? null,
             'status'           => 'pending',
             'customer_notes'   => Str::limit($userMessage, 255),
+            'admin_notes'      => "FP:{$requestFingerprint}",
             'captured_at'      => Carbon::now(),
         ]);
+
+        // BI Canonical Projection: Project new order into AnalyticsOrder (idempotent)
+        try {
+            app(\App\Services\Analytics\OrderAnalyticsProjectionService::class)->project($order);
+        } catch (\Throwable $e) {
+            Log::warning('[OrderCaptureService] Failed to project to AnalyticsOrder: ' . $e->getMessage());
+        }
+
+        // Lifecycle CRM Update: Update conversation tags and customer name
+        $tags = is_array($conversation->ai_tags) ? $conversation->ai_tags : (json_decode($conversation->ai_tags ?? '[]', true) ?: []);
+        $tags = array_values(array_diff($tags, ['needs_phone']));
+        $tags = array_values(array_unique(array_merge($tags, ['lead', 'hot_lead', 'order_placed'])));
+        $updateFields = [
+            'ai_tags'  => $tags,
+            'priority' => 'high',
+        ];
+        if (! empty($extracted['name']) && (empty($conversation->customer_name) || str_starts_with($conversation->customer_name, 'Visitor_') || $conversation->customer_name === 'Customer')) {
+            $updateFields['customer_name'] = $extracted['name'];
+        }
+        $conversation->update($updateFields);
 
         Log::info('[OrderCaptureService] Captured new customer order/lead', [
             'workspace_id'    => $workspace->id,
@@ -96,6 +195,42 @@ class OrderCaptureService
         ]);
 
         return $order;
+    }
+
+    /**
+     * Format a structured, polite Bengali order confirmation reply.
+     */
+    public function formatOrderConfirmationReply(WorkspaceOrder $order): string
+    {
+        $name = trim((string) $order->customer_name);
+        $greeting = (! empty($name) && $name !== 'Customer') ? "ধন্যবাদ {$name} ভাইয়া/আপু!" : "ধন্যবাদ!";
+
+        $lines = [
+            "🎉 {$greeting} আপনার অর্ডারটি সফলভাবে গ্রহণ করা হয়েছে।",
+            "",
+            "📦 অর্ডার নম্বর: #{$order->order_number}",
+        ];
+
+        if (! empty($order->product_summary)) {
+            $lines[] = "🛍️ প্রোডাক্ট: {$order->product_summary}";
+        }
+
+        if (! empty($order->customer_phone)) {
+            $lines[] = "📞 ফোন নম্বর: {$order->customer_phone}";
+        }
+
+        if (! empty($order->delivery_address)) {
+            $lines[] = "📍 ডেলিভারি ঠিকানা: {$order->delivery_address}";
+        }
+
+        if ($order->order_amount !== null && (float) $order->order_amount > 0) {
+            $lines[] = "💵 মোট মূল্য: ৳" . number_format((float) $order->order_amount, 2);
+        }
+
+        $lines[] = "";
+        $lines[] = "আমাদের কাস্টমার সাপোর্ট টিম দ্রুত আপনার সাথে ফোনে যোগাযোগ করে অর্ডারটি কনফার্ম করবেন। সাধারণত ২-৩ কার্যদিবসের মধ্যে ডেলিভারি সম্পন্ন হয়। ধন্যবাদ!";
+
+        return implode("\n", $lines);
     }
 
     /**
@@ -158,20 +293,26 @@ class OrderCaptureService
         // 4. Product Detection
         if (preg_match('/(?:^|[^\p{L}\p{N}])(?:পণ্য|প্রোডাক্ট|Product|Item|আইটেম)\s*[:=\-]\s*([^\n,\r]+)/iu', $text, $matches)) {
             $product = trim($matches[1]);
-        } elseif (preg_match('/(?:আমি\s+)?(\d+\s*(?:টি|টা|পিস|pcs|pieces?)?\s*[\p{L}\p{N}\s\-]+?)\s*(?:নিতে\s*চাই|অর্ডার\s*করব|অর্ডার\s*করতে\s*চাই|কিনতে\s*চাই|অর্ডার\s*দিতে\s*চাই|order\s*korte\s*chai)/iu', $text, $matches)) {
+        } elseif (preg_match('/(?:আমি\s+)?([0-9\d]+\s*(?:টি|টা|পিস|pcs|pieces?)?\s*[^\,\.\n\r]+?)\s*(?:নিতে\s*চাই|অর্ডার\s*করব|অর্ডার\s*করতে\s*চাই|কিনতে\s*চাই|অর্ডার\s*দিতে\s*চাই|order\s*korte\s*chai)/iu', $normalizedText, $matches)) {
             $product = trim($matches[1]);
         } elseif ($conversation?->relationLoaded('messages')) {
             foreach ($conversation->messages as $m) {
                 if ($m->direction === 'inbound') {
+                    $mNorm = strtr($m->body, $bnToEn);
                     if (preg_match('/(?:^|[^\p{L}\p{N}])(?:পণ্য|প্রোডাক্ট|Product|Item|আইটেম)\s*[:=\-]\s*([^\n,\r]+)/iu', $m->body, $matches)) {
                         $product = trim($matches[1]);
                         break;
-                    } elseif (preg_match('/(?:আমি\s+)?(\d+\s*(?:টি|টা|পিস|pcs|pieces?)?\s*[\p{L}\p{N}\s\-]+?)\s*(?:নিতে\s*চাই|অর্ডার\s*করব|অর্ডার\s*করতে\s*চাই|কিনতে\s*চাই|অর্ডার\s*দিতে\s*চাই|order\s*korte\s*chai)/iu', $m->body, $matches)) {
+                    } elseif (preg_match('/(?:আমি\s+)?([0-9\d]+\s*(?:টি|টা|পিস|pcs|pieces?)?\s*[^\,\.\n\r]+?)\s*(?:নিতে\s*চাই|অর্ডার\s*করব|অর্ডার\s*করতে\s*চাই|কিনতে\s*চাই|অর্ডার\s*দিতে\s*চাই|order\s*korte\s*chai)/iu', $mNorm, $matches)) {
                         $product = trim($matches[1]);
                         break;
                     }
                 }
             }
+        }
+
+        // If size is mentioned in the text, append it to the product for clarity
+        if (! empty($product) && preg_match('/(?:সাইজ|size)\s*[:=\-]?\s*([a-zA-Z0-9]+)/iu', $text, $mSize)) {
+            $product .= ', সাইজ ' . strtoupper($mSize[1]);
         }
 
         // 5. Amount Detection (e.g. ৳500 or 500 taka)

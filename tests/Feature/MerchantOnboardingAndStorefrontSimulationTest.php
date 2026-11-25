@@ -78,6 +78,7 @@ class MerchantOnboardingAndStorefrontSimulationTest extends TestCase
                 'custom_synonyms'             => [
                     'মাটির পাত্র' => ['clay pot', 'terracotta pot', 'shokher hari'],
                 ],
+                'ai_canary_enabled'           => true,
             ],
         ]);
 
@@ -215,9 +216,12 @@ EOT;
         }
 
         $this->catalogDbPath = "{$this->analyticsDir}/catalog_products.sqlite";
+        if (file_exists($this->catalogDbPath)) {
+            @unlink($this->catalogDbPath);
+        }
 
         $pdo = new PDO("sqlite:{$this->catalogDbPath}");
-        $pdo->exec('CREATE TABLE products (
+        $pdo->exec('CREATE TABLE IF NOT EXISTS products (
             id INTEGER PRIMARY KEY,
             product_name TEXT,
             category TEXT,

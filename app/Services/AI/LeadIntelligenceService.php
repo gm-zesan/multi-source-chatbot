@@ -119,12 +119,65 @@ class LeadIntelligenceService
         // 4. Generate 1-2 Sentence AI Executive Summary
         $summary = $this->generateConversationSummary($conversation, $detectedTags, $lowerCustomerText);
 
-        // 5. Persist to Conversation
-        $conversation->forceFill([
+        // 5. Persist to Conversation with Manager Handoff Evidence
+        $fillData = [
             'ai_tags'                 => $detectedTags,
             'ai_summary'              => $summary,
             'ai_summary_generated_at' => now(),
-        ])->save();
+        ];
+
+        $isEscalated = in_array(LeadTagEnum::COMPLAINT->value, $detectedTags, true)
+            || in_array(LeadTagEnum::HUMAN_REQUESTED->value, $detectedTags, true);
+
+        if ($isEscalated) {
+            $fillData['priority'] = 'urgent';
+
+            $reason = in_array(LeadTagEnum::COMPLAINT->value, $detectedTags, true)
+                ? 'customer_complaint'
+                : 'human_requested';
+
+            $metadata = $conversation->metadata ?? [];
+            $metadata['handoff_to_human'] = true;
+            $metadata['escalation_level'] = 'manager';
+            $metadata['escalated_at'] = now()->toIso8601String();
+            $metadata['escalation_reason'] = $reason;
+            $metadata['manager_notification_status'] = 'dispatched';
+            $fillData['metadata'] = $metadata;
+
+            $assignedManager = null;
+            if ($conversation->assigned_to_user_id === null) {
+                $workspace = $conversation->channelAccount?->workspace;
+                if ($workspace) {
+                    try {
+                        $assignedManager = $workspace->users()
+                            ->whereHas('roles', fn ($q) => $q->whereIn('name', ['owner', 'manager', 'admin', 'superadmin']))
+                            ->first() ?? $workspace->users()->first();
+
+                        if ($assignedManager) {
+                            $fillData['assigned_to_user_id'] = $assignedManager->id;
+                        }
+                    } catch (\Throwable $eAssign) {
+                        Log::warning('[LeadIntelligenceService] Manager auto-assignment bypassed: ' . $eAssign->getMessage());
+                    }
+                }
+            } else {
+                $assignedManager = $conversation->assignedTo;
+            }
+
+            // Dispatch formal Escalation Event
+            try {
+                event(new \App\Events\ConversationEscalatedToHuman(
+                    conversation: $conversation,
+                    manager: $assignedManager,
+                    reason: $reason,
+                    priority: 'urgent'
+                ));
+            } catch (\Throwable $eEvent) {
+                Log::warning('[LeadIntelligenceService] Escalation event dispatch non-fatal failure: ' . $eEvent->getMessage());
+            }
+        }
+
+        $conversation->forceFill($fillData)->save();
 
         return [
             'tags'        => $detectedTags,

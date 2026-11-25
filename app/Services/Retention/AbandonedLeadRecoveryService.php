@@ -61,6 +61,11 @@ class AbandonedLeadRecoveryService
                   ->orWhere('metadata->abandoned_lead_followed_up', false);
             })
             ->where(function ($q) {
+                // Consent & Opt-Out Guard
+                $q->whereNull('metadata->opted_out_marketing')
+                  ->orWhere('metadata->opted_out_marketing', false);
+            })
+            ->where(function ($q) {
                 // Check if any eligible tag is present
                 foreach (self::ELIGIBLE_TAGS as $tag) {
                     $q->orWhereJsonContains('ai_tags', $tag);
@@ -96,6 +101,11 @@ class AbandonedLeadRecoveryService
 
         if (! $account) {
             return ['success' => false, 'reason' => 'channel_account_missing'];
+        }
+
+        // 0. Marketing Opt-Out Consent Guard
+        if (! empty($conversation->metadata['opted_out_marketing'])) {
+            return ['success' => false, 'reason' => 'customer_opted_out'];
         }
 
         // 1. Strict Meta 24-Hour Policy Safeguard
@@ -146,7 +156,7 @@ class AbandonedLeadRecoveryService
         }
 
         // 6. Persist Outbound Message and Update Conversation State in Transaction
-        $message = DB::transaction(function () use ($conversation, $followUpText, $driverResponse) {
+        $message = DB::transaction(function () use ($conversation, $followUpText, $driverResponse, $channelSlug) {
             $msg = Message::create([
                 'conversation_id'     => $conversation->id,
                 'external_message_id' => $driverResponse['message_id'] ?? null,
@@ -163,6 +173,17 @@ class AbandonedLeadRecoveryService
             $metadata = $conversation->metadata ?? [];
             $metadata['abandoned_lead_followed_up'] = true;
             $metadata['abandoned_lead_followed_up_at'] = Carbon::now()->toIso8601String();
+
+            $history = (array) ($metadata['retention_history'] ?? []);
+            $history[] = [
+                'attempt'    => count($history) + 1,
+                'type'       => 'abandoned_lead_recovery',
+                'sent_at'    => Carbon::now()->toIso8601String(),
+                'message_id' => $msg->id,
+                'channel'    => $channelSlug,
+                'status'     => 'delivered',
+            ];
+            $metadata['retention_history'] = $history;
 
             $conversation->update([
                 'last_message'    => $followUpText,

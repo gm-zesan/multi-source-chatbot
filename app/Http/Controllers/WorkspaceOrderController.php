@@ -93,6 +93,13 @@ class WorkspaceOrderController extends Controller
         }
         $order->save();
 
+        // BI Canonical Projection: Project status change to AnalyticsOrder & AnalyticsPayment
+        try {
+            app(\App\Services\Analytics\OrderAnalyticsProjectionService::class)->project($order);
+        } catch (\Throwable $e) {
+            Log::warning('[WorkspaceOrderController] Failed to project to AnalyticsOrder: ' . $e->getMessage());
+        }
+
         if ($order->status === 'delivered') {
             app(\App\Services\Retention\PostDeliveryFeedbackService::class)->dispatchFeedbackRequest($order);
         }

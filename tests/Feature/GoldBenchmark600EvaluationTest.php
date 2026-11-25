@@ -57,6 +57,7 @@ class GoldBenchmark600EvaluationTest extends TestCase
         parent::setUp();
 
         $this->orchestrator = app(UnifiedOrchestrator::class);
+        config(['ai.canary_daily_limit' => 0]);
 
         // 1. Create isolated benchmark workspace
         $uniqueWsId = 998877;
@@ -65,6 +66,7 @@ class GoldBenchmark600EvaluationTest extends TestCase
             'name'      => 'Gold 600 Benchmark Store',
             'slug'      => 'gold-600-store',
             'is_active' => true,
+            'settings'  => ['ai_canary_enabled' => true],
         ]);
 
         $this->channel = Channel::firstOrCreate(
@@ -250,6 +252,13 @@ EOT;
         $this->dbProducts = "{$this->analyticsDir}/catalog_products.sqlite";
         $this->dbInventory = "{$this->analyticsDir}/catalog_inventory.sqlite";
 
+        if (file_exists($this->dbProducts)) {
+            @unlink($this->dbProducts);
+        }
+        if (file_exists($this->dbInventory)) {
+            @unlink($this->dbInventory);
+        }
+
         $pdoProd = new PDO("sqlite:{$this->dbProducts}");
         $pdoProd->exec('CREATE TABLE products (
             id INTEGER PRIMARY KEY,
@@ -336,6 +345,13 @@ EOT;
 
         $this->dbSales = "{$this->analyticsDir}/sales_march_2026.sqlite";
         $this->dbSalespersons = "{$this->analyticsDir}/salespersons.sqlite";
+
+        if (file_exists($this->dbSales)) {
+            @unlink($this->dbSales);
+        }
+        if (file_exists($this->dbSalespersons)) {
+            @unlink($this->dbSalespersons);
+        }
 
         $pdoSales = new PDO("sqlite:{$this->dbSales}");
         $pdoSales->exec('CREATE TABLE sales (

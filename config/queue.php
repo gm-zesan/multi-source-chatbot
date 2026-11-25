@@ -40,7 +40,7 @@ return [
             'connection' => env('DB_QUEUE_CONNECTION'),
             'table' => env('DB_QUEUE_TABLE', 'jobs'),
             'queue' => env('DB_QUEUE', 'default'),
-            'retry_after' => (int) env('DB_QUEUE_RETRY_AFTER', 90),
+            'retry_after' => (int) env('DB_QUEUE_RETRY_AFTER', 400),
             'after_commit' => false,
         ],
 
@@ -49,7 +49,7 @@ return [
             'connection' => env('DB_QUEUE_CONNECTION'),
             'table' => env('DB_QUEUE_TABLE', 'jobs'),
             'queue' => 'messenger',
-            'retry_after' => 120,
+            'retry_after' => (int) env('DB_QUEUE_RETRY_AFTER', 400),
             'after_commit' => true,
         ],
 
@@ -58,7 +58,7 @@ return [
             'connection' => env('DB_QUEUE_CONNECTION'),
             'table' => env('DB_QUEUE_TABLE', 'jobs'),
             'queue' => 'crm',
-            'retry_after' => 120,
+            'retry_after' => (int) env('DB_QUEUE_RETRY_AFTER', 400),
             'after_commit' => true,
         ],
 
@@ -67,7 +67,7 @@ return [
             'connection' => env('DB_QUEUE_CONNECTION'),
             'table' => env('DB_QUEUE_TABLE', 'jobs'),
             'queue' => 'documents',
-            'retry_after' => 360,
+            'retry_after' => (int) env('DB_QUEUE_RETRY_AFTER', 400),
             'after_commit' => true,
         ],
 
@@ -76,7 +76,25 @@ return [
             'connection' => env('DB_QUEUE_CONNECTION'),
             'table' => env('DB_QUEUE_TABLE', 'jobs'),
             'queue' => 'faq',
-            'retry_after' => 120,
+            'retry_after' => (int) env('DB_QUEUE_RETRY_AFTER', 400),
+            'after_commit' => true,
+        ],
+
+        'retention' => [
+            'driver' => 'database',
+            'connection' => env('DB_QUEUE_CONNECTION'),
+            'table' => env('DB_QUEUE_TABLE', 'jobs'),
+            'queue' => 'retention',
+            'retry_after' => (int) env('DB_QUEUE_RETRY_AFTER', 400),
+            'after_commit' => true,
+        ],
+
+        'memory' => [
+            'driver' => 'database',
+            'connection' => env('DB_QUEUE_CONNECTION'),
+            'table' => env('DB_QUEUE_TABLE', 'jobs'),
+            'queue' => 'memory',
+            'retry_after' => (int) env('DB_QUEUE_RETRY_AFTER', 400),
             'after_commit' => true,
         ],
 

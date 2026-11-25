@@ -1,0 +1,93 @@
+{
+    "execution_timestamp": "2026-11-24T07:01:52+00:00",
+    "pilot_results": [
+        {
+            "workspace_id": 1,
+            "workspace_name": "Entrepreneurs Automation",
+            "query": "ডেলিভারি চার্জ কত?",
+            "type": "in_domain_faq",
+            "elapsed_ms": 4115.14,
+            "route": "knowledge",
+            "answered": true,
+            "confidence": 1,
+            "tokens": 0
+        },
+        {
+            "workspace_id": 1,
+            "workspace_name": "Entrepreneurs Automation",
+            "query": "ক্যাশ অন ডেলিভারি কি সম্ভব?",
+            "type": "in_domain_faq",
+            "elapsed_ms": 3755.33,
+            "route": "knowledge",
+            "answered": true,
+            "confidence": 1,
+            "tokens": 0
+        },
+        {
+            "workspace_id": 1,
+            "workspace_name": "Entrepreneurs Automation",
+            "query": "আমার অর্ডার কি পরিবর্তন বা বাতিল করতে পারব?",
+            "type": "in_domain_faq",
+            "elapsed_ms": 5412.09,
+            "route": "knowledge",
+            "answered": true,
+            "confidence": 1,
+            "tokens": 0
+        },
+        {
+            "workspace_id": 1,
+            "workspace_name": "Entrepreneurs Automation",
+            "query": "আজকে কি বৃষ্টি হওয়ার সম্ভাবনা আছে?",
+            "type": "out_of_domain",
+            "elapsed_ms": 740.73,
+            "route": "ood",
+            "answered": true,
+            "confidence": 1,
+            "tokens": 0
+        },
+        {
+            "workspace_id": 2,
+            "workspace_name": "Apex Solutions",
+            "query": "Apex Solutions-এর কুরিয়ার পার্টনার কে এবং ডেলিভারি চার্জ কত?",
+            "type": "in_domain_faq",
+            "elapsed_ms": 3458.03,
+            "route": "knowledge",
+            "answered": true,
+            "confidence": 1,
+            "tokens": 0
+        },
+        {
+            "workspace_id": 2,
+            "workspace_name": "Apex Solutions",
+            "query": "আপনাদের রিটার্ন পলিসি কেমন?",
+            "type": "in_domain_faq",
+            "elapsed_ms": 3384.98,
+            "route": "knowledge",
+            "answered": true,
+            "confidence": 1,
+            "tokens": 0
+        },
+        {
+            "workspace_id": 2,
+            "workspace_name": "Apex Solutions",
+            "query": "ধানমন্ডি অফিস কয়টা পর্যন্ত খোলা থাকে?",
+            "type": "in_domain_faq",
+            "elapsed_ms": 4704.55,
+            "route": "knowledge",
+            "answered": true,
+            "confidence": 1,
+            "tokens": 0
+        },
+        {
+            "workspace_id": 2,
+            "workspace_name": "Apex Solutions",
+            "query": "আপনাদের কাছে কি আইফোন ১৬ প্রো ম্যাক্স পাওয়া যাবে?",
+            "type": "out_of_domain",
+            "elapsed_ms": 5939.19,
+            "route": "knowledge",
+            "answered": true,
+            "confidence": 1,
+            "tokens": 0
+        }
+    ]
+}

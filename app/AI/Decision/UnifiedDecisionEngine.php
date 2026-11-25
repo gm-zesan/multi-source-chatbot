@@ -196,6 +196,47 @@ class UnifiedDecisionEngine implements DecisionEngineInterface
             }
         }
 
+        // ── 0.7 Preflight Fast-Path: Customer Order Auto-Booking ───────────────
+        if ($request->isCustomer && $request->conversation !== null) {
+            $hasOrderIntent = (bool) preg_match('/(?:নিতে\s*চাই|কিনতে\s*চাই|অর্ডার\s*করব|অর্ডার\s*করতে\s*চাই|অর্ডার\s*দিতে\s*চাই|অর্ডার\s*নিব|অর্ডার\s*কনফার্ম|বুকিং\s*দিন|পাঠিয়ে\s*দিন|পাঠান|order\s*korte\s*chai|book\s*now|buy\s*now)/iu', $cleanQuery);
+            $isNotStatusInquiry = ! preg_match('/(?:status|স্ট্যাটাস|অবস্থা|কবে\s*পাব|ট্র্যাকিং|tracking|কোথায়|পৌঁছাবে|ডেলিভারি\s*হয়েছে|ডেলিভারি\s*কবে|হস্তান্তর)/iu', $cleanQuery);
+
+            if ($hasOrderIntent && $isNotStatusInquiry) {
+                try {
+                    $orderCapture = app(\App\Services\Commerce\OrderCaptureService::class);
+                    $capturedOrder = $orderCapture->extractAndCapture(
+                        conversation: $request->conversation,
+                        userMessage: $cleanQuery,
+                    );
+
+                    if ($capturedOrder !== null) {
+                        $confirmationReply = $orderCapture->formatOrderConfirmationReply($capturedOrder);
+                        $latency = round((microtime(true) - $tStart) * 1000, 2);
+
+                        return new DecisionResult(
+                            schemaVersion: DecisionResult::SCHEMA_VERSION,
+                            intent: DecisionResult::INTENT_KNOWLEDGE,
+                            responseMode: DecisionResult::MODE_DIRECT_RESPONSE,
+                            toolCalls: [],
+                            clarification: null,
+                            directResponse: $confirmationReply,
+                            decisionMetadata: [
+                                'layer'           => 'order_auto_capture_fastpath',
+                                'route'           => 'order_capture',
+                                'decision_ms'     => $latency,
+                                'order_id'        => $capturedOrder->id,
+                                'order_number'    => $capturedOrder->order_number,
+                                'is_fallback'     => false,
+                                'security_status' => 'allowed',
+                            ]
+                        );
+                    }
+                } catch (\Throwable $eOrderFastPath) {
+                    Log::warning('[UnifiedDecisionEngine] Order capture fastpath bypassed: ' . $eOrderFastPath->getMessage());
+                }
+            }
+        }
+
         // ── 1. Structured Semantic Decision Generation (Single LLM Call) ─────────
         $permittedToolNames = $this->toolRegistry->getPermittedToolNames(
             isCustomer: $request->isCustomer,
@@ -310,10 +351,13 @@ class UnifiedDecisionEngine implements DecisionEngineInterface
                 clarification: is_array($parsed['clarification'] ?? null) ? $parsed['clarification'] : null,
                 directResponse: !empty($parsed['direct_response']) ? (string) $parsed['direct_response'] : null,
                 decisionMetadata: [
-                    'decision_ms' => $latency,
-                    'provider'    => $response->provider ?? 'primary',
-                    'model'       => $response->model ?? config('ai.default_model', 'deepseek-chat'),
-                    'is_fallback' => false,
+                    'decision_ms'       => $latency,
+                    'provider'          => $response->provider ?? 'primary',
+                    'model'             => $response->model ?? config('ai.default_model', 'deepseek-chat'),
+                    'prompt_tokens'     => $response->usage['prompt_tokens'] ?? 0,
+                    'completion_tokens' => $response->usage['completion_tokens'] ?? 0,
+                    'total_tokens'      => $response->usage['total_tokens'] ?? 0,
+                    'is_fallback'       => false,
                 ]
             );
 
@@ -496,6 +540,33 @@ class UnifiedDecisionEngine implements DecisionEngineInterface
                 clarification: null,
                 directResponse: $this->getOodRefusalMessage($request->workspaceId),
                 decisionMetadata: ['layer' => 'fallback_ood_refusal', 'decision_ms' => $latency, 'is_fallback' => true]
+            );
+        }
+
+        // Fallback Rule 3.4: Customer Order Status Lookup with explicit order reference -> customer_order_status
+        if ($request->isCustomer && (
+            preg_match('/\bORD-[0-9A-Za-z\-]+/i', $query, $mOrd) ||
+            preg_match('/#\s*([0-9A-Za-z\-]+)/i', $query, $mOrd) ||
+            preg_match('/(?:অর্ডার\s*(?:নম্বর|নং|আইডি|id|code))\s*[:=\-]?\s*([0-9A-Za-z\-]+)/ui', $query, $mOrd)
+        )) {
+            $extractedOrd = $mOrd[1] ?? $mOrd[0] ?? $query;
+
+            return new DecisionResult(
+                schemaVersion: DecisionResult::SCHEMA_VERSION,
+                intent: DecisionResult::INTENT_KNOWLEDGE,
+                responseMode: DecisionResult::MODE_TOOL_REQUIRED,
+                toolCalls: [
+                    new ToolCall(
+                        tool: 'customer_order_status',
+                        operation: 'check_order_status',
+                        arguments: [
+                            'order_number' => $extractedOrd,
+                        ]
+                    ),
+                ],
+                clarification: null,
+                directResponse: null,
+                decisionMetadata: ['layer' => 'fallback_customer_order_status', 'decision_ms' => $latency, 'is_fallback' => true]
             );
         }
 

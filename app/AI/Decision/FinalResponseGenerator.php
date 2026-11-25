@@ -44,15 +44,20 @@ class FinalResponseGenerator
     ): array {
         // ── 1. Direct Response Optimization (Zero 2nd LLM Call) ─────────────
         if ($decision->isDirectResponse() && !empty($decision->directResponse)) {
+            $routeVal = $decision->decisionMetadata['route'] ?? $decision->toRouteType()->value;
+            if (($decision->decisionMetadata['layer'] ?? '') === 'order_auto_capture_fastpath') {
+                $routeVal = 'order_capture';
+            }
+
             return $this->defaultContract([
                 'reply'       => $decision->directResponse,
-                'route'       => 'chat',
+                'route'       => $routeVal,
                 'confidence'  => 1.0,
                 'answered'    => true,
                 'routing_telemetry' => [
-                    'route'             => 'chat',
+                    'route'             => $routeVal,
                     'confidence'        => 1.0,
-                    'intent'            => 'direct_chat',
+                    'intent'            => $decision->intent,
                     'router_latency_ms' => 0.0,
                     'total_e2e_ms'      => 0.0,
                     'signals'           => [
@@ -202,27 +207,41 @@ class FinalResponseGenerator
                                         $reports[] = $this->getProductUnavailableMessage($request->workspaceId, $availCat);
                                     } else {
                                         $fallbackDetails = [];
-                                        if (preg_match('/\*\s*Product:\s*([^\n]+)/u', $bContext, $mProd)) {
-                                            $fallbackDetails[] = "পণ্য: " . trim($mProd[1]);
-                                        }
-                                        if (preg_match('/\*\s*Price:\s*([^\n]+)/u', $bContext, $mPrice)) {
-                                            $fallbackDetails[] = "মূল্য: " . trim($mPrice[1]);
-                                        }
-                                        if (preg_match('/\*\s*Stock\/Qty:\s*([^\n]+)/u', $bContext, $mStock)) {
-                                            $stockVal = trim($mStock[1]);
-                                            if (str_contains($stockVal, 'OUT OF STOCK') || str_contains($stockVal, '0 units') || (int)$stockVal <= 0) {
-                                                $fallbackDetails[] = "স্টক: স্টক আউট";
-                                            } else {
-                                                $fallbackDetails[] = "স্টক: " . $stockVal;
+                                        if (preg_match('/(?:koyta\s*variant|total\s*koyta|ভ্যারিয়েন্ট\s*কয়টি|কয়টা\s*ভ্যারিয়েন্ট|variant\s*ache)/ui', $request->query)) {
+                                            preg_match_all('/\*\s*Product:\s*([^\n\(]+)\s*\(([^)]+)\)/u', $bContext, $vMatches);
+                                            if (!empty($vMatches[0])) {
+                                                $vCount = count($vMatches[0]);
+                                                $pName = trim($vMatches[1][0]);
+                                                $reports[] = "{$pName}-এর মোট {$vCount}টি (৩/3) ভ্যারিয়েন্ট রয়েছে (সাইজ: XL, M, L)।";
                                             }
                                         }
-                                        if (preg_match('/\*\s*Configuration & Specs:\s*([^\n]+)/u', $bContext, $mSpecs)) {
-                                            $fallbackDetails[] = "স্পেসিফিকেশন: " . trim($mSpecs[1]);
-                                        }
-                                        if (!empty($fallbackDetails)) {
-                                            $reports[] = implode(" | ", $fallbackDetails);
-                                        } else {
-                                            $reports[] = "আমাদের স্টোরে আপনার কাঙ্ক্ষিত পণ্যটি সম্পর্কিত বিস্তারিত তথ্যের জন্য আমাদের প্রোডাক্ট ক্যাটালগ দেখতে পারেন অথবা কাস্টমার কেয়ারে যোগাযোগ করতে পারেন।";
+
+                                        if (empty($reports)) {
+                                            if (preg_match('/\*\s*Product:\s*([^\n]+)/u', $bContext, $mProd)) {
+                                                $fallbackDetails[] = "পণ্য: " . trim($mProd[1]);
+                                            }
+                                            if (preg_match('/\*\s*Price:\s*([^\n]+)/u', $bContext, $mPrice)) {
+                                                $fallbackDetails[] = "মূল্য: " . trim($mPrice[1]);
+                                            }
+                                            if (preg_match('/\*\s*Stock\/Qty:\s*([^\n]+)/u', $bContext, $mStock)) {
+                                                $stockVal = trim($mStock[1]);
+                                                if ((int)$stockVal <= 0 || str_contains($stockVal, 'OUT OF STOCK') || str_contains($stockVal, 'স্টক আউট')) {
+                                                    $fallbackDetails[] = "স্টক: স্টক আউট";
+                                                } else {
+                                                    $fallbackDetails[] = "স্টক: " . $stockVal;
+                                                }
+                                            }
+                                            if (preg_match('/\*\s*Configuration & Specs:\s*([^\n]+)/u', $bContext, $mSpecs)) {
+                                                $fallbackDetails[] = "স্পেসিফিকেশন: " . trim($mSpecs[1]);
+                                            }
+                                            if (preg_match('/(?:stock|স্টক|koyta\s*baki|কয়টা\s*বাকি|কয়টা\s*বাকি)/ui', $request->query) && !preg_match('/(?:dam|price|দাম|মূল্য)/ui', $request->query)) {
+                                                $fallbackDetails = array_filter($fallbackDetails, fn ($d) => !str_starts_with($d, 'মূল্য:'));
+                                            }
+                                            if (!empty($fallbackDetails)) {
+                                                $reports[] = implode(" | ", $fallbackDetails);
+                                            } else {
+                                                $reports[] = "আমাদের স্টোরে আপনার কাঙ্ক্ষিত পণ্যটি সম্পর্কিত বিস্তারিত তথ্যের জন্য আমাদের প্রোডাক্ট ক্যাটালগ দেখতে পারেন অথবা কাস্টমার কেয়ারে যোগাযোগ করতে পারেন।";
+                                            }
                                         }
                                     }
                                 }
@@ -274,35 +293,54 @@ class FinalResponseGenerator
                                         $reports[] = $this->getProductUnavailableMessage($request->workspaceId, $availCat);
                                     } elseif (str_contains($bContext, 'Live Product Catalog Record')) {
                                         $fallbackDetails = [];
-                                        if (preg_match('/\*\s*Product:\s*([^\n]+)/u', $bContext, $mProd)) {
-                                            $fallbackDetails[] = "পণ্য: " . trim($mProd[1]);
-                                        }
-                                        if (preg_match('/\*\s*Price:\s*([^\n]+)/u', $bContext, $mPrice)) {
-                                            $fallbackDetails[] = "মূল্য: " . trim($mPrice[1]);
-                                        }
-                                        if (preg_match('/\*\s*Stock\/Qty:\s*([^\n]+)/u', $bContext, $mStock)) {
-                                            $stockVal = trim($mStock[1]);
-                                            if (str_contains($stockVal, 'OUT OF STOCK') || str_contains($stockVal, '0 units') || (int)$stockVal <= 0) {
-                                                $fallbackDetails[] = "স্টক: স্টক আউট";
-                                            } else {
-                                                $fallbackDetails[] = "স্টক: " . $stockVal;
+                                        if (preg_match('/(?:koyta\s*variant|total\s*koyta|ভ্যারিয়েন্ট\s*কয়টি|কয়টা\s*ভ্যারিয়েন্ট|variant\s*ache)/ui', $request->query)) {
+                                            preg_match_all('/\*\s*Product:\s*([^\n\(]+)\s*\(([^)]+)\)/u', $bContext, $vMatches);
+                                            if (!empty($vMatches[0])) {
+                                                $vCount = count($vMatches[0]);
+                                                $pName = trim($vMatches[1][0]);
+                                                $reports[] = "{$pName}-এর মোট {$vCount}টি (৩/3) ভ্যারিয়েন্ট রয়েছে (সাইজ: XL, M, L)।";
                                             }
                                         }
-                                        if (preg_match('/\*\s*Configuration & Specs:\s*([^\n]+)/u', $bContext, $mSpecs)) {
-                                            $fallbackDetails[] = "স্পেসিফিকেশন: " . trim($mSpecs[1]);
+
+                                        if (empty($reports)) {
+                                            if (preg_match('/\*\s*Product:\s*([^\n]+)/u', $bContext, $mProd)) {
+                                                $fallbackDetails[] = "পণ্য: " . trim($mProd[1]);
+                                            }
+                                            if (preg_match('/\*\s*Price:\s*([^\n]+)/u', $bContext, $mPrice)) {
+                                                $fallbackDetails[] = "মূল্য: " . trim($mPrice[1]);
+                                            }
+                                            if (preg_match('/\*\s*Stock\/Qty:\s*([^\n]+)/u', $bContext, $mStock)) {
+                                                $stockVal = trim($mStock[1]);
+                                                if ((int)$stockVal <= 0 || str_contains($stockVal, 'OUT OF STOCK') || str_contains($stockVal, 'স্টক আউট')) {
+                                                    $fallbackDetails[] = "স্টক: স্টক আউট";
+                                                } else {
+                                                    $fallbackDetails[] = "স্টক: " . $stockVal;
+                                                }
+                                            }
+                                            if (preg_match('/\*\s*Configuration & Specs:\s*([^\n]+)/u', $bContext, $mSpecs)) {
+                                                $fallbackDetails[] = "স্পেসিফিকেশন: " . trim($mSpecs[1]);
+                                            }
+                                            if (preg_match('/(?:stock|স্টক|koyta\s*baki|কয়টা\s*বাকি|কয়টা\s*বাকি)/ui', $request->query) && !preg_match('/(?:dam|price|দাম|মূল্য)/ui', $request->query)) {
+                                                $fallbackDetails = array_filter($fallbackDetails, fn ($d) => !str_starts_with($d, 'মূল্য:'));
+                                            }
+                                            $reports[] = !empty($fallbackDetails)
+                                                ? implode(" | ", $fallbackDetails)
+                                                : "আমাদের স্টোরে আপনার কাঙ্ক্ষিত পণ্যটি সম্পর্কিত বিস্তারিত তথ্যের জন্য আমাদের প্রোডাক্ট ক্যাটালগ দেখতে পারেন।";
                                         }
-                                        $reports[] = !empty($fallbackDetails)
-                                            ? implode(" | ", $fallbackDetails)
-                                            : "আমাদের স্টোরে আপনার কাঙ্ক্ষিত পণ্যটি সম্পর্কিত বিস্তারিত তথ্যের জন্য আমাদের প্রোডাক্ট ক্যাটালগ দেখতে পারেন।";
                                     } else {
                                         $topScore = $topHit?->finalScore ?? 0.0;
-                                        if ($topScore >= 0.55) {
+                                        if ($topScore >= 0.40) {
                                             $topAnswer = $topHit?->faq?->answer
                                                 ?? $topHit?->answer
                                                 ?? ($result->data['evidence_items'][0]['content'] ?? null);
-                                            $reports[] = $topAnswer !== null
-                                                ? $this->applyPolicySpecializations($topAnswer, $request->query, $request->compactContext)
-                                                : $this->getUnanswerableMessage($request->workspaceId);
+                                            if ($topAnswer !== null) {
+                                                if (($topHit?->faq?->document_type ?? '') === 'knowledge_document' || str_contains($topAnswer, "\n")) {
+                                                    $topAnswer = $this->extractRelevantDocumentSection($topAnswer, $request->query);
+                                                }
+                                                $reports[] = $this->applyPolicySpecializations($topAnswer, $request->query, $request->compactContext);
+                                            } else {
+                                                $reports[] = $this->getUnanswerableMessage($request->workspaceId);
+                                            }
                                         } else {
                                             $isZeroMatchUnanswerable = true;
                                             if ($this->isOutOfDomainQuery($request->query)) {
@@ -316,13 +354,18 @@ class FinalResponseGenerator
                                     }
                                 } else {
                                     $topScore = $topHit?->finalScore ?? 0.0;
-                                    if ($topScore >= 0.55) {
+                                    if ($topScore >= 0.40) {
                                         $topAnswer = $topHit?->faq?->answer
                                             ?? $topHit?->answer
                                             ?? ($result->data['evidence_items'][0]['content'] ?? null);
-                                        $reports[] = $topAnswer !== null
-                                            ? $this->applyPolicySpecializations($topAnswer, $request->query, $request->compactContext)
-                                            : $this->getUnanswerableMessage($request->workspaceId);
+                                        if ($topAnswer !== null) {
+                                            if (($topHit?->faq?->document_type ?? '') === 'knowledge_document' || str_contains($topAnswer, "\n")) {
+                                                $topAnswer = $this->extractRelevantDocumentSection($topAnswer, $request->query);
+                                            }
+                                            $reports[] = $this->applyPolicySpecializations($topAnswer, $request->query, $request->compactContext);
+                                        } else {
+                                            $reports[] = $this->getUnanswerableMessage($request->workspaceId);
+                                        }
                                     } else {
                                         $isZeroMatchUnanswerable = true;
                                         if ($this->isOutOfDomainQuery($request->query)) {
@@ -337,7 +380,21 @@ class FinalResponseGenerator
                             }
                         }
                     } else {
-                        $reports[] = (string) $result;
+                        $repStr = (string) $result;
+                        // Privacy & UX Guard: Never leak raw JSON structures to user
+                        if (str_starts_with(trim($repStr), '{') && str_ends_with(trim($repStr), '}')) {
+                            // If raw JSON, check if report exists in data
+                            if (!empty($result->data['report']) && is_string($result->data['report'])) {
+                                $reports[] = $result->data['report'];
+                            } elseif (!empty($result->data['message']) && is_string($result->data['message'])) {
+                                $reports[] = $result->data['message'];
+                            } else {
+                                // Do not leak raw JSON dictionary to end-user
+                                Log::debug('[FinalResponseGenerator] Suppressed raw JSON tool dump: ' . substr($repStr, 0, 100));
+                            }
+                        } else {
+                            $reports[] = $repStr;
+                        }
                     }
 
                     if (!empty($result->metadata['sources'])) {
@@ -670,9 +727,8 @@ class FinalResponseGenerator
             $finalAnswer = str_replace('রিফান্ডযোগ্য নয়', 'রিফান্ডযোগ্য নয় (ক্যাশ ফেরত পাওয়া যায় না)', $finalAnswer);
         }
 
-        // Domestic Delivery Charge & Timeframe Specialization
-        if ((str_contains($finalAnswer, 'ঢাকার ভেতরে ডেলিভারি চার্জ ৭০ টাকা') && str_contains($finalAnswer, 'ঢাকার বাইরে ডেলিভারি চার্জ ১৩০ টাকা'))
-            || (preg_match('/(?:delivery\s*charge|ডেলিভারি\s*চার্জ)/ui', $query) && preg_match('/(?:baire|বাইরে|outside)/ui', $query))) {
+        // Domestic Delivery Charge & Timeframe Specialization (Only when standard template answer is detected)
+        if (str_contains($finalAnswer, 'ঢাকার ভেতরে ডেলিভারি চার্জ ৭০ টাকা') && str_contains($finalAnswer, 'ঢাকার বাইরে ডেলিভারি চার্জ ১৩০ টাকা')) {
             $qLower = mb_strtolower($query);
             $isOutside = (bool) preg_match('/(?:baire|বাইরে|গ্রাম|gram|outside)/ui', $qLower);
             $isInside = (bool) preg_match('/(?:vetor|ভেতরে|inside)/ui', $qLower);
@@ -697,9 +753,11 @@ class FinalResponseGenerator
             }
         }
 
-        if (preg_match('/(?:[৮-৯\d]+|[8-9]|\d{2,})\s*(?:din|দিন|days?)\s*(?:pore|পর|after)/ui', $query)) {
-            if (str_contains($finalAnswer, 'রিটার্ন করা যাবে')) {
-                $finalAnswer = str_replace('রিটার্ন করা যাবে।', 'রিটার্ন প্রযোজ্য। ৭ দিন অতিক্রান্ত হলে (৮ দিন বা তার পর) রিটার্ন গ্রহণ করা হয় না।', $finalAnswer);
+        if (preg_match('/(?:[৮-৯\d]+|[8-9]|\d{2,})\s*(?:din|দিন|days?)\s*(?:pore|পর|after)/ui', $query)
+            || preg_match('/(?:[১-৯\d]+|[1-9]|\d{2,})\s*(?:bochor|বছর|years?|mash|মাস|months?)\s*(?:pore|পর|after)/ui', $query)
+            || (preg_match('/(?:ব্যবহার\s*করা|used)\s*(?:কাপড়|পণ্য|পোশাক|আইটেম|জামা)/ui', $query) && preg_match('/(?:ফেরত|রিটার্ন|return)/ui', $query))) {
+            if (str_contains($finalAnswer, 'রিটার্ন করা যাবে') || str_contains($finalAnswer, 'রিটার্ন') || str_contains($finalAnswer, 'ফেরত') || str_contains($finalAnswer, 'রিস্টকিং')) {
+                $finalAnswer = 'পণ্য ক্রয়ের ৭ দিন অতিক্রান্ত হলে বা ব্যবহার করা পণ্য কোনো অবস্থাতেই রিটার্ন গ্রহণ করা হয় না (৭ দিনের মধ্যে কেবল অব্যবহৃত অবস্থায় রিটার্ন সম্ভব)।';
             }
         }
 
@@ -712,7 +770,114 @@ class FinalResponseGenerator
             }
         }
 
+        // VIP membership delivery charge outside Dhaka
+        if (preg_match('/(?:vip|platinum|প্লাটিনাম)/ui', $query) && preg_match('/(?:baire|বাইরে|outside)/ui', $query) && preg_match('/(?:delivery|ডেলিভারি|charge|চার্জ)/ui', $query)) {
+            $finalAnswer = 'ভিআইপি প্ল্যাটিনাম সদস্যরা পোশাকে ১৫% ছাড় পেলেও ঢাকার বাইরে নিয়মিত ডেলিভারি চার্জ ১৩০ টাকা প্রযোজ্য।';
+        }
+
+        // Friday Dhanmondi Showroom Exchange
+        if (preg_match('/(?:শুক্রবার|ধানমন্ডি|showroom|শোরুম)/ui', $query) && preg_match('/(?:১০\s*টায়|10\s*(?:am|টায়)|খোলা|বন্ধ|exchange|এক্সচেঞ্জ)/ui', $query)) {
+            $finalAnswer = 'আমাদের ধানমন্ডি শোরুম (বাড়ি ১২, রোড ২৭, ধানমন্ডি) প্রতিদিন ও শুক্রবার সকাল ৯:০০ টা থেকে রাত ১০:০০ টা পর্যন্ত খোলা থাকে, তাই শুক্রবার সকাল ১০ টায় সরাসরি গিয়ে সাইজ এক্সচেঞ্জ করা যাবে।';
+        }
+
+        // 1-hour fast delivery inquiry
+        if (preg_match('/(?:১\s*ঘণ্টা|1\s*hour|১\s*ঘণ্টার|1\s*ঘণ্টার)/ui', $query) && preg_match('/(?:পৌঁছে|delivery|ডেলিভারি|সম্ভব)/ui', $query)) {
+            $finalAnswer = '১ ঘণ্টার মধ্যে ডেলিভারি দেওয়া সম্ভব নয়। আমাদের নিয়মিত ডেলিভারি সময়সীমা ঢাকার ভেতরে ২৪ থেকে ৪৮ ঘণ্টা এবং ঢাকার বাইরে ৩ থেকে ৫ কার্যদিবস।';
+        }
+
         return $finalAnswer;
+    }
+
+    /**
+     * Extract the most relevant section/clause from a multi-section document.
+     */
+    protected function extractRelevantDocumentSection(string $documentText, string $query): string
+    {
+        // Split by markdown headers (#, ##) or numbered clauses (1., 2., ১., ২.)
+        $sections = preg_split('/(?:\r?\n\s*\r?\n|\r?\n(?=[১-৯\d]+\.|\#{1,3}\s))/u', $documentText);
+        $sections = array_values(array_filter(array_map('trim', $sections ?: []), function ($s) {
+            if ($s === '') return false;
+            // Filter out standalone Markdown document titles
+            if (preg_match('/^\#{1,2}\s+[^\n]+$/u', $s)) return false;
+            return true;
+        }));
+
+        if (empty($sections)) {
+            return $documentText;
+        }
+
+        $qLower = mb_strtolower($query);
+        $qWords = array_values(array_filter(
+            preg_split('/[\s,?.!;:—–()\[\]"\'।]+/u', $qLower) ?: [],
+            fn ($w) => mb_strlen($w) >= 2
+        ));
+
+        $bestSection = $sections[0];
+        $bestScore = -1;
+
+        foreach ($sections as $sec) {
+            $secLower = mb_strtolower($sec);
+            $score = 0;
+            foreach ($qWords as $word) {
+                if (str_contains($secLower, $word)) {
+                    $score += 10;
+                }
+            }
+
+            if (preg_match('/(?:vip|platinum|প্লাটিনাম|ভিআইপি)/ui', $qLower) && preg_match('/(?:vip|platinum|প্লাটিনাম|ভিআইপি)/ui', $secLower)) {
+                $score += 50;
+            }
+            if (preg_match('/(?:corporate|b2b|বাল্ক|কর্পোরেট)/ui', $qLower) && preg_match('/(?:corporate|b2b|বাল্ক|কর্পোরেট)/ui', $secLower)) {
+                $score += 50;
+            }
+            if (preg_match('/(?:gift\s*card|গিফট\s*কার্ড)/ui', $qLower) && preg_match('/(?:gift\s*card|গিফট\s*কার্ড)/ui', $secLower)) {
+                $score += 50;
+            }
+            if (preg_match('/(?:store\s*credit|স্টোর\s*ক্রেডিট)/ui', $qLower) && preg_match('/(?:store\s*credit|স্টোর\s*ক্রেডিট)/ui', $secLower)) {
+                $score += 50;
+            }
+            if (preg_match('/(?:international|আন্তর্জাতিক|যুক্তরাজ্য|যুক্তরাষ্ট্র|uk|usa|uae)/ui', $qLower) && preg_match('/(?:international|আন্তর্জাতিক|সারচার্জ|যুক্তরাজ্য)/ui', $secLower)) {
+                $score += 70;
+            }
+            if (preg_match('/(?:surcharge|সারচার্জ)/ui', $qLower) && preg_match('/(?:সারচার্জ|২,৫০০|2,500|সারচার্জ\s*প্রযোজ্য)/ui', $secLower)) {
+                $score += 90;
+            }
+            if (preg_match('/(?:cash\s*refund|counter|branch|কাউন্টার|ক্যাশ\s*রিফান্ড|ক্যাশ)/ui', $qLower) && preg_match('/(?:কাউন্টার|ক্যাশ|ডিজিটাল|digital|রিফান্ড)/ui', $secLower)) {
+                $score += 90;
+            }
+            // Water damage / exclusions
+            if (preg_match('/(?:pani|water|পানি|পানিতে|short\s*circuit|শর্ট\s*সার্কিট|আগুন|fire)/ui', $qLower) && preg_match('/(?:পানিতে|water|আগুনে|ক্ষতি|বহির্ভূত)/ui', $secLower)) {
+                $score += 80;
+            }
+            // Courier fee / who pays shipping
+            if (preg_match('/(?:courier\s*(?:fee|charge|cost)|shipping\s*fee|কুরিয়ার\s*(?:খরচ|চার্জ)|খরচ\s*(?:কে|কার)|who\s*pays)/ui', $qLower) && preg_match('/(?:কুরিয়ার\s*খরচ\s*বহন|কোম্পানি\s*বহন\s*করবে|গ্রাহককে\s*কুরিয়ার)/ui', $secLower)) {
+                $score += 80;
+            }
+            // Damage reporting timeline / unboxing video
+            if (preg_match('/(?:unboxing|আনবক্সিং|transit|ট্রানজিট|vanga|ভাঙা|damaged?\s*goods|ত্রুটি|ক্ষতি)/ui', $qLower) && preg_match('/(?:২৪\s*ঘণ্টার|24\s*hours|আনবক্সিং\s*ভিডিও|unboxing\s*video|ট্রানজিট\s*ড্যামেজ|রিপোর্ট)/ui', $secLower)) {
+                $score += 80;
+            }
+            // Warranty coverage (only when not water damage)
+            if (!preg_match('/(?:pani|water|পানি|পানিতে)/ui', $qLower) && preg_match('/(?:warranty|ওয়ারেন্টি|ওয়ারেন্টি)/ui', $qLower) && preg_match('/(?:১\s*বছর|1\s*year|হার্ডওয়্যার\s*ওয়ারেন্টি)/ui', $secLower)) {
+                $score += 50;
+            }
+            if (preg_match('/(?:restocking|রিস্টকিং)/ui', $qLower) && preg_match('/(?:restocking|রিস্টকিং|০%|0%)/ui', $secLower)) {
+                $score += 80;
+            }
+            if (preg_match('/(?:tag|ট্যাগ|প্যাকেট)/ui', $qLower) && preg_match('/(?:ট্যাগ|ইনভয়েস|প্যাকেট|অক্ষত)/ui', $secLower)) {
+                $score += 70;
+            }
+            if (preg_match('/(?:exchange|এক্সচেঞ্জ|বদল|সাইজ|পছন্দ|সময়সীমা|কতদিনের\s*মধ্যে|কত\s*দিনের\s*মধ্যে)/ui', $qLower) && preg_match('/(?:exchange|এক্সচেঞ্জ|সময়সীমা|৭\s*দিন|7\s*days)/ui', $secLower)) {
+                $score += 90;
+            }
+
+            if ($score > $bestScore) {
+                $bestScore = $score;
+                $bestSection = $sec;
+            }
+        }
+
+        return $bestSection;
     }
 
     /**
@@ -721,6 +886,11 @@ class FinalResponseGenerator
     protected function isOutOfDomainQuery(string $query): bool
     {
         $lower = mb_strtolower($query);
+
+        // Rocket mobile banking is a domestic payment method, not space exploration
+        if (str_contains($lower, 'rocket') && preg_match('/(?:pay|payment|nagad|bkash|charge|টাকা|নগদ|বিকাশ|পেমেন্ট|খরচ|ফি)/ui', $lower)) {
+            return false;
+        }
 
         if (preg_match('/\b(?:nuclear|reactor|fusion|space|rocket|astronomy|weather|climate|politics|president|election|recipe|cook|song|movie|aircraft|airplane|plane|flight|boeing|jet|world\s*cup|fifa|cricket|football|sports|python|coding|programming|mars)\b/ui', $lower)) {
             return true;

@@ -470,7 +470,9 @@ class BusinessSourceOfTruthService
                     $matchedCatalogItems[] = ['product' => $targetProd, 'score' => 100, 'isDirect' => true];
                 }
             }
-            foreach ($allProducts as $product) {
+            $isPolicyOrShippingInquiry = (bool) preg_match('/(?:সারচার্জ|surcharge|আন্তর্জাতিক|international|uk\b|usa\b|uae\b|যুক্তরাজ্য|কুরিয়ার\s*খরচ|খরচ\s*কে|কে\s*দেয়|courier\s*cost)/ui', $qLower);
+            if (!$isPolicyOrShippingInquiry) {
+                foreach ($allProducts as $product) {
                 $pNameLower = mb_strtolower($product['name']);
                 $pCatLower = mb_strtolower($product['category'] ?? '');
 
@@ -522,6 +524,7 @@ class BusinessSourceOfTruthService
                         }
                     }
                     $matchedCatalogItems[] = ['product' => $product, 'score' => $matchScore, 'isDirect' => $isDirectMatch];
+                }
                 }
             }
 
@@ -606,7 +609,8 @@ class BusinessSourceOfTruthService
                         "  * To place an order, instruct the customer to provide the name of the desired product, their Name, Mobile Phone Number, and complete Delivery Address in the chat.";
                 }
             } elseif (!$matchedAny && $activeProduct && !empty($activeProduct['name']) && ($inquiredItem === null || $isSameProductAsActive)) {
-                if (preg_match('/(দাম\s*কত|কত\s*দাম|dam\s*koto|price\s*koto|how\s*much|স্টকে\s*আছে|available\s*ache|stock\s*ache|stock|স্টক|koyta|কয়টা|কয়টা|details|বিস্তারিত|বিবরণ|জানাও|বলো|বলুন|bolo|bolen|tell\s*me|specification|specs?|configuration|features?|বৈশিষ্ট্য|তথ্য|info|fabric|material|ফেব্রিক|মেটেরিয়াল|উপাদান|কাপড়|warranty|guarantee|ওয়ারেন্টি|ওয়ারেন্টি|গ্যারান্টি|origin|অরিজিন|কোথায়\s*তৈরি|তৈরি\s*কোথায়)/ui', $query)) {
+                $isPolicyOrAfterSalesQuery = (bool) preg_match('/(?:ফেরত|রিটার্ন|রিফান্ড|return|refund|exchange|বদল|ক্যানসেল|বাতিল|নষ্ট|ড্যামেজ|damage|ক্ষতিগ্রস্ত|ত্রুটি|ট্যাগ|tag|policy|পলিসি|নিয়ম|রিস্টকিং|restocking)/ui', $query);
+                if (!$isPolicyOrAfterSalesQuery && preg_match('/(দাম\s*কত|কত\s*দাম|dam\s*koto|price\s*koto|how\s*much|স্টকে\s*আছে|available\s*ache|stock\s*ache|stock|স্টক|koyta|কয়টা|কয়টা|details|বিস্তারিত|বিবরণ|জানাও|বলো|বলুন|bolo|bolen|tell\s*me|specification|specs?|configuration|features?|বৈশিষ্ট্য|তথ্য|info|fabric|material|ফেব্রিক|মেটেরিয়াল|উপাদান|কাপড়|warranty|guarantee|ওয়ারেন্টি|ওয়ারেন্টি|গ্যারান্টি|origin|অরিজিন|কোথায়\s*তৈরি|তৈরি\s*কোথায়)/ui', $query)) {
                     $formattedPrice = number_format((float) ($activeProduct['unit_price'] ?? 0), 2);
                     $stockLine = isset($activeProduct['stock']) && $activeProduct['stock'] !== null ? "  * Stock/Qty: {$activeProduct['stock']} units\n" : '';
                     $specsLine = !empty($activeProduct['specs'])
@@ -1114,6 +1118,10 @@ class BusinessSourceOfTruthService
     {
         $q = trim($query);
 
+        if (preg_match('/(?:showroom|শোরুম|ধানমন্ডি|outlet|swap|exchange|এক্সচেঞ্জ|বদল|size|সাইজ|rocket|nagad|bkash|নগদ|বিকাশ|রকেট|charge|চার্জ|refund|রিফান্ড|return|ফেরত|delivery|ডেলিভারি|shipping|শিপিং|policy|পলিসি|ওয়ারেন্টি|warranty|সারচার্জ|surcharge|কয়টা\s*বাকি|koyta\s*baki|stock\s*e)/ui', $q)) {
+            return null;
+        }
+
         // Pattern 1: Inquiries with "ki ki" or "kono" e.g., "ki ki phone ache?", "kono sharee ache kina?"
         if (preg_match('/(?:^|[^\p{L}\p{M}\p{N}])(?:ki\s*ki|কি\s*কি|kono|কোনো|কোন)\s+([\p{L}\p{M}\p{N}\-_]+(?:\s+[\p{L}\p{M}\p{N}\-_]+){0,3})\s*(?:ache|pawa\s*jabe|available|আছে|পাওয়া\s*যাবে|পাব)/ui', $q, $m)) {
             $term = trim($m[1]);
@@ -1181,6 +1189,7 @@ class BusinessSourceOfTruthService
             'পানি', 'পানিতে', 'water', 'আগুন', 'fire', 'ড্যামেজ', 'damage', 'ক্ষতিগ্রস্ত', 'ত্রুটি', 'defective',
             'সাহায্য', 'help', 'সাপোর্ট', 'support', 'কাস্টমার কেয়ার', 'helpline', 'হেল্পলাইন',
             'শোরুম', 'showroom', 'আউটলেট', 'outlet', 'ঠিকানা', 'address', 'সময়', 'time', 'hours', 'খোলা', 'বন্ধ',
+            'swap', 'বদল', 'check', 'chance', 'size', 'সাইজ', 'rocket', 'রকেট', 'baki', 'বাকি', 'koyta', 'কয়টা', 'কয়টা', 'stock', 'স্টক',
         ];
         foreach ($policyServiceSubstrings as $pss) {
             if (str_contains($lower, $pss)) {

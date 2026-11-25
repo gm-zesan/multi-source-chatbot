@@ -107,6 +107,15 @@ return [
     // Comma-separated list of canary workspace IDs, e.g. "1,2,5"
     'canary_workspaces' => array_values(array_filter(array_map('trim', explode(',', (string) env('AI_CANARY_WORKSPACES', ''))))),
 
+    // Maximum queries allowed per canary workspace per calendar day
+    'canary_daily_limit' => (int) env('AI_CANARY_DAILY_LIMIT', 100),
+
+    // Maximum active in-flight requests allowed simultaneously per workspace (0 = unlimited)
+    'canary_max_concurrent_per_workspace' => (int) env('AI_CANARY_MAX_CONCURRENT_PER_WORKSPACE', 5),
+
+    // Maximum active in-flight requests allowed simultaneously across all workspaces on this host (0 = unlimited)
+    'canary_max_concurrent_global' => (int) env('AI_CANARY_MAX_CONCURRENT_GLOBAL', 10),
+
     /*
     |--------------------------------------------------------------------------
     | Frozen Retrieval & Reranker Hyperparameters

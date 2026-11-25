@@ -21,6 +21,31 @@ class FacebookDriver implements ChannelDriver
         return response('Forbidden', 403);
     }
 
+    /**
+     * Verify Meta HMAC SHA-256 Webhook Signature on inbound POST requests.
+     */
+    public function verifyWebhookSignature(Request $request): bool
+    {
+        $appSecret = config('services.facebook.client_secret');
+        if (empty($appSecret)) {
+            if (app()->environment('production')) {
+                \Illuminate\Support\Facades\Log::emergency('[FacebookDriver] Inbound webhook rejected: FACEBOOK_CLIENT_SECRET is missing in production');
+                return false;
+            }
+            return true; // Safe bypass in local development and automated testing
+        }
+
+        $hubSignature = $request->header('X-Hub-Signature-256');
+        if (empty($hubSignature) || ! str_starts_with($hubSignature, 'sha256=')) {
+            return false;
+        }
+
+        $expectedHash = hash_hmac('sha256', $request->getContent(), $appSecret);
+        $providedHash = substr($hubSignature, 7);
+
+        return hash_equals($expectedHash, $providedHash);
+    }
+
 
     public function send(ChannelAccount $account, Conversation $conversation, string $message): array
     {

@@ -40,6 +40,7 @@ class IngestConversationMemoryJob implements ShouldQueue, ShouldBeUniqueUntilPro
     public function __construct(
         public readonly Conversation $conversation,
     ) {
+        $this->connection = 'database';
         $this->queue = 'memory';
     }
 

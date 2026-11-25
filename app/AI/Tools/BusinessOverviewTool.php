@@ -73,7 +73,16 @@ class BusinessOverviewTool extends AbstractGovernedTool
 
         // 2. Parse Date Boundaries
         try {
-            [$startDate, $endDate, $periodLabel] = $this->resolveDateRange($arguments);
+            $contextQuery = trim((string) (
+                $arguments['query']
+                ?? $arguments['question']
+                ?? $context->conversation?->messages()->latest('id')->value('body')
+                ?? ''
+            ));
+            [$startDate, $endDate, $periodLabel] = \App\AI\Support\AnalyticsDatePeriodResolver::resolve(
+                arguments: $arguments,
+                fallbackQuery: $contextQuery
+            );
         } catch (\Throwable) {
             return ToolResult::failure("Invalid date format provided. Expected format is 'YYYY-MM-DD'.");
         }
@@ -143,6 +152,16 @@ class BusinessOverviewTool extends AbstractGovernedTool
         $grossMargin = round($grossSales - $cogs, 2);
         $grossMarginRate = $grossSales > 0 ? round($grossMargin / $grossSales, 4) : 0.0;
 
+        $lines = [
+            "📊 ব্যবসায়িক ওভারভিউ রিপোর্ট ({$periodLabel}):",
+            "- মোট গ্রস সেলস: ৳" . number_format($grossSales, 2),
+            "- মোট অর্ডার: {$orderCount} টি",
+            "- ক্যাশ কালেকশন: ৳" . number_format($cashCollected, 2),
+            "- বকেয়া/আউটস্ট্যান্ডিং: ৳" . number_format($outstandingDues, 2),
+            "- সক্রিয় গ্রাহক: {$activeCustomers} জন",
+        ];
+        $reportStr = implode("\n", $lines);
+
         return ToolResult::success([
             'period'             => $periodLabel,
             'start_date'         => $startDate?->toDateString(),
@@ -158,6 +177,7 @@ class BusinessOverviewTool extends AbstractGovernedTool
             'cogs'               => $cogs,
             'gross_margin'       => $grossMargin,
             'gross_margin_rate'  => $grossMarginRate,
+            'report'             => $reportStr,
         ], [
             'execution_time_ms' => $context->getElapsedMs(),
             'tool_name'         => $this->name(),

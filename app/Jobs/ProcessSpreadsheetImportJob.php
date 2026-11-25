@@ -35,7 +35,8 @@ class ProcessSpreadsheetImportJob implements ShouldQueue
         public readonly string $fencingGenerationId,
         public readonly int $chunkSize = 250
     ) {
-        $this->queue = 'default';
+        $this->connection = 'database';
+        $this->queue = 'documents';
     }
 
     /**

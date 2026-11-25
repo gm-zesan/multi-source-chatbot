@@ -75,15 +75,22 @@ class ProductPerformanceTool extends AbstractGovernedTool
 
         $workspaceId = $context->getWorkspaceId();
 
-        // 2. Parse Arguments
+        // 2. Parse Arguments using unified AnalyticsDatePeriodResolver
         try {
-            $startDate = !empty($arguments['start_date'])
-                ? Carbon::parse((string) $arguments['start_date'])
-                : Carbon::today()->subDays(29);
+            $contextQuery = trim((string) (
+                $arguments['query']
+                ?? $arguments['question']
+                ?? $context->conversation?->messages()->latest('id')->value('body')
+                ?? ''
+            ));
 
-            $endDate = !empty($arguments['end_date'])
-                ? Carbon::parse((string) $arguments['end_date'])
-                : Carbon::today();
+            [$startDateObj, $endDateObj, $periodLabel] = \App\AI\Support\AnalyticsDatePeriodResolver::resolve(
+                arguments: $arguments,
+                fallbackQuery: $contextQuery
+            );
+
+            $startDate = $startDateObj ?? Carbon::today()->subDays(29)->startOfDay();
+            $endDate = $endDateObj ?? Carbon::today()->endOfDay();
         } catch (\Throwable) {
             return ToolResult::failure("Invalid date format provided. Expected format is 'YYYY-MM-DD'.");
         }
@@ -166,6 +173,21 @@ class ProductPerformanceTool extends AbstractGovernedTool
             ];
         })->all();
 
+        $dateLabel = $startDate->toDateString() === $endDate->toDateString()
+            ? $startDate->toDateString()
+            : "{$startDate->toDateString()} থেকে {$endDate->toDateString()}";
+        $lines = ["📦 প্রোডাক্ট পারফরম্যান্স ও টপ সেলিং রিপোর্ট ({$dateLabel}):"];
+        if (empty($products)) {
+            $lines[] = "- এই সময়সীমার মধ্যে কোনো প্রোডাক্ট বিক্রির তথ্য পাওয়া যায়নি।";
+        } else {
+            foreach ($products as $idx => $p) {
+                $rank = $idx + 1;
+                $formattedRev = number_format((float) $p['revenue'], 2);
+                $lines[] = "- {$rank}. {$p['name']} ({$p['category']}): ৳{$formattedRev} (বিক্রি: {$p['units_sold']} টি)";
+            }
+        }
+        $reportStr = implode("\n", $lines);
+
         return ToolResult::success([
             'start_date' => $startDate->toDateString(),
             'end_date'   => $endDate->toDateString(),
@@ -174,6 +196,7 @@ class ProductPerformanceTool extends AbstractGovernedTool
             'direction'  => $direction,
             'count'      => count($products),
             'products'   => $products,
+            'report'     => $reportStr,
         ], [
             'execution_time_ms' => $context->getElapsedMs(),
             'tool_name'         => $this->name(),

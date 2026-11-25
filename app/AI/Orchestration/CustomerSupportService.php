@@ -436,6 +436,7 @@ class CustomerSupportService
                 query: $message->body,
                 reply: $replyText,
                 telemetry: [
+                    'turn_id'                => $result['decision_metadata']['turn_id'] ?? null,
                     'route'                  => $result['route'] ?? 'knowledge',
                     'confidence'             => $result['confidence'] ?? 1.0,
                     'answered'               => $result['answered'] ?? false,

@@ -27,6 +27,7 @@ class MerchantDynamicFallbackConfigurationTest extends TestCase
     {
         parent::setUp();
         Cache::flush();
+        config(['ai.rollout_mode' => 'all']);
 
         $this->orchestrator = app(UnifiedOrchestrator::class);
 

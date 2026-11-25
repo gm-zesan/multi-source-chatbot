@@ -590,7 +590,15 @@ class RetrievalClient
                     ]);
                 }
 
-                return $this->mapResults($results, $topK, $workspaceId);
+                $mapped = $this->mapResults($results, $topK, $workspaceId);
+                if ($mapped->isEmpty()) {
+                    $dbFallback = $this->fallbackDatabaseSearch($trimmed, $workspaceId, $topK, $contextualSignal);
+                    if ($dbFallback->isNotEmpty()) {
+                        return $dbFallback;
+                    }
+                }
+
+                return $mapped;
             }
 
             $this->lastTelemetry = [];
@@ -926,6 +934,9 @@ class RetrievalClient
             if ($faq === null && isset($item['question'], $item['answer'])) {
                 // If model not in local DB (e.g. distributed store or document chunk), build a transient instance
                 $itemWorkspaceId = isset($item['workspace_id']) ? (int) $item['workspace_id'] : $workspaceId;
+                if ($workspaceId !== null && $itemWorkspaceId !== (int) $workspaceId) {
+                    continue; // Strict tenant boundary guard
+                }
                 if ($workspaceId !== null && $itemWorkspaceId !== (int) $workspaceId) {
                     continue; // Strict tenant boundary guard
                 }

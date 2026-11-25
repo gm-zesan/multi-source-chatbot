@@ -18,6 +18,8 @@ class AnalyticsPayment extends Model
         'customer_id',
         'salesperson_id',
         'amount',
+        'transaction_type',
+        'provider',
         'payment_method',
         'transaction_ref',
         'collected_at',
@@ -27,6 +29,33 @@ class AnalyticsPayment extends Model
         'amount'       => 'decimal:2',
         'collected_at' => 'datetime',
     ];
+
+    /**
+     * Financial Ledger Invariant:
+     * Payment records are strictly immutable once created.
+     * Direct mutations and deletions are blocked at the model layer and DB trigger layer.
+     * Provider must never be null to guarantee composite index uniqueness.
+     * All adjustments, refunds, and chargebacks must be recorded as compensating ledger entries.
+     */
+    protected static function booted(): void
+    {
+        static::creating(function (self $payment): void {
+            if (empty($payment->provider)) {
+                $payment->provider = 'manual';
+            }
+            if (empty($payment->transaction_type)) {
+                $payment->transaction_type = 'courier_settlement';
+            }
+        });
+
+        static::updating(function (self $payment): void {
+            throw new \LogicException("AnalyticsPayment ledger record #{$payment->id} is strictly immutable and cannot be updated. Use a compensating transaction.");
+        });
+
+        static::deleting(function (self $payment): void {
+            throw new \LogicException("AnalyticsPayment ledger record #{$payment->id} is strictly immutable and cannot be deleted.");
+        });
+    }
 
     public function workspace(): BelongsTo
     {

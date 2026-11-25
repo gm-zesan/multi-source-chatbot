@@ -113,18 +113,22 @@ class SalesAnalyticsTool extends AbstractGovernedTool
             }
         }
 
-        // 2. Parse Date Filters
+        // 2. Parse Date Filters using unified AnalyticsDatePeriodResolver
         try {
-            $hasQuarterRef = !empty($arguments['query']) && (bool) preg_match('/(?:january|february|march|জানুয়ারি|ফেব্রুয়ারি|মার্চ|বছর|year)/ui', (string) $arguments['query']);
-            $defaultStart = $hasQuarterRef ? Carbon::today()->startOfYear() : Carbon::today()->subDays(29);
+            $contextQuery = trim((string) (
+                $arguments['query']
+                ?? $arguments['question']
+                ?? $context->conversation?->messages()->latest('id')->value('body')
+                ?? ''
+            ));
 
-            $startDate = !empty($arguments['start_date'])
-                ? Carbon::parse((string) $arguments['start_date'])
-                : $defaultStart;
+            [$startDateObj, $endDateObj, $periodLabel] = \App\AI\Support\AnalyticsDatePeriodResolver::resolve(
+                arguments: $arguments,
+                fallbackQuery: $contextQuery
+            );
 
-            $endDate = !empty($arguments['end_date'])
-                ? Carbon::parse((string) $arguments['end_date'])
-                : Carbon::today();
+            $startDate = $startDateObj ?? Carbon::today()->subDays(29)->startOfDay();
+            $endDate = $endDateObj ?? Carbon::today()->endOfDay();
         } catch (\Throwable) {
             return ToolResult::failure("Invalid date format provided. Expected format is 'YYYY-MM-DD'.");
         }
@@ -135,14 +139,10 @@ class SalesAnalyticsTool extends AbstractGovernedTool
 
         $startDateTime = $startDate->copy()->startOfDay()->toDateTimeString();
         $endDateTime = $endDate->copy()->endOfDay()->toDateTimeString();
+        $startDateLabel = $startDate->toDateString();
+        $endDateLabel = $endDate->toDateString();
 
         $rawGroupBy = $arguments['group_by'] ?? null;
-        $contextQuery = trim((string) (
-            $arguments['query']
-            ?? $arguments['question']
-            ?? $context->conversation?->messages()->latest('id')->value('body')
-            ?? ''
-        ));
 
         if (empty($rawGroupBy) && !empty($contextQuery)) {
             $q = mb_strtolower($contextQuery);
@@ -215,6 +215,11 @@ class SalesAnalyticsTool extends AbstractGovernedTool
         $reportStr = "📊 সেলস রিপোর্ট ({$startDateLabel} থেকে {$endDateLabel}):\n" .
             "- মোট রেভিনিউ: ৳" . number_format($totalRevenue, 2) . " (মোট {$totalRevenue} টাকা)\n" .
             "- মোট অর্ডার: {$totalOrders} টি";
+        if ($startDateLabel === $endDateLabel) {
+            $reportStr = "📊 সেলস রিপোর্ট ({$startDateLabel}):\n" .
+                "- মোট রেভিনিউ: ৳" . number_format($totalRevenue, 2) . " (মোট {$totalRevenue} টাকা)\n" .
+                "- মোট অর্ডার: {$totalOrders} টি";
+        }
 
         return ToolResult::success([
             'group_by'      => $interval,

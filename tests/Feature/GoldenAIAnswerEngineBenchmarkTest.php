@@ -50,6 +50,7 @@ class GoldenAIAnswerEngineBenchmarkTest extends TestCase
         parent::setUp();
 
         $this->orchestrator = app(UnifiedOrchestrator::class);
+        config(['ai.canary_daily_limit' => 0]);
 
         // 1. Create isolated test workspace with unique ID to prevent cross-test contamination
         $uniqueWsId = 987654;
@@ -58,6 +59,7 @@ class GoldenAIAnswerEngineBenchmarkTest extends TestCase
             'name'      => 'Golden Benchmark Store',
             'slug'      => 'golden-store',
             'is_active' => true,
+            'settings'  => ['ai_canary_enabled' => true],
         ]);
 
         $this->channel = Channel::firstOrCreate(
@@ -229,6 +231,13 @@ EOT;
 
         $this->dbProducts = "{$this->analyticsDir}/catalog_products.sqlite";
         $this->dbInventory = "{$this->analyticsDir}/catalog_inventory.sqlite";
+
+        if (file_exists($this->dbProducts)) {
+            @unlink($this->dbProducts);
+        }
+        if (file_exists($this->dbInventory)) {
+            @unlink($this->dbInventory);
+        }
 
         $pdoProd = new PDO("sqlite:{$this->dbProducts}");
         $pdoProd->exec('CREATE TABLE products (

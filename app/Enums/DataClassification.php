@@ -125,6 +125,11 @@ enum DataClassification: string
             'booking_charge', 'service_fee', 'consultation_fee',
             'order_status', 'booking_status', 'delivery_status',
             'faq_question', 'faq_answer', 'public_catalog',
+            'found', 'source', 'order_number', 'status', 'raw_status', 'order_date',
+            'total_amount', 'discount', 'net_amount', 'subtotal', 'items',
+            'customer_name', 'delivery_address', 'delivery_estimate',
+            'courier_provider', 'courier_tracking_code', 'courier_status',
+            'report', 'message', 'product_summary',
         ];
         if (in_array($role, $publicRoles, true)) {
             return self::PUBLIC_CATALOG;

@@ -55,6 +55,27 @@ final class DataClassification
         'faq_question',
         'faq_answer',
         'public_catalog',
+        // Customer order status and fulfillment tracking fields
+        'found',
+        'source',
+        'order_number',
+        'status',
+        'raw_status',
+        'order_date',
+        'total_amount',
+        'discount',
+        'net_amount',
+        'subtotal',
+        'items',
+        'customer_name',
+        'delivery_address',
+        'delivery_estimate',
+        'courier_provider',
+        'courier_tracking_code',
+        'courier_status',
+        'report',
+        'message',
+        'product_summary',
     ];
 
     /**

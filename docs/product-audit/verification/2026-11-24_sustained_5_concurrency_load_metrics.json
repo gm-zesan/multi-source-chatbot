@@ -1,0 +1,50 @@
+{
+    "audit_timestamp": "2026-11-24T08:13:17+00:00",
+    "execution_mode": "SUSTAINED_MULTI_WAVE_CONCURRENCY",
+    "concurrency_per_wave": 5,
+    "total_waves": 3,
+    "total_requests": 15,
+    "successful_requests": 15,
+    "success_rate_percent": 100,
+    "overall_wall_clock_s": 15.4,
+    "sustained_throughput_rps": 0.97,
+    "latency_min_ms": 2982.9,
+    "latency_p50_ms": 3927.06,
+    "latency_p90_ms": 5066.8,
+    "latency_p95_ms": 5212.61,
+    "latency_max_ms": 5212.61,
+    "latency_avg_ms": 4051.38,
+    "total_tokens": 17103,
+    "avg_tokens_per_request": 1140.2,
+    "total_cost_usd": 0.002542,
+    "cost_per_1k_bdt": 20.34,
+    "wave_breakdown": {
+        "1": {
+            "wave": 1,
+            "duration_s": 5.41,
+            "success_rate": "5\/5",
+            "throughput_rps": 0.92,
+            "p50_ms": 4596.26,
+            "p95_ms": 5212.61,
+            "max_ms": 5212.61
+        },
+        "2": {
+            "wave": 2,
+            "duration_s": 5.3,
+            "success_rate": "5\/5",
+            "throughput_rps": 0.94,
+            "p50_ms": 3551.83,
+            "p95_ms": 5043.16,
+            "max_ms": 5043.16
+        },
+        "3": {
+            "wave": 3,
+            "duration_s": 4.69,
+            "success_rate": "5\/5",
+            "throughput_rps": 1.07,
+            "p50_ms": 3672.91,
+            "p95_ms": 4474.32,
+            "max_ms": 4474.32
+        }
+    }
+}

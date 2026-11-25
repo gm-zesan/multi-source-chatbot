@@ -245,6 +245,13 @@ class WorkspaceCourierController extends Controller
         $order->admin_notes = ($order->admin_notes ?: '') . $note;
         $order->save();
 
+        // BI Canonical Projection: Project courier status update into AnalyticsOrder & AnalyticsPayment
+        try {
+            app(\App\Services\Analytics\OrderAnalyticsProjectionService::class)->project($order);
+        } catch (\Throwable $e) {
+            Log::warning('[Steadfast Webhook] Failed to project to AnalyticsOrder: ' . $e->getMessage());
+        }
+
         if ($order->status === 'delivered') {
             app(\App\Services\Retention\PostDeliveryFeedbackService::class)->dispatchFeedbackRequest($order);
         }
@@ -300,6 +307,13 @@ class WorkspaceCourierController extends Controller
         $timestamp = now()->format('d M Y, h:i A');
         $order->admin_notes = ($order->admin_notes ?: '') . "\n[Pathao Webhook: {$orderStatus} at {$timestamp}]";
         $order->save();
+
+        // BI Canonical Projection: Project Pathao courier status update into AnalyticsOrder & AnalyticsPayment
+        try {
+            app(\App\Services\Analytics\OrderAnalyticsProjectionService::class)->project($order);
+        } catch (\Throwable $e) {
+            Log::warning('[Pathao Webhook] Failed to project to AnalyticsOrder: ' . $e->getMessage());
+        }
 
         if ($order->status === 'delivered') {
             app(\App\Services\Retention\PostDeliveryFeedbackService::class)->dispatchFeedbackRequest($order);

@@ -37,6 +37,12 @@ class WebhookController extends Controller
             return $driver->verifyWebhook($request);
         }
 
+        // Verify HMAC Signature on POST if supported by driver
+        if (method_exists($driver, 'verifyWebhookSignature') && ! $driver->verifyWebhookSignature($request)) {
+            Log::warning('[Webhook] Inbound webhook rejected: invalid signature', ['channel' => $channel]);
+            return response('Invalid Signature', 403);
+        }
+
         $payload = $request->all();
 
         // Parse webhook payload via channel driver

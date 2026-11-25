@@ -79,6 +79,14 @@ class RunFAQEngineListener implements ShouldQueue
             $event->account->loadMissing('channel');
             $channelSlug = $event->account->channel?->slug ?? 'web';
 
+            // 0. Guard: Skip automated reply if AI is paused for human staff takeover
+            if ($event->conversation->isAiPaused()) {
+                Log::info('[FAQ Listener] Skipping AI reply: Conversation AI is paused by human staff', [
+                    'conversation_id' => $event->conversation->id,
+                ]);
+                return;
+            }
+
             // 1. Media Attachment Fast-Path: Acknowledge payment slips/photos immediately
             $isMedia = $event->message->type === 'image'
                 || str_starts_with((string) $event->message->body, '[Attachment: Image]')
@@ -201,6 +209,7 @@ class RunFAQEngineListener implements ShouldQueue
                         query: $event->message->body,
                         reply: $replyText,
                         telemetry: [
+                            'turn_id'                => $result['decision_metadata']['turn_id'] ?? null,
                             'route'                  => $result['route'] ?? 'knowledge',
                             'confidence'             => $result['confidence'] ?? 1.0,
                             'answered'               => $result['answered'] ?? false,

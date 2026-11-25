@@ -68,15 +68,20 @@ class FinancialAnalyticsTool extends AbstractGovernedTool
 
         $workspaceId = $context->getWorkspaceId();
 
-        // 2. Parse Date Boundaries
+        // 2. Parse Date Boundaries using unified AnalyticsDatePeriodResolver
         try {
-            $startDate = !empty($arguments['start_date'])
-                ? Carbon::parse((string) $arguments['start_date'])
-                : Carbon::today()->subDays(29);
-
-            $endDate = !empty($arguments['end_date'])
-                ? Carbon::parse((string) $arguments['end_date'])
-                : Carbon::today();
+            $contextQuery = trim((string) (
+                $arguments['query']
+                ?? $arguments['question']
+                ?? $context->conversation?->messages()->latest('id')->value('body')
+                ?? ''
+            ));
+            [$startDateObj, $endDateObj, $periodLabel] = \App\AI\Support\AnalyticsDatePeriodResolver::resolve(
+                arguments: $arguments,
+                fallbackQuery: $contextQuery
+            );
+            $startDate = $startDateObj ?? Carbon::today()->subDays(29)->startOfDay();
+            $endDate = $endDateObj ?? Carbon::today()->endOfDay();
         } catch (\Throwable) {
             return ToolResult::failure("Invalid date format provided. Expected format is 'YYYY-MM-DD'.");
         }
@@ -133,6 +138,22 @@ class FinancialAnalyticsTool extends AbstractGovernedTool
             $expenseNote = 'Operating expenses and net profit require an uploaded expense spreadsheet; currently reporting verified gross profit and gross margin.';
         }
 
+        $dateLabel = $startDate->toDateString() === $endDate->toDateString()
+            ? $startDate->toDateString()
+            : "{$startDate->toDateString()} থেকে {$endDate->toDateString()}";
+        $lines = [
+            "💰 ফাইন্যান্সিয়াল রিপোর্ট ({$dateLabel}):",
+            "- গ্রস সেলস: ৳" . number_format($grossSales, 2),
+            "- মোট ডিসকাউন্ট: ৳" . number_format($totalDiscount, 2),
+            "- নেট রেভিনিউ: ৳" . number_format($netRevenue, 2),
+            "- ক্রয়মূল্য (COGS): ৳" . number_format($cogs, 2),
+            "- গ্রস প্রফিট: ৳" . number_format($grossProfit, 2) . " (মার্জিন: " . ($grossMarginRate * 100) . "%)",
+        ];
+        if ($netProfit !== null) {
+            $lines[] = "- নেট প্রফিট: ৳" . number_format($netProfit, 2) . " (মার্জিন: " . (($netMarginRate ?? 0) * 100) . "%)";
+        }
+        $reportStr = implode("\n", $lines);
+
         return ToolResult::success([
             'start_date'         => $startDate->toDateString(),
             'end_date'           => $endDate->toDateString(),
@@ -147,6 +168,7 @@ class FinancialAnalyticsTool extends AbstractGovernedTool
             'net_profit'         => $netProfit,
             'net_margin_rate'    => $netMarginRate,
             'financial_note'     => $expenseNote,
+            'report'             => $reportStr,
         ], [
             'execution_time_ms' => $context->getElapsedMs(),
             'tool_name'         => $this->name(),
