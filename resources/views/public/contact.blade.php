@@ -186,3 +186,18 @@
 
     </div>
 @endsection
+
+@if (session('success'))
+    @push('custom-scripts')
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                if (typeof gtag === 'function') {
+                    gtag('event', 'generate_lead');
+                }
+                if (typeof fbq === 'function') {
+                    fbq('track', 'Lead');
+                }
+            });
+        </script>
+    @endpush
+@endif

@@ -61,4 +61,11 @@ return [
         'timeout' => (int) env('MEMORY_SERVICE_TIMEOUT', 3),
     ],
 
+    'analytics' => [
+        'enabled' => env('PUBLIC_ANALYTICS_ENABLED'),
+        'ga4_id' => env('GA4_MEASUREMENT_ID'),
+        'meta_pixel_id' => env('META_PIXEL_ID'),
+        'clarity_id' => env('CLARITY_PROJECT_ID'),
+    ],
+
 ];

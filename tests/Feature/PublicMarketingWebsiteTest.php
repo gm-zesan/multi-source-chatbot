@@ -218,4 +218,40 @@ class PublicMarketingWebsiteTest extends TestCase
         $response->assertSee('<meta property="og:description"', false);
         $response->assertSee('<meta name="twitter:card"', false);
     }
+
+    public function test_public_analytics_scripts_stay_disabled_in_non_production_by_default(): void
+    {
+        config([
+            'services.analytics.enabled' => null,
+            'services.analytics.ga4_id' => 'G-S3VWSH4268',
+            'services.analytics.meta_pixel_id' => '2340393403466648',
+        ]);
+
+        $response = $this->get(route('home'));
+
+        $response->assertOk();
+        $response->assertDontSee('G-S3VWSH4268', false);
+        $response->assertDontSee('2340393403466648', false);
+    }
+
+    public function test_public_analytics_scripts_render_when_enabled_and_lead_fires_on_contact_success(): void
+    {
+        config([
+            'services.analytics.enabled' => true,
+            'services.analytics.ga4_id' => 'G-S3VWSH4268',
+            'services.analytics.meta_pixel_id' => '2340393403466648',
+        ]);
+
+        $homeResponse = $this->get(route('home'));
+        $homeResponse->assertOk();
+        $homeResponse->assertSee('https://www.googletagmanager.com/gtag/js?id=G-S3VWSH4268', false);
+        $homeResponse->assertSee('gtag(\'config\', "G-S3VWSH4268")', false);
+        $homeResponse->assertSee('fbq(\'init\', "2340393403466648")', false);
+        $homeResponse->assertSee("fbq('track', 'PageView')", false);
+
+        $contactResponse = $this->withSession(['success' => 'Submitted'])->get(route('contact'));
+        $contactResponse->assertOk();
+        $contactResponse->assertSee("gtag('event', 'generate_lead')", false);
+        $contactResponse->assertSee("fbq('track', 'Lead')", false);
+    }
 }
