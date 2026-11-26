@@ -35,6 +35,10 @@ class SocialAuthController extends Controller
      */
     public function redirect(string $provider): RedirectResponse
     {
+        if (! config('auth.login_enabled')) {
+            abort(404);
+        }
+
         if (!in_array($provider, $this->allowedProviders, true)) {
             return redirect()->route('login')->with('error', 'Unsupported login provider.');
         }
@@ -63,6 +67,10 @@ class SocialAuthController extends Controller
      */
     public function callback(string $provider, Request $request): RedirectResponse
     {
+        if (! config('auth.login_enabled')) {
+            abort(404);
+        }
+
         if (!in_array($provider, $this->allowedProviders, true)) {
             return redirect()->route('login')->with('error', 'Unsupported login provider.');
         }
@@ -146,6 +154,10 @@ class SocialAuthController extends Controller
             $user->last_login_ip = $request->ip();
             $user->save();
         } else {
+            if (! config('auth.registration_enabled')) {
+                return redirect()->route('login')->with('error', 'New account registration is currently closed.');
+            }
+
             // 3. Create a new user record and dedicated tenant workspace
             $businessName = ($socialUser->getName() ?: ucfirst($provider) . ' Business') . ' Workspace';
 

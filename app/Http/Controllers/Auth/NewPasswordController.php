@@ -21,6 +21,10 @@ class NewPasswordController extends Controller
      */
     public function create(Request $request): View
     {
+        if (! config('auth.login_enabled')) {
+            abort(404);
+        }
+
         return view('auth.reset-password', ['request' => $request]);
     }
 
@@ -31,6 +35,10 @@ class NewPasswordController extends Controller
      */
     public function store(Request $request): RedirectResponse
     {
+        if (! config('auth.login_enabled')) {
+            abort(404);
+        }
+
         $request->validate([
             'token' => ['required'],
             'email' => ['required', 'email'],

@@ -6,6 +6,21 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Public Auth Feature Toggles
+    |--------------------------------------------------------------------------
+    |
+    | Control whether public login, password reset, social auth, and tenant
+    | self-registration are enabled. Set both to false for marketing-only
+    | frontend deployments until pilot or public onboarding is opened.
+    |
+    */
+
+    'login_enabled' => (bool) env('AUTH_LOGIN_ENABLED', false),
+
+    'registration_enabled' => (bool) env('AUTH_REGISTRATION_ENABLED', false),
+
+    /*
+    |--------------------------------------------------------------------------
     | Authentication Defaults
     |--------------------------------------------------------------------------
     |

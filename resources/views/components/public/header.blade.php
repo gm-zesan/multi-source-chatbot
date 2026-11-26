@@ -121,10 +121,12 @@
                     <span>{{ __('public.nav.open_console') }}</span>
                 </a>
             @else
-                <a href="{{ route('login') }}" class="hidden sm:inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-medium text-light-text dark:text-dark-text hover:bg-light-elevated dark:hover:bg-dark-elevated transition-colors">
-                    {{ __('public.nav.sign_in') }}
-                </a>
-                <a href="{{ route('register') }}" class="btn-shimmer hidden sm:inline-flex items-center gap-1 px-3.5 py-1.5 rounded-lg bg-brand-600 hover:bg-brand-500 text-white text-xs font-semibold shadow-xs transition-all">
+                @if (config('auth.login_enabled'))
+                    <a href="{{ route('login') }}" class="hidden sm:inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-medium text-light-text dark:text-dark-text hover:bg-light-elevated dark:hover:bg-dark-elevated transition-colors">
+                        {{ __('public.nav.sign_in') }}
+                    </a>
+                @endif
+                <a href="{{ config('auth.registration_enabled') ? route('register') : route('contact') }}" class="btn-shimmer hidden sm:inline-flex items-center gap-1 px-3.5 py-1.5 rounded-lg bg-brand-600 hover:bg-brand-500 text-white text-xs font-semibold shadow-xs transition-all">
                     <span>{{ __('public.nav.get_started') }}</span>
                     <i class="ri-arrow-right-line text-xs"></i>
                 </a>
@@ -175,8 +177,10 @@
             @auth
                 <a href="{{ route('dashboard') }}" class="w-full text-center py-2 rounded-lg bg-brand-600 text-white text-xs font-semibold">{{ __('public.nav.open_console') }}</a>
             @else
-                <a href="{{ route('login') }}" class="w-full text-center py-2 rounded-lg border border-light-border dark:border-white/[0.08] text-xs font-medium">{{ __('public.nav.sign_in') }}</a>
-                <a href="{{ route('register') }}" class="btn-shimmer w-full text-center py-2 rounded-lg bg-brand-600 text-white text-xs font-semibold">{{ __('public.nav.get_started') }}</a>
+                @if (config('auth.login_enabled'))
+                    <a href="{{ route('login') }}" class="w-full text-center py-2 rounded-lg border border-light-border dark:border-white/[0.08] text-xs font-medium">{{ __('public.nav.sign_in') }}</a>
+                @endif
+                <a href="{{ config('auth.registration_enabled') ? route('register') : route('contact') }}" class="btn-shimmer w-full text-center py-2 rounded-lg bg-brand-600 text-white text-xs font-semibold">{{ __('public.nav.get_started') }}</a>
             @endauth
         </div>
     </div>

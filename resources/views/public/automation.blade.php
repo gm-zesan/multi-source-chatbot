@@ -87,7 +87,7 @@
 
         {{-- CTA --}}
         <div class="text-center pt-8">
-            <a href="{{ route('register') }}"
+            <a href="{{ config('auth.registration_enabled') ? route('register') : route('contact') }}"
                 class="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-brand-500 hover:bg-brand-600 text-white font-semibold text-xs shadow-xs hover:shadow-sm transition-all">
                 <span>{{ __('public.automation.cta_btn') }}</span>
                 <i class="ri-arrow-right-line"></i>

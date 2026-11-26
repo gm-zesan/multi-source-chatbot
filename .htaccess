@@ -1,12 +1,25 @@
+# Protect sensitive dotfiles (.env, .git, .htaccess) and internal Laravel directories
+<FilesMatch "^\.">
+    Require all denied
+</FilesMatch>
+
+<FilesMatch "^(artisan|composer\.(json|lock)|package(-lock)?\.json|phpunit\.xml|vite\.config\.js|tailwind\.config\.js|postcss\.config\.js|docker-compose\.yml|deploy\.sh|logrotate\.conf|supervisord\.conf|.*\.md|.*\.log|.*\.sql|.*\.sqlite)$">
+    Require all denied
+</FilesMatch>
+
 <IfModule mod_rewrite.c>
-    Options +FollowSymLinks
+    Options +FollowSymLinks -Indexes
     RewriteEngine On
-    RewriteCond %{REQUEST_URI} !^/public/ 
+
+    # Block direct web access to internal application folders
+    RewriteRule ^(app|bootstrap|config|database|lang|resources|routes|storage|tests|vendor|scripts|supervisor|docker|deploy|audit_evidence_bo2|scratch)(/|$) - [F,L,NC]
+
+    RewriteCond %{REQUEST_URI} !^/public/
     RewriteCond %{REQUEST_FILENAME} !-d
     RewriteCond %{REQUEST_FILENAME} !-f
-    RewriteRule ^(.*)$ /public/$1 
-    #RewriteRule ^ index.php [L]
-    RewriteRule ^(/)?$ public/index.php [L] 
+    RewriteRule ^(.*)$ /public/$1 [L]
+
+    RewriteRule ^(/)?$ public/index.php [L]
 </IfModule>
 
 # BEGIN cPanel-generated php ini directives, do not edit
@@ -21,8 +34,8 @@
 AddType application/x-httpd-php .html
 
 # php -- BEGIN cPanel-generated handler, do not edit
-# Set the “ea-php82” package as the default “PHP” programming language.
+# Set the “alt-php84” package as the default “PHP” programming language.
 <IfModule mime_module>
-  AddHandler application/x-httpd-ea-php82 .php .php8 .phtml
+  AddHandler application/x-httpd-alt-php84 .php .php8 .phtml
 </IfModule>
 # php -- END cPanel-generated handler, do not edit

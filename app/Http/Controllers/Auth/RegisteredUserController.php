@@ -23,8 +23,12 @@ class RegisteredUserController extends Controller
     /**
      * Display the registration view.
      */
-    public function create(): View
+    public function create(): View|RedirectResponse
     {
+        if (! config('auth.registration_enabled')) {
+            return redirect()->route('contact');
+        }
+
         return view('auth.register');
     }
 
@@ -35,6 +39,10 @@ class RegisteredUserController extends Controller
      */
     public function store(Request $request): RedirectResponse
     {
+        if (! config('auth.registration_enabled')) {
+            abort(404);
+        }
+
         $request->validate([
             'name'          => ['required', 'string', 'max:255'],
             'business_name' => ['required', 'string', 'max:150'],

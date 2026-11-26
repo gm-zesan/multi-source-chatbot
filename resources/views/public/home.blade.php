@@ -36,7 +36,7 @@
 
             {{-- Dual CTAs with Button Shimmer --}}
             <div class="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
-                <a href="{{ route('register') }}" class="btn-shimmer w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-semibold text-sm shadow-xs hover:shadow-sm transition-all">
+                <a href="{{ config('auth.registration_enabled') ? route('register') : route('contact') }}" class="btn-shimmer w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-semibold text-sm shadow-xs hover:shadow-sm transition-all">
                     <span>{{ __('public.home.get_started_btn') }}</span>
                     <i class="ri-arrow-right-line"></i>
                 </a>
@@ -936,7 +936,7 @@
         </div>
 
         <div class="text-center pt-2">
-            <a href="{{ route('register') }}" class="btn-shimmer inline-flex items-center gap-2 px-8 py-3.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-bold text-xs shadow-sm hover:shadow transition-all">
+            <a href="{{ config('auth.registration_enabled') ? route('register') : route('contact') }}" class="btn-shimmer inline-flex items-center gap-2 px-8 py-3.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-bold text-xs shadow-sm hover:shadow transition-all">
                 <span>{{ __('public.home.start_free_btn', ['bonus' => number_format($sBonus, 0)]) }}</span>
                 <i class="ri-arrow-right-line"></i>
             </a>
@@ -996,11 +996,13 @@
             </div>
 
             <div class="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
-                <a href="{{ route('register') }}" class="btn-shimmer w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-semibold text-xs shadow-xs hover:shadow-sm transition-all">
-                    <span>{{ __('public.home.cta_get_started') }}</span>
-                    <i class="ri-arrow-right-line"></i>
-                </a>
-                <a href="{{ route('contact') }}" class="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl border border-light-border dark:border-white/[0.08] bg-light-surface dark:bg-dark-surface hover:bg-light-elevated dark:hover:bg-dark-elevated text-light-text dark:text-dark-text font-semibold text-xs shadow-xs transition-colors">
+                @if (config('auth.registration_enabled'))
+                    <a href="{{ route('register') }}" class="btn-shimmer w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-semibold text-xs shadow-xs hover:shadow-sm transition-all">
+                        <span>{{ __('public.home.cta_get_started') }}</span>
+                        <i class="ri-arrow-right-line"></i>
+                    </a>
+                @endif
+                <a href="{{ route('contact') }}" class="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl {{ config('auth.registration_enabled') ? 'border border-light-border dark:border-white/[0.08] bg-light-surface dark:bg-dark-surface hover:bg-light-elevated dark:hover:bg-dark-elevated text-light-text dark:text-dark-text' : 'btn-shimmer bg-brand-600 hover:bg-brand-500 text-white shadow-xs hover:shadow-sm' }} font-semibold text-xs shadow-xs transition-colors">
                     <span>{{ __('public.home.cta_contact_sales') }}</span>
                 </a>
             </div>

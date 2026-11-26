@@ -14,8 +14,12 @@ class AuthenticatedSessionController extends Controller
     /**
      * Display the login view.
      */
-    public function create(): View
+    public function create(): View|RedirectResponse
     {
+        if (! config('auth.login_enabled')) {
+            return redirect()->route('home');
+        }
+
         return view('auth.login');
     }
 
@@ -24,6 +28,10 @@ class AuthenticatedSessionController extends Controller
      */
     public function store(LoginRequest $request): RedirectResponse
     {
+        if (! config('auth.login_enabled')) {
+            abort(404);
+        }
+
         $request->authenticate();
 
         $request->session()->regenerate();

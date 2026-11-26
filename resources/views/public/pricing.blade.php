@@ -100,8 +100,15 @@
                     </div>
 
                     @php
+                        $registrationEnabled = (bool) config('auth.registration_enabled');
                         $ctaText = $plan->cta_text ?: ($plan->is_featured ? 'Create Free Account' : 'Get Started');
-                        $ctaUrl = $plan->cta_url ?: route('register');
+                        $ctaUrl = $plan->cta_url ?: ($registrationEnabled ? route('register') : route('contact'));
+                        if (! $registrationEnabled && str_contains($ctaUrl, 'register')) {
+                            $ctaUrl = route('contact');
+                        }
+                        if (! $registrationEnabled && in_array($ctaText, ['Create Free Account', 'Start Free', 'Get Started Free'], true)) {
+                            $ctaText = __('public.home.cta_contact_sales');
+                        }
                         if (str_starts_with($ctaUrl, '/')) {
                             $ctaUrl = url($ctaUrl);
                         }

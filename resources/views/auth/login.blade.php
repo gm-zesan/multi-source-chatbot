@@ -161,12 +161,14 @@
         </div>
 
         {{-- Switch to Register --}}
-        <div class="mt-6 pt-5 border-t border-light-border dark:border-dark-border text-center text-xs text-light-muted dark:text-dark-muted">
-            Don't have an enterprise account? 
-            <a href="{{ route('register') }}" class="font-semibold text-brand-600 dark:text-brand-400 hover:underline">
-                Create an account
-            </a>
-        </div>
+        @if (config('auth.registration_enabled'))
+            <div class="mt-6 pt-5 border-t border-light-border dark:border-dark-border text-center text-xs text-light-muted dark:text-dark-muted">
+                Don't have an enterprise account? 
+                <a href="{{ route('register') }}" class="font-semibold text-brand-600 dark:text-brand-400 hover:underline">
+                    Create an account
+                </a>
+            </div>
+        @endif
     </div>
 
     @push('custom-scripts')

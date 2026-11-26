@@ -16,6 +16,10 @@ class PasswordResetLinkController extends Controller
      */
     public function create(): View
     {
+        if (! config('auth.login_enabled')) {
+            abort(404);
+        }
+
         return view('auth.forgot-password');
     }
 
@@ -26,6 +30,10 @@ class PasswordResetLinkController extends Controller
      */
     public function store(Request $request): RedirectResponse
     {
+        if (! config('auth.login_enabled')) {
+            abort(404);
+        }
+
         $request->validate([
             'email' => ['required', 'email'],
         ]);
